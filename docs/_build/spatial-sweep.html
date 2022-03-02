@@ -1,0 +1,155 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>Spatial Sweeps &#8212; ANTS 1.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Welcome to ANTS’s documentation!" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="spatial-sweeps">
+<h1>Spatial Sweeps<a class="headerlink" href="#spatial-sweeps" title="Permalink to this headline">¶</a></h1>
+<p>The angular flux calculations for different geometries.</p>
+<section id="one-dimensional-slab">
+<h2>One Dimensional Slab<a class="headerlink" href="#one-dimensional-slab" title="Permalink to this headline">¶</a></h2>
+<p>Neutron Transport Equation</p>
+<div class="math notranslate nohighlight" id="equation-1d-nte">
+<span class="eqno">(1)<a class="headerlink" href="#equation-1d-nte" title="Permalink to this equation">¶</a></span>\[\begin{equation}
+\frac{\mu}{\Delta x} \left( \Psi_{i + 1/2} - \Psi_{i - 1/2} \right) + \sigma_{t, i} \Psi_{i} = q_{i}
+\end{equation}\]</div>
+<p>For the diamond difference method, using <a class="reference internal" href="#equation-1d-nte">(1)</a> with</p>
+<div class="math notranslate nohighlight" id="equation-1d-dd">
+<span class="eqno">(2)<a class="headerlink" href="#equation-1d-dd" title="Permalink to this equation">¶</a></span>\[\begin{equation}
+\Psi_{i} = \frac{1}{2} \left( \Psi_{i + 1/2} + \Psi_{i - 1/2} \right),
+\end{equation}\]</div>
+<p>the angular flux calculation at the cell center is</p>
+<div class="math notranslate nohighlight" id="equation-1d-dd-center">
+<span class="eqno">(3)<a class="headerlink" href="#equation-1d-dd-center" title="Permalink to this equation">¶</a></span>\[\begin{equation}
+\Psi_{i} = \frac{q_{i} + \frac{2 \mu}{\Delta x} \Psi_{i - 1/2}}{\sigma_{t,i} + \frac{2 \mu}{\Delta x}}
+\end{equation}\]</div>
+<p>The step method uses</p>
+<div class="math notranslate nohighlight" id="equation-1d-st">
+<span class="eqno">(4)<a class="headerlink" href="#equation-1d-st" title="Permalink to this equation">¶</a></span>\[\begin{split}\begin{equation}
+\Psi_{i} = \begin{cases} \Psi_{i + 1/2} &amp; \mu &gt; 0 \\
+                         \Psi_{i - 1/2} &amp; \mu &lt; 0
+           \end{cases}
+\end{equation}\end{split}\]</div>
+<p>so the angular flux at the cell center is</p>
+<div class="math notranslate nohighlight" id="equation-1d-st-center">
+<span class="eqno">(5)<a class="headerlink" href="#equation-1d-st-center" title="Permalink to this equation">¶</a></span>\[\begin{equation}
+\Psi_{i} = \frac{q_{i} + \frac{\mu}{\Delta x} \Psi_{i - 1/2}}{\sigma_{t,i} + \frac{\mu}{\Delta x}}.
+\end{equation}\]</div>
+<p>These are for the steady state one dimensional spatial sweep.
+To change these calculations for time-dependent use, <a class="reference internal" href="#equation-1d-nte">(1)</a> incorporates the time dependent term.
+For the Backward Euler case,</p>
+<div class="math notranslate nohighlight" id="equation-1d-be">
+<span class="eqno">(6)<a class="headerlink" href="#equation-1d-be" title="Permalink to this equation">¶</a></span>\[\begin{equation}
+\frac{1}{v} \frac{\partial \Psi}{\partial t} = \frac{1}{v \Delta t}\left( \Psi_{i}^{n+1} - \Psi_{i}^{n} \right),
+\end{equation}\]</div>
+<p>where (n + 1) is the current time step.
+Substituting into <a class="reference internal" href="#equation-1d-nte">(1)</a> results in</p>
+<div class="math notranslate nohighlight" id="equation-1d-nte-td">
+<span class="eqno">(7)<a class="headerlink" href="#equation-1d-nte-td" title="Permalink to this equation">¶</a></span>\[\begin{equation}
+\frac{1}{v \Delta t}\left( \Psi_{i}^{n+1} - \Psi_{i}^{n} \right) + \frac{\mu}{\Delta x} \left( \Psi_{i + 1/2}^{n+1} - \Psi_{i - 1/2}^{n+1} \right) + \sigma_{t, i} \Psi_{i}^{n+1} = q_{i}
+\end{equation}\]</div>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">ANTS</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Spatial Sweeps</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#one-dimensional-slab">One Dimensional Slab</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">Welcome to ANTS’s documentation!</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2022, Ben Whewell.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.4.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/spatial-sweep.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

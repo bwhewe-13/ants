@@ -1,0 +1,69 @@
+########################################################################
+#                        ___    _   _____________
+#                       /   |  / | / /_  __/ ___/
+#                      / /| | /  |/ / / /  \__ \ 
+#                     / ___ |/ /|  / / /  ___/ / 
+#                    /_/  |_/_/ |_/ /_/  /____/  
+#
+#
+########################################################################
+
+PROBLEM: FIXED SOURCE
+
+SPATIAL
+        GEOMETRY: SLAB
+        DISCRETIZATION: DIAMOND DIFFERENCE
+        CELLS X DIRECTION: 100
+        CELL WIDTH X DIRECTION: 0.1
+        CELLS Y DIRECTION: 0
+        CELL WIDTH Y DIRECTION: 0
+END SPATIAL
+
+
+ANGLULAR
+        ANGLES X DIRECTION: 8
+        ANGLES Y DIRECTION: 0
+END ANGULAR
+
+
+TIME
+        DISCRETIZATION: BACKWARD EULER
+        ELAPSED TIME: 0
+        TIME STEPS: 100
+END TIME
+
+
+ENERGY
+        GROUPS: 1
+END ENERGY
+
+
+MATERIAL
+        0: REEDS
+END MATERIAL
+
+
+MEDIUM
+        MAPPING: /reed.mpr
+        BOUNDARY (X = 0): VACUUM
+        BOUNDARY (X = Y): VACUUM
+        BOUNDARY (Y = 0): VACUUM
+        BOUNDARY (Y = Y): VACUUM
+END MEDIUM
+
+SOURCES
+        EXTERNAL SOURCE: 0
+        POINT SOURCE 0
+END SOURCES
+
+
+HYBRID
+        ANGLES X COLLIDED: 0
+        ANGLES Y COLLIDED: 0
+        GROUPS COLLIDED: 0
+END HYBRID
+
+
+NOTES
+        REED TEST PROBLEM
+END NOTES

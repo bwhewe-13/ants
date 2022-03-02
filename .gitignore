@@ -1,0 +1,10 @@
+# Python
+__pycache__/
+*.py[cod]
+*.ipynb
+
+# Compiling
+*.so
+
+# Data files
+data/
