@@ -26,8 +26,8 @@ class MediumX:
         self.cell_width_x = cell_width_x
         self.angles_x = angles_x
         self.boundary_x = boundary_x
-        # self.ex_sources = {}
         self.compile_medium()
+        self.spatial_coef_x = self.mu_x / self.cell_width_x
 
     def __iter__(self):
         return iter((self.cells_x, self.cell_width_x, self.mu_x, self.weight))

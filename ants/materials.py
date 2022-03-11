@@ -170,35 +170,39 @@ class Materials:
 
     def compile_velocity(self):
         if self.materials[0] in self.__class__.__nonphysical_materials:
-            return np.ones((self.energy_groups))
-        energy_centers = 0.5 * (self.energy_bounds[1:] + \
-                                self.energy_bounds[:-1])
-        gamma = (const.EV_TO_JOULES * energy_centers) \
-                / (const.MASS_NEUTRON * const.LIGHT_SPEED**2) + 1
-        velocity = const.LIGHT_SPEED / gamma \
-                    * np.sqrt(gamma**2 - 1) * 100
-        if self.energy_idx is None:
-            self.energy_idx = Materials._generate_index(self)
-        velocity = [np.mean(velocity[self.energy_idx[ii]: \
-            self.energy_idx[ii+1]]) for ii in range(self.energy_groups)]
-        self.velocity = np.array(velocity)
+            self.velocity = np.ones((self.energy_groups))
+        else:            
+            energy_centers = 0.5 * (self.energy_bounds[1:] + \
+                                    self.energy_bounds[:-1])
+            gamma = (const.EV_TO_JOULES * energy_centers) \
+                    / (const.MASS_NEUTRON * const.LIGHT_SPEED**2) + 1
+            velocity = const.LIGHT_SPEED / gamma \
+                        * np.sqrt(gamma**2 - 1) * 100
+            if self.energy_idx is None:
+                self.energy_idx = Materials._generate_index(self)
+            velocity = [np.mean(velocity[self.energy_idx[group]: \
+                        self.energy_idx[group+1]]) for group \
+                        in range(self.energy_groups)]
+            self.velocity = np.array(velocity)
 
-    def add_point_source(self, name, location):
+    def add_point_source(self, name, location, angles):
         if self.energy_idx is None and self.energy_groups > 1:
             self.energy_idx = Materials._generate_index(self)
-        source = PointSources(name, self.energy_groups, \
+        source = PointSources(name, angles, self.energy_groups, \
                     self.energy_bounds, self.energy_idx)
-        self.p_sources[name] = [source._generate_source(), location]
+        self.p_sources[name] = [location, source._generate_source()]
 
 
 class PointSources:
-    __available_sources = ("14.1-mev", "ambe", "single")
+    __available_sources = ("14.1-mev", "ambe", "single-right")
 
-    def __init__(self, name, energy_groups, energy_bounds, energy_idx):
+    def __init__(self, name, angles, energy_groups, energy_bounds, \
+                 energy_idx):
         assert (name in self.__class__.__available_sources), \
         "Source not recognized, use:\n{}".format(\
             self.__class__.__available_sources)
         self.name = name
+        self.angles = angles
         self.energy_groups = energy_groups
         self.energy_bounds = energy_bounds
         self.energy_idx = energy_idx
@@ -208,9 +212,9 @@ class PointSources:
             source = self._mev14_source()
         elif self.name in ["ambe"]:
             source = self._ambe_source()
-        elif self.name in ["single"]:
-            source = self._single_source()
-        if len(source) != self.energy_groups:
+        elif self.name in ["single-right"]:
+            source = self._single_source_right()
+        if source.shape[1] != self.energy_groups:
             return Materials._vector_reduction(source, self.energy_idx) 
         return source
 
@@ -234,8 +238,10 @@ class PointSources:
             source[idx] = AmBe['magnitude'][center]
         return source
 
-    def _single_source(self):
-        return np.ones((self.energy_groups))
+    def _single_source_right(self):
+        source = np.ones((len(self.angles), self.energy_groups))
+        source[self.angles < 0] = 0
+        return source
 
 
 class NonPhysical:

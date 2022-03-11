@@ -5,46 +5,58 @@
 #                     / ___ |/ /|  / / /  ___/ / 
 #                    /_/  |_/_/ |_/ /_/  /____/  
 #
-#
 ########################################################################
 
 import ants.constants as constants
 import ants.x_sweeps as sweeps
 
-
 import numpy as np
 import numba
 
-# @numba.jit(nopython=True) #, cache=True)
-def source_iteration(groups, mu_delta_x, weight, total, scatter, \
-                     fission, ex_source, medium_map, xboundary, \
-                     cell_width, point_sources, scalar_flux_old=None):
+"""
+The issue is that the off_scattering function does not take old and new 
+fluxes, only the new -- unlike before.
+Will probably have to change this
+
+# q_tilde = ex_source[:,group] + update_q(scatter,\
+#                  scalar_flux_old, group+1, groups, group)
+# if group != 0:
+#     q_tilde += update_q(scatter, scalar_flux, 0, group, group)
+
+"""
+
+@numba.jit(nopython=True, cache=True)
+def off_scattering(medium_map, cross_section, scalar_flux, group):
+    external = np.zeros((len(medium_map)))
+    for cell, mat in enumerate(medium_map):
+        external[cell] = sum(np.delete(cross_section[mat][group], group) \
+                             * np.delete(scalar_flux[cell],group))
+    return external
+
+@numba.jit(nopython=True, cache=True)
+def source_iteration(scalar_flux_old, angular_flux_last, medium_map, \
+            xs_total, xs_scatter, xs_fission, external_source, ps_locs, \
+            point_source, spatial_coef, angle_weight, temporal_coef, \
+            spatial="diamond", temporal="BE"):
+    angular_flux = np.zeros(angular_flux_last.shape)
     converged = 0
     count = 1
-    if scalar_flux_old is None:
-        scalar_flux_old = np.zeros((len(medium_map), groups))
     while not (converged):
         scalar_flux = np.zeros(scalar_flux_old.shape)
-        for group in range(groups):
-            # q_tilde = ex_source[:,group] + update_q(scatter,\
-            #                  scalar_flux_old, group+1, groups, group)
-            # if group != 0:
-            #     q_tilde += update_q(scatter, scalar_flux, 0, group, group)
-# Diamond
-            scalar_flux[:,group], angular = sweeps.diamond(scalar_flux_old[:,group], total[:,group], \
-                scatter[:,group,group], ex_source[:,group], medium_map, \
-                mu_delta_x, weight, xboundary, point_sources[0], point_sources[1][:,group])
-# Step
-            # scalar_flux[:,group], angular = sweeps.step(scalar_flux_old[:,group], total[:,group], \
-            #     scatter[:,group,group], ex_source[:,group], medium_map, \
-            #     mu_delta_x, weight, xboundary, point_sources[0], point_sources[1][:,group])
+        combined_source = external_source.copy()
+        for group in range(scalar_flux_old.shape[1]):
+            combined_source[:,group] += off_scattering(medium_map, \
+                                        xs_scatter, scalar_flux, group)
+            scalar_flux[:,group], angular_flux[:,:,group] = sweeps.discrete_ordinates(\
+                scalar_flux_old[:,group], angular_flux_last[:,:,group], medium_map, \
+                xs_total[:,group], xs_scatter[:,group,group], \
+                combined_source[:,group], ps_locs, point_source[:,:,group], \
+                spatial_coef, angle_weight, temporal_coef[group], spatial=spatial, \
+                temporal=temporal)
         change = np.linalg.norm((scalar_flux - scalar_flux_old) \
                                 /scalar_flux/(len(medium_map)))        
         converged = (change < constants.OUTER_TOLERANCE) \
                     or (count >= constants.MAX_ITERATIONS)
         count += 1
         scalar_flux_old = scalar_flux.copy()
-    return scalar_flux, angular
-
-def update_q(xs, phi, start, stop, g):
-    return np.sum(xs[:,g,start:stop]*phi[:,start:stop],axis=1)
+    return scalar_flux, angular_flux

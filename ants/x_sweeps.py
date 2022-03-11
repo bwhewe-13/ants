@@ -14,163 +14,70 @@ import ants.constants as constants
 import numpy as np
 import numba
 
-# @numba.jit(nopython=True, cache=True)
-# def diamond(scalar_flux_old, total, scatter, source, medium_map, \
-#             mu_delta_x, weight, xboundary, angular=False):
-#     converged = 0
-#     count = 1
-#     if angular is True:
-#         angular_flux = np.zeros((len(medium_map), len(mu_delta_x)))
-#     while not (converged):
-#         scalar_flux = np.zeros((len(medium_map)),dtype='float64')
-#         psi_minus = 0.0
-#         # if np.all(xboudary == [0,0]):
-#         for angle in range(len(mu_delta_x)):
-#             if mu_delta_x[angle] > 0: 
-#                 psi_minus = 0.0
-#                 for cell in range(len(medium_map)):
-#                     material = medium_map[cell]
-#                     psi_plus = (scatter[material] \
-#                         * scalar_flux_old[cell] + source[cell] + psi_minus \
-#                         * (mu_delta_x[angle] - 0.5 * total[material]))\
-#                         * 1/(mu_delta_x[angle] + 0.5 * total[material])
-#                     scalar_flux[cell] += (0.5 * weight[angle] \
-#                                           * (psi_plus + psi_minus))
-#                     if angular is True:
-#                         angular_flux[cell, angle] = 0.5 * (psi_plus + psi_minus)
-#                     psi_minus = psi_plus
-#             elif mu_delta_x[angle] < 0:
-#                 psi_plus = 0.0
-#                 for cell in range(len(medium_map)-1,-1,-1):
-#                     material = medium_map[cell]
-#                     psi_minus = (scatter[material] \
-#                         * scalar_flux_old[cell] + source[cell] + psi_plus \
-#                         * (abs(mu_delta_x[angle]) - 0.5 * total[material]))\
-#                         * 1/(abs(mu_delta_x[angle]) + 0.5 * total[material])
-#                     scalar_flux[cell] += (0.5 * weight[angle] \
-#                                           * (psi_plus + psi_minus))
-#                     if angular is True:
-#                         angular_flux[cell, angle] = 0.5 * (psi_plus + psi_minus)
-#                     psi_plus = psi_minus
-#         change = np.linalg.norm((scalar_flux - scalar_flux_old) \
-#                                 /scalar_flux/(len(medium_map)))
-#         converged = (change < constants.INNER_TOLERANCE) \
-#                     or (count >= constants.MAX_ITERATIONS) 
-#         count += 1
-#         scalar_flux_old = scalar_flux.copy()
-#     if angular is False:
-#         angular_flux = None
-#     return scalar_flux, angular_flux
+@numba.jit(nopython=True, cache=True)
+def spatial_sweep(scalar_flux_old, angular_flux_last, medium_map, \
+                  xs_total, xs_scatter, external_source, ps_locs, \
+                  point_source, spatial_coef, temporal_coef, \
+                  first_edge=0.0, spatial="diamond", temporal="BE"):
+    if spatial_coef > 0:
+        sweep = range(len(medium_map))
+    else:
+        sweep = range(len(medium_map)-1, -1, -1)
+    if temporal == "BE":
+        temporal_dd = 0.5 * temporal_coef
+    elif temporal == "BDF2":
+        temporal_dd = 0.75 * temporal_coef
+    angular_flux = np.zeros((len(medium_map)), dtype='float64')
+    for cell in sweep:
+        material = medium_map[cell]
+        if cell in ps_locs:
+            first_edge += point_source[np.argwhere(ps_locs == cell)[0,0]]
+        second_edge = (xs_scatter[material] * scalar_flux_old[cell] \
+            + external_source[cell] + angular_flux_last[cell] * temporal_coef \
+            + first_edge * (abs(spatial_coef) - 0.5 * xs_total[material] \
+            - temporal_dd)) * 1/(abs(spatial_coef) \
+            + 0.5 * xs_total[material] + temporal_dd)
+        if spatial == "diamond":
+            angular_flux[cell] = 0.5 * (first_edge + second_edge)
+        elif spatial == "step":
+            angular_flux[cell] = second_edge
+        first_edge = second_edge
+    return angular_flux, first_edge
 
-# @numba.jit(nopython=True) #, cache=True)
-def diamond(scalar_flux_old, total, scatter, source, medium_map, \
-            mu_delta_x, weight, xboundary, point_source_locs, \
-            point_sources, angular=False):
+@numba.jit(nopython=True, cache=True)
+def discrete_ordinates(scalar_flux_old, angular_flux_last, medium_map, \
+         xs_total, xs_scatter, external_source, ps_locs, point_source, \
+         spatial_coef, angle_weight, temporal_coef, spatial='diamond', \
+         temporal='BE'):
+    angular_flux = np.zeros((angular_flux_last.shape))
     converged = 0
     count = 1
-    angular = np.zeros((len(medium_map)+1, len(mu_delta_x)*2))
     while not (converged):
         scalar_flux = np.zeros((len(medium_map)),dtype='float64')
-        for angle in range(len(mu_delta_x)):
-            angular_flux = _diamond_sweep(mu_delta_x[angle], medium_map, \
-                scalar_flux_old, total, scatter, source, point_source_locs, \
-                point_sources)
-            angular[:,angle] = angular_flux.copy()
-            scalar_flux += 0.5 * weight[angle] \
-                            * (angular_flux[:-1] + angular_flux[1:])
-            if np.sum(xboundary) != 0:
-                angular_flux = _diamond_sweep(-mu_delta_x[angle], \
-                    medium_map, scalar_flux_old, total, scatter, source,\
-                    edge_one=angular_flux[-xboundary[1]])
-                angular[:,angle+len(mu_delta_x)] = angular_flux.copy()
-                scalar_flux += 0.5 * weight[angle] \
-                            * (angular_flux[:-1] + angular_flux[1:])
+        angular_flux *= 0
+        for angle in range(len(spatial_coef)):
+            angular_flux[:,angle], edge = spatial_sweep(scalar_flux_old, \
+                        angular_flux_last[:,angle], medium_map, xs_total, \
+                        xs_scatter, external_source, ps_locs, \
+                        point_source[:,angle], spatial_coef[angle], \
+                        temporal_coef, spatial=spatial, temporal=temporal)
+            scalar_flux += angle_weight[angle] * angular_flux[:,angle]
+            if len(np.unique(np.sign(spatial_coef))) == 1:
+                reflect = 2 * len(spatial_coef) - angle - 1
+                angular_flux[:,reflect], _ = spatial_sweep(scalar_flux_old, \
+                        angular_flux_last[:,angle], medium_map, xs_total, \
+                        xs_scatter, external_source, ps_locs, \
+                        point_source[:,angle], spatial_coef[angle], \
+                        temporal_coef, first_edge=edge, spatial=spatial, \
+                        temporal=temporal)
+                scalar_flux += angle_weight[angle] * angular_flux[:,reflect]
         change = np.linalg.norm((scalar_flux - scalar_flux_old) \
                                 /scalar_flux/(len(medium_map)))
         converged = (change < constants.INNER_TOLERANCE) \
                     or (count >= constants.MAX_ITERATIONS) 
         count += 1
         scalar_flux_old = scalar_flux.copy()
-    return scalar_flux, angular
+    return scalar_flux, angular_flux
 
-# @numba.jit(nopython=True) #, cache=True)
-def _diamond_sweep(mu_delta_x, medium_map, scalar_flux_old, \
-                    total, scatter, source, point_source_locs, \
-                    point_source, edge_one=0.0):
-    angular_edges = np.zeros((len(medium_map)+1),dtype='float64')
-    angular_edges[point_source_locs] = point_source
-    if mu_delta_x > 0:
-        edge_one = angular_edges[0]
-        sweep = range(len(medium_map))
-        offset = 1
-    else:
-        sweep = range(len(medium_map)-1, -1, -1)
-        # angular_edges[-1] = edge_one
-        edge_one = angular_edges[-1]
-        offset = 0
-    for cell in sweep:
-        material = medium_map[cell]
-        angular_edges[cell+offset] = (scatter[material] * scalar_flux_old[cell] \
-            + source[cell] + edge_one * (abs(mu_delta_x) \
-            - 0.5 * total[material])) * 1/(abs(mu_delta_x) \
-            + 0.5 * total[material])
-        edge_one = angular_edges[cell+offset]
-    return angular_edges
-
-def step(scalar_flux_old, total, scatter, source, medium_map, \
-            mu_delta_x, weight, xboundary, point_source_locs, \
-            point_sources, angular=False):
-    converged = 0
-    count = 1
-    angular = np.zeros((len(medium_map)+1, len(mu_delta_x)))
-    while not (converged):
-        scalar_flux = np.zeros((len(medium_map)),dtype='float64')
-        for angle in range(len(mu_delta_x)):
-            angular_flux = _step_sweep(mu_delta_x[angle], medium_map, \
-                scalar_flux_old, total, scatter, source, point_source_locs, \
-            point_sources)
-            angular[:,angle] = angular_flux.copy()
-            if mu_delta_x[angle] > 0:
-                scalar_flux += weight[angle] * angular_flux[1:]
-            elif mu_delta_x[angle] < 0:
-                scalar_flux += weight[angle] * angular_flux[:-1]
-            if np.sum(xboundary) != 0:
-                angular_flux = _step_sweep(-mu_delta_x[angle], \
-                    medium_map, scalar_flux_old, total, scatter, source,\
-                    edge_one=angular_flux[-xboundary[1]])
-                angular[:,angle+len(mu_delta_x)] = angular_flux.copy()
-                scalar_flux += weight[angle] * angular_flux
-        change = np.linalg.norm((scalar_flux - scalar_flux_old) \
-                                /scalar_flux/(len(medium_map)))
-        converged = (change < constants.INNER_TOLERANCE) \
-                    or (count >= constants.MAX_ITERATIONS) 
-        count += 1
-        scalar_flux_old = scalar_flux.copy()
-    return scalar_flux, angular
-
-def _step_sweep(mu_delta_x, medium_map, scalar_flux_old, \
-                    total, scatter, source, point_source_locs, \
-                    point_source, edge_one=0.0):
-    angular_edges = np.zeros((len(medium_map)+1),dtype='float64')
-    angular_edges[point_source_locs] = point_source
-    if mu_delta_x > 0:
-        sweep = range(len(medium_map))
-        edge_one = angular_edges[0]
-        offset = 1
-    else:
-        sweep = range(len(medium_map)-1, -1, -1)
-        # angular_edges[-1] = edge_one
-        edge_one = angular_edges[-1]
-        offset = 0
-    for cell in sweep:
-        material = medium_map[cell]
-        angular_edges[cell+offset] = (scatter[material] * scalar_flux_old[cell] \
-            + source[cell] + edge_one * (abs(mu_delta_x) \
-            - 0.5 * total[material])) * 1/(abs(mu_delta_x) \
-            + 0.5 * total[material])
-        edge_one = angular_edges[cell+offset]
-    # if mu_delta_x > 0:
-    #     return angular_edges[1:]
-    # else:
-    #     return angular_edges[:-1]
-    return angular_edges
+# spatial_coef: mu / cell_width_x
+# temporal_coef: 1 / (velocity * delta t)
