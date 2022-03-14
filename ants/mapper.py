@@ -16,6 +16,7 @@ except ModuleNotFoundError:
     import pickle
 import os
 import itertools
+import argparse
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
@@ -200,13 +201,17 @@ def gui(cells_x, cell_width, materials):
     Gtk.main()
 
 if __name__ == "__main__":
-    # materials = ["material-stainless-steel-440-%20%", \
-    #              "material-high-density-polyethyene-618", \
-    #              "high-density-polyethyene-087"]
-    materials = ['material-reed-vacuum', 'material-reed-strong-source', \
-                 'material-reed-scatter','material-reed-absorber']
-    # materials = ['material-vacuum-reed']
-    window = MapperGUI(160, 0.1, materials)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--materials", action="store", dest="materials", \
+                    nargs="+", help="Materials to create a new mpr file")
+    parser.add_argument("--cells", action="store", dest="cells", type=int, \
+                    help="Default number of spatial cells")
+    parser.add_argument("--width", action="store", dest="width", type=float, \
+                        help="The width of one spatial cell")
+    args = parser.parse_args()
+    # materials = ["material-vacuum-reed"]
+    materials = ["material-" + material for material in args.materials]
+    window = MapperGUI(args.cells, args.width, materials)
     window.connect("destroy", Gtk.main_quit)
     window.show_all()
     Gtk.main()
