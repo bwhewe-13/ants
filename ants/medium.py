@@ -46,16 +46,17 @@ class MediumX:
         self.weight = w
 
     def add_external_source(self, name):
-        source = ExternalSources(name, self.cells_x, self.cell_width_x)
+        source = ExternalSources(name, self.cells_x, self.cell_width_x, \
+                                 self.mu_x)
         # source_name = 'external-source-' + name
         # self.ex_sources[source_name] = source._generate_source()
         self.ex_source = source._generate_source()
 
 
 class ExternalSources:
-    __available_sources = ("unity", "half-unity", "reed")
+    __available_sources = ("unity", "half-unity", "reed", "mms-source")
 
-    def __init__(self, name, cells, cell_width):
+    def __init__(self, name, cells, cell_width, mu_x):
         """ Constructing external sources - for
 
         Args:
@@ -69,15 +70,18 @@ class ExternalSources:
         self.name = name
         self.cells = cells
         self.cell_width = cell_width
+        self.mu_x = mu_x
         self.medium_radius = int(cells * cell_width)
 
     def _generate_source(self):
         if self.name in ["unity"]:
-            source = np.ones((self.cells, 1)) 
+            source = np.ones((self.cells, len(self.mu_x), 1)) 
         elif self.name in ["half-unity"]:
-            source = 0.5 * np.ones((self.cells, 1))
+            source = 0.5 * np.ones((self.cells, len(self.mu_x), 1))
         elif self.name in ["reed"]:
             return self._reed_source()
+        elif self.name in ["mms-source"]:
+            return self._mms_source()
         return source
 
     def _reed_source(self):
@@ -95,3 +99,16 @@ class ExternalSources:
         for boundary in range(len(boundaries)):
             source[boundaries[boundary]] = source_values[boundary]
         return source
+
+    def _mms_source(self):
+        psi_constant_01 = 0.5
+        psi_constant_02 = 0.25
+        xspace = np.linspace(0, self.medium_radius, self.cells+1)
+        xspace = 0.5 * (xspace[1:] + xspace[:-1])
+        def angle_dependent(angle):
+            return psi_constant_02 * angle * np.exp(angle) * 2 * xspace \
+                    + psi_constant_01 + psi_constant_02 * xspace**2 \
+                    * np.exp(angle) - 0.9 / 2 * (2 * psi_constant_01 \
+                    + psi_constant_02 * xspace**2 * (np.exp(1) - np.exp(-1)))
+        source = np.array([angle_dependent(angle) for angle in self.mu_x]).T
+        return source[:,:,None]

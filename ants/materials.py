@@ -19,8 +19,8 @@ import numpy as np
 import pkg_resources
 
 
-MAT_PATH = pkg_resources.resource_filename('ants','data/materials/')
-SOR_PATH = pkg_resources.resource_filename('ants','data/sources/')
+MAT_PATH = pkg_resources.resource_filename("ants","data/materials/")
+SOR_PATH = pkg_resources.resource_filename("ants","data/sources/")
 
 
 class Materials:
@@ -35,7 +35,7 @@ class Materials:
 
     __nonphysical_materials = ("reed-scatter", "reed-absorber", \
                                "reed-vacuum", "reed-strong-source", \
-                               "mms-absorber")
+                               "mms-absorber", "mms-scatter")
 
     __materials = __enrichment_materials + __nonenrichment_materials \
                     + __nonphysical_materials
@@ -51,9 +51,9 @@ class Materials:
             energy_idx (list):
 
         """
-        assert (isinstance(materials, list)), 'Materials must be list'
+        assert (isinstance(materials, list)), "Materials must be list"
         for mater in materials:
-            assert (mater.split('-%')[0] in self.__class__.__materials),\
+            assert (mater.split("-%")[0] in self.__class__.__materials),\
                     "Material not recognized, use:\n{}".format(\
                         self.__class__.__materials)
         self.materials = materials
@@ -66,8 +66,8 @@ class Materials:
         self.compile_velocity()
 
     def __str__(self):
-        msg = 'Energy Groups: {}\nMaterial: '.format(self.energy_groups)
-        msg += '\nMaterial: '.join(self.materials)
+        msg = "Energy Groups: {}\nMaterial: ".format(self.energy_groups)
+        msg += "\nMaterial: ".join(self.materials)
         return msg
 
     def __len__(self):
@@ -78,7 +78,7 @@ class Materials:
 
     def compile_cross_sections(self):
         for material in self.materials:
-            material_name = 'material-' + material
+            material_name = "material-" + material
             cross_sections = Materials._generate_cross_section(self, \
                                                                material)
             if len(cross_sections[0]) != self.energy_groups:
@@ -88,28 +88,28 @@ class Materials:
 
     def _generate_cross_section(self, material):
         data = {}
-        if '%' in material:
+        if "%" in material:
             material, enrichment = Materials._generate_enrich(material)
         if material in self.__class__.__nonenrichment_materials:
-            data = np.load(MAT_PATH + material + '.npz')
+            data = np.load(MAT_PATH + material + ".npz")
         elif material in ["uranium", "plutonium"]:
-            iso_one = '235' if material == 'uranium' else '239'
-            iso_two = '238' if material == 'uranium' else '240'
-            data1 = np.load(MAT_PATH + f'{material}-{iso_one}.npz')
-            data2 = np.load(MAT_PATH + f'{material}-{iso_two}.npz')
+            iso_one = "235" if material == "uranium" else "239"
+            iso_two = "238" if material == "uranium" else "240"
+            data1 = np.load(MAT_PATH + f"{material}-{iso_one}.npz")
+            data2 = np.load(MAT_PATH + f"{material}-{iso_two}.npz")
             for xs_type in data1.files:
                 data[xs_type] = data1[xs_type] * enrichment \
                                     + data2[xs_type] * (1 - enrichment)
         elif material in ["uranium-hydride"]:
             return Materials._generate_uranium_hydride(enrichment)
         elif material in self.__class__.__nonphysical_materials:
-            func = getattr(NonPhysical, material.replace('-', '_'))
+            func = getattr(NonPhysical, material.replace("-", "_"))
             return func(self.energy_groups)
-        return [data['total'], data['scatter'], data['fission']]
+        return [data["total"], data["scatter"], data["fission"]]
 
     def _generate_enrich(material):
-        material = material.split('-%')
-        material[1] = float(material[1].strip('%')) * 0.01
+        material = material.split("-%")
+        material[1] = float(material[1].strip("%")) * 0.01
         return material
 
     def _generate_reduced_cross_section(self, cross_sections):
@@ -147,15 +147,15 @@ class Materials:
         n1 = const.URANIUM_HYDRIDE_RHO * const.AVAGADRO_NUMBER \
                 / (partial_molar_mass + 3 * const.HYDROGEN_MM) \
                 * const.CM_TO_BARNS * 3
-        u235 = np.load(MAT_PATH + 'uranium-235.npz')
-        u238 = np.load(MAT_PATH + 'uranium-238.npz')
-        h1 = np.load(MAT_PATH + 'hydrogen.npz')
-        total = n235 * u235['total'] + n238 * u238['total'] \
-                + n1 * h1['total']
-        scatter = n235 * u235['scatter'] + n238 * u238['scatter'] \
-                + n1 * h1['scatter']
-        fission = n235 * u235['fission'] + n238 * u238['fission'] \
-                + n1 * h1['fission']
+        u235 = np.load(MAT_PATH + "uranium-235.npz")
+        u238 = np.load(MAT_PATH + "uranium-238.npz")
+        h1 = np.load(MAT_PATH + "hydrogen.npz")
+        total = n235 * u235["total"] + n238 * u238["total"] \
+                + n1 * h1["total"]
+        scatter = n235 * u235["scatter"] + n238 * u238["scatter"] \
+                + n1 * h1["scatter"]
+        fission = n235 * u235["fission"] + n238 * u238["fission"] \
+                + n1 * h1["fission"]
         return total, scatter, fission
 
     def _matrix_reduction(matrix, idx):
@@ -194,7 +194,8 @@ class Materials:
 
 
 class PointSources:
-    __available_sources = ("14.1-mev", "ambe", "single-right")
+    __available_sources = ("14.1-mev", "ambe", "single-left", \
+                           "mms-left", "mms-right")
 
     def __init__(self, name, angles, energy_groups, energy_bounds, \
                  energy_idx):
@@ -212,8 +213,12 @@ class PointSources:
             source = self._mev14_source()
         elif self.name in ["ambe"]:
             source = self._ambe_source()
-        elif self.name in ["single-right"]:
-            source = self._single_source_right()
+        elif self.name in ["single-left"]:
+            source = self._single_source_left()
+        elif self.name in ["mms-left"]:
+            source = self._mms_boundary_left()
+        elif self.name in ["mms-right"]:
+            source = self._mms_boundary_right()
         if source.shape[1] != self.energy_groups:
             return Materials._vector_reduction(source, self.energy_idx) 
         return source
@@ -225,7 +230,7 @@ class PointSources:
         return source
 
     def _ambe_source(self):
-        AmBe = np.load(SOR_PATH + 'AmBe_source_050G.npz')
+        AmBe = np.load(SOR_PATH + "AmBe_source_050G.npz")
         if np.max(self.energy_bounds) > 20:
             self.energy_bounds *= 1E-6
         energy_centers = 0.5 * (self.energy_bounds[1:] + \
@@ -233,14 +238,31 @@ class PointSources:
         locs = lambda xmin, xmax: np.argwhere((energy_centers > xmin) & \
                             (energy_centers <= xmax)).flatten()
         source = np.zeros((len(self.energy_bounds) - 1))
-        for center in range(len(AmBe['magnitude'])):
-            idx = locs(AmBe['edges'][center], AmBe['edges'][center+1])
-            source[idx] = AmBe['magnitude'][center]
+        for center in range(len(AmBe["magnitude"])):
+            idx = locs(AmBe["edges"][center], AmBe["edges"][center+1])
+            source[idx] = AmBe["magnitude"][center]
         return source
 
-    def _single_source_right(self):
+    def _single_source_left(self):
         source = np.ones((len(self.angles), self.energy_groups))
         source[self.angles < 0] = 0
+        return source
+
+    def _mms_boundary_left(self):
+        # at x = 0
+        psi_constant_01 = 0.5
+        psi_constant_02 = 0.25
+        source = np.zeros((len(self.angles), self.energy_groups))
+        source[self.angles > 0] = psi_constant_01
+        return source
+
+    def _mms_boundary_right(self):
+        # at x = X = 1
+        psi_constant_01 = 0.5
+        psi_constant_02 = 0.25
+        source = np.zeros((len(self.angles), self.energy_groups))
+        source[self.angles < 0] = psi_constant_01 + psi_constant_02 \
+                          * np.exp(self.angles[self.angles < 0])[:,None]
         return source
 
 
@@ -266,8 +288,14 @@ class NonPhysical:
         if energy_groups == 1:
             return [np.array([1.]), np.array([[0.]]), np.array([[0.]])]
 
-if __name__ == '__main__':
-    materials = ['reed-absorber','reed-strong-source','reed-vacuum', 'reed-scatter']
+    def mms_scatter(energy_groups):
+        if energy_groups == 1:
+            return [np.array([1.]), np.array([[0.9]]), np.array([[0.]])]
+
+if __name__ == "__main__":
+    materials = ["reed-absorber","reed-strong-source",\
+                 "reed-vacuum", "reed-scatter"]
     problem = Materials(materials, 1, None)
     print(problem.data.keys())
 
+# [total, scatter, fission]
