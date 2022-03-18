@@ -25,7 +25,7 @@ Will probably have to change this
 
 """
 
-@numba.jit(nopython=True, cache=True)
+@numba.jit(nopython=True) #, cache=True)
 def off_scattering(medium_map, cross_section, scalar_flux, group):
     external = np.zeros((len(medium_map)))
     for cell, mat in enumerate(medium_map):
@@ -33,7 +33,7 @@ def off_scattering(medium_map, cross_section, scalar_flux, group):
                              * np.delete(scalar_flux[cell],group))
     return external
 
-@numba.jit(nopython=True, cache=True)
+@numba.jit(nopython=True) #, cache=True)
 def source_iteration(scalar_flux_old, angular_flux_last, medium_map, \
             xs_total, xs_scatter, xs_fission, external_source, ps_locs, \
             point_source, spatial_coef, angle_weight, temporal_coef, \
@@ -45,9 +45,9 @@ def source_iteration(scalar_flux_old, angular_flux_last, medium_map, \
         scalar_flux = np.zeros(scalar_flux_old.shape)
         combined_source = external_source.copy()
         for group in range(scalar_flux_old.shape[1]):
-            combined_source[:,:,group] += np.repeat(off_scattering(medium_map, \
-                                xs_scatter, scalar_flux, group)[:,None], \
-                                len(angle_weight), axis=1)
+            # combined_source[:,:,group] += np.repeat(off_scattering(medium_map, \
+            #                     xs_scatter, scalar_flux, group)[:,None], \
+            #                     len(angle_weight), axis=1)
             scalar_flux[:,group], angular_flux[:,:,group] = sweeps.discrete_ordinates(\
                 scalar_flux_old[:,group], angular_flux_last[:,:,group], medium_map, \
                 xs_total[:,group], xs_scatter[:,group,group], \

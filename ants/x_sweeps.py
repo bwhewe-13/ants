@@ -14,7 +14,7 @@ import ants.constants as constants
 import numpy as np
 import numba
 
-@numba.jit(nopython=True, cache=True)
+@numba.jit(nopython=True) #, cache=True)
 def spatial_sweep(scalar_flux_old, angular_flux_last, medium_map, \
                   xs_total, xs_scatter, external_source, ps_locs, \
                   point_source, spatial_coef, temporal_coef, \
@@ -46,7 +46,7 @@ def spatial_sweep(scalar_flux_old, angular_flux_last, medium_map, \
         first_edge = second_edge
     return angular_flux, first_edge
 
-@numba.jit(nopython=True, cache=True)
+@numba.jit(nopython=True) #, cache=True)
 def discrete_ordinates(scalar_flux_old, angular_flux_last, medium_map, \
          xs_total, xs_scatter, external_source, ps_locs, point_source, \
          spatial_coef, angle_weight, temporal_coef, spatial="diamond", \
