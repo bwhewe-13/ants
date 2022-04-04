@@ -35,7 +35,7 @@ class Materials:
 
     __nonphysical_materials = ("reed-scatter", "reed-absorber", \
                                "reed-vacuum", "reed-strong-source", \
-                               "mms-absorber", "mms-scatter")
+                               "mms-absorber", "mms-scatter", "mms-quasi")
 
     __materials = __enrichment_materials + __nonenrichment_materials \
                     + __nonphysical_materials
@@ -195,7 +195,8 @@ class Materials:
 
 class PointSources:
     __available_sources = ("14.1-mev", "ambe", "single-left", \
-                           "mms-left", "mms-right")
+                           "mms-left", "mms-right", "mms-two-material", \
+                           "mms-two-material-angle")
 
     def __init__(self, name, angles, energy_groups, energy_bounds, \
                  energy_idx):
@@ -219,6 +220,10 @@ class PointSources:
             source = self._mms_boundary_left()
         elif self.name in ["mms-right"]:
             source = self._mms_boundary_right()
+        elif self.name in ["mms-two-material"]:
+            source = self._mms_two_material_right()
+        elif self.name in ["mms-two-material-angle"]:
+            source = self._mms_two_material_angle_right()
         if source.shape[1] != self.energy_groups:
             return Materials._vector_reduction(source, self.energy_idx) 
         return source
@@ -265,6 +270,21 @@ class PointSources:
                           * np.exp(self.angles[self.angles < 0])[:,None]
         return source
 
+    def _mms_two_material_right(self):
+        # at x = X = 2
+        X = 2
+        source = np.zeros((len(self.angles), self.energy_groups))
+        source[self.angles < 0] = 0.5 * X**2 + 0.125 * X
+        return source
+    
+    def _mms_two_material_angle_right(self):
+        # at x = X = 2
+        X = 2
+        source = np.zeros((len(self.angles), self.energy_groups))
+        source[self.angles < 0] = X**3
+        # source[self.angles < 0] = 0.25 * X * np.exp(self.angles[self.angles < 0])[:,None] \
+        #     + X**2 - 0.125 * np.exp(self.angles[self.angles < 0])[:,None] * X *(4*X + 1)
+        return source
 
 class NonPhysical:
     def reed_scatter(energy_groups):
@@ -291,6 +311,12 @@ class NonPhysical:
     def mms_scatter(energy_groups):
         if energy_groups == 1:
             return [np.array([1.]), np.array([[0.9]]), np.array([[0.]])]
+            # return [np.array([1.]), np.array([[0.0]]), np.array([[0.]])]
+
+    def mms_quasi(energy_groups):
+        if energy_groups == 1:
+            return [np.array([1.]), np.array([[0.3]]), np.array([[0.]])]
+            # return [np.array([1.]), np.array([[0.0]]), np.array([[0.]])]
 
 if __name__ == "__main__":
     materials = ["reed-absorber","reed-strong-source",\

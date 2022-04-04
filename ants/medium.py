@@ -54,7 +54,8 @@ class MediumX:
 
 
 class ExternalSources:
-    __available_sources = ("unity", "half-unity", "reed", "mms-source")
+    __available_sources = ("unity", "half-unity", "reed", "mms-source", \
+                           "mms-two-material", "mms-two-material-angle")
 
     def __init__(self, name, cells, cell_width, mu_x):
         """ Constructing external sources - for
@@ -82,6 +83,10 @@ class ExternalSources:
             return self._reed_source()
         elif self.name in ["mms-source"]:
             return self._mms_source()
+        elif self.name in ["mms-two-material"]:
+            return self._mms_two_material()
+        elif self.name in ["mms-two-material-angle"]:
+            return self._mms_two_material_angle()
         return source
 
     def _reed_source(self):
@@ -111,4 +116,45 @@ class ExternalSources:
                     * np.exp(angle) - 0.9 / 2 * (2 * psi_constant_01 \
                     + psi_constant_02 * xspace**2 * (np.exp(1) - np.exp(-1)))
         source = np.array([angle_dependent(angle) for angle in self.mu_x]).T
+        return source[:,:,None]
+
+    def _mms_two_material(self):
+        X = self.medium_radius
+        xspace = np.linspace(0, self.medium_radius, self.cells+1)
+        xspace = 0.5 * (xspace[1:] + xspace[:-1])
+        def angle_dependent(angle, x):
+            def quasi(x):
+                c = 0.3
+                return 2 * X * angle - 4 * x * angle - 2 * x**2 \
+                       + 2 * X * x - c * (-2 * x**2 + 2 * X * x)
+            def scatter(x):
+                c = 0.9
+                const = -0.125 * X + 0.5 * X**2
+                return 0.25 * angle + 0.25 * x + const \
+                       - c * ((0.25 * x + const))
+            return np.concatenate([quasi(xspace[xspace < 0.5 * X]), \
+                                   scatter(xspace[xspace > 0.5 * X])])
+        source = np.array([angle_dependent(angle, xspace) for angle \
+                                                        in self.mu_x]).T
+        return source[:,:,None]
+
+    def _mms_two_material_angle(self):
+        X = self.medium_radius
+        xspace = np.linspace(0, self.medium_radius, self.cells+1)
+        xspace = 0.5 * (xspace[1:] + xspace[:-1])
+        def angle_dependent(angle, x):
+            def quasi(x, angle):
+                c = 0.3
+                return angle * (2 * X**2 - 4 * np.exp(angle) * x) - 2 \
+                        * np.exp(angle) * x**2 + 2 * X**2 * x - c / 2 \
+                        * (-2 * x**2 * (np.exp(1) - np.exp(-1)) + 4 * X**2 * x)
+            def scatter(x, angle):
+                c = 0.9
+                const = X**3 - X**2 * np.exp(angle)
+                return X * angle * np.exp(angle) + X * x * np.exp(angle) + const \
+                       - c/2 * (2 * X**3 + (np.exp(1) - np.exp(-1)) * (x * X - X**2))
+            return np.concatenate([quasi(xspace[xspace < 0.5 * X], angle), \
+                                   scatter(xspace[xspace > 0.5 * X], angle)])
+        source = np.array([angle_dependent(angle, xspace) for angle \
+                                                        in self.mu_x]).T
         return source[:,:,None]
