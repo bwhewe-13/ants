@@ -7,24 +7,24 @@
 #
 ########################################################################
 
-import gi
-gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
+import numpy as np
+import os
+import itertools
+import platform
+import argparse
 try:
     import cPickle as pickle
 except ModuleNotFoundError:
     import pickle
-import os
-import itertools
-import argparse
-import numpy as np
-import matplotlib
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
 
+import tkinter as tk
+from tkinter import ttk
+import tkinter.font as font
+import tkinter.messagebox as messagebox
+import tkinter.filedialog as filedialog
+import tkinter.simpledialog as simpledialog
 
 class Mapper:
-
     def __init__(self, cells_x, cell_width, map_x, map_key):
         self.cells_x = cells_x
         self.cell_width = cell_width
@@ -62,95 +62,99 @@ class Mapper:
         self.cell_width = new_cell_width
 
 
-class MapperGUI(Gtk.Window):
+class MapperGUI(tk.Tk):
     __allowed_symbols = [" ", ",", "-", "0", "1", "2", "3", "4", "5", \
-                         "6", "7", "8", "9"]
+                 "6", "7", "8", "9"]
+
+    _font = ("Arial", "12")
+    _bfont = ("Arial", "12", "bold")
+    _ufont = ("Arial", "12", "underline")
 
     def __init__(self, cells_x, cell_width, materials):
-        # Problem Inputs
+        super().__init__()
         self.cells_x = cells_x
         self.cell_width = cell_width
         self.materials = materials
+
         # Generate GUI Window
-        super().__init__(title="ANTS - Mapper")
-        self.set_border_width(10)
-        self.gui_grid = Gtk.Grid(column_spacing=25, row_spacing=10)
+        self.title('ANTS - Mapper')
+        self.minsize(400, 200)
         self._generate_buttons()
         self._generate_titles()
         self._generate_materials()
-        self.add(self.gui_grid)
-
+        
     def _generate_buttons(self):
-        compile_button = Gtk.Button(label="Compile")
-        compile_button.connect("clicked", self._generate_mapping)
-        self.gui_grid.attach(compile_button, 0, 0, 2, 1)
-        save_button = Gtk.Button(label="Save")
-        save_button.connect("clicked", self._save_object)
-        self.gui_grid.attach_next_to(save_button, compile_button, \
-                                     Gtk.PositionType.RIGHT, 2, 1)
-
+        # buttonFont = font.Font(family='Arial', size=16, weight='bold')
+        self.display_button = ttk.Button(self, text="Display")
+        self.display_button["command"] = self._generate_display
+        self.display_button.grid(row=0, column=0)
+        self.save_button = ttk.Button(self, text="Save")
+        self.save_button["command"] = self._save_object
+        self.save_button.grid(row=0, column=1)
+    
     def _generate_titles(self):
-        cells_label = Gtk.Label(xalign=0)
-        cells_label.set_markup("<b>Spatial Cells: </b>{}".format( \
-                                                       self.cells_x))
-        self.gui_grid.attach(cells_label, 0, 1, 2, 1)
-        cell_width_label = Gtk.Label(xalign=0)
-        cell_width_label.set_markup("<b>Cell Width: </b>{}".format( \
-                                                       self.cell_width))
-        self.gui_grid.attach_next_to(cell_width_label, cells_label, \
-                                     Gtk.PositionType.RIGHT, 2, 1)
-        material_title = Gtk.Label(xalign=0.5)
-        material_title.set_markup("<u>Material</u>")
-        self.gui_grid.attach(material_title, 0, 2, 2, 1)
-        cell_title = Gtk.Label(xalign=0.5)
-        cell_title.set_markup("<u>Cell Number Range</u>")
-        self.gui_grid.attach_next_to(cell_title, material_title, \
-                            Gtk.PositionType.RIGHT, 2, 1)
+        cells_label = ttk.Label(self, font=self._bfont, \
+                    text="Spatial Cells: {}".format(self.cells_x))
+        cells_label.grid(row=1, column=0, padx=(10, 10))
+        cell_width_label = ttk.Label(self, font=self._bfont, \
+                    text="Cell Width: {}".format(self.cell_width))
+        cell_width_label.grid(row=1, column=1, padx=10, pady=5)
+        
+        material_title = ttk.Label(self, font=self._ufont, \
+                    text="Material")
+        material_title.grid(row=2, column=0, padx=10, pady=5)
+        cell_title = ttk.Label(self, font=self._ufont, \
+                    text="Cell Number Range")
+        cell_title.grid(row=2, column=1, padx=10, pady=5)
 
     def _generate_materials(self):
         self.spatial_cells = []
         self.material_names = []
-        for row, material in enumerate(self.materials):
+        for item, material in enumerate(self.materials):
             self.material_names.append(material)
             temp_name = material.replace("material-","").replace("-", " ")
-            mat_label = Gtk.Label(label=temp_name, xalign=0)
-            self.gui_grid.attach(mat_label, 0, row+5, 2, 1)
-            cell_numbers = Gtk.Entry()
+            mat_label = ttk.Label(self, text=temp_name, font=self._font)
+            mat_label.grid(row=item+3, column=0, padx=10, pady=5)
+            cell_numbers = ttk.Entry(self, font=self._font)
             self.spatial_cells.append(cell_numbers)
-            self.gui_grid.attach_next_to(cell_numbers, mat_label, \
-                                Gtk.PositionType.RIGHT, 2, 1)
+            cell_numbers.grid(row=item+3, column=1, padx=10, pady=5)
 
-    def _generate_mapping(self, widget):
+    def _generate_display(self):
+        self._generate_mapping()
+        graph_obj = LatexGraph(self.cells_x, self.cell_width, self.material_key, self.map_x)
+        title = simpledialog.askstring("LaTeX Path", "Input LaTeX Directory Name")
+        graph_obj.map_to_latex(title, path="")
+
+    def _generate_mapping(self):
         self.material_key = {}
         material_id = 0
         self.map_x = np.ones((self.cells_x)) * -1
         for name, cells in zip(self.material_names, self.spatial_cells):
             self.material_key[name] = material_id
-            cell_locs = self._format_range(cells.get_text())
-            assert np.all(self.map_x[cell_locs] == -1),\
-                "Trying to overwrite allocated cell"
+            cell_locs = self._format_range(cells.get())
+            if not np.all(self.map_x[cell_locs] == -1):
+                messagebox.showerror(title="Error!", \
+                        message="Trying to overwrite allocated cell")
+                return -1
             self.map_x[cell_locs] = material_id
             material_id += 1
-        self._generate_graph()
-    
-    def _save_object(self, action):
-        save_dialog = Gtk.FileChooserDialog(title="Save Mapper", \
-                     parent=None, action=Gtk.FileChooserAction.SAVE)
-        save_dialog.add_buttons("_Save", Gtk.ResponseType.OK)
-        save_dialog.add_buttons("_Cancel", Gtk.ResponseType.CLOSE)
-        save_dialog.set_current_name("Untitled")
-        save_dialog.set_do_overwrite_confirmation(True)
-        save_dialog.set_local_only(True)
-        response = save_dialog.run()
-        if response == Gtk.ResponseType.OK:
-            path = os.path.join(save_dialog.get_current_folder(), \
-                                save_dialog.get_filename())
-            map_obj = Mapper(self.cells_x, self.cell_width, self.map_x, \
-                             self.material_key)
-            map_obj.save_map(path + ".mpr")
-        save_dialog.destroy()
-        Gtk.main_quit()
 
+    def _save_object(self):
+        self._generate_mapping()
+        answer = True
+        if np.any(self.map_x == -1): 
+            answer = messagebox.askokcancel(title="Warning!", \
+                icon=messagebox.WARNING, \
+                message="Not All Spatial Cells are Filled. Proceed?")
+        if answer:
+            file = filedialog.asksaveasfile(defaultextension="*.mpr", \
+                title="Save File", filetypes=[("Mapper Files", "*.mpr")])
+            if file:
+                map_obj = Mapper(self.cells_x, self.cell_width, self.map_x, \
+                             self.material_key)
+                map_obj.save_map(file.name)
+                self.quit()
+        
     def _format_range(self, string):
         assert (set(string) <= set(self.__class__.__allowed_symbols)), \
             "{} Uses incorrect symbols. Limited to:\n{}".format(string,\
@@ -166,39 +170,90 @@ class MapperGUI(Gtk.Window):
                 cell_index.append(np.array([int(split)-1]))
         return np.concatenate(cell_index)
 
-    def _generate_graph(self):
-        values = np.sort(np.unique(self.map_x))
-        cmap = matplotlib.cm.jet.copy()
-        if -1 in values:
-            map_to_graph = np.ma.masked_where(self.map_x == -1, self.map_x)
-            cmap.set_bad('gray')
-        else:
-            map_to_graph = self.map_x.copy()
-        fig, ax = plt.subplots()
-        graph = ax.imshow(np.tile(map_to_graph, (10, 1)), cmap=cmap)
-        colors = [graph.cmap(graph.norm(value)) for value in values]
-        patches = []
-        if -1 in values:
-            patches += [mpatches.Patch(color='gray', label='Void')]        
-        patches += [mpatches.Patch(color=colors[vv], \
-                      label=kk.replace("material-","").replace("-", " ")) \
-                      for kk, vv in self.material_key.items() if vv != -1]
-        plt.legend(handles=patches, framealpha=1, ncol=2, \
-                 loc='upper center', bbox_to_anchor=(0.5, 2), fancybox=True)
-        ax.set_yticks([])
-        ax.set_xlabel('Distance (cm)')
-        ax.set_xticks(np.linspace(0, self.cells_x, 5))
-        ax.set_xticklabels(np.round(np.linspace(0, self.cells_x \
-                            * self.cell_width, 5), 2).astype('str'))
-        ax.grid(axis='x')
-        plt.show()
 
+class LatexGraph:
+    _tikz_colors = ["red", "blue", "green", "magenta", "cyan", "yellow", \
+                "black", "white"]
+
+    def __init__(self, cells_x, cell_width, material_key, map_x):
+        self.cells_x = cells_x
+        self.cell_width = cell_width
+        self.material_key = material_key
+        self.map_x = map_x
+
+    def _latex_compile(string, title, path):
+        path = os.path.join(path, title)
+        if not os.path.exists(path):
+            os.makedirs(path)
+        with open(path + "/layout.tex", "w") as f:
+            f.write(string)
+        os.system("pdflatex -halt-on-error -output-directory {} layout.tex \
+                            | grep '^!.*' -A200 --color=always".format(path))
+        LatexGraph._latex_display(path)
+
+    def _latex_display(path):
+        if platform.system() == "Linux":
+            os.system("xdg-open {}/layout.pdf".format(path))
+        elif platform.system() == "Windows":
+            os.system("cmd.exe /C start {}/layout.pdf".format(path))
+
+    def _latex_header(self, title):
+        string = r"\documentclass{{standalone}}{n}\usepackage{{tikz}}{n}".format(n="\n")
+        string += r"\begin{{document}}{n}\begin{{tikzpicture}}".format(n="\n")
+        string += r"[xscale={},yscale=0.025]{}".format(10 / self.cells_x, "\n")
+        string += r"\node[align=center] at ({},60) {{{}}};".format( \
+                                                0.5 * self.cells_x, title)
+        string += r"\draw (-10,0) -- (0,0) node[align=center,below]{\small 0 cm};"
+        string += r"\draw ({}, 0) -- ({}, 0);".format(self.cells_x, self.cells_x + 10)
+        return string
+
+    def _latex_materials(self, string):
+        material_widths = [(x[0], len(list(x[1]))) for x in \
+                                         itertools.groupby(self.map_x)]
+        inv_map = LatexGraph.reformat_key(self.material_key)
+        start_location = 0
+        label_location = -30
+        for mat, width in material_widths:
+            string += r"\draw[draw=black,fill={},opacity=0.5]".format( \
+                                            self._tikz_colors[int(mat)])
+            string += r"({},0) rectangle ++ ({}, 50);".format( \
+                                                start_location, width)
+            try:
+                _ = inv_map[mat]
+                string += r"\draw[draw=black,fill={},opacity=0.5]".format( \
+                                            self._tikz_colors[int(mat)])
+                string += r"(0, {}) rectangle ++ (10, 10);".format(label_location)
+                string += r"\node[align=center] at (25,{}) {{{}}};".format( \
+                            label_location + 5, inv_map[mat])
+                label_location -= 20
+                del inv_map[mat]
+            except KeyError:
+                pass
+            start_location += int(width)
+            string += r"\node[align=center, below] at ({}, 0){{\small {}}};".format(\
+                        start_location, self.cell_width * start_location)
+        string = string.replace(";", ";\n")
+        return string
+
+    def map_to_latex(self, title="Untitled", path=""):
+        string = self._latex_header(title)
+        string = self._latex_materials(string)
+        string += "\end{tikzpicture}\n\end{document}"
+        LatexGraph._latex_compile(string, title, path)
+
+    def reformat_key(dictionary):
+        inv_map = {}
+        for kk, vv in dictionary.items():
+            kk = kk.replace("material-", "").replace("%", "\%")
+            inv_map[vv] = kk.capitalize().strip()
+        return inv_map
 
 def gui(cells_x, cell_width, materials):
+    if isinstance(materials, list):
+        if "material-" not in materials[0]:
+            materials = ["material-" + material for material in materials]
     window = MapperGUI(cells_x, cell_width, materials)
-    window.connect("destroy", Gtk.main_quit)
-    window.show_all()
-    Gtk.main()
+    window.mainloop()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -212,7 +267,4 @@ if __name__ == "__main__":
     # materials = ["material-vacuum-reed"]
     materials = ["material-" + material for material in args.materials]
     window = MapperGUI(args.cells, args.width, materials)
-    window.connect("destroy", Gtk.main_quit)
-    window.show_all()
-    Gtk.main()
-
+    window.mainloop()
