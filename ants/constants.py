@@ -9,8 +9,8 @@
 
 from typing import Final
 
-INNER_TOLERANCE: Final[float] = 1E-12
-OUTER_TOLERANCE: Final[float] = 1E-8
+INNER_TOLERANCE: Final[float] = 1E-08
+OUTER_TOLERANCE: Final[float] = 1E-12
 MAX_ITERATIONS: Final[int] = 100
 
 MASS_NEUTRON: Final[float] = 1.67493E-27

@@ -14,12 +14,12 @@ import ants.constants as constants
 import numpy as np
 import numba
 
-@numba.jit(nopython=True) #, cache=True)
+@numba.jit(nopython=True, cache=True)
 def spatial_sweep(scalar_flux_old, angular_flux_last, medium_map, \
                   xs_total, xs_scatter, external_source, ps_locs, \
                   point_source, spatial_coef, temporal_coef, \
                   first_edge=0.0, spatial="diamond", temporal="BE"):
-    if spatial_coef > 0:
+    if spatial_coef > np.float(0):
         sweep = range(len(medium_map))
     else:
         sweep = range(len(medium_map)-1, -1, -1)
@@ -46,18 +46,27 @@ def spatial_sweep(scalar_flux_old, angular_flux_last, medium_map, \
         first_edge = second_edge
     return angular_flux, first_edge
 
-@numba.jit(nopython=True) #, cache=True)
+@numba.jit(nopython=True, cache=True)
 def discrete_ordinates(scalar_flux_old, angular_flux_last, medium_map, \
          xs_total, xs_scatter, external_source, ps_locs, point_source, \
          spatial_coef, angle_weight, temporal_coef, spatial="diamond", \
          temporal="BE"):
     angular_flux = np.zeros((angular_flux_last.shape))
+    # print(angular_flux.shape)
     converged = 0
     count = 1
     while not (converged):
         scalar_flux = np.zeros((len(medium_map)),dtype="float64")
         angular_flux *= 0
         for angle in range(len(spatial_coef)):
+            # idx_ex = tuple([slice(None)] * (external_source.ndim - 1) + [angle])
+            # if len(idx_ex) == 1:
+            #     idx_ex = ()
+            # idx_ps = tuple([slice(None)] * (point_source.ndim - 1) + [angle])
+            # idx_ps = [None] * (point_source.ndim - 1) + [angle]
+            # idx_ps = [slice(None)] * (point_source.ndim - 1)
+            # if len(idx_ps) == 0:
+            #     idx_ps = (None)
             angular_flux[:,angle], edge = spatial_sweep(scalar_flux_old, \
                         angular_flux_last[:,angle], medium_map, xs_total, \
                         xs_scatter, external_source[:,angle], ps_locs, \

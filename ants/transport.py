@@ -14,6 +14,7 @@ from ants.medium import MediumX
 from ants.materials import Materials
 from ants.mapper import Mapper
 from ants.fixed_source import backward_euler
+from ants.criticality import keigenvalue
 
 import numpy as np
 import os
@@ -70,6 +71,24 @@ class Transport:
         return cell_data
 
     def run(self):
+        if self.info.get("PROBLEM") == "fixed-source":
+            self._run_fixed_source()
+        elif self.info.get("PROBLEM") == "criticality":
+            self._run_criticality()
+
+    def _run_criticality(self):
+        scalar, keff = keigenvalue(self.medium_map, \
+                                   self.xs_total, \
+                                   self.xs_scatter, 
+                                   self.xs_fission, \
+                                   self.medium_obj.spatial_coef_x, \
+                                   self.medium_obj.weight, \
+                                   spatial=self.info.get("SPACE DISCRETE").lower())
+        self.scalar = np.array(scalar)
+        self.keff = keff
+        return scalar, keff
+
+    def _run_fixed_source(self):
         if self.info.get("TIME DISCRETE") == "backward-euler":
             scalar, angular = backward_euler(self.medium_map, \
                                     self.xs_total, \
@@ -114,7 +133,10 @@ class Transport:
             file_name = self._generate_file_name()
         # Neutron fluxes
         dictionary["flux-scalar"] = self.scalar
-        dictionary["flux-angular"] = self.angular
+        try:
+            dictionary["flux-angular"] = self.angular
+        except NameError:
+            dictionary["k-effective"] = self.keff
         # Medium data
         dictionary["medium-map"] = self.medium_map
         dictionary["medium-key"] = self.map_obj.map_key
