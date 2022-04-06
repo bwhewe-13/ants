@@ -8,3 +8,13 @@ __pycache__/
 
 # Data files
 data/
+
+# Packaging
+env/
+build/
+*.egg-info/
+*.egg
+
+
+# Sphinx documentation
+docs/_build/

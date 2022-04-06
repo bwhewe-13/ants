@@ -14,17 +14,22 @@ import ants.constants as constants
 import numpy as np
 import numba
 
-@numba.jit(nopython=True, cache=True)
+@numba.jit(nopython=True) #, cache=True)
 def spatial_sweep(scalar_flux_old, angular_flux_last, medium_map, \
                   xs_total, xs_scatter, external_source, ps_locs, \
                   point_source, spatial_coef, temporal_coef, \
                   first_edge=0.0, spatial="diamond", temporal="BE"):
+    # See if point source is np.array([0],dtype=np.float64) --> None
+    if not np.any(point_source):
+        point_source = np.zeros((len(medium_map)),dtype=np.float64)
+    # Determine direction of sweep
     if spatial_coef > np.float(0):
         sweep = range(len(medium_map))
     else:
         sweep = range(len(medium_map)-1, -1, -1)
         if len(medium_map) in ps_locs:
             first_edge += point_source[np.argwhere(ps_locs == len(medium_map))[0,0]]
+    # Temporal discretization
     if temporal == "BE":
         temporal_dd = 0.5 * temporal_coef
     elif temporal == "BDF2":
@@ -51,34 +56,31 @@ def discrete_ordinates(scalar_flux_old, angular_flux_last, medium_map, \
          xs_total, xs_scatter, external_source, ps_locs, point_source, \
          spatial_coef, angle_weight, temporal_coef, spatial="diamond", \
          temporal="BE"):
-    angular_flux = np.zeros((angular_flux_last.shape))
-    # print(angular_flux.shape)
+    angular_flux = np.zeros((angular_flux_last.shape), dtype=np.float64)
     converged = 0
     count = 1
     while not (converged):
-        scalar_flux = np.zeros((len(medium_map)),dtype="float64")
+        scalar_flux = np.zeros((len(medium_map)),dtype=np.float64)
         angular_flux *= 0
         for angle in range(len(spatial_coef)):
-            # idx_ex = tuple([slice(None)] * (external_source.ndim - 1) + [angle])
-            # if len(idx_ex) == 1:
-            #     idx_ex = ()
-            # idx_ps = tuple([slice(None)] * (point_source.ndim - 1) + [angle])
-            # idx_ps = [None] * (point_source.ndim - 1) + [angle]
-            # idx_ps = [slice(None)] * (point_source.ndim - 1)
-            # if len(idx_ps) == 0:
-            #     idx_ps = (None)
+            idx_ex = (..., angle)
+            if external_source.ndim == 1:
+                idx_ex = ()
+            idx_ps = (..., angle)
+            if point_source.ndim == 1:
+                idx_ps = ()
             angular_flux[:,angle], edge = spatial_sweep(scalar_flux_old, \
                         angular_flux_last[:,angle], medium_map, xs_total, \
-                        xs_scatter, external_source[:,angle], ps_locs, \
-                        point_source[:,angle], spatial_coef[angle], \
+                        xs_scatter, external_source[idx_ex], ps_locs, \
+                        point_source[idx_ps], spatial_coef[angle], \
                         temporal_coef, spatial=spatial, temporal=temporal)
             scalar_flux += angle_weight[angle] * angular_flux[:,angle]
             if len(np.unique(np.sign(spatial_coef))) == 1:
                 reflect = 2 * len(spatial_coef) - angle - 1
                 angular_flux[:,reflect], _ = spatial_sweep(scalar_flux_old, \
                         angular_flux_last[:,angle], medium_map, xs_total, \
-                        xs_scatter, external_source[:,angle], ps_locs, \
-                        point_source[:,angle], spatial_coef[angle], \
+                        xs_scatter, external_source[idx_ex], ps_locs, \
+                        point_source[idx_ps], spatial_coef[angle], \
                         temporal_coef, first_edge=edge, spatial=spatial, \
                         temporal=temporal)
                 scalar_flux += angle_weight[angle] * angular_flux[:,reflect]
