@@ -1,4 +1,4 @@
-Metadata-Version: 2.1
+Metadata-Version: 1.0
 Name: ants
 Version: 1.0
 Summary: Accelerated Neutron Transport Solution (ANTS) calculates
@@ -6,8 +6,5 @@ Home-page: https://github.com
 Author: Ben Whewell
 Author-email: ben.whewell@pm.me
 License: UNKNOWN
+Description: UNKNOWN
 Platform: UNKNOWN
-License-File: LICENSE
-
-UNKNOWN
-

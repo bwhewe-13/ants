@@ -13,5 +13,8 @@ data/
 *.egg-info/
 *.egg
 
-# Sphinx
+env/
+build/
+
+# Sphinx documentation
 docs/_build/
