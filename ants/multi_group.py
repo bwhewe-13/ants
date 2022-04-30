@@ -9,7 +9,7 @@
 
 import ants.constants as constants
 
-import ants.x_sweeps as sweeps
+import ants.sweeps.x_sweeps as sweeps
 
 import numpy as np
 import numba

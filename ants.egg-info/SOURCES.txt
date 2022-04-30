@@ -3,8 +3,17 @@ README.md
 setup.py
 ants/__init__.py
 ants/constants.py
+ants/criticality.py
+ants/fixed_source.py
+ants/mapper.py
+ants/materials.py
+ants/medium.py
+ants/multi_group.py
+ants/r_sweeps.py
 ants/slab.py
-ants/sweeps.py
+ants/transport.py
+ants/x_sweeps.py
+ants/xy_sweeps.py
 ants.egg-info/PKG-INFO
 ants.egg-info/SOURCES.txt
 ants.egg-info/dependency_links.txt
@@ -17,5 +26,7 @@ ants/cy_ants/ants/cy_ants/multigroup.cpp
 ants/cy_ants/build/ants/cy_ants/CySlab.cpp
 ants/cy_ants/build/ants/cy_ants/multigroup.cpp
 tests/__init__.py
+tests/conftest.py
 tests/speed_test.py
+tests/test_legacy_materials.py
 tests/test_sweeps.py

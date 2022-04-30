@@ -10,9 +10,9 @@
 # 
 ########################################################################
 
-from ants.medium import MediumX
-from ants.materials import Materials
-from ants.mapper import Mapper
+from ants.problem.medium import MediumX
+from ants.problem.materials import Materials
+from ants.problem.mapper import Mapper
 from ants.fixed_source import backward_euler
 from ants.criticality import keigenvalue
 

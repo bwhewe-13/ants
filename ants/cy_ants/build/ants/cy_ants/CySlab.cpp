@@ -5,12 +5,12 @@
     "distutils": {
         "depends": [],
         "language": "c++",
-        "name": "CySlab",
+        "name": "ants.cy_ants.CySlab",
         "sources": [
             "ants/cy_ants/CySlab.pyx"
         ]
     },
-    "module_name": "CySlab"
+    "module_name": "ants.cy_ants.CySlab"
 }
 END: Cython Metadata */
 
@@ -123,6 +123,9 @@ END: Cython Metadata */
   #define CYTHON_USE_DICT_VERSIONS 0
   #undef CYTHON_USE_EXC_INFO_STACK
   #define CYTHON_USE_EXC_INFO_STACK 0
+  #ifndef CYTHON_UPDATE_DESCRIPTOR_DOC
+    #define CYTHON_UPDATE_DESCRIPTOR_DOC 0
+  #endif
 #elif defined(PYPY_VERSION)
   #define CYTHON_COMPILING_IN_PYPY 1
   #define CYTHON_COMPILING_IN_CPYTHON 0
@@ -175,11 +178,16 @@ END: Cython Metadata */
   #define CYTHON_USE_DICT_VERSIONS 0
   #undef CYTHON_USE_EXC_INFO_STACK
   #define CYTHON_USE_EXC_INFO_STACK 0
+  #ifndef CYTHON_UPDATE_DESCRIPTOR_DOC
+    #define CYTHON_UPDATE_DESCRIPTOR_DOC (PYPY_VERSION_HEX >= 0x07030900)
+  #endif
 #elif defined(CYTHON_LIMITED_API)
   #define CYTHON_COMPILING_IN_PYPY 0
   #define CYTHON_COMPILING_IN_CPYTHON 0
   #define CYTHON_COMPILING_IN_LIMITED_API 1
   #define CYTHON_COMPILING_IN_GRAAL 0
+  #undef CYTHON_CLINE_IN_TRACEBACK
+  #define CYTHON_CLINE_IN_TRACEBACK 0
   #undef CYTHON_USE_TYPE_SLOTS
   #define CYTHON_USE_TYPE_SLOTS 0
   #undef CYTHON_USE_TYPE_SPECS
@@ -226,6 +234,9 @@ END: Cython Metadata */
   #define CYTHON_USE_DICT_VERSIONS 0
   #undef CYTHON_USE_EXC_INFO_STACK
   #define CYTHON_USE_EXC_INFO_STACK 0
+  #ifndef CYTHON_UPDATE_DESCRIPTOR_DOC
+    #define CYTHON_UPDATE_DESCRIPTOR_DOC 0
+  #endif
 #else
   #define CYTHON_COMPILING_IN_PYPY 0
   #define CYTHON_COMPILING_IN_CPYTHON 1
@@ -311,6 +322,9 @@ END: Cython Metadata */
     #define CYTHON_USE_EXC_INFO_STACK 0
   #elif !defined(CYTHON_USE_EXC_INFO_STACK)
     #define CYTHON_USE_EXC_INFO_STACK 1
+  #endif
+  #ifndef CYTHON_UPDATE_DESCRIPTOR_DOC
+    #define CYTHON_UPDATE_DESCRIPTOR_DOC 1
   #endif
 #endif
 #if !defined(CYTHON_FAST_PYCCALL)
@@ -548,6 +562,27 @@ class __Pyx_FakeReference {
 #else
   #define __Pyx_IS_TYPE(ob, type) (((const PyObject*)ob)->ob_type == (type))
 #endif
+#if PY_VERSION_HEX >= 0x030A00B1 || defined(Py_Is)
+  #define __Pyx_Py_Is(x, y)  Py_Is(x, y)
+#else
+  #define __Pyx_Py_Is(x, y) ((x) == (y))
+#endif
+#if PY_VERSION_HEX >= 0x030A00B1 || defined(Py_IsNone)
+  #define __Pyx_Py_IsNone(ob) Py_IsNone(ob)
+#else
+  #define __Pyx_Py_IsNone(ob) __Pyx_Py_Is((ob), Py_None)
+#endif
+#if PY_VERSION_HEX >= 0x030A00B1 || defined(Py_IsTrue)
+  #define __Pyx_Py_IsTrue(ob) Py_IsTrue(ob)
+#else
+  #define __Pyx_Py_IsTrue(ob) __Pyx_Py_Is((ob), Py_True)
+#endif
+#if PY_VERSION_HEX >= 0x030A00B1 || defined(Py_IsFalse)
+  #define __Pyx_Py_IsFalse(ob) Py_IsFalse(ob)
+#else
+  #define __Pyx_Py_IsFalse(ob) __Pyx_Py_Is((ob), Py_False)
+#endif
+#define __Pyx_NoneAsNull(obj)  (__Pyx_Py_IsNone(obj) ? NULL : (obj))
 #ifndef Py_TPFLAGS_CHECKTYPES
   #define Py_TPFLAGS_CHECKTYPES 0
 #endif
@@ -928,7 +963,9 @@ static CYTHON_INLINE PyObject * __Pyx_PyDict_GetItemStrWithError(PyObject *dict,
 #endif
 
 #if defined(_WIN32) || defined(WIN32) || defined(MS_WINDOWS)
-  #define _USE_MATH_DEFINES
+  #if !defined(_USE_MATH_DEFINES)
+    #define _USE_MATH_DEFINES
+  #endif
 #endif
 #include <math.h>
 #ifdef NAN
@@ -959,8 +996,8 @@ static CYTHON_INLINE float __PYX_NAN() {
   #endif
 #endif
 
-#define __PYX_HAVE__CySlab
-#define __PYX_HAVE_API__CySlab
+#define __PYX_HAVE__ants__cy_ants__CySlab
+#define __PYX_HAVE_API__ants__cy_ants__CySlab
 /* Early includes */
 #include "ios"
 #include "new"
@@ -1474,6 +1511,17 @@ static PyObject *__Pyx_PyFunction_FastCallDict(PyObject *func, PyObject **args, 
 #define Py_MEMBER_SIZE(type, member) sizeof(((type *)0)->member)
 #endif
 #if !CYTHON_VECTORCALL
+#if PY_VERSION_HEX >= 0x03080000
+  #include "frameobject.h"
+#if PY_VERSION_HEX >= 0x030b00a6
+  #ifndef Py_BUILD_CORE
+    #define Py_BUILD_CORE 1
+  #endif
+  #include "internal/pycore_frame.h"
+#endif
+  #define __Pxy_PyFrame_Initialize_Offsets()
+  #define __Pyx_PyFrame_GetLocalsplus(frame)  ((frame)->f_localsplus)
+#else
   static size_t __pyx_pyframe_localsplus_offset = 0;
   #include "frameobject.h"
   #define __Pxy_PyFrame_Initialize_Offsets()\
@@ -1481,7 +1529,8 @@ static PyObject *__Pyx_PyFunction_FastCallDict(PyObject *func, PyObject **args, 
      (void)(__pyx_pyframe_localsplus_offset = ((size_t)PyFrame_Type.tp_basicsize) - Py_MEMBER_SIZE(PyFrameObject, f_localsplus)))
   #define __Pyx_PyFrame_GetLocalsplus(frame)\
     (assert(__pyx_pyframe_localsplus_offset), (PyObject **)(((char *)(frame)) + __pyx_pyframe_localsplus_offset))
-#endif // !CYTHON_VECTORCALL
+#endif
+#endif
 #endif
 
 /* PyObjectCall.proto */
@@ -1802,29 +1851,29 @@ static int __Pyx_InitStrings(__Pyx_StringTabEntry *t);
 #if !CYTHON_USE_MODULE_STATE
 #endif
 
-/* Module declarations from "CySlab" */
+/* Module declarations from "ants.cy_ants.CySlab" */
 #if !CYTHON_USE_MODULE_STATE
 #endif
-static double __pyx_v_6CySlab_INNER_TOLERANCE;
-static size_t __pyx_v_6CySlab_MAX_ITERATIONS;
-static float __pyx_v_6CySlab_width;
-static size_t __pyx_v_6CySlab_cells;
-static float __pyx_v_6CySlab_delta_x;
-static float __pyx_v_6CySlab_cell_width;
-static int __pyx_v_6CySlab_angles;
-static std::vector<double>  __pyx_v_6CySlab_mu;
-static std::vector<double>  __pyx_v_6CySlab_w;
-static double __pyx_f_6CySlab_convergence(std::vector<double>  &, std::vector<double>  &); /*proto*/
+static double __pyx_v_4ants_7cy_ants_6CySlab_INNER_TOLERANCE;
+static size_t __pyx_v_4ants_7cy_ants_6CySlab_MAX_ITERATIONS;
+static float __pyx_v_4ants_7cy_ants_6CySlab_width;
+static size_t __pyx_v_4ants_7cy_ants_6CySlab_cells;
+static float __pyx_v_4ants_7cy_ants_6CySlab_delta_x;
+static float __pyx_v_4ants_7cy_ants_6CySlab_cell_width;
+static int __pyx_v_4ants_7cy_ants_6CySlab_angles;
+static std::vector<double>  __pyx_v_4ants_7cy_ants_6CySlab_mu;
+static std::vector<double>  __pyx_v_4ants_7cy_ants_6CySlab_w;
+static double __pyx_f_4ants_7cy_ants_6CySlab_convergence(std::vector<double>  &, std::vector<double>  &); /*proto*/
 static std::vector<double>  __pyx_convert_vector_from_py_double(PyObject *); /*proto*/
 static std::vector<float>  __pyx_convert_vector_from_py_float(PyObject *); /*proto*/
 static PyObject *__pyx_convert_vector_to_py_double(std::vector<double>  const &); /*proto*/
 /* #### Code section: typeinfo ### */
 /* #### Code section: before_global_var ### */
-#define __Pyx_MODULE_NAME "CySlab"
-extern int __pyx_module_is_main_CySlab;
-int __pyx_module_is_main_CySlab = 0;
+#define __Pyx_MODULE_NAME "ants.cy_ants.CySlab"
+extern int __pyx_module_is_main_ants__cy_ants__CySlab;
+int __pyx_module_is_main_ants__cy_ants__CySlab = 0;
 
-/* Implementation of "CySlab" */
+/* Implementation of "ants.cy_ants.CySlab" */
 /* #### Code section: global_var ### */
 static PyObject *__pyx_builtin_range;
 static PyObject *__pyx_builtin_MemoryError;
@@ -1843,7 +1892,6 @@ static const char __pyx_k_count[] = "count";
 static const char __pyx_k_numpy[] = "numpy";
 static const char __pyx_k_range[] = "range";
 static const char __pyx_k_total[] = "total";
-static const char __pyx_k_CySlab[] = "CySlab";
 static const char __pyx_k_change[] = "change";
 static const char __pyx_k_import[] = "__import__";
 static const char __pyx_k_source[] = "source";
@@ -1862,13 +1910,14 @@ static const char __pyx_k_initializing[] = "_initializing";
 static const char __pyx_k_is_coroutine[] = "_is_coroutine";
 static const char __pyx_k_asyncio_coroutines[] = "asyncio.coroutines";
 static const char __pyx_k_cline_in_traceback[] = "cline_in_traceback";
+static const char __pyx_k_ants_cy_ants_CySlab[] = "ants.cy_ants.CySlab";
 static const char __pyx_k_ants_cy_ants_CySlab_pyx[] = "ants/cy_ants/CySlab.pyx";
 #if !CYTHON_USE_MODULE_STATE
 static PyObject *__pyx_n_s_;
-static PyObject *__pyx_n_s_CySlab;
 static PyObject *__pyx_n_s_MemoryError;
 static PyObject *__pyx_n_s__4;
 static PyObject *__pyx_n_s_angle;
+static PyObject *__pyx_n_s_ants_cy_ants_CySlab;
 static PyObject *__pyx_kp_s_ants_cy_ants_CySlab_pyx;
 static PyObject *__pyx_n_s_asarray;
 static PyObject *__pyx_n_s_asyncio_coroutines;
@@ -1900,7 +1949,7 @@ static PyObject *__pyx_n_s_test;
 static PyObject *__pyx_n_s_total;
 #endif
 /* #### Code section: decls ### */
-static PyObject *__pyx_pf_6CySlab_slab_cython(CYTHON_UNUSED PyObject *__pyx_self, std::vector<float>  __pyx_v_total, std::vector<float>  __pyx_v_scatter, std::vector<float>  __pyx_v_source, std::vector<double>  __pyx_v_phi_old); /* proto */
+static PyObject *__pyx_pf_4ants_7cy_ants_6CySlab_slab_cython(CYTHON_UNUSED PyObject *__pyx_self, std::vector<float>  __pyx_v_total, std::vector<float>  __pyx_v_scatter, std::vector<float>  __pyx_v_source, std::vector<double>  __pyx_v_phi_old); /* proto */
 #if !CYTHON_USE_MODULE_STATE
 #endif
 #if !CYTHON_USE_MODULE_STATE
@@ -1924,10 +1973,10 @@ typedef struct {
   PyTypeObject *__pyx_FusedFunctionType;
   #endif
   PyObject *__pyx_n_s_;
-  PyObject *__pyx_n_s_CySlab;
   PyObject *__pyx_n_s_MemoryError;
   PyObject *__pyx_n_s__4;
   PyObject *__pyx_n_s_angle;
+  PyObject *__pyx_n_s_ants_cy_ants_CySlab;
   PyObject *__pyx_kp_s_ants_cy_ants_CySlab_pyx;
   PyObject *__pyx_n_s_asarray;
   PyObject *__pyx_n_s_asyncio_coroutines;
@@ -1993,10 +2042,10 @@ static int __pyx_m_clear(PyObject *m) {
   Py_CLEAR(clear_module_state->__pyx_FusedFunctionType);
   #endif
   Py_CLEAR(clear_module_state->__pyx_n_s_);
-  Py_CLEAR(clear_module_state->__pyx_n_s_CySlab);
   Py_CLEAR(clear_module_state->__pyx_n_s_MemoryError);
   Py_CLEAR(clear_module_state->__pyx_n_s__4);
   Py_CLEAR(clear_module_state->__pyx_n_s_angle);
+  Py_CLEAR(clear_module_state->__pyx_n_s_ants_cy_ants_CySlab);
   Py_CLEAR(clear_module_state->__pyx_kp_s_ants_cy_ants_CySlab_pyx);
   Py_CLEAR(clear_module_state->__pyx_n_s_asarray);
   Py_CLEAR(clear_module_state->__pyx_n_s_asyncio_coroutines);
@@ -2049,10 +2098,10 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
   Py_VISIT(traverse_module_state->__pyx_FusedFunctionType);
   #endif
   Py_VISIT(traverse_module_state->__pyx_n_s_);
-  Py_VISIT(traverse_module_state->__pyx_n_s_CySlab);
   Py_VISIT(traverse_module_state->__pyx_n_s_MemoryError);
   Py_VISIT(traverse_module_state->__pyx_n_s__4);
   Py_VISIT(traverse_module_state->__pyx_n_s_angle);
+  Py_VISIT(traverse_module_state->__pyx_n_s_ants_cy_ants_CySlab);
   Py_VISIT(traverse_module_state->__pyx_kp_s_ants_cy_ants_CySlab_pyx);
   Py_VISIT(traverse_module_state->__pyx_n_s_asarray);
   Py_VISIT(traverse_module_state->__pyx_n_s_asyncio_coroutines);
@@ -2102,10 +2151,10 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
 #define __pyx_FusedFunctionType __pyx_mstate_global->__pyx_FusedFunctionType
 #endif
 #define __pyx_n_s_ __pyx_mstate_global->__pyx_n_s_
-#define __pyx_n_s_CySlab __pyx_mstate_global->__pyx_n_s_CySlab
 #define __pyx_n_s_MemoryError __pyx_mstate_global->__pyx_n_s_MemoryError
 #define __pyx_n_s__4 __pyx_mstate_global->__pyx_n_s__4
 #define __pyx_n_s_angle __pyx_mstate_global->__pyx_n_s_angle
+#define __pyx_n_s_ants_cy_ants_CySlab __pyx_mstate_global->__pyx_n_s_ants_cy_ants_CySlab
 #define __pyx_kp_s_ants_cy_ants_CySlab_pyx __pyx_mstate_global->__pyx_kp_s_ants_cy_ants_CySlab_pyx
 #define __pyx_n_s_asarray __pyx_mstate_global->__pyx_n_s_asarray
 #define __pyx_n_s_asyncio_coroutines __pyx_mstate_global->__pyx_n_s_asyncio_coroutines
@@ -2140,7 +2189,7 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
 #endif
 /* #### Code section: module_code ### */
 
-/* "CySlab.pyx":37
+/* "ants/cy_ants/CySlab.pyx":37
  * #         arr1[cell] = arr2[cell]
  * 
  * cdef double convergence(vector[double]& arr1, vector[double]& arr2):             # <<<<<<<<<<<<<<
@@ -2148,7 +2197,7 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
  *     cdef double change = 0.0
  */
 
-static double __pyx_f_6CySlab_convergence(std::vector<double>  &__pyx_v_arr1, std::vector<double>  &__pyx_v_arr2) {
+static double __pyx_f_4ants_7cy_ants_6CySlab_convergence(std::vector<double>  &__pyx_v_arr1, std::vector<double>  &__pyx_v_arr2) {
   PyObject *__pyx_v_n = NULL;
   double __pyx_v_change;
   int __pyx_v_cell;
@@ -2165,7 +2214,7 @@ static double __pyx_f_6CySlab_convergence(std::vector<double>  &__pyx_v_arr1, st
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("convergence", 0);
 
-  /* "CySlab.pyx":38
+  /* "ants/cy_ants/CySlab.pyx":38
  * 
  * cdef double convergence(vector[double]& arr1, vector[double]& arr2):
  *     n = arr1.size()             # <<<<<<<<<<<<<<
@@ -2177,7 +2226,7 @@ static double __pyx_f_6CySlab_convergence(std::vector<double>  &__pyx_v_arr1, st
   __pyx_v_n = __pyx_t_1;
   __pyx_t_1 = 0;
 
-  /* "CySlab.pyx":39
+  /* "ants/cy_ants/CySlab.pyx":39
  * cdef double convergence(vector[double]& arr1, vector[double]& arr2):
  *     n = arr1.size()
  *     cdef double change = 0.0             # <<<<<<<<<<<<<<
@@ -2186,7 +2235,7 @@ static double __pyx_f_6CySlab_convergence(std::vector<double>  &__pyx_v_arr1, st
  */
   __pyx_v_change = 0.0;
 
-  /* "CySlab.pyx":40
+  /* "ants/cy_ants/CySlab.pyx":40
  *     n = arr1.size()
  *     cdef double change = 0.0
  *     for cell in range(<int> n):             # <<<<<<<<<<<<<<
@@ -2199,7 +2248,7 @@ static double __pyx_f_6CySlab_convergence(std::vector<double>  &__pyx_v_arr1, st
   for (__pyx_t_4 = 0; __pyx_t_4 < __pyx_t_2; __pyx_t_4+=1) {
     __pyx_v_cell = __pyx_t_4;
 
-    /* "CySlab.pyx":41
+    /* "ants/cy_ants/CySlab.pyx":41
  *     cdef double change = 0.0
  *     for cell in range(<int> n):
  *         change += pow((arr1[cell] - arr2[cell]) / arr1[cell] / n, 2)             # <<<<<<<<<<<<<<
@@ -2216,7 +2265,7 @@ static double __pyx_f_6CySlab_convergence(std::vector<double>  &__pyx_v_arr1, st
     __pyx_v_change = (__pyx_v_change + pow(__pyx_t_6, 2.0));
   }
 
-  /* "CySlab.pyx":42
+  /* "ants/cy_ants/CySlab.pyx":42
  *     for cell in range(<int> n):
  *         change += pow((arr1[cell] - arr2[cell]) / arr1[cell] / n, 2)
  *     change = sqrt(change)             # <<<<<<<<<<<<<<
@@ -2225,7 +2274,7 @@ static double __pyx_f_6CySlab_convergence(std::vector<double>  &__pyx_v_arr1, st
  */
   __pyx_v_change = sqrt(__pyx_v_change);
 
-  /* "CySlab.pyx":43
+  /* "ants/cy_ants/CySlab.pyx":43
  *         change += pow((arr1[cell] - arr2[cell]) / arr1[cell] / n, 2)
  *     change = sqrt(change)
  *     return change             # <<<<<<<<<<<<<<
@@ -2235,7 +2284,7 @@ static double __pyx_f_6CySlab_convergence(std::vector<double>  &__pyx_v_arr1, st
   __pyx_r = __pyx_v_change;
   goto __pyx_L0;
 
-  /* "CySlab.pyx":37
+  /* "ants/cy_ants/CySlab.pyx":37
  * #         arr1[cell] = arr2[cell]
  * 
  * cdef double convergence(vector[double]& arr1, vector[double]& arr2):             # <<<<<<<<<<<<<<
@@ -2247,7 +2296,7 @@ static double __pyx_f_6CySlab_convergence(std::vector<double>  &__pyx_v_arr1, st
   __pyx_L1_error:;
   __Pyx_XDECREF(__pyx_t_1);
   __Pyx_XDECREF(__pyx_t_5);
-  __Pyx_WriteUnraisable("CySlab.convergence", __pyx_clineno, __pyx_lineno, __pyx_filename, 1, 0);
+  __Pyx_WriteUnraisable("ants.cy_ants.CySlab.convergence", __pyx_clineno, __pyx_lineno, __pyx_filename, 1, 0);
   __pyx_r = 0;
   __pyx_L0:;
   __Pyx_XDECREF(__pyx_v_n);
@@ -2255,7 +2304,7 @@ static double __pyx_f_6CySlab_convergence(std::vector<double>  &__pyx_v_arr1, st
   return __pyx_r;
 }
 
-/* "CySlab.pyx":45
+/* "ants/cy_ants/CySlab.pyx":45
  *     return change
  * 
  * def slab_cython(vector[float] total, vector[float] scatter, vector[float] source, \             # <<<<<<<<<<<<<<
@@ -2264,15 +2313,15 @@ static double __pyx_f_6CySlab_convergence(std::vector<double>  &__pyx_v_arr1, st
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_6CySlab_1slab_cython(PyObject *__pyx_self, 
+static PyObject *__pyx_pw_4ants_7cy_ants_6CySlab_1slab_cython(PyObject *__pyx_self, 
 #if CYTHON_METH_FASTCALL
 PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
 #else
 PyObject *__pyx_args, PyObject *__pyx_kwds
 #endif
 ); /*proto*/
-static PyMethodDef __pyx_mdef_6CySlab_1slab_cython = {"slab_cython", (PyCFunction)(void*)(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_6CySlab_1slab_cython, __Pyx_METH_FASTCALL|METH_KEYWORDS, 0};
-static PyObject *__pyx_pw_6CySlab_1slab_cython(PyObject *__pyx_self, 
+static PyMethodDef __pyx_mdef_4ants_7cy_ants_6CySlab_1slab_cython = {"slab_cython", (PyCFunction)(void*)(__Pyx_PyCFunction_FastCallWithKeywords)__pyx_pw_4ants_7cy_ants_6CySlab_1slab_cython, __Pyx_METH_FASTCALL|METH_KEYWORDS, 0};
+static PyObject *__pyx_pw_4ants_7cy_ants_6CySlab_1slab_cython(PyObject *__pyx_self, 
 #if CYTHON_METH_FASTCALL
 PyObject *const *__pyx_args, Py_ssize_t __pyx_nargs, PyObject *__pyx_kwds
 #else
@@ -2363,18 +2412,18 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   __pyx_L5_argtuple_error:;
   __Pyx_RaiseArgtupleInvalid("slab_cython", 1, 4, 4, __pyx_nargs); __PYX_ERR(0, 45, __pyx_L3_error)
   __pyx_L3_error:;
-  __Pyx_AddTraceback("CySlab.slab_cython", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("ants.cy_ants.CySlab.slab_cython", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  __pyx_r = __pyx_pf_6CySlab_slab_cython(__pyx_self, __PYX_STD_MOVE_IF_SUPPORTED(__pyx_v_total), __PYX_STD_MOVE_IF_SUPPORTED(__pyx_v_scatter), __PYX_STD_MOVE_IF_SUPPORTED(__pyx_v_source), __PYX_STD_MOVE_IF_SUPPORTED(__pyx_v_phi_old));
+  __pyx_r = __pyx_pf_4ants_7cy_ants_6CySlab_slab_cython(__pyx_self, __PYX_STD_MOVE_IF_SUPPORTED(__pyx_v_total), __PYX_STD_MOVE_IF_SUPPORTED(__pyx_v_scatter), __PYX_STD_MOVE_IF_SUPPORTED(__pyx_v_source), __PYX_STD_MOVE_IF_SUPPORTED(__pyx_v_phi_old));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_6CySlab_slab_cython(CYTHON_UNUSED PyObject *__pyx_self, std::vector<float>  __pyx_v_total, std::vector<float>  __pyx_v_scatter, std::vector<float>  __pyx_v_source, std::vector<double>  __pyx_v_phi_old) {
+static PyObject *__pyx_pf_4ants_7cy_ants_6CySlab_slab_cython(CYTHON_UNUSED PyObject *__pyx_self, std::vector<float>  __pyx_v_total, std::vector<float>  __pyx_v_scatter, std::vector<float>  __pyx_v_source, std::vector<double>  __pyx_v_phi_old) {
   std::vector<double>  __pyx_v_phi;
   int __pyx_v_converged;
   size_t __pyx_v_count;
@@ -2403,7 +2452,7 @@ static PyObject *__pyx_pf_6CySlab_slab_cython(CYTHON_UNUSED PyObject *__pyx_self
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("slab_cython", 0);
 
-  /* "CySlab.pyx":52
+  /* "ants/cy_ants/CySlab.pyx":52
  * 
  *     cdef vector[double] phi
  *     phi.resize(cells)             # <<<<<<<<<<<<<<
@@ -2411,13 +2460,13 @@ static PyObject *__pyx_pf_6CySlab_slab_cython(CYTHON_UNUSED PyObject *__pyx_self
  * 
  */
   try {
-    __pyx_v_phi.resize(__pyx_v_6CySlab_cells);
+    __pyx_v_phi.resize(__pyx_v_4ants_7cy_ants_6CySlab_cells);
   } catch(...) {
     __Pyx_CppExn2PyErr();
     __PYX_ERR(0, 52, __pyx_L1_error)
   }
 
-  /* "CySlab.pyx":53
+  /* "ants/cy_ants/CySlab.pyx":53
  *     cdef vector[double] phi
  *     phi.resize(cells)
  *     fill(phi.begin(), phi.end(), 0.0)             # <<<<<<<<<<<<<<
@@ -2431,7 +2480,7 @@ static PyObject *__pyx_pf_6CySlab_slab_cython(CYTHON_UNUSED PyObject *__pyx_self
     __PYX_ERR(0, 53, __pyx_L1_error)
   }
 
-  /* "CySlab.pyx":55
+  /* "ants/cy_ants/CySlab.pyx":55
  *     fill(phi.begin(), phi.end(), 0.0)
  * 
  *     cdef bint converged = False             # <<<<<<<<<<<<<<
@@ -2440,7 +2489,7 @@ static PyObject *__pyx_pf_6CySlab_slab_cython(CYTHON_UNUSED PyObject *__pyx_self
  */
   __pyx_v_converged = 0;
 
-  /* "CySlab.pyx":56
+  /* "ants/cy_ants/CySlab.pyx":56
  * 
  *     cdef bint converged = False
  *     cdef size_t count = 1             # <<<<<<<<<<<<<<
@@ -2449,7 +2498,7 @@ static PyObject *__pyx_pf_6CySlab_slab_cython(CYTHON_UNUSED PyObject *__pyx_self
  */
   __pyx_v_count = 1;
 
-  /* "CySlab.pyx":58
+  /* "ants/cy_ants/CySlab.pyx":58
  *     cdef size_t count = 1
  *     cdef double psi_bottom, psi_top
  *     cdef double change = 0.0             # <<<<<<<<<<<<<<
@@ -2458,7 +2507,7 @@ static PyObject *__pyx_pf_6CySlab_slab_cython(CYTHON_UNUSED PyObject *__pyx_self
  */
   __pyx_v_change = 0.0;
 
-  /* "CySlab.pyx":63
+  /* "ants/cy_ants/CySlab.pyx":63
  *     cdef size_t cell
  * 
  *     while not (converged):             # <<<<<<<<<<<<<<
@@ -2469,7 +2518,7 @@ static PyObject *__pyx_pf_6CySlab_slab_cython(CYTHON_UNUSED PyObject *__pyx_self
     __pyx_t_1 = ((!(__pyx_v_converged != 0)) != 0);
     if (!__pyx_t_1) break;
 
-    /* "CySlab.pyx":64
+    /* "ants/cy_ants/CySlab.pyx":64
  * 
  *     while not (converged):
  *         fill(phi.begin(), phi.end(), 0.0)             # <<<<<<<<<<<<<<
@@ -2483,29 +2532,29 @@ static PyObject *__pyx_pf_6CySlab_slab_cython(CYTHON_UNUSED PyObject *__pyx_self
       __PYX_ERR(0, 64, __pyx_L1_error)
     }
 
-    /* "CySlab.pyx":65
+    /* "ants/cy_ants/CySlab.pyx":65
  *     while not (converged):
  *         fill(phi.begin(), phi.end(), 0.0)
  *         for angle in range(angles):             # <<<<<<<<<<<<<<
  *             if mu[angle] > 0: # From 0 to I
  *                 psi_bottom = 0.0
  */
-    __pyx_t_2 = __pyx_v_6CySlab_angles;
+    __pyx_t_2 = __pyx_v_4ants_7cy_ants_6CySlab_angles;
     __pyx_t_3 = __pyx_t_2;
     for (__pyx_t_4 = 0; __pyx_t_4 < __pyx_t_3; __pyx_t_4+=1) {
       __pyx_v_angle = __pyx_t_4;
 
-      /* "CySlab.pyx":66
+      /* "ants/cy_ants/CySlab.pyx":66
  *         fill(phi.begin(), phi.end(), 0.0)
  *         for angle in range(angles):
  *             if mu[angle] > 0: # From 0 to I             # <<<<<<<<<<<<<<
  *                 psi_bottom = 0.0
  *                 for cell in range(cells):
  */
-      __pyx_t_1 = (((__pyx_v_6CySlab_mu[__pyx_v_angle]) > 0.0) != 0);
+      __pyx_t_1 = (((__pyx_v_4ants_7cy_ants_6CySlab_mu[__pyx_v_angle]) > 0.0) != 0);
       if (__pyx_t_1) {
 
-        /* "CySlab.pyx":67
+        /* "ants/cy_ants/CySlab.pyx":67
  *         for angle in range(angles):
  *             if mu[angle] > 0: # From 0 to I
  *                 psi_bottom = 0.0             # <<<<<<<<<<<<<<
@@ -2514,28 +2563,28 @@ static PyObject *__pyx_pf_6CySlab_slab_cython(CYTHON_UNUSED PyObject *__pyx_self
  */
         __pyx_v_psi_bottom = 0.0;
 
-        /* "CySlab.pyx":68
+        /* "ants/cy_ants/CySlab.pyx":68
  *             if mu[angle] > 0: # From 0 to I
  *                 psi_bottom = 0.0
  *                 for cell in range(cells):             # <<<<<<<<<<<<<<
  *                     psi_top = (scatter[cell] * phi_old[cell] + source[cell]\
  *                              + psi_bottom * (mu[angle] * cell_width - 0.5 * total[cell]))\
  */
-        __pyx_t_5 = __pyx_v_6CySlab_cells;
+        __pyx_t_5 = __pyx_v_4ants_7cy_ants_6CySlab_cells;
         __pyx_t_6 = __pyx_t_5;
         for (__pyx_t_7 = 0; __pyx_t_7 < __pyx_t_6; __pyx_t_7+=1) {
           __pyx_v_cell = __pyx_t_7;
 
-          /* "CySlab.pyx":71
+          /* "ants/cy_ants/CySlab.pyx":71
  *                     psi_top = (scatter[cell] * phi_old[cell] + source[cell]\
  *                              + psi_bottom * (mu[angle] * cell_width - 0.5 * total[cell]))\
  *                               * 1/(mu[angle] * cell_width  + 0.5 * total[cell]);             # <<<<<<<<<<<<<<
  * 
  *                     phi[cell] += (w[angle] * 0.25 * (psi_top + psi_bottom))
  */
-          __pyx_v_psi_top = ((((((__pyx_v_scatter[__pyx_v_cell]) * (__pyx_v_phi_old[__pyx_v_cell])) + (__pyx_v_source[__pyx_v_cell])) + (__pyx_v_psi_bottom * (((__pyx_v_6CySlab_mu[__pyx_v_angle]) * __pyx_v_6CySlab_cell_width) - (0.5 * (__pyx_v_total[__pyx_v_cell]))))) * 1.0) / (((__pyx_v_6CySlab_mu[__pyx_v_angle]) * __pyx_v_6CySlab_cell_width) + (0.5 * (__pyx_v_total[__pyx_v_cell]))));
+          __pyx_v_psi_top = ((((((__pyx_v_scatter[__pyx_v_cell]) * (__pyx_v_phi_old[__pyx_v_cell])) + (__pyx_v_source[__pyx_v_cell])) + (__pyx_v_psi_bottom * (((__pyx_v_4ants_7cy_ants_6CySlab_mu[__pyx_v_angle]) * __pyx_v_4ants_7cy_ants_6CySlab_cell_width) - (0.5 * (__pyx_v_total[__pyx_v_cell]))))) * 1.0) / (((__pyx_v_4ants_7cy_ants_6CySlab_mu[__pyx_v_angle]) * __pyx_v_4ants_7cy_ants_6CySlab_cell_width) + (0.5 * (__pyx_v_total[__pyx_v_cell]))));
 
-          /* "CySlab.pyx":73
+          /* "ants/cy_ants/CySlab.pyx":73
  *                               * 1/(mu[angle] * cell_width  + 0.5 * total[cell]);
  * 
  *                     phi[cell] += (w[angle] * 0.25 * (psi_top + psi_bottom))             # <<<<<<<<<<<<<<
@@ -2543,9 +2592,9 @@ static PyObject *__pyx_pf_6CySlab_slab_cython(CYTHON_UNUSED PyObject *__pyx_self
  *             elif mu[angle] < 0:
  */
           __pyx_t_8 = __pyx_v_cell;
-          (__pyx_v_phi[__pyx_t_8]) = ((__pyx_v_phi[__pyx_t_8]) + (((__pyx_v_6CySlab_w[__pyx_v_angle]) * 0.25) * (__pyx_v_psi_top + __pyx_v_psi_bottom)));
+          (__pyx_v_phi[__pyx_t_8]) = ((__pyx_v_phi[__pyx_t_8]) + (((__pyx_v_4ants_7cy_ants_6CySlab_w[__pyx_v_angle]) * 0.25) * (__pyx_v_psi_top + __pyx_v_psi_bottom)));
 
-          /* "CySlab.pyx":74
+          /* "ants/cy_ants/CySlab.pyx":74
  * 
  *                     phi[cell] += (w[angle] * 0.25 * (psi_top + psi_bottom))
  *                     psi_bottom = psi_top             # <<<<<<<<<<<<<<
@@ -2555,7 +2604,7 @@ static PyObject *__pyx_pf_6CySlab_slab_cython(CYTHON_UNUSED PyObject *__pyx_self
           __pyx_v_psi_bottom = __pyx_v_psi_top;
         }
 
-        /* "CySlab.pyx":66
+        /* "ants/cy_ants/CySlab.pyx":66
  *         fill(phi.begin(), phi.end(), 0.0)
  *         for angle in range(angles):
  *             if mu[angle] > 0: # From 0 to I             # <<<<<<<<<<<<<<
@@ -2565,17 +2614,17 @@ static PyObject *__pyx_pf_6CySlab_slab_cython(CYTHON_UNUSED PyObject *__pyx_self
         goto __pyx_L7;
       }
 
-      /* "CySlab.pyx":75
+      /* "ants/cy_ants/CySlab.pyx":75
  *                     phi[cell] += (w[angle] * 0.25 * (psi_top + psi_bottom))
  *                     psi_bottom = psi_top
  *             elif mu[angle] < 0:             # <<<<<<<<<<<<<<
  *                 psi_top = 0.0
  *                 for cell in range(cells-1, -1, -1):
  */
-      __pyx_t_1 = (((__pyx_v_6CySlab_mu[__pyx_v_angle]) < 0.0) != 0);
+      __pyx_t_1 = (((__pyx_v_4ants_7cy_ants_6CySlab_mu[__pyx_v_angle]) < 0.0) != 0);
       if (__pyx_t_1) {
 
-        /* "CySlab.pyx":76
+        /* "ants/cy_ants/CySlab.pyx":76
  *                     psi_bottom = psi_top
  *             elif mu[angle] < 0:
  *                 psi_top = 0.0             # <<<<<<<<<<<<<<
@@ -2584,26 +2633,26 @@ static PyObject *__pyx_pf_6CySlab_slab_cython(CYTHON_UNUSED PyObject *__pyx_self
  */
         __pyx_v_psi_top = 0.0;
 
-        /* "CySlab.pyx":77
+        /* "ants/cy_ants/CySlab.pyx":77
  *             elif mu[angle] < 0:
  *                 psi_top = 0.0
  *                 for cell in range(cells-1, -1, -1):             # <<<<<<<<<<<<<<
  *                     psi_bottom = (scatter[cell] * phi_old[cell] + source[cell]\
  *                              + psi_top * (abs(mu[angle]) * cell_width - 0.5 * total[cell]))\
  */
-        for (__pyx_t_5 = (__pyx_v_6CySlab_cells - 1) + 1; __pyx_t_5 > -1L + 1; ) { __pyx_t_5-=1;
+        for (__pyx_t_5 = (__pyx_v_4ants_7cy_ants_6CySlab_cells - 1) + 1; __pyx_t_5 > -1L + 1; ) { __pyx_t_5-=1;
           __pyx_v_cell = __pyx_t_5;
 
-          /* "CySlab.pyx":80
+          /* "ants/cy_ants/CySlab.pyx":80
  *                     psi_bottom = (scatter[cell] * phi_old[cell] + source[cell]\
  *                              + psi_top * (abs(mu[angle]) * cell_width - 0.5 * total[cell]))\
  *                               * 1/(abs(mu[angle]) * cell_width  + 0.5 * total[cell]);             # <<<<<<<<<<<<<<
  * 
  *                     phi[cell] += (w[angle] * 0.25 * (psi_top + psi_bottom))
  */
-          __pyx_v_psi_bottom = ((((((__pyx_v_scatter[__pyx_v_cell]) * (__pyx_v_phi_old[__pyx_v_cell])) + (__pyx_v_source[__pyx_v_cell])) + (__pyx_v_psi_top * ((fabs((__pyx_v_6CySlab_mu[__pyx_v_angle])) * __pyx_v_6CySlab_cell_width) - (0.5 * (__pyx_v_total[__pyx_v_cell]))))) * 1.0) / ((fabs((__pyx_v_6CySlab_mu[__pyx_v_angle])) * __pyx_v_6CySlab_cell_width) + (0.5 * (__pyx_v_total[__pyx_v_cell]))));
+          __pyx_v_psi_bottom = ((((((__pyx_v_scatter[__pyx_v_cell]) * (__pyx_v_phi_old[__pyx_v_cell])) + (__pyx_v_source[__pyx_v_cell])) + (__pyx_v_psi_top * ((fabs((__pyx_v_4ants_7cy_ants_6CySlab_mu[__pyx_v_angle])) * __pyx_v_4ants_7cy_ants_6CySlab_cell_width) - (0.5 * (__pyx_v_total[__pyx_v_cell]))))) * 1.0) / ((fabs((__pyx_v_4ants_7cy_ants_6CySlab_mu[__pyx_v_angle])) * __pyx_v_4ants_7cy_ants_6CySlab_cell_width) + (0.5 * (__pyx_v_total[__pyx_v_cell]))));
 
-          /* "CySlab.pyx":82
+          /* "ants/cy_ants/CySlab.pyx":82
  *                               * 1/(abs(mu[angle]) * cell_width  + 0.5 * total[cell]);
  * 
  *                     phi[cell] += (w[angle] * 0.25 * (psi_top + psi_bottom))             # <<<<<<<<<<<<<<
@@ -2611,9 +2660,9 @@ static PyObject *__pyx_pf_6CySlab_slab_cython(CYTHON_UNUSED PyObject *__pyx_self
  *         change = convergence(phi, phi_old)
  */
           __pyx_t_6 = __pyx_v_cell;
-          (__pyx_v_phi[__pyx_t_6]) = ((__pyx_v_phi[__pyx_t_6]) + (((__pyx_v_6CySlab_w[__pyx_v_angle]) * 0.25) * (__pyx_v_psi_top + __pyx_v_psi_bottom)));
+          (__pyx_v_phi[__pyx_t_6]) = ((__pyx_v_phi[__pyx_t_6]) + (((__pyx_v_4ants_7cy_ants_6CySlab_w[__pyx_v_angle]) * 0.25) * (__pyx_v_psi_top + __pyx_v_psi_bottom)));
 
-          /* "CySlab.pyx":83
+          /* "ants/cy_ants/CySlab.pyx":83
  * 
  *                     phi[cell] += (w[angle] * 0.25 * (psi_top + psi_bottom))
  *                     psi_top = psi_bottom             # <<<<<<<<<<<<<<
@@ -2623,7 +2672,7 @@ static PyObject *__pyx_pf_6CySlab_slab_cython(CYTHON_UNUSED PyObject *__pyx_self
           __pyx_v_psi_top = __pyx_v_psi_bottom;
         }
 
-        /* "CySlab.pyx":75
+        /* "ants/cy_ants/CySlab.pyx":75
  *                     phi[cell] += (w[angle] * 0.25 * (psi_top + psi_bottom))
  *                     psi_bottom = psi_top
  *             elif mu[angle] < 0:             # <<<<<<<<<<<<<<
@@ -2634,34 +2683,34 @@ static PyObject *__pyx_pf_6CySlab_slab_cython(CYTHON_UNUSED PyObject *__pyx_self
       __pyx_L7:;
     }
 
-    /* "CySlab.pyx":84
+    /* "ants/cy_ants/CySlab.pyx":84
  *                     phi[cell] += (w[angle] * 0.25 * (psi_top + psi_bottom))
  *                     psi_top = psi_bottom
  *         change = convergence(phi, phi_old)             # <<<<<<<<<<<<<<
  *         # print('Change:',change,'Flux:',np.sum(phi))
  *         # np.save('cython_count_{}'.format(count),np.asarray(phi))
  */
-    __pyx_v_change = __pyx_f_6CySlab_convergence(__pyx_v_phi, __pyx_v_phi_old);
+    __pyx_v_change = __pyx_f_4ants_7cy_ants_6CySlab_convergence(__pyx_v_phi, __pyx_v_phi_old);
 
-    /* "CySlab.pyx":87
+    /* "ants/cy_ants/CySlab.pyx":87
  *         # print('Change:',change,'Flux:',np.sum(phi))
  *         # np.save('cython_count_{}'.format(count),np.asarray(phi))
  *         converged = (change < INNER_TOLERANCE) or (count >= MAX_ITERATIONS)             # <<<<<<<<<<<<<<
  *         count += 1
  *         # copy(phi, phi_old)
  */
-    __pyx_t_9 = ((__pyx_v_change < __pyx_v_6CySlab_INNER_TOLERANCE) != 0);
+    __pyx_t_9 = ((__pyx_v_change < __pyx_v_4ants_7cy_ants_6CySlab_INNER_TOLERANCE) != 0);
     if (!__pyx_t_9) {
     } else {
       __pyx_t_1 = __pyx_t_9;
       goto __pyx_L12_bool_binop_done;
     }
-    __pyx_t_9 = ((__pyx_v_count >= __pyx_v_6CySlab_MAX_ITERATIONS) != 0);
+    __pyx_t_9 = ((__pyx_v_count >= __pyx_v_4ants_7cy_ants_6CySlab_MAX_ITERATIONS) != 0);
     __pyx_t_1 = __pyx_t_9;
     __pyx_L12_bool_binop_done:;
     __pyx_v_converged = __pyx_t_1;
 
-    /* "CySlab.pyx":88
+    /* "ants/cy_ants/CySlab.pyx":88
  *         # np.save('cython_count_{}'.format(count),np.asarray(phi))
  *         converged = (change < INNER_TOLERANCE) or (count >= MAX_ITERATIONS)
  *         count += 1             # <<<<<<<<<<<<<<
@@ -2670,7 +2719,7 @@ static PyObject *__pyx_pf_6CySlab_slab_cython(CYTHON_UNUSED PyObject *__pyx_self
  */
     __pyx_v_count = (__pyx_v_count + 1);
 
-    /* "CySlab.pyx":90
+    /* "ants/cy_ants/CySlab.pyx":90
  *         count += 1
  *         # copy(phi, phi_old)
  *         copy(phi.begin(), phi.end(), phi_old.begin())             # <<<<<<<<<<<<<<
@@ -2685,7 +2734,7 @@ static PyObject *__pyx_pf_6CySlab_slab_cython(CYTHON_UNUSED PyObject *__pyx_self
     }
   }
 
-  /* "CySlab.pyx":92
+  /* "ants/cy_ants/CySlab.pyx":92
  *         copy(phi.begin(), phi.end(), phi_old.begin())
  *     # print(count, np.sum(np.asarray(phi)))
  *     return np.asarray(phi)             # <<<<<<<<<<<<<<
@@ -2725,7 +2774,7 @@ static PyObject *__pyx_pf_6CySlab_slab_cython(CYTHON_UNUSED PyObject *__pyx_self
   __pyx_t_10 = 0;
   goto __pyx_L0;
 
-  /* "CySlab.pyx":45
+  /* "ants/cy_ants/CySlab.pyx":45
  *     return change
  * 
  * def slab_cython(vector[float] total, vector[float] scatter, vector[float] source, \             # <<<<<<<<<<<<<<
@@ -2739,7 +2788,7 @@ static PyObject *__pyx_pf_6CySlab_slab_cython(CYTHON_UNUSED PyObject *__pyx_self
   __Pyx_XDECREF(__pyx_t_11);
   __Pyx_XDECREF(__pyx_t_12);
   __Pyx_XDECREF(__pyx_t_13);
-  __Pyx_AddTraceback("CySlab.slab_cython", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("ants.cy_ants.CySlab.slab_cython", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
   __Pyx_XGIVEREF(__pyx_r);
@@ -3149,10 +3198,10 @@ static PyMethodDef __pyx_methods[] = {
 static __Pyx_StringTabEntry __pyx_string_tab[] = {
   #if CYTHON_USE_MODULE_STATE
   {0, __pyx_k_, sizeof(__pyx_k_), 0, 0, 1, 1},
-  {0, __pyx_k_CySlab, sizeof(__pyx_k_CySlab), 0, 0, 1, 1},
   {0, __pyx_k_MemoryError, sizeof(__pyx_k_MemoryError), 0, 0, 1, 1},
   {0, __pyx_k__4, sizeof(__pyx_k__4), 0, 0, 1, 1},
   {0, __pyx_k_angle, sizeof(__pyx_k_angle), 0, 0, 1, 1},
+  {0, __pyx_k_ants_cy_ants_CySlab, sizeof(__pyx_k_ants_cy_ants_CySlab), 0, 0, 1, 1},
   {0, __pyx_k_ants_cy_ants_CySlab_pyx, sizeof(__pyx_k_ants_cy_ants_CySlab_pyx), 0, 0, 1, 0},
   {0, __pyx_k_asarray, sizeof(__pyx_k_asarray), 0, 0, 1, 1},
   {0, __pyx_k_asyncio_coroutines, sizeof(__pyx_k_asyncio_coroutines), 0, 0, 1, 1},
@@ -3184,10 +3233,10 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {0, __pyx_k_total, sizeof(__pyx_k_total), 0, 0, 1, 1},
   #else
   {&__pyx_n_s_, __pyx_k_, sizeof(__pyx_k_), 0, 0, 1, 1},
-  {&__pyx_n_s_CySlab, __pyx_k_CySlab, sizeof(__pyx_k_CySlab), 0, 0, 1, 1},
   {&__pyx_n_s_MemoryError, __pyx_k_MemoryError, sizeof(__pyx_k_MemoryError), 0, 0, 1, 1},
   {&__pyx_n_s__4, __pyx_k__4, sizeof(__pyx_k__4), 0, 0, 1, 1},
   {&__pyx_n_s_angle, __pyx_k_angle, sizeof(__pyx_k_angle), 0, 0, 1, 1},
+  {&__pyx_n_s_ants_cy_ants_CySlab, __pyx_k_ants_cy_ants_CySlab, sizeof(__pyx_k_ants_cy_ants_CySlab), 0, 0, 1, 1},
   {&__pyx_kp_s_ants_cy_ants_CySlab_pyx, __pyx_k_ants_cy_ants_CySlab_pyx, sizeof(__pyx_k_ants_cy_ants_CySlab_pyx), 0, 0, 1, 0},
   {&__pyx_n_s_asarray, __pyx_k_asarray, sizeof(__pyx_k_asarray), 0, 0, 1, 1},
   {&__pyx_n_s_asyncio_coroutines, __pyx_k_asyncio_coroutines, sizeof(__pyx_k_asyncio_coroutines), 0, 0, 1, 1},
@@ -3234,7 +3283,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__Pyx_InitCachedConstants", 0);
 
-  /* "CySlab.pyx":45
+  /* "ants/cy_ants/CySlab.pyx":45
  *     return change
  * 
  * def slab_cython(vector[float] total, vector[float] scatter, vector[float] source, \             # <<<<<<<<<<<<<<
@@ -3256,10 +3305,10 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
 static CYTHON_SMALL_CODE int __Pyx_InitConstants(void) {
   #if CYTHON_USE_MODULE_STATE
   if (__Pyx_InitString(__pyx_string_tab[0], &__pyx_n_s_) < 0) __PYX_ERR(0, 2, __pyx_L1_error);
-  if (__Pyx_InitString(__pyx_string_tab[1], &__pyx_n_s_CySlab) < 0) __PYX_ERR(0, 2, __pyx_L1_error);
-  if (__Pyx_InitString(__pyx_string_tab[2], &__pyx_n_s_MemoryError) < 0) __PYX_ERR(0, 2, __pyx_L1_error);
-  if (__Pyx_InitString(__pyx_string_tab[3], &__pyx_n_s__4) < 0) __PYX_ERR(0, 2, __pyx_L1_error);
-  if (__Pyx_InitString(__pyx_string_tab[4], &__pyx_n_s_angle) < 0) __PYX_ERR(0, 2, __pyx_L1_error);
+  if (__Pyx_InitString(__pyx_string_tab[1], &__pyx_n_s_MemoryError) < 0) __PYX_ERR(0, 2, __pyx_L1_error);
+  if (__Pyx_InitString(__pyx_string_tab[2], &__pyx_n_s__4) < 0) __PYX_ERR(0, 2, __pyx_L1_error);
+  if (__Pyx_InitString(__pyx_string_tab[3], &__pyx_n_s_angle) < 0) __PYX_ERR(0, 2, __pyx_L1_error);
+  if (__Pyx_InitString(__pyx_string_tab[4], &__pyx_n_s_ants_cy_ants_CySlab) < 0) __PYX_ERR(0, 2, __pyx_L1_error);
   if (__Pyx_InitString(__pyx_string_tab[5], &__pyx_kp_s_ants_cy_ants_CySlab_pyx) < 0) __PYX_ERR(0, 2, __pyx_L1_error);
   if (__Pyx_InitString(__pyx_string_tab[6], &__pyx_n_s_asarray) < 0) __PYX_ERR(0, 2, __pyx_L1_error);
   if (__Pyx_InitString(__pyx_string_tab[7], &__pyx_n_s_asyncio_coroutines) < 0) __PYX_ERR(0, 2, __pyx_L1_error);
@@ -3622,14 +3671,14 @@ if (!__Pyx_RefNanny) {
   #if PY_MAJOR_VERSION < 3 && (__PYX_DEFAULT_STRING_ENCODING_IS_ASCII || __PYX_DEFAULT_STRING_ENCODING_IS_DEFAULT)
   if (__Pyx_init_sys_getdefaultencoding_params() < 0) __PYX_ERR(0, 2, __pyx_L1_error)
   #endif
-  if (__pyx_module_is_main_CySlab) {
+  if (__pyx_module_is_main_ants__cy_ants__CySlab) {
     if (PyObject_SetAttr(__pyx_m, __pyx_n_s_name, __pyx_n_s_main) < 0) __PYX_ERR(0, 2, __pyx_L1_error)
   }
   #if PY_MAJOR_VERSION >= 3
   {
     PyObject *modules = PyImport_GetModuleDict(); if (unlikely(!modules)) __PYX_ERR(0, 2, __pyx_L1_error)
-    if (!PyDict_GetItemString(modules, "CySlab")) {
-      if (unlikely((PyDict_SetItemString(modules, "CySlab", __pyx_m) < 0))) __PYX_ERR(0, 2, __pyx_L1_error)
+    if (!PyDict_GetItemString(modules, "ants.cy_ants.CySlab")) {
+      if (unlikely((PyDict_SetItemString(modules, "ants.cy_ants.CySlab", __pyx_m) < 0))) __PYX_ERR(0, 2, __pyx_L1_error)
     }
   }
   #endif
@@ -3650,7 +3699,7 @@ if (!__Pyx_RefNanny) {
   if (__Pyx_patch_abc() < 0) __PYX_ERR(0, 2, __pyx_L1_error)
   #endif
 
-  /* "CySlab.pyx":10
+  /* "ants/cy_ants/CySlab.pyx":10
  * from libc.math cimport sqrt, pow
  * 
  * import numpy as np             # <<<<<<<<<<<<<<
@@ -3662,70 +3711,70 @@ if (!__Pyx_RefNanny) {
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_np, __pyx_t_2) < 0) __PYX_ERR(0, 10, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "CySlab.pyx":12
+  /* "ants/cy_ants/CySlab.pyx":12
  * import numpy as np
  * 
  * cdef double INNER_TOLERANCE = 1E-12             # <<<<<<<<<<<<<<
  * cdef size_t MAX_ITERATIONS = 100
  * 
  */
-  __pyx_v_6CySlab_INNER_TOLERANCE = 1E-12;
+  __pyx_v_4ants_7cy_ants_6CySlab_INNER_TOLERANCE = 1E-12;
 
-  /* "CySlab.pyx":13
+  /* "ants/cy_ants/CySlab.pyx":13
  * 
  * cdef double INNER_TOLERANCE = 1E-12
  * cdef size_t MAX_ITERATIONS = 100             # <<<<<<<<<<<<<<
  * 
  * cdef float width = 16
  */
-  __pyx_v_6CySlab_MAX_ITERATIONS = 0x64;
+  __pyx_v_4ants_7cy_ants_6CySlab_MAX_ITERATIONS = 0x64;
 
-  /* "CySlab.pyx":15
+  /* "ants/cy_ants/CySlab.pyx":15
  * cdef size_t MAX_ITERATIONS = 100
  * 
  * cdef float width = 16             # <<<<<<<<<<<<<<
  * cdef size_t cells = 1000
  * cdef float delta_x = width / cells
  */
-  __pyx_v_6CySlab_width = 16.0;
+  __pyx_v_4ants_7cy_ants_6CySlab_width = 16.0;
 
-  /* "CySlab.pyx":16
+  /* "ants/cy_ants/CySlab.pyx":16
  * 
  * cdef float width = 16
  * cdef size_t cells = 1000             # <<<<<<<<<<<<<<
  * cdef float delta_x = width / cells
  * cdef float cell_width = 1/delta_x
  */
-  __pyx_v_6CySlab_cells = 0x3E8;
+  __pyx_v_4ants_7cy_ants_6CySlab_cells = 0x3E8;
 
-  /* "CySlab.pyx":17
+  /* "ants/cy_ants/CySlab.pyx":17
  * cdef float width = 16
  * cdef size_t cells = 1000
  * cdef float delta_x = width / cells             # <<<<<<<<<<<<<<
  * cdef float cell_width = 1/delta_x
  * 
  */
-  __pyx_v_6CySlab_delta_x = (__pyx_v_6CySlab_width / ((float)__pyx_v_6CySlab_cells));
+  __pyx_v_4ants_7cy_ants_6CySlab_delta_x = (__pyx_v_4ants_7cy_ants_6CySlab_width / ((float)__pyx_v_4ants_7cy_ants_6CySlab_cells));
 
-  /* "CySlab.pyx":18
+  /* "ants/cy_ants/CySlab.pyx":18
  * cdef size_t cells = 1000
  * cdef float delta_x = width / cells
  * cdef float cell_width = 1/delta_x             # <<<<<<<<<<<<<<
  * 
  * cdef int angles = 16
  */
-  __pyx_v_6CySlab_cell_width = (1.0 / __pyx_v_6CySlab_delta_x);
+  __pyx_v_4ants_7cy_ants_6CySlab_cell_width = (1.0 / __pyx_v_4ants_7cy_ants_6CySlab_delta_x);
 
-  /* "CySlab.pyx":20
+  /* "ants/cy_ants/CySlab.pyx":20
  * cdef float cell_width = 1/delta_x
  * 
  * cdef int angles = 16             # <<<<<<<<<<<<<<
  * cdef vector[double] mu
  * cdef vector[double] w
  */
-  __pyx_v_6CySlab_angles = 16;
+  __pyx_v_4ants_7cy_ants_6CySlab_angles = 16;
 
-  /* "CySlab.pyx":24
+  /* "ants/cy_ants/CySlab.pyx":24
  * cdef vector[double] w
  * 
  * mu.resize(angles)             # <<<<<<<<<<<<<<
@@ -3733,13 +3782,13 @@ if (!__Pyx_RefNanny) {
  * mu, w = np.polynomial.legendre.leggauss(angles)
  */
   try {
-    __pyx_v_6CySlab_mu.resize(__pyx_v_6CySlab_angles);
+    __pyx_v_4ants_7cy_ants_6CySlab_mu.resize(__pyx_v_4ants_7cy_ants_6CySlab_angles);
   } catch(...) {
     __Pyx_CppExn2PyErr();
     __PYX_ERR(0, 24, __pyx_L1_error)
   }
 
-  /* "CySlab.pyx":25
+  /* "ants/cy_ants/CySlab.pyx":25
  * 
  * mu.resize(angles)
  * w.resize(angles)             # <<<<<<<<<<<<<<
@@ -3747,13 +3796,13 @@ if (!__Pyx_RefNanny) {
  * # w = w / np.sum(np.asarray(w))
  */
   try {
-    __pyx_v_6CySlab_w.resize(__pyx_v_6CySlab_angles);
+    __pyx_v_4ants_7cy_ants_6CySlab_w.resize(__pyx_v_4ants_7cy_ants_6CySlab_angles);
   } catch(...) {
     __Pyx_CppExn2PyErr();
     __PYX_ERR(0, 25, __pyx_L1_error)
   }
 
-  /* "CySlab.pyx":26
+  /* "ants/cy_ants/CySlab.pyx":26
  * mu.resize(angles)
  * w.resize(angles)
  * mu, w = np.polynomial.legendre.leggauss(angles)             # <<<<<<<<<<<<<<
@@ -3771,7 +3820,7 @@ if (!__Pyx_RefNanny) {
   __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_leggauss); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 26, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_t_2 = __Pyx_PyInt_From_int(__pyx_v_6CySlab_angles); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 26, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyInt_From_int(__pyx_v_4ants_7cy_ants_6CySlab_angles); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 26, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __pyx_t_4 = __Pyx_PyObject_CallOneArg(__pyx_t_3, __pyx_t_2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 26, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
@@ -3827,22 +3876,22 @@ if (!__Pyx_RefNanny) {
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __pyx_t_8 = __pyx_convert_vector_from_py_double(__pyx_t_3); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 26, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_v_6CySlab_mu = __PYX_STD_MOVE_IF_SUPPORTED(__pyx_t_7);
-  __pyx_v_6CySlab_w = __PYX_STD_MOVE_IF_SUPPORTED(__pyx_t_8);
+  __pyx_v_4ants_7cy_ants_6CySlab_mu = __PYX_STD_MOVE_IF_SUPPORTED(__pyx_t_7);
+  __pyx_v_4ants_7cy_ants_6CySlab_w = __PYX_STD_MOVE_IF_SUPPORTED(__pyx_t_8);
 
-  /* "CySlab.pyx":45
+  /* "ants/cy_ants/CySlab.pyx":45
  *     return change
  * 
  * def slab_cython(vector[float] total, vector[float] scatter, vector[float] source, \             # <<<<<<<<<<<<<<
  *                 vector[double] phi_old):
  *     # cdef vector[double] phi_old
  */
-  __pyx_t_4 = __Pyx_CyFunction_New(&__pyx_mdef_6CySlab_1slab_cython, 0, __pyx_n_s_slab_cython, NULL, __pyx_n_s_CySlab, __pyx_d, ((PyObject *)__pyx_codeobj__3)); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 45, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_CyFunction_New(&__pyx_mdef_4ants_7cy_ants_6CySlab_1slab_cython, 0, __pyx_n_s_slab_cython, NULL, __pyx_n_s_ants_cy_ants_CySlab, __pyx_d, ((PyObject *)__pyx_codeobj__3)); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 45, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_slab_cython, __pyx_t_4) < 0) __PYX_ERR(0, 45, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
 
-  /* "CySlab.pyx":2
+  /* "ants/cy_ants/CySlab.pyx":2
  * 
  * # distutils: language=c++             # <<<<<<<<<<<<<<
  * # cython: cdivision=True
@@ -3871,13 +3920,13 @@ if (!__Pyx_RefNanny) {
   __Pyx_XDECREF(__pyx_t_5);
   if (__pyx_m) {
     if (__pyx_d && stringtab_initialized) {
-      __Pyx_AddTraceback("init CySlab", __pyx_clineno, __pyx_lineno, __pyx_filename);
+      __Pyx_AddTraceback("init ants.cy_ants.CySlab", __pyx_clineno, __pyx_lineno, __pyx_filename);
     }
     #if !CYTHON_USE_MODULE_STATE
     Py_CLEAR(__pyx_m);
     #endif
   } else if (!PyErr_Occurred()) {
-    PyErr_SetString(PyExc_ImportError, "init CySlab");
+    PyErr_SetString(PyExc_ImportError, "init ants.cy_ants.CySlab");
   }
   __pyx_L0:;
   __Pyx_RefNannyFinishContext();
@@ -4126,7 +4175,7 @@ static CYTHON_INLINE int __Pyx_PyBytes_Equals(PyObject* s1, PyObject* s2, int eq
             return (equals == Py_EQ);
         } else {
             int result;
-#if CYTHON_USE_UNICODE_INTERNALS
+#if CYTHON_USE_UNICODE_INTERNALS && (PY_VERSION_HEX < 0x030B0000)
             Py_hash_t hash1, hash2;
             hash1 = ((PyBytesObject*)s1)->ob_shash;
             hash2 = ((PyBytesObject*)s2)->ob_shash;
@@ -6228,14 +6277,20 @@ static void __pyx_insert_code_object(int code_line, PyCodeObject* code_object) {
 #include "compile.h"
 #include "frameobject.h"
 #include "traceback.h"
+#if PY_VERSION_HEX >= 0x030b00a6
+  #ifndef Py_BUILD_CORE
+    #define Py_BUILD_CORE 1
+  #endif
+  #include "internal/pycore_frame.h"
+#endif
 #if CYTHON_COMPILING_IN_LIMITED_API
 static void __Pyx_AddTraceback(const char *funcname, int c_line,
                                int py_line, const char *filename) {
     if (c_line) {
         (void) __pyx_cfilenm;
-        c_line = __Pyx_CLineForTraceback(__Pyx_PyThreadState_Current, c_line);
+        (void) __Pyx_CLineForTraceback(__Pyx_PyThreadState_Current, c_line);
     }
-    _PyTraceback_Add(funcname, filename, c_line ? -c_line : py_line);
+    _PyTraceback_Add(funcname, filename, py_line);
 }
 #else
 static PyCodeObject* __Pyx_CreateCodeObjectForTraceback(
@@ -6302,14 +6357,24 @@ static void __Pyx_AddTraceback(const char *funcname, int c_line,
     PyCodeObject *py_code = 0;
     PyFrameObject *py_frame = 0;
     PyThreadState *tstate = __Pyx_PyThreadState_Current;
+    PyObject *ptype, *pvalue, *ptraceback;
     if (c_line) {
         c_line = __Pyx_CLineForTraceback(tstate, c_line);
     }
     py_code = __pyx_find_code_object(c_line ? -c_line : py_line);
     if (!py_code) {
+        __Pyx_ErrFetchInState(tstate, &ptype, &pvalue, &ptraceback);
         py_code = __Pyx_CreateCodeObjectForTraceback(
             funcname, c_line, py_line, filename);
-        if (!py_code) goto bad;
+        if (!py_code) {
+            /* If the code object creation fails, then we should clear the
+               fetched exception references and propagate the new exception */
+            Py_XDECREF(ptype);
+            Py_XDECREF(pvalue);
+            Py_XDECREF(ptraceback);
+            goto bad;
+        }
+        __Pyx_ErrRestoreInState(tstate, ptype, pvalue, ptraceback);
         __pyx_insert_code_object(c_line ? -c_line : py_line, py_code);
     }
     py_frame = PyFrame_New(

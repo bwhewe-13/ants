@@ -84,7 +84,7 @@ def slab_cython(vector[float] total, vector[float] scatter, vector[float] source
         change = convergence(phi, phi_old)
         # print('Change:',change,'Flux:',np.sum(phi))
         # np.save('cython_count_{}'.format(count),np.asarray(phi))
-        converged = (change < INNER_TOLERANCE) or (count >= MAX_ITERATIONS) 
+        converged = (change < INNER_TOLERANCE) or (count >= MAX_ITERATIONS)
         count += 1
         # copy(phi, phi_old)
         copy(phi.begin(), phi.end(), phi_old.begin())

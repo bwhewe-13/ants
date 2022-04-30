@@ -29,7 +29,7 @@ ENR_PATH = pkg_resources.resource_filename('ants','data/energy/')
 _ENERGY_BOUNDS = np.load(ENR_PATH + 'energy_bounds.npz')
 
 @pytest.mark.enrichment
-def test_uranium_enrichment(enrich):    
+def test_uranium_enrichment(enrich):
     legacy_xs = generate.XSGenerate087('U', \
                                 enrich=int(enrich)*0.01).cross_section()
     material_list = ["uranium-%{}%".format(enrich)]

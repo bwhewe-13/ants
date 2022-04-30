@@ -3,8 +3,15 @@ __pycache__/
 *.py[cod]
 *.ipynb
 
-# Compiling
+# C Extensions
 *.so
 
 # Data files
 data/
+
+# Packaging
+*.egg-info/
+*.egg
+
+# Sphinx
+docs/_build/

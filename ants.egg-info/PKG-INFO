@@ -1,7 +1,7 @@
 Metadata-Version: 2.1
 Name: ants
 Version: 1.0
-Summary: Accelerated Neutron Transport Solution (ANTS) calculates         the neutron flux for both criticality and fixed source problems         of one dimensional slabs and spheres and two dimensional slabs         using the discrete ordinates method. It looks to combine machine         learning with collision based hybrid methods and speedup through         Numba, Cython, and C-functions.
+Summary: Accelerated Neutron Transport Solution (ANTS) calculates
 Home-page: https://github.com
 Author: Ben Whewell
 Author-email: ben.whewell@pm.me
