@@ -10,9 +10,9 @@
 # 
 ########################################################################
 
-from ants.problem.medium import MediumX
-from ants.problem.materials import Materials
-from ants.problem.mapper import Mapper
+from ants.medium import MediumX
+from ants.materials import Materials
+from ants.mapper import Mapper
 from ants.fixed_source import backward_euler
 from ants.criticality import keigenvalue
 
@@ -31,17 +31,21 @@ class Transport:
 
     def __str__(self):
         string = ""
+        space = int(0.1 * len(max(self.info.keys(), key=len)) +\
+                          len(max(self.info.values(), key=len)))
         for kk, vv in self.info.items():
             if kk == "NOTE":
                 continue
-            temp = "{: <22} {: >22}\n".format(kk, vv)
+            if kk =="MATERIAL" and "\n" in vv:
+                vv = ", ".join(vv.split("\n"))
+            temp = "{: <{}} {: >{}}\n".format(kk, space, vv, space)
             temp = temp.replace("  ", "..")
             string += temp
         return string
 
     def change_param(self, name, value):
-        if name in self.info.keys():
-            self.info[name] = "-".join(str(value).lower().split())
+        if name.upper() in self.info.keys():
+            self.info[name.upper()] = "-".join(str(value).lower().split())
         else:
             raise KeyError("Not in Input File Keys\nAvailable Keys:\
                                     \n{}".format(self.info.keys()))
@@ -49,30 +53,10 @@ class Transport:
         self._generate_materials_obj()
         self._generate_cross_section()
 
-    def graph(self):
-        if int(self.info.get("TIME STEPS")) > 0:
-            self._generate_plot_rate()
-        else:
-            self._generate_plot_rate_density()
-        plt.show()
-
-    def fission_rate(self, cross_section):
-        time_data = np.zeros((int(self.info.get("TIME STEPS"))))
-        for time_step in range(len(time_data)):
-            time_data[time_step] = np.sum(self.cell_width_x * \
-                               self.fission_rate_density(cross_section))
-        return time_data
-
-    def fission_rate_density(self, cross_section):
-        cell_data = np.zeros((int(self.info.get("CELLS X"))))
-        for cell, mat in enumerate(self.medium_map):
-            cell_data[cell] = np.sum(self.scalar[cell] \
-                                * np.sum(cross_section[mat],axis=1))
-        return cell_data
-
     def run(self):
         if self.info.get("PROBLEM") == "fixed-source":
-            self._run_fixed_source()
+            scalar, angular = self._run_fixed_source()
+            return scalar, angular
         elif self.info.get("PROBLEM") == "criticality":
             self._run_criticality()
 
@@ -83,7 +67,7 @@ class Transport:
                                    self.xs_fission, \
                                    self.medium_obj.spatial_coef_x, \
                                    self.medium_obj.weight, \
-                                   spatial=self.info.get("SPACE DISCRETE").lower())
+                                   spatial=self.info.get("SPATIAL DISCRETE").lower())
         self.scalar = np.array(scalar)
         self.keff = keff
         return scalar, keff
@@ -102,7 +86,7 @@ class Transport:
                                     self.materials_obj.velocity, \
                                     int(self.info.get("TIME STEPS")), \
                                     float(self.info.get("TIME STEP SIZE")), \
-                                    spatial=self.info.get("SPACE DISCRETE").lower())
+                                    spatial=self.info.get("SPATIAL DISCRETE").lower())
         if int(self.info.get("TIME STEPS")) == 0:
             scalar = np.array(scalar[0])
         else:
@@ -112,20 +96,13 @@ class Transport:
         return scalar, angular
 
     def run_save(self, file_name=None):
-        scalar, angular = self.run()
-        self.save(file_name)
-        return scalar, angular
+        ...
 
     def run_graph(self):
-        scalar, angular = self.run()
-        self.graph()
-        return scalar, angular
+        ...
         
     def run_graph_save(self, file_name=None):
-        scalar, angular = self.run()
-        self.save(file_name)
-        self.graph()
-        return scalar, angular
+        ...
 
     def save(self, file_name=None):
         dictionary = {}
@@ -146,13 +123,16 @@ class Transport:
         dictionary["xs-scatter"] = self.xs_scatter
         dictionary["xs-fission"] = self.xs_fission
         # Spatial Info
-        dictionary["cells-x"] = int(self.info.get("CELLS X"))
+        dictionary["cells-x"] = int(self.info.get("SPATIAL X CELLS"))
         dictionary["cell-width-x"] = self.cell_width_x
-        dictionary["spatial-disc"] = self.info.get("SPACE DISCRETE")
+        dictionary["spatial-disc"] = self.info.get("SPATIAL DISCRETE")
         # Angular Info
-        dictionary["angles-x"] = int(self.info.get("ANGLES X"))
-        dictionary["boundary-x"] = [self.info.get("BOUNDARY (x = 0)"),
-                                    self.info.get("BOUNDARY (x = X)")]
+        dictionary["angles-x"] = int(self.info.get("ANGLES"))
+        if self.info.get("GEOMETRY") == "slab":
+            lhs_x = "vacuum"
+        elif self.info.get("GEOMETRY") == "sphere":
+            lhs_x = "reflected"
+        dictionary["boundary-x"] = [lhs_x, self.info.get("BOUNDARY X")]
         # Time Info
         dictionary["time-steps"] = int(self.info.get("TIME STEPS"))
         dictionary["time-step-size"] \
@@ -188,17 +168,20 @@ class Transport:
                 return 0
             elif string == "reflected":
                 return 1
-        lhs_x = boundary(self.info.get("BOUNDARY (x = 0)"))
-        rhs_x = boundary(self.info.get("BOUNDARY (x = X)"))
+        if self.info.get("GEOMETRY") == "slab":
+            lhs_x = 0
+        elif self.info.get("GEOMETRY") == "sphere":
+            lhs_x = 1
+        rhs_x = boundary(self.info.get("BOUNDARY X"))
         xbounds = np.array([lhs_x, rhs_x])
         return xbounds
 
     def _generate_cross_section(self):
-        map_obj_loc = os.path.join(self.info.get("PATH","."), \
+        map_obj_loc = os.path.join(self.info.get("SAVE LOCATION","."), \
                                self.info.get("MAP FILE"))
         self.map_obj = Mapper.load_map(map_obj_loc)
-        if int(self.info.get("CELLS X")) != self.map_obj.cells_x:
-            self.map_obj.adjust_widths(int(self.info.get("CELLS X")))
+        if int(self.info.get("SPATIAL X CELLS")) != self.map_obj.cells_x:
+            self.map_obj.adjust_widths(int(self.info.get("SPATIAL X CELLS")))
         self.medium_map = self.map_obj.map_x.astype(int)
         self.medium_map_key = self.map_obj.map_key
         reversed_key = {v: k for k, v in self.map_obj.map_key.items()}
@@ -215,7 +198,7 @@ class Transport:
         self.xs_fission = np.array(fission)
 
     def _generate_file_name(self):
-        file_name = os.path.join(self.info.get("PATH","."), \
+        file_name = os.path.join(self.info.get("SAVE LOCATION","."), \
                             self.info.get("FILE NAME"))
         file_number = 0
         while os.path.exists(file_name + str(file_number) + ".npz"):
@@ -224,14 +207,14 @@ class Transport:
 
     def _generate_medium_obj(self):
         xbounds = self._generate_boundaries()
-        cells_x = int(self.info.get("CELLS X"))
-        if "MEDIUM WIDTH X" in self.info.keys():
-            medium_width_x = float(self.info.get("MEDIUM WIDTH X"))
+        cells_x = int(self.info.get("SPATIAL X CELLS"))
+        if "SPATIAL X LENGTH" in self.info.keys():
+            medium_width_x = float(self.info.get("SPATIAL X LENGTH"))
             cell_width_x = medium_width_x / cells_x
         else:
             cell_width_x = float(self.info.get("CELL WIDTH X"))
         self.cell_width_x = cell_width_x
-        angles_x = int(self.info.get("ANGLES X"))
+        angles_x = int(self.info.get("ANGLES"))
         self.medium_obj = MediumX(cells_x, cell_width_x, angles_x, xbounds)
         self.medium_obj.add_external_source(self.info.get("EXTERNAL SOURCE").lower())
 
@@ -239,15 +222,15 @@ class Transport:
         self.materials_obj = Materials(self.info.get("MATERIAL").split("\n"), \
                                    int(self.info.get("ENERGY GROUPS")), 
                                    None)
-        ps_locs = self.info.get("POINT SOURCE LOCATION").split("\n")
-        ps_names = self.info.get("POINT SOURCE NAME").split("\n")
+        ps_locs = self.info.get("POINT SOURCE LOCATION","").split("\n")
+        ps_names = self.info.get("POINT SOURCE NAME","").split("\n")
         for loc, name in zip(ps_locs, ps_names):
             try:
                 self.materials_obj.add_point_source(name, int(loc), \
                                                     self.medium_obj.mu_x)
             except ValueError:
                 if loc == "right-edge":
-                    edge = int(self.info.get("CELLS X"))
+                    edge = int(self.info.get("SPATIAL X CELLS"))
                     self.materials_obj.add_point_source(name, edge, \
                                     self.medium_obj.mu_x)
         locations = []
@@ -258,42 +241,38 @@ class Transport:
         self.point_source_locs = np.array(locations)
         self.point_sources = np.array(point_source)
 
+    def graph(self):
+        # if int(self.info.get("TIME STEPS")) > 0:
+        #     self._generate_plot_rate()
+        # else:
+        #     self._generate_plot_rate_density()
+        # plt.show()
+        ...
+
+    def fission_rate(self, cross_section):
+        # time_data = np.zeros((int(self.info.get("TIME STEPS"))))
+        # for time_step in range(len(time_data)):
+        #     time_data[time_step] = np.sum(self.cell_width_x * \
+        #                        self.fission_rate_density(cross_section))
+        # return time_data
+        ...
+
+    def fission_rate_density(self, cross_section):
+        # cell_data = np.zeros((int(self.info.get("SPATIAL X CELLS"))))
+        # for cell, mat in enumerate(self.medium_map):
+        #     cell_data[cell] = np.sum(self.scalar[cell] \
+        #                         * np.sum(cross_section[mat],axis=1))
+        # return cell_data
+        ...
+
     def _generate_plot_angular(self, angle):
         ...
 
     def _generate_plot_rate(self):
-        time_x = int(self.info.get("TIME STEPS"))
-        time_size = float(self.info.get("TIME STEP SIZE"))
-        tspace = np.linspace(0, time_x*time_size, time_x, endpoint=False)
-        scatter_rate = self.fission_rate(self.xs_scatter)
-        fission_rate = self.fission_rate(self.xs_fission)
-        fig, ax = plt.subplots()
-        ax.plot(xspace, scatter_rate, c="b", alpha=0.8)
-        ax.set_title("Scatter Rate")
-        ax.set_xlabel("Time (s)")
-        ax.set_ylabel(r"Scatter Rate (s$^{-1}$)")
-        fig, ax = plt.subplots()
-        ax.plot(xspace, fission_rate, c="r", alpha=0.8)
-        ax.set_title("Fission Rate")
-        ax.set_xlabel("Time (s)")
-        ax.set_ylabel(r"Fission Rate (s$^{-1}$)")
+        ...
 
     def _generate_plot_rate_density(self):
-        cells_x = int(self.info.get("CELLS X"))
-        xspace = np.linspace(0, cells_x * self.cell_width_x, cells_x+1)
-        xspace = 0.5*(xspace[:-1] + xspace[1:])
-        scatter_rate = self.fission_rate_density(self.xs_scatter)
-        fission_rate = self.fission_rate_density(self.xs_fission)
-        fig, ax = plt.subplots()
-        ax.plot(xspace, scatter_rate, c="b", alpha=0.8)
-        ax.set_title("Scatter Rate Density")
-        ax.set_xlabel("Location (cm)")
-        ax.set_ylabel(r"Scatter Rate Density (cc$^{-1}$ s$^{-1}$)")
-        fig, ax = plt.subplots()
-        ax.plot(xspace, fission_rate, c="r", alpha=0.8)
-        ax.set_title("Fission Rate Density")
-        ax.set_xlabel("Location (cm)")
-        ax.set_ylabel(r"Fission Rate Density (cc$^{-1}$ s$^{-1}$)")
+        ...
 
     def _generate_plot_scalar(self):
         ...

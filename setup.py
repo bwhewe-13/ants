@@ -11,7 +11,7 @@ from distutils.core import Extension, setup
 from Cython.Build import cythonize
 from setuptools import setup, find_packages
 
-# ext = Extension(sources=["ants/cy_ants/CySlab.pyx"])
+ext = Extension("cyants", sources=["ants/cyants/*.pyx"])
 # setup(ext_modules=cythonize(ext, language_level = "3"))
 
 setup(  
@@ -29,7 +29,6 @@ setup(
         url='https://github.com',
 
         packages=find_packages(),
-        ext_modules=cythonize('ants/cy_ants/*.pyx', language_level="3", 
-            build_dir='ants/cy_ants/build'),
+        ext_modules=cythonize(ext, language_level="3"),
         include_package_data=True
 )

@@ -12,8 +12,7 @@
 ########################################################################
 
 import ants.constants as const
-import ants.problem.mapper as mapper
-
+import ants.mapper as mapper
 
 import numpy as np
 import pkg_resources

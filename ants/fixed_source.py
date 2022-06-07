@@ -13,7 +13,7 @@ import ants.multi_group as multi_group
 import numpy as np
 import numba
 
-@numba.jit(nopython=True) #,cache=True)
+# @numba.jit(nopython=True, cache=True)
 def _initialize(spatial_cells, spatial_coef, velocity, time_steps, \
                 time_step_size):
     if time_steps == 0:
@@ -29,7 +29,7 @@ def _initialize(spatial_cells, spatial_coef, velocity, time_steps, \
                          len(velocity)))
     return temporal_coef, angular_flux, scalar_flux
 
-# @numba.jit(nopython=True) #, cache=True)
+# @numba.jit(nopython=True, cache=True)
 def backward_euler(medium_map, xs_total, xs_scatter, xs_fission, \
             external_source, ps_locs, point_source, spatial_coef, \
             angle_weight, velocity, time_steps, time_step_size, \
@@ -37,7 +37,7 @@ def backward_euler(medium_map, xs_total, xs_scatter, xs_fission, \
     temporal_coef, angular_flux_last, scalar_flux_old = _initialize( \
                             len(medium_map), spatial_coef, velocity, \
                             time_steps, time_step_size)
-    full_scalar_flux = []
+    full_scalar_flux = []    
     if time_steps == 0:
         scalar_flux, angular_flux = multi_group.source_iteration(scalar_flux_old, \
                     angular_flux_last, medium_map, xs_total, xs_scatter, \
@@ -55,5 +55,3 @@ def backward_euler(medium_map, xs_total, xs_scatter, xs_fission, \
         full_scalar_flux.append(scalar_flux)
         scalar_flux_old = scalar_flux.copy()
     return full_scalar_flux, angular_flux
-
-

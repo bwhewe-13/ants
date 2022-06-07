@@ -10,8 +10,11 @@
 from ants.transport import Transport as load
 
 import numpy as np
+import numba
 import argparse
 import matplotlib.pyplot as plt
+
+numba.config.DISABLE_JIT = True
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--file', action='store', type=str, dest='file', \
