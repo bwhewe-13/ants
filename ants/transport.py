@@ -73,7 +73,7 @@ class Transport:
         return scalar, keff
 
     def _run_fixed_source(self):
-        if self.info.get("TIME DISCRETE") == "backward-euler":
+        if self.info.get("TIME DISCRETE","backward-euler") == "backward-euler":
             scalar, angular = backward_euler(self.medium_map, \
                                     self.xs_total, \
                                     self.xs_scatter, \
@@ -84,10 +84,10 @@ class Transport:
                                     self.medium_obj.spatial_coef_x, \
                                     self.medium_obj.weight, \
                                     self.materials_obj.velocity, \
-                                    int(self.info.get("TIME STEPS")), \
-                                    float(self.info.get("TIME STEP SIZE")), \
+                                    int(self.info.get("TIME STEPS","0")), \
+                                    float(self.info.get("TIME STEP SIZE","0")), \
                                     spatial=self.info.get("SPATIAL DISCRETE").lower())
-        if int(self.info.get("TIME STEPS")) == 0:
+        if int(self.info.get("TIME STEPS","0")) == 0:
             scalar = np.array(scalar[0])
         else:
             scalar = np.array(scalar)
