@@ -71,6 +71,36 @@ def source_iteration(scalar_flux_old, angular_flux_last, medium_map, \
         scalar_flux_old = scalar_flux.copy()
     return scalar_flux, angular_flux
 
+def source_iteration_mod(medium_map, \
+            xs_total, xs_scatter, xs_fission, external_source, ps_locs, \
+            point_source, spatial_coef, angle_weight, \
+            spatial="diamond"):
+    angles = len(angle_weight)
+    cells = len(medium_map)
+    groups = len(xs_total[0])
+    angular_flux = np.zeros((cells+1, angles, groups), dtype=np.float64)
+    scalar_flux_old = np.zeros((cells, groups), dtype=np.float64)
+    converged = 0
+    count = 1
+    while not (converged):
+        scalar_flux = np.zeros(scalar_flux_old.shape, dtype=np.float64)
+        combined_source = external_source.copy()
+        for group in range(scalar_flux_old.shape[1]):
+            idx_ex = (..., group)
+            idx_ps = () if point_source.ndim == 1 else (..., group)
+            scalar_flux[:,group], angular_flux[:,:,group] = sweeps.sn(\
+                scalar_flux_old[:,group], medium_map, \
+                xs_total[:,group], xs_scatter[:,group,group], \
+                combined_source[idx_ex], ps_locs, point_source[idx_ps], \
+                spatial_coef, angle_weight, spatial=spatial)
+        change = np.linalg.norm((scalar_flux - scalar_flux_old) \
+                                /scalar_flux/(len(medium_map)))
+        converged = (change < constants.OUTER_TOLERANCE) \
+                    or (count >= constants.MAX_ITERATIONS)
+        count += 1
+        scalar_flux_old = scalar_flux.copy()
+    return scalar_flux, angular_flux
+
 
 # @numba.jit(nopython=True, cache=True)
 def source_iteration_scalar(medium_map, xs_total, xs_scatter, \
