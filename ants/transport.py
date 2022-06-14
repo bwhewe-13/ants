@@ -22,6 +22,17 @@ import os
 import matplotlib.pyplot as plt
 
 class Transport:
+    
+    __parameters = ("PROBLEM", "OUTPUT", "FILE LOCATION", "FILE NAME", \
+        "SPATIAL GEOMETRY", "SPATIAL DISCRETE", "SPATIAL X CELLS", \
+        "SPATIAL X LENGTH", "SPATIAL X CELL WIDTH", "SPATIAL Y CELLS", \
+        "SPATIAL Y LENGTH", "SPATIAL Y CELL WIDTH", "ANGLES", \
+        "ANGLES COLLIDED", "TIME DISCRETE", "TIME STEPS", "TIME STEP SIZE", \
+        "ENERGY GROUPS", "ENERGY GROUPS COLLIDED", "ENERGY BOUNDS", \
+        "ENERGY INDEX", "MATERIAL", "MATERIAL", "MAP FILE", \
+        "EXTERNAL SOURCE", "EXTERNAL SOURCE FILE", "POINT SOURCE LOCATION", \
+        "POINT SOURCE NAME", "BOUNDARY X", "BOUNDARY Y", "SVD", "DJINN", \
+        "AUTOENCODER", "DJINN-AUTOENCODER", "HYBRID", "MMS", "MNB", "NOTE")
 
     def __init__(self, input_file):
         self.input_file = input_file
@@ -45,11 +56,12 @@ class Transport:
         return string
 
     def change_param(self, name, value):
-        if name.upper() in self.info.keys():
+        # if name.upper() in self.info.keys():
+        if name.upper() in self.__class__.__parameters:
             self.info[name.upper()] = "-".join(str(value).lower().split())
         else:
-            raise KeyError("Not in Input File Keys\nAvailable Keys:\
-                                    \n{}".format(self.info.keys()))
+            raise KeyError("Not an Input File Key\nAvailable Keys:\
+                            \n{}".format(self.__class__.__parameters))
         self._generate_medium_obj()
         self._generate_materials_obj()
         self._generate_cross_section()
@@ -65,7 +77,7 @@ class Transport:
         scalar, angular = source_iteration_mod(self.medium_map, \
                 self.xs_total, self.xs_scatter, self.xs_fission, \
                 self.medium_obj.ex_source, self.point_source_locs, \
-                self.point_sources, self.medium_obj.spatial_coef_x, \
+                self.point_sources, self.medium_obj.spatial_coef, \
                 self.medium_obj.weight)
         return scalar, angular
 
@@ -75,15 +87,15 @@ class Transport:
                                    self.xs_total, \
                                    self.xs_scatter, 
                                    self.xs_fission, \
-                                   self.medium_obj.spatial_coef_x, \
+                                   self.medium_obj.spatial_coef, \
                                    self.medium_obj.weight, \
-                                   spatial=self.info.get("SPATIAL DISCRETE").lower())
+                                   spatial=self.info.get("SPATIAL DISCRETE"))
         self.scalar = np.array(scalar)
         self.keff = keff
         return scalar, keff
 
     def _run_fixed_source(self):
-        if self.info.get("TIME DISCRETE","backward-euler") == "backward-euler":
+        if self.info.get("TIME DISCRETE", "backward-euler") == "backward-euler":
             scalar, angular = backward_euler(self.medium_map, \
                                     self.xs_total, \
                                     self.xs_scatter, \
@@ -91,13 +103,13 @@ class Transport:
                                     self.medium_obj.ex_source, \
                                     self.point_source_locs, \
                                     self.point_sources, \
-                                    self.medium_obj.spatial_coef_x, \
+                                    self.medium_obj.spatial_coef, \
                                     self.medium_obj.weight, \
                                     self.materials_obj.velocity, \
-                                    int(self.info.get("TIME STEPS","0")), \
-                                    float(self.info.get("TIME STEP SIZE","0")), \
-                                    spatial=self.info.get("SPATIAL DISCRETE").lower())
-        if int(self.info.get("TIME STEPS","0")) == 0:
+                                    int(self.info.get("TIME STEPS", "0")), \
+                                    float(self.info.get("TIME STEP SIZE", "0")), \
+                                    spatial=self.info.get("SPATIAL DISCRETE"))
+        if int(self.info.get("TIME STEPS", "0")) == 0:
             scalar = np.array(scalar[0])
         else:
             scalar = np.array(scalar)
@@ -134,10 +146,10 @@ class Transport:
         dictionary["xs-fission"] = self.xs_fission
         # Spatial Info
         dictionary["cells-x"] = int(self.info.get("SPATIAL X CELLS"))
-        dictionary["cell-width-x"] = self.cell_width_x
+        dictionary["cell-width-x"] = self.cell_width
         dictionary["spatial-disc"] = self.info.get("SPATIAL DISCRETE")
         # Angular Info
-        dictionary["angles-x"] = int(self.info.get("ANGLES"))
+        dictionary["angles"] = int(self.info.get("ANGLES"))
         if self.info.get("GEOMETRY") == "slab":
             lhs_x = "vacuum"
         elif self.info.get("GEOMETRY") == "sphere":
@@ -187,7 +199,7 @@ class Transport:
         return xbounds
 
     def _generate_cross_section(self):
-        map_obj_loc = os.path.join(self.info.get("SAVE LOCATION","."), \
+        map_obj_loc = os.path.join(self.info.get("FILE LOCATION", "."), \
                                self.info.get("MAP FILE"))
         self.map_obj = Mapper.load_map(map_obj_loc)
         if int(self.info.get("SPATIAL X CELLS")) != self.map_obj.cells_x:
@@ -208,7 +220,7 @@ class Transport:
         self.xs_fission = np.array(fission)
 
     def _generate_file_name(self):
-        file_name = os.path.join(self.info.get("SAVE LOCATION","."), \
+        file_name = os.path.join(self.info.get("FILE LOCATION", "."), \
                             self.info.get("FILE NAME"))
         file_number = 0
         while os.path.exists(file_name + str(file_number) + ".npz"):
@@ -217,32 +229,39 @@ class Transport:
 
     def _generate_medium_obj(self):
         xbounds = self._generate_boundaries()
-        cells_x = int(self.info.get("SPATIAL X CELLS"))
+        cells = int(self.info.get("SPATIAL X CELLS"))
         if "SPATIAL X LENGTH" in self.info.keys():
-            medium_width_x = float(self.info.get("SPATIAL X LENGTH"))
-            cell_width_x = medium_width_x / cells_x
+            medium_width = float(self.info.get("SPATIAL X LENGTH"))
+            cell_width = medium_width / cells
         else:
-            cell_width_x = float(self.info.get("CELL WIDTH X"))
-        self.cell_width_x = cell_width_x
-        angles_x = int(self.info.get("ANGLES"))
-        self.medium_obj = MediumX(cells_x, cell_width_x, angles_x, xbounds)
-        self.medium_obj.add_external_source(self.info.get("EXTERNAL SOURCE").lower())
-
+            cell_width = float(self.info.get("CELL WIDTH X"))
+        self.cell_width = cell_width
+        angles = int(self.info.get("ANGLES"))
+        self.medium_obj = MediumX(cells, cell_width, angles, xbounds)
+        self.medium_obj.add_external_source(self.info.get("EXTERNAL SOURCE"))
+        if self.info.get("EXTERNAL SOURCE FILE", False):
+            file_name = os.path.join(self.info.get("FILE LOCATION", "."), \
+                    self.info.get("EXTERNAL SOURCE FILE"))
+            file_source = np.load(file_name)
+            assert (cells == len(file_source)), ("External source size"
+                "will not match with problem")
+            self.medium_obj.ex_source += file_source
+        
     def _generate_materials_obj(self):
         self.materials_obj = Materials(self.info.get("MATERIAL").split("\n"), \
                                    int(self.info.get("ENERGY GROUPS")), 
                                    None)
-        ps_locs = self.info.get("POINT SOURCE LOCATION","").split("\n")
-        ps_names = self.info.get("POINT SOURCE NAME","").split("\n")
+        ps_locs = self.info.get("POINT SOURCE LOCATION", "").split("\n")
+        ps_names = self.info.get("POINT SOURCE NAME", "").split("\n")
         for loc, name in zip(ps_locs, ps_names):
             try:
                 self.materials_obj.add_point_source(name, int(loc), \
-                                                    self.medium_obj.mu_x)
+                                                    self.medium_obj.mu)
             except ValueError:
                 if loc == "right-edge":
                     edge = int(self.info.get("SPATIAL X CELLS"))
                     self.materials_obj.add_point_source(name, edge, \
-                                    self.medium_obj.mu_x)
+                                    self.medium_obj.mu)
         locations = []
         point_source = []
         for value in self.materials_obj.p_sources.values():
@@ -262,7 +281,7 @@ class Transport:
     def fission_rate(self, cross_section):
         # time_data = np.zeros((int(self.info.get("TIME STEPS"))))
         # for time_step in range(len(time_data)):
-        #     time_data[time_step] = np.sum(self.cell_width_x * \
+        #     time_data[time_step] = np.sum(self.cell_width * \
         #                        self.fission_rate_density(cross_section))
         # return time_data
         ...
@@ -286,3 +305,12 @@ class Transport:
 
     def _generate_plot_scalar(self):
         ...
+
+
+if __name__ == "__main__":
+    print("Spatial Discretizations")
+    print("="*30,"\t1 = Step Method\n\t2 = Diamond Difference\n")
+    print("Boundary Conditions")
+    print("="*30,"\t0 = Vacuum\n\t1 = Reflected\n")
+    print("Temporal Discretizations")
+    print("="*30,"\t1 = BDF1 (Backward Euler)\n\t2 = BDF2\n")

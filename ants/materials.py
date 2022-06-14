@@ -288,8 +288,8 @@ class PointSources:
 class NonPhysical:
     def reed_scatter(energy_groups):
         if energy_groups == 1:
-            return [np.array([10.]), np.array([[9.9]]), np.array([[0.]])]
-            # return [np.array([1.]), np.array([[0.9]]), np.array([[0.]])]
+            # return [np.array([10.]), np.array([[9.9]]), np.array([[0.]])]
+            return [np.array([1.]), np.array([[0.9]]), np.array([[0.]])]
 
     def reed_absorber(energy_groups):
         if energy_groups == 1:

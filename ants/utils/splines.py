@@ -7,18 +7,21 @@
 #
 ########################################################################
 
-from .dimension_reduction import index_generator
+from .dimensions import index_generator
 
 import numpy as np
 
 def first_derivative(x, y):
+    # Added second order at endpoints
     yp = []
     assert len(x) == len(y), "Need to be same length"
     for n in range(len(x)):
         if n == 0:
-            yp.append((y[1] - y[0]) / (x[1] - x[0]))
+            # yp.append((y[1] - y[0]) / (x[1] - x[0]))
+            yp.append((-3 * y[0] + 4 * y[1] - y[2]) / (x[2] - x[0]))
         elif n == (len(x) - 1):
-            yp.append((y[n] - y[n-1]) / (x[n] - x[n-1]))
+            # yp.append((y[n] - y[n-1]) / (x[n] - x[n-1]))
+            yp.append((3 * y[n] - 4 * y[n-1] + y[n-2]) / (x[n] - x[n-2]))
         else:
             yp.append((y[n+1] - y[n-1]) / (x[n+1] - x[n-1]))
     return np.array(yp)
@@ -30,9 +33,13 @@ def second_derivative(x, y):
         if n == 0:
             ypp.append((y[n] - 2 * y[n+1] + y[n+2]) \
                                 / ((x[n+2] - x[n+1]) * (x[n+1] - x[n])))
+            # ypp.append((2 * y[n] - 5 * y[n+1] + 4 * y[n+2] - y[n+3]) / \
+            #             ((x[n+3] - x[n+2]) * (x[n+2] - x[n+1]) * (x[n+1] - x[n])))
         elif n == (len(x) - 1):
             ypp.append((y[n] - 2 * y[n-1] + y[n-2]) \
                                 / ((x[n] - x[n-1]) * (x[n-1] - x[n-2])))
+            # ypp.append((2 * y[n] - 5 * y[n-1] + 4 * y[n-2] - y[n-3]) / \
+            #             ((x[n] - x[n-1]) * (x[n-1] - x[n-2]) * (x[n-2] - x[n-3])))
         else:
             ypp.append((y[n+1] - 2 * y[n] + y[n-1]) \
                                 / ((x[n+1] - x[n]) * (x[n] - x[n-1])))

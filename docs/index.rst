@@ -11,4 +11,5 @@ Welcome to ANTS's documentation!
    :caption: Contents:
 
    spatial-sweep.rst
+   hermite-splines.rst
 
