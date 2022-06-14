@@ -10,6 +10,7 @@
 from ants.transport import Transport
 from . import splines
 from .math import root_mean_squared_error as rmse
+from .dimensions import index_generator
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -30,10 +31,12 @@ class NearbyProblem:
         self.numerical_scalar, self.numerical_angular = self.problem.run()
         # Step 2: Calculate an analytical solution
         ################################################################
-        self.analytical_solution()
+        # spline_num = self.spline_closeness()
+        spline_num = self.qamar_knot_method()
+        self.analytical_solution(spline_num=spline_num)
         # Step 3: Calculate an analytical source
         ################################################################
-        self.residual()
+        self.residual(save=True)
         # Step 4: Add the analytical source to the original problem
         ################################################################
         self.problem.change_param("external source file", "analytical_source.npy")
@@ -42,7 +45,7 @@ class NearbyProblem:
         ################################################################
         self.discretization_error()
         if display is True:
-            self.graph()
+            self.graph(len(spline_num)-1)
 
     def analytical_solution(self, spline_num=10, spline_type="cubic"):
         self.analytical_scalar = np.zeros((self.numerical_angular.shape[0], \
@@ -55,7 +58,7 @@ class NearbyProblem:
             self.analytical_angular[:,angle,0] = yspline.copy()
             self.analytical_scalar[:,0] += weight[angle] * yspline
 
-    def residual(self, scalar_flux=None, angular_flux=None):
+    def residual(self, scalar_flux=None, angular_flux=None, save=False):
         # Used to calculate the analytical source
         # Problem parameters
         mu = self.problem.medium_obj.mu
@@ -78,10 +81,42 @@ class NearbyProblem:
                     + psi[cell] * xs_total[mat]) \
                     - ((xs_scatter[mat] + xs_fission[mat]) * phi[cell] \
                     + external_source[cell, angle, 0])
-        address = self.problem.info.get("FILE LOCATION", ".")
-        np.save(address + "/analytical_source", self.source)
+        if save:
+            address = self.problem.info.get("FILE LOCATION", ".")
+            np.save(address + "/analytical_source", self.source)
 
-    def graph(self):
+    def qamar_knot_method(self, atol=5e-5):
+        # Taken from Ihtzaz Qamar's "Method to determine optimum number 
+        # of knots for cubic splines."
+        # Specific for cubic
+        knots = [0]
+        for angle in range(self.problem.medium_obj.angles):
+            psi = self.numerical_angular[:,angle,0].copy()
+            for cell in range(len(self.problem.medium_map)-2):
+                DA = abs((self.xspace[cell+1] - self.xspace[cell]) \
+                    * (0.5 * psi[cell] - psi[cell+1] + 0.5 * psi[cell+2]))
+                if DA > atol:
+                    knots.append(cell + 1)
+        knots.append(len(self.xspace) - 1)
+        knots = np.array(knots)
+        additional = index_generator(len(psi) - 1, 10)
+        knots = np.sort(np.unique(np.concatenate((knots, additional))))
+        return knots
+
+    def spline_closeness(self):
+        # I have to find a cut off method for this
+        l2_norm = np.ones((self.numerical_angular.shape[0])) * 10
+        for spline_num in range(2, self.numerical_angular.shape[0]):
+            self.analytical_solution(spline_num=spline_num)
+            self.residual()
+            l2_norm[spline_num] = np.linalg.norm(self.source)
+        fig, ax = plt.subplots()
+        ax.plot(abs(np.diff(l2_norm)), "-o")
+        ax.set_yscale("log")
+        plt.show()
+        return int(np.argmin(l2_norm))
+
+    def graph(self, spline_num=None):
         fig, ax = plt.subplots(2, 1, figsize=(8, 10))
         for angle in range(self.problem.medium_obj.angles):
             ax[0].plot(self.xspace, self.analytical_angular[:,angle,0], c="k", ls="--")
@@ -92,7 +127,10 @@ class NearbyProblem:
         ax[0].plot([], [], label="Nearby Problem", c="b", alpha=0.5)
         ax[0].grid(which="both")
         ax[0].legend(loc=0, framealpha=1)
-        ax[0].set_title("Nearby Problem vs Hermite Splines")
+        if spline_num is not None:
+            ax[0].set_title("Nearby Problem vs {} Hermite Splines".format(spline_num))
+        else:
+            ax[0].set_title("Nearby Problem vs Hermite Splines")
 
         for angle in range(self.problem.medium_obj.angles):
             ax[1].plot(self.xspace, self.source[:,angle,0], label="Angle "+str(angle))
@@ -103,9 +141,9 @@ class NearbyProblem:
 
     def discretization_error(self):
         print("Method of Nearby Problems Discretization Error")
-        print("="*45)
+        print("="*46)
         for angle in range(self.problem.medium_obj.angles):
             error = rmse(self.analytical_angular[:,angle,0], \
                          self.nearby_angular[:,angle,0])
             print("Angle {} RMSE {}".format(angle, error))
-        print("="*45)
+        print("="*46)

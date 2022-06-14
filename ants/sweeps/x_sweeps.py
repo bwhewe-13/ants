@@ -103,71 +103,6 @@ def discrete_ordinates(scalar_flux_old, angular_flux_last, medium_map, \
 # temporal_coef: 1 / (velocity * delta t)
 
 # @numba.jit(nopython=True, cache=True)
-def sn(scalar_flux_old, medium_map, \
-         xs_total, xs_scatter, external_source, ps_locs, point_source, \
-         spatial_coef, angle_weight, spatial="diamond"):
-    angles = len(angle_weight)
-    cells = len(medium_map)
-    angular_flux = np.zeros((cells+1, angles), dtype=np.float64)
-    converged = 0
-    count = 1
-    while not (converged):
-        scalar_flux = np.zeros((len(medium_map)),dtype=np.float64)
-        angular_flux *= 0
-        for angle in range(len(spatial_coef)):
-            idx_ex = () if external_source.ndim == 1 else (..., angle)
-            idx_ps = () if point_source.ndim == 1 else (..., angle)
-            angular_flux[:,angle] = spatial_sweep_mod(scalar_flux_old, \
-                        medium_map, xs_total, \
-                        xs_scatter, external_source[idx_ex], ps_locs, \
-                        point_source[idx_ps], spatial_coef[angle], \
-                        spatial=spatial)
-            scalar_flux += angle_weight[angle] * 0.5 \
-                     * (angular_flux[:,angle][1:] + angular_flux[:,angle][:-1])
-        change = np.linalg.norm((scalar_flux - scalar_flux_old) \
-                                /scalar_flux/(len(medium_map)))
-        converged = (change < constants.INNER_TOLERANCE) \
-                    or (count >= constants.MAX_ITERATIONS) 
-        count += 1
-        scalar_flux_old = scalar_flux.copy()
-    return scalar_flux, angular_flux
-
-
-def spatial_sweep_mod(scalar_flux_old, medium_map, \
-                  xs_total, xs_scatter, external_source, ps_locs, \
-                  point_source, spatial_coef, \
-                  first_edge=0.0, spatial="diamond"):
-    # See if point source is np.array([0],dtype=np.float64) --> None
-    if not np.any(point_source):
-        point_source = np.zeros((len(medium_map)),dtype=np.float64)
-    # Determine direction of sweep
-    if spatial_coef > np.float(0):
-        additional = "end"
-        sweep = range(len(medium_map))
-    else:
-        additional = "begin"
-        sweep = range(len(medium_map)-1, -1, -1)
-        if len(medium_map) in ps_locs:
-            first_edge += point_source[np.argwhere(ps_locs == len(medium_map))[0,0]]
-    angular_flux = np.zeros((len(medium_map)), dtype="float64")
-    for cell in sweep:
-        material = medium_map[cell]
-        if cell in ps_locs:
-            first_edge += point_source[np.argwhere(ps_locs == cell)[0,0]]
-        second_edge = (xs_scatter[material] * scalar_flux_old[cell] \
-            + external_source[cell] \
-            + first_edge * (abs(spatial_coef) - 0.5 * xs_total[material])) * 1/(abs(spatial_coef) \
-            + 0.5 * xs_total[material])
-        angular_flux[cell] = first_edge
-        first_edge = second_edge
-    if additional == "begin":
-        angular_flux = np.insert(angular_flux, 0, second_edge)
-    elif additional == "end":
-        angular_flux = np.append(angular_flux, second_edge)
-    return angular_flux
-
-# @numba.jit(nopython=True, cache=True)
-# @numba.jit
 def scalar_sweep(scalar_flux_old, medium_map, xs_total, xs_scatter, \
             source, point_source_loc, point_source, \
             spatial_coef, angle_weight, spatial=2, \
@@ -223,7 +158,7 @@ def scalar_sweep(scalar_flux_old, medium_map, xs_total, xs_scatter, \
         scalar_flux_old = scalar_flux.copy()
     return scalar_flux
 
-@numba.jit #(nopython=True, cache=True)
+# @numba.jit(nopython=True, cache=True)
 def scalar_vacuum(scalar_flux_old, medium_map, xs_total, xs_scatter, source, \
                   point_source_loc, point_source, spatial_coef, \
                   angle_weight, spatial):
@@ -305,7 +240,6 @@ def scalar_reflected(scalar_flux_old, medium_map, xs_total, xs_scatter, \
     return scalar_flux
 
 # @numba.jit(nopython=True, cache=True)
-@numba.njit
 def _to_scalar(angular_flux, angle_weight):
     return np.sum(angular_flux * angle_weight, axis=1)
 
