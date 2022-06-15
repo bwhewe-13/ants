@@ -8,9 +8,8 @@
 ########################################################################
 
 from ants.transport import Transport
-from . import splines
+from . import splines, dimensions
 from .math import root_mean_squared_error as rmse
-from .dimensions import index_generator
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -24,6 +23,7 @@ class NearbyProblem:
         cells = self.problem.medium_obj.cells
         self.xspace = np.linspace(0, cells*cell_width, cells+1)
         self.xspace = 0.5*(self.xspace[1:] + self.xspace[:-1])
+        self.splits = dimensions.create_slices(self.problem.medium_map)
 
     def run_nearby(self, display=False):
         # Step 1: Run the numerical problem
@@ -31,8 +31,8 @@ class NearbyProblem:
         self.numerical_scalar, self.numerical_angular = self.problem.run()
         # Step 2: Calculate an analytical solution
         ################################################################
-        # spline_num = self.spline_closeness()
-        spline_num = self.qamar_knot_method()
+        # spline_num = self.qamar_knot_method()
+        spline_num = 10
         self.analytical_solution(spline_num=spline_num)
         # Step 3: Calculate an analytical source
         ################################################################
@@ -45,18 +45,20 @@ class NearbyProblem:
         ################################################################
         self.discretization_error()
         if display is True:
-            self.graph(len(spline_num)-1)
+            self.graph(spline_num=spline_num)
 
-    def analytical_solution(self, spline_num=10, spline_type="cubic"):
+    def analytical_solution(self, spline_num=9, spline_type="cubic"):
         self.analytical_scalar = np.zeros((self.numerical_angular.shape[0], \
                                       self.numerical_angular.shape[-1]))
         self.analytical_angular = np.zeros(self.numerical_angular.shape)
         weight = self.problem.medium_obj.weight
         for angle in range(self.problem.medium_obj.angles):
-            yspline, idx = splines.hermite(self.xspace, \
-                self.numerical_angular[:,angle,0], spline_num, spline_type)
-            self.analytical_angular[:,angle,0] = yspline.copy()
-            self.analytical_scalar[:,0] += weight[angle] * yspline
+            for split in self.splits:
+                yspline, idx = splines.hermite(self.xspace[split], \
+                                self.numerical_angular[:,angle,0][split], \
+                                spline_num, spline_type)
+                self.analytical_angular[:,angle,0][split] = yspline.copy()
+                self.analytical_scalar[:,0][split] += weight[angle] * yspline
 
     def residual(self, scalar_flux=None, angular_flux=None, save=False):
         # Used to calculate the analytical source
@@ -69,18 +71,19 @@ class NearbyProblem:
         # Analytical source
         self.source = np.zeros((external_source.shape))
         for angle in range(self.problem.medium_obj.angles):
-            if scalar_flux is None:
-                phi = self.analytical_scalar[:,0].copy()
-                psi = self.analytical_angular[:,angle,0].copy()
-            else:
-                phi = scalar_flux[:,0].copy()
-                psi = angular_flux[:,0].copy()
-            dpsi = splines.first_derivative(self.xspace, psi)
-            for cell, mat in enumerate(self.problem.medium_map):
-                self.source[cell, angle, 0] = (mu[angle] * dpsi[cell] \
-                    + psi[cell] * xs_total[mat]) \
-                    - ((xs_scatter[mat] + xs_fission[mat]) * phi[cell] \
-                    + external_source[cell, angle, 0])
+            for split in self.splits:
+                if scalar_flux is None:
+                    phi = self.analytical_scalar[:,0][split].copy()
+                    psi = self.analytical_angular[:,angle,0][split].copy()
+                else:
+                    phi = scalar_flux[:,0][split].copy()
+                    psi = angular_flux[:,0][split].copy()
+                dpsi = splines.first_derivative(self.xspace[split], psi)
+                for cell, mat in enumerate(self.problem.medium_map[split]):
+                    self.source[split][cell, angle, 0] = (mu[angle] * dpsi[cell] \
+                        + psi[cell] * xs_total[mat]) \
+                        - ((xs_scatter[mat] + xs_fission[mat]) * phi[cell] \
+                        + external_source[split][cell, angle, 0])
         if save:
             address = self.problem.info.get("FILE LOCATION", ".")
             np.save(address + "/analytical_source", self.source)
@@ -99,7 +102,7 @@ class NearbyProblem:
                     knots.append(cell + 1)
         knots.append(len(self.xspace) - 1)
         knots = np.array(knots)
-        additional = index_generator(len(psi) - 1, 10)
+        additional = dimensions.index_generator(len(psi) - 1, 10)
         knots = np.sort(np.unique(np.concatenate((knots, additional))))
         return knots
 

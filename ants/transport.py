@@ -15,7 +15,6 @@ from ants.materials import Materials
 from ants.mapper import Mapper
 from ants.fixed_source import backward_euler
 from ants.criticality import keigenvalue
-from ants.multi_group import source_iteration_mod
 
 import numpy as np
 import os
@@ -72,15 +71,6 @@ class Transport:
             return scalar, angular
         elif self.info.get("PROBLEM") == "criticality":
             self._run_criticality()
-
-    def run_modify(self):
-        scalar, angular = source_iteration_mod(self.medium_map, \
-                self.xs_total, self.xs_scatter, self.xs_fission, \
-                self.medium_obj.ex_source, self.point_source_locs, \
-                self.point_sources, self.medium_obj.spatial_coef, \
-                self.medium_obj.weight)
-        return scalar, angular
-
 
     def _run_criticality(self):
         scalar, keff = keigenvalue(self.medium_map, \
