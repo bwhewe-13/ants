@@ -1,36 +1,7 @@
-                                                        .`                 
-                                                        /                  
-                                                      `:`                  
-                                                     .-`                   
-                      `                             --                     
-                      `-`                      `-`.-`                      
-                       `-.                    --..o                        
-                         `..`               .:.  `y.                       
-    --`                    `-/-`          `/+`    -o`                      
-     `...`                   `-/-`       `s+    ```-+`                     
-         ..-`````               /s     `-+:  -/ossyyys+/-                  
-            `-:://///:-.`      `yh    -o/`  :dmmmdhhhhyo+`                 
-             ```......:+so-    :m/   oy/+o+:/yNNNmdhyhdo+o                 
-            ``...........+hs.  .h.`.+dhmmhyydddNNddyshhhs/                 
-           `.....-:/+/++++/os---+hhdmmddmdddmd/dmyyssyys+                  
-          ``.-:/ohdhmdhhhhdy:dmmNmdddhyyysys+. sdyso+:. /-                 
-          `.-+hhhmmmmmdhydmmNdmyhsos//ss/--`     `       o:                
-           .+ydmdmmmmNmdddddd.-s+``o   -+++//-.          `/-```            
-           .+sdmmmddddhoosyy+ s:   o/      ``..//-`         ``.......`     
-            ./shdhhyyssyoo/. `d-   `y:          `-:-.``              `...  
-              .-/+++//:-`    +s     .y.               `.-.              `  
-                            :s`      -+                                    
-                          `:-`        o-                                   
-                        `::`          -+`                                  
-                      `-:.             `-.                                 
-                     .-`                 .-`                               
-                    .`                    `:                               
-                  `-`                      .`                              
-                 `.       
 
 # Accelerated Neutron Transport Solution (ANTS)
 
-Accelerated Neutron Transport Solution (ANTS) calculates the neutron flux for both criticality and fixed source problems of one dimensional slabs and spheres and two dimensional slabs using the discrete ordinates method. It looks to combine machine learning with collision based hybrid methods and speedup through Numba, Cython, and C-functions.
+Accelerated Neutron Transport Solution (ANTS) calculates the neutron flux for both criticality and fixed source problems of one dimensional slabs and spheres and two dimensional slabs using the discrete ordinates method. It looks to combine machine learning with collision based hybrid methods and speedup through Numba and Cython. 
 
 ### Spatial
 - [ ] One Dimensional Slab
@@ -59,4 +30,5 @@ Accelerated Neutron Transport Solution (ANTS) calculates the neutron flux for bo
 - [ ] CMFD 
 
 ### Other
-- [ ] Nearby Problems
+- [ ] Method of Manufactured Solutions
+- [ ] Method of Nearby Problems

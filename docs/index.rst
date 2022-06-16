@@ -1,15 +1,15 @@
-.. ANTS documentation master file, created by
-   sphinx-quickstart on Thu Feb 17 23:38:34 2022.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+.. raw:: html
+   :file: ants-logo.html
 
-Welcome to ANTS's documentation!
-================================
+Accelerated Neutron Transport Solver (ANTS)
+===========================================
+
+Accelerated Neutron Transport Solution (ANTS) calculates the neutron flux for both criticality and fixed source problems of one dimensional slabs and spheres and two dimensional slabs using the discrete ordinates method. It looks to combine machine learning with collision based hybrid methods and speedup through Numba and Cython.
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 1
+   :numbered:
 
-   spatial-sweep.rst
-   hermite-splines.rst
+   The Neutron Transport Equation <neutron-transport/index>
+   The Method of Nearby Problems <nearby-problems/index>
 

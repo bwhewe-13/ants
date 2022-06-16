@@ -18,7 +18,8 @@ from ants.criticality import keigenvalue
 
 import numpy as np
 import os
-import matplotlib.pyplot as plt
+import shutil
+import pkg_resources
 
 class Transport:
     
@@ -73,32 +74,24 @@ class Transport:
             self._run_criticality()
 
     def _run_criticality(self):
-        scalar, keff = keigenvalue(self.medium_map, \
-                                   self.xs_total, \
-                                   self.xs_scatter, 
-                                   self.xs_fission, \
-                                   self.medium_obj.spatial_coef, \
-                                   self.medium_obj.weight, \
-                                   spatial=self.info.get("SPATIAL DISCRETE"))
+        scalar, keff = keigenvalue(self.medium_map, self.xs_total, 
+                        self.xs_scatter, self.xs_fission, \
+                        self.medium_obj.spatial_coef, self.medium_obj.weight, \
+                        spatial=self.info.get("SPATIAL DISCRETE"))
         self.scalar = np.array(scalar)
         self.keff = keff
         return scalar, keff
 
     def _run_fixed_source(self):
         if self.info.get("TIME DISCRETE", "backward-euler") == "backward-euler":
-            scalar, angular = backward_euler(self.medium_map, \
-                                    self.xs_total, \
-                                    self.xs_scatter, \
-                                    self.xs_fission, \
-                                    self.medium_obj.ex_source, \
-                                    self.point_source_locs, \
-                                    self.point_sources, \
-                                    self.medium_obj.spatial_coef, \
-                                    self.medium_obj.weight, \
-                                    self.materials_obj.velocity, \
-                                    int(self.info.get("TIME STEPS", "0")), \
-                                    float(self.info.get("TIME STEP SIZE", "0")), \
-                                    spatial=self.info.get("SPATIAL DISCRETE"))
+            scalar, angular = backward_euler(self.medium_map, self.xs_total, \
+                        self.xs_scatter, self.xs_fission, \
+                        self.medium_obj.ex_source, self.point_source_locs, \
+                        self.point_sources, self.medium_obj.spatial_coef, \
+                        self.medium_obj.weight, self.materials_obj.velocity, \
+                        int(self.info.get("TIME STEPS", "0")), \
+                        float(self.info.get("TIME STEP SIZE", "0")), \
+                        spatial=self.info.get("SPATIAL DISCRETE"))
         if int(self.info.get("TIME STEPS", "0")) == 0:
             scalar = np.array(scalar[0])
         else:
@@ -107,16 +100,33 @@ class Transport:
         self.angular = angular
         return scalar, angular
 
-    def run_save(self, file_name=None):
-        ...
-
-    def run_graph(self):
-        ...
+    def save_input_file(self, file_name=None):
+        PATH = pkg_resources.resource_filename("ants","../examples/")
+        if file_name is None:
+            file_name = self.input_file
+        shutil.copyfile(PATH + "template.inp", file_name)
+        # print(self.info["NOTE"])
+        with open(file_name) as fp:
+            text = [x for x in fp.read().splitlines()]
+        for kk, vv in self.info.items():
+            kk += ": "
+            if kk not in text:
+                # print(kk)
+                continue
+            ii = text.index(kk)
+            if "\n" in vv:
+                for jj, item in enumerate(vv.split("\n")):
+                    text.insert(ii+jj, kk + item)
+            else:
+                text[ii] = kk + vv
+        remove_excess = lambda line: (len(line) == 0) \
+                    or ((len(line) > 0) and (line.rstrip()[-1] != ":"))
+        text = list(filter(remove_excess, text))
+        with open(file_name, "w") as fp:
+            for line in text:
+                fp.write("{}\n".format(line))
         
-    def run_graph_save(self, file_name=None):
-        ...
-
-    def save(self, file_name=None):
+    def save_data(self, file_name=None):
         dictionary = {}
         if file_name is None:
             file_name = self._generate_file_name()
@@ -171,8 +181,7 @@ class Transport:
                     self.info[key] += "\n" \
                               + "-".join(value.strip().lower().split())
                 else:
-                    self.info[key] = \
-                                "-".join(value.strip().lower().split())
+                    self.info[key] = "-".join(value.strip().lower().split())
 
     def _generate_boundaries(self):
         def boundary(string):
@@ -259,42 +268,6 @@ class Transport:
             point_source.append(value[1])
         self.point_source_locs = np.array(locations)
         self.point_sources = np.array(point_source)
-
-    def graph(self):
-        # if int(self.info.get("TIME STEPS")) > 0:
-        #     self._generate_plot_rate()
-        # else:
-        #     self._generate_plot_rate_density()
-        # plt.show()
-        ...
-
-    def fission_rate(self, cross_section):
-        # time_data = np.zeros((int(self.info.get("TIME STEPS"))))
-        # for time_step in range(len(time_data)):
-        #     time_data[time_step] = np.sum(self.cell_width * \
-        #                        self.fission_rate_density(cross_section))
-        # return time_data
-        ...
-
-    def fission_rate_density(self, cross_section):
-        # cell_data = np.zeros((int(self.info.get("SPATIAL X CELLS"))))
-        # for cell, mat in enumerate(self.medium_map):
-        #     cell_data[cell] = np.sum(self.scalar[cell] \
-        #                         * np.sum(cross_section[mat],axis=1))
-        # return cell_data
-        ...
-
-    def _generate_plot_angular(self, angle):
-        ...
-
-    def _generate_plot_rate(self):
-        ...
-
-    def _generate_plot_rate_density(self):
-        ...
-
-    def _generate_plot_scalar(self):
-        ...
 
 
 if __name__ == "__main__":

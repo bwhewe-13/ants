@@ -16,8 +16,9 @@ import matplotlib.pyplot as plt
 
 class NearbyProblem:
 
-    def __init__(self, input_file):
+    def __init__(self, input_file, knots=None):
         self.input_file = input_file
+        self.knots = knots
         self.problem = Transport(self.input_file)
         cell_width = self.problem.medium_obj.cell_width
         cells = self.problem.medium_obj.cells
@@ -31,9 +32,7 @@ class NearbyProblem:
         self.numerical_scalar, self.numerical_angular = self.problem.run()
         # Step 2: Calculate an analytical solution
         ################################################################
-        # spline_num = self.qamar_knot_method()
-        spline_num = 10
-        self.analytical_solution(spline_num=spline_num)
+        self.analytical_solution()
         # Step 3: Calculate an analytical source
         ################################################################
         self.residual(save=True)
@@ -45,9 +44,9 @@ class NearbyProblem:
         ################################################################
         self.discretization_error()
         if display is True:
-            self.graph(spline_num=spline_num)
+            self.graph()
 
-    def analytical_solution(self, spline_num=9, spline_type="cubic"):
+    def analytical_solution(self, spline_type="cubic"):
         self.analytical_scalar = np.zeros((self.numerical_angular.shape[0], \
                                       self.numerical_angular.shape[-1]))
         self.analytical_angular = np.zeros(self.numerical_angular.shape)
@@ -56,7 +55,7 @@ class NearbyProblem:
             for split in self.splits:
                 yspline, idx = splines.hermite(self.xspace[split], \
                                 self.numerical_angular[:,angle,0][split], \
-                                spline_num, spline_type)
+                                self.knots, spline_type)
                 self.analytical_angular[:,angle,0][split] = yspline.copy()
                 self.analytical_scalar[:,0][split] += weight[angle] * yspline
 
@@ -88,38 +87,7 @@ class NearbyProblem:
             address = self.problem.info.get("FILE LOCATION", ".")
             np.save(address + "/analytical_source", self.source)
 
-    def qamar_knot_method(self, atol=5e-5):
-        # Taken from Ihtzaz Qamar's "Method to determine optimum number 
-        # of knots for cubic splines."
-        # Specific for cubic
-        knots = [0]
-        for angle in range(self.problem.medium_obj.angles):
-            psi = self.numerical_angular[:,angle,0].copy()
-            for cell in range(len(self.problem.medium_map)-2):
-                DA = abs((self.xspace[cell+1] - self.xspace[cell]) \
-                    * (0.5 * psi[cell] - psi[cell+1] + 0.5 * psi[cell+2]))
-                if DA > atol:
-                    knots.append(cell + 1)
-        knots.append(len(self.xspace) - 1)
-        knots = np.array(knots)
-        additional = dimensions.index_generator(len(psi) - 1, 10)
-        knots = np.sort(np.unique(np.concatenate((knots, additional))))
-        return knots
-
-    def spline_closeness(self):
-        # I have to find a cut off method for this
-        l2_norm = np.ones((self.numerical_angular.shape[0])) * 10
-        for spline_num in range(2, self.numerical_angular.shape[0]):
-            self.analytical_solution(spline_num=spline_num)
-            self.residual()
-            l2_norm[spline_num] = np.linalg.norm(self.source)
-        fig, ax = plt.subplots()
-        ax.plot(abs(np.diff(l2_norm)), "-o")
-        ax.set_yscale("log")
-        plt.show()
-        return int(np.argmin(l2_norm))
-
-    def graph(self, spline_num=None):
+    def graph(self):
         fig, ax = plt.subplots(2, 1, figsize=(8, 10))
         for angle in range(self.problem.medium_obj.angles):
             ax[0].plot(self.xspace, self.analytical_angular[:,angle,0], c="k", ls="--")
@@ -130,8 +98,8 @@ class NearbyProblem:
         ax[0].plot([], [], label="Nearby Problem", c="b", alpha=0.5)
         ax[0].grid(which="both")
         ax[0].legend(loc=0, framealpha=1)
-        if spline_num is not None:
-            ax[0].set_title("Nearby Problem vs {} Hermite Splines".format(spline_num))
+        if self.knots is not None:
+            ax[0].set_title("Nearby Problem vs {} Hermite Splines".format(knots-1))
         else:
             ax[0].set_title("Nearby Problem vs Hermite Splines")
 

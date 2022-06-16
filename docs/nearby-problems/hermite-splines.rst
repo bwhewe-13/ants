@@ -1,14 +1,16 @@
+
 Basis Functions for Hermite Splines
-===============================================
+===================================
 
 Hermite Splines are used for approximating the angular flux with the Method
 of Nearby Problms (MNB).
 
 
 Cubic Hermite Splines
----------------------
+=========================
 
-If we were to construct a cubic Hermite spline :math:`S_k` in the interval :math:`[t_{k}, t_{k+1}]`, we can assume the form 
+If we were to construct a cubic Hermite spline :math:`S_k` in the 
+interval :math:`[t_{k}, t_{k+1}]`, we can assume the form 
 
 .. math::
    :label: h3-initial
@@ -65,7 +67,8 @@ and
        \Delta_k = t_{k+1} - t_{k}, \qquad t = \frac{x - t_{k}}{t_{k+1} - t_{k}}.
    \end{equation} 
 
-If the derivatives at the points :math:`t_{k}` and :math:`t_{k+1}`, they can be calculated via the central difference approximation 
+If the derivatives at the points :math:`t_{k}` and :math:`t_{k+1}`, they 
+can be calculated via the central difference approximation 
 
 .. math::
    :label: yp1
@@ -88,9 +91,11 @@ at the boundary points :math:`k = 0` and :math:`k = n`.
 
 
 Quintic Hermite Splines
------------------------
+=======================
 
-If we were to construct a quintic Hermite spline :math:`S_k` in the interval :math:`[t_{k}, t_{k+1}]` with :math:`t_{k} \leq x t_{k+1}` and :math:`0 \leq k \leq n`, we can assume the form 
+If we were to construct a quintic Hermite spline :math:`S_k` in the 
+interval :math:`[t_{k}, t_{k+1}]` with :math:`t_{k} \leq x t_{k+1}` and 
+:math:`0 \leq k \leq n`, we can assume the form 
 
 .. math::
 
@@ -126,7 +131,8 @@ Solving and converting this to a basis function form, we have
 .. math::
 
    \begin{equation}
-        S_k(x) = y_{k} \phi_0(x) + y_{k+1} \phi_1(x) + y'_{k} \psi_0(x) + y'_{k+1} \psi_1(x) + y''_{k} \theta_0(x) + y''_{k+1} \theta_1(x), 
+        S_k(x) = y_{k} \phi_0(x) + y_{k+1} \phi_1(x) + y'_{k} \psi_0(x) 
+        + y'_{k+1} \psi_1(x) + y''_{k} \theta_0(x) + y''_{k+1} \theta_1(x), 
    \end{equation}
 
 where the basis functions are 
@@ -163,5 +169,3 @@ and the backward and forward difference approximation
    \end{split} \end{equation}
 
 at the boundary points :math:`k = 0` and :math:`k = n`.
-
-
