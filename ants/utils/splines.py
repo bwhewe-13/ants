@@ -51,7 +51,7 @@ def hermite(x, y, knots=None, stype="cubic"):
     # ie    x = [0, 0.05, ..., 0.995, 1] with len(x) = 100 and
     #       knots = [0, 20, ..., 80, 100]
     # Or knots can be an integer, None
-    if isinstance(knots, None):
+    if knots is None:
         knots = optimal_knots(x, y)
     elif isinstance(knots, int):
         knots = index_generator(len(x)-1, knots)
@@ -91,8 +91,8 @@ def optimal_knots(x, y, atol=5e-5):
         if area_diff > atol:
             knots.append(cell+1)
     knots = np.append(knots, len(x)-1)
-    # additional = index_generator(len(x)-1, 10)
-    # knots = np.sort(np.unique(np.concatenate((knots, additional))))
+    additional = index_generator(len(x)-1, int(len(x)*0.2))
+    knots = np.sort(np.unique(np.concatenate((knots, additional))))
     return knots
 
 

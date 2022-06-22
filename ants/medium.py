@@ -101,8 +101,9 @@ class ExternalSources:
         source = np.zeros((self.cells, 1))
         for boundary in range(len(boundaries)):
             source[boundaries[boundary]] = source_values[boundary]
+        source = np.tile(source, (1, len(self.mu)))[:,:,None]
         return source
-
+        
     def _mms_source(self):
         psi_constant_01 = 0.5
         psi_constant_02 = 0.25
