@@ -3,12 +3,14 @@
 /* BEGIN: Cython Metadata
 {
     "distutils": {
-        "name": "x_sweeps",
+        "depends": [],
+        "language": "c++",
+        "name": "ants.cyants.x_sweeps",
         "sources": [
-            "x_sweeps.pxd"
+            "ants/cyants/x_sweeps.pyx"
         ]
     },
-    "module_name": "x_sweeps"
+    "module_name": "ants.cyants.x_sweeps"
 }
 END: Cython Metadata */
 
@@ -705,8 +707,8 @@ static CYTHON_INLINE float __PYX_NAN() {
   #endif
 #endif
 
-#define __PYX_HAVE__x_sweeps
-#define __PYX_HAVE_API__x_sweeps
+#define __PYX_HAVE__ants__cyants__x_sweeps
+#define __PYX_HAVE_API__ants__cyants__x_sweeps
 /* Early includes */
 #include <math.h>
 #include "pythread.h"
@@ -923,7 +925,7 @@ static const char *__pyx_filename;
 
 
 static const char *__pyx_f[] = {
-  "x_sweeps.pyx",
+  "ants/cyants/x_sweeps.pyx",
   "stringsource",
 };
 /* MemviewSliceStruct.proto */
@@ -1247,32 +1249,6 @@ static CYTHON_INLINE PyObject* __Pyx_PyObject_Call(PyObject *func, PyObject *arg
 #define __Pyx_PyObject_Call(func, arg, kw) PyObject_Call(func, arg, kw)
 #endif
 
-/* MemviewSliceInit.proto */
-#define __Pyx_BUF_MAX_NDIMS %(BUF_MAX_NDIMS)d
-#define __Pyx_MEMVIEW_DIRECT   1
-#define __Pyx_MEMVIEW_PTR      2
-#define __Pyx_MEMVIEW_FULL     4
-#define __Pyx_MEMVIEW_CONTIG   8
-#define __Pyx_MEMVIEW_STRIDED  16
-#define __Pyx_MEMVIEW_FOLLOW   32
-#define __Pyx_IS_C_CONTIG 1
-#define __Pyx_IS_F_CONTIG 2
-static int __Pyx_init_memviewslice(
-                struct __pyx_memoryview_obj *memview,
-                int ndim,
-                __Pyx_memviewslice *memviewslice,
-                int memview_is_new_reference);
-static CYTHON_INLINE int __pyx_add_acquisition_count_locked(
-    __pyx_atomic_int *acquisition_count, PyThread_type_lock lock);
-static CYTHON_INLINE int __pyx_sub_acquisition_count_locked(
-    __pyx_atomic_int *acquisition_count, PyThread_type_lock lock);
-#define __pyx_get_slice_count_pointer(memview) (memview->acquisition_count_aligned_p)
-#define __pyx_get_slice_count(memview) (*__pyx_get_slice_count_pointer(memview))
-#define __PYX_INC_MEMVIEW(slice, have_gil) __Pyx_INC_MEMVIEW(slice, have_gil, __LINE__)
-#define __PYX_XDEC_MEMVIEW(slice, have_gil) __Pyx_XDEC_MEMVIEW(slice, have_gil, __LINE__)
-static CYTHON_INLINE void __Pyx_INC_MEMVIEW(__Pyx_memviewslice *, int, int);
-static CYTHON_INLINE void __Pyx_XDEC_MEMVIEW(__Pyx_memviewslice *, int, int);
-
 /* BufferIndexError.proto */
 static void __Pyx_RaiseBufferIndexError(int axis);
 
@@ -1322,6 +1298,32 @@ static PyObject *__Pyx__GetModuleGlobalName(PyObject *name, PY_UINT64_T *dict_ve
 #define __Pyx_GetModuleGlobalNameUncached(var, name)  (var) = __Pyx__GetModuleGlobalName(name)
 static CYTHON_INLINE PyObject *__Pyx__GetModuleGlobalName(PyObject *name);
 #endif
+
+/* MemviewSliceInit.proto */
+#define __Pyx_BUF_MAX_NDIMS %(BUF_MAX_NDIMS)d
+#define __Pyx_MEMVIEW_DIRECT   1
+#define __Pyx_MEMVIEW_PTR      2
+#define __Pyx_MEMVIEW_FULL     4
+#define __Pyx_MEMVIEW_CONTIG   8
+#define __Pyx_MEMVIEW_STRIDED  16
+#define __Pyx_MEMVIEW_FOLLOW   32
+#define __Pyx_IS_C_CONTIG 1
+#define __Pyx_IS_F_CONTIG 2
+static int __Pyx_init_memviewslice(
+                struct __pyx_memoryview_obj *memview,
+                int ndim,
+                __Pyx_memviewslice *memviewslice,
+                int memview_is_new_reference);
+static CYTHON_INLINE int __pyx_add_acquisition_count_locked(
+    __pyx_atomic_int *acquisition_count, PyThread_type_lock lock);
+static CYTHON_INLINE int __pyx_sub_acquisition_count_locked(
+    __pyx_atomic_int *acquisition_count, PyThread_type_lock lock);
+#define __pyx_get_slice_count_pointer(memview) (memview->acquisition_count_aligned_p)
+#define __pyx_get_slice_count(memview) (*__pyx_get_slice_count_pointer(memview))
+#define __PYX_INC_MEMVIEW(slice, have_gil) __Pyx_INC_MEMVIEW(slice, have_gil, __LINE__)
+#define __PYX_XDEC_MEMVIEW(slice, have_gil) __Pyx_XDEC_MEMVIEW(slice, have_gil, __LINE__)
+static CYTHON_INLINE void __Pyx_INC_MEMVIEW(__Pyx_memviewslice *, int, int);
+static CYTHON_INLINE void __Pyx_XDEC_MEMVIEW(__Pyx_memviewslice *, int, int);
 
 /* PyThreadStateGet.proto */
 #if CYTHON_FAST_THREAD_STATE
@@ -1776,11 +1778,11 @@ static CYTHON_INLINE PyObject* __Pyx_PyInt_From_int(int value);
 /* CIntFromPy.proto */
 static CYTHON_INLINE int __Pyx_PyInt_As_int(PyObject *);
 
-/* CIntToPy.proto */
-static CYTHON_INLINE PyObject* __Pyx_PyInt_From_long(long value);
-
 /* CIntFromPy.proto */
 static CYTHON_INLINE size_t __Pyx_PyInt_As_size_t(PyObject *);
+
+/* CIntToPy.proto */
+static CYTHON_INLINE PyObject* __Pyx_PyInt_From_long(long value);
 
 /* CIntFromPy.proto */
 static CYTHON_INLINE long __Pyx_PyInt_As_long(PyObject *);
@@ -1812,7 +1814,7 @@ static PyObject *__pyx_memoryviewslice_assign_item_from_object(struct __pyx_memo
 
 /* Module declarations from 'cython.view' */
 
-/* Module declarations from 'x_sweeps' */
+/* Module declarations from 'ants.cyants.x_sweeps' */
 static PyTypeObject *__pyx_array_type = 0;
 static PyTypeObject *__pyx_MemviewEnum_type = 0;
 static PyTypeObject *__pyx_memoryview_type = 0;
@@ -1824,11 +1826,12 @@ static PyObject *contiguous = 0;
 static PyObject *indirect_contiguous = 0;
 static int __pyx_memoryview_thread_locks_used;
 static PyThread_type_lock __pyx_memoryview_thread_locks[8];
-static void __pyx_f_8x_sweeps_vacuum(__Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, int, double, double, double, int); /*proto*/
-static void __pyx_f_8x_sweeps_reflected(__Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, int, double, double, double, int); /*proto*/
-static void __pyx_f_8x_sweeps_angular_to_scalar_flux(__Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &); /*proto*/
-static double __pyx_f_8x_sweeps_scalar_convergence(__Pyx_memviewslice &, __Pyx_memviewslice &); /*proto*/
-static double __pyx_f_8x_sweeps_angular_convergence(__Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &); /*proto*/
+static void __pyx_f_4ants_6cyants_8x_sweeps_vacuum(__Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, double, double, double, __Pyx_memviewslice &, size_t, size_t); /*proto*/
+static void __pyx_f_4ants_6cyants_8x_sweeps_reflected(__Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, double, double, double, __Pyx_memviewslice &, size_t, size_t); /*proto*/
+static void __pyx_f_4ants_6cyants_8x_sweeps_time_vacuum(__Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, double, double, double, __Pyx_memviewslice &, double, double, size_t, size_t); /*proto*/
+static void __pyx_f_4ants_6cyants_8x_sweeps_angular_to_scalar_flux(__Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &); /*proto*/
+static double __pyx_f_4ants_6cyants_8x_sweeps_scalar_convergence(__Pyx_memviewslice &, __Pyx_memviewslice &); /*proto*/
+static double __pyx_f_4ants_6cyants_8x_sweeps_angular_convergence(__Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &); /*proto*/
 static struct __pyx_array_obj *__pyx_array_new(PyObject *, Py_ssize_t, char *, char *, char *); /*proto*/
 static void *__pyx_align_pointer(void *, size_t); /*proto*/
 static PyObject *__pyx_memoryview_new(PyObject *, int, int, __Pyx_TypeInfo *); /*proto*/
@@ -1863,11 +1866,11 @@ static void __pyx_memoryview_slice_assign_scalar(__Pyx_memviewslice *, int, size
 static void __pyx_memoryview__slice_assign_scalar(char *, Py_ssize_t *, Py_ssize_t *, int, size_t, void *); /*proto*/
 static PyObject *__pyx_unpickle_Enum__set_state(struct __pyx_MemviewEnum_obj *, PyObject *); /*proto*/
 static __Pyx_TypeInfo __Pyx_TypeInfo_double = { "double", NULL, sizeof(double), { 0 }, 0, 'R', 0, 0 };
-#define __Pyx_MODULE_NAME "x_sweeps"
-extern int __pyx_module_is_main_x_sweeps;
-int __pyx_module_is_main_x_sweeps = 0;
+#define __Pyx_MODULE_NAME "ants.cyants.x_sweeps"
+extern int __pyx_module_is_main_ants__cyants__x_sweeps;
+int __pyx_module_is_main_ants__cyants__x_sweeps = 0;
 
-/* Implementation of 'x_sweeps' */
+/* Implementation of 'ants.cyants.x_sweeps' */
 static PyObject *__pyx_builtin_range;
 static PyObject *__pyx_builtin_print;
 static PyObject *__pyx_builtin_ValueError;
@@ -2141,18 +2144,19 @@ static PyObject *__pyx_tuple__26;
 static PyObject *__pyx_codeobj__27;
 /* Late includes */
 
-/* "x_sweeps.pyx":23
+/* "ants/cyants/x_sweeps.pyx":23
  * 
  * 
- * cdef double[:] scalar_sweep(double[:] scalar_flux_old, int[:]& medium_map, \             # <<<<<<<<<<<<<<
- *             double[:]& xs_total, double[:]& xs_scatter, \
- *             double[:,:]& external_source, int[:]& point_source_loc, \
+ * cdef double[:] x_scalar_sweep(double[:] scalar_flux_old, int[:]& medium_map, \             # <<<<<<<<<<<<<<
+ *                             double[:]& xs_total, double[:]& xs_scatter, \
+ *                             double[:]& external_source, \
  */
 
-static __Pyx_memviewslice __pyx_f_8x_sweeps_scalar_sweep(__Pyx_memviewslice __pyx_v_scalar_flux_old, __Pyx_memviewslice &__pyx_v_medium_map, __Pyx_memviewslice &__pyx_v_xs_total, __Pyx_memviewslice &__pyx_v_xs_scatter, __Pyx_memviewslice &__pyx_v_external_source, __Pyx_memviewslice &__pyx_v_point_source_loc, __Pyx_memviewslice &__pyx_v_point_source, __Pyx_memviewslice &__pyx_v_spatial_coef, __Pyx_memviewslice &__pyx_v_angle_weight, int __pyx_v_spatial, int __pyx_v_boundary) {
+static __Pyx_memviewslice __pyx_f_4ants_6cyants_8x_sweeps_x_scalar_sweep(__Pyx_memviewslice __pyx_v_scalar_flux_old, __Pyx_memviewslice &__pyx_v_medium_map, __Pyx_memviewslice &__pyx_v_xs_total, __Pyx_memviewslice &__pyx_v_xs_scatter, __Pyx_memviewslice &__pyx_v_external_source, __Pyx_memviewslice &__pyx_v_point_source, __Pyx_memviewslice &__pyx_v_spatial_coef, __Pyx_memviewslice &__pyx_v_angle_weight, __Pyx_memviewslice &__pyx_v_params, size_t __pyx_v_ex_group_idx) {
   int __pyx_v_cells;
   int __pyx_v_angles;
   int __pyx_v_angle;
+  size_t __pyx_v_ex_angle_idx;
   PyObject *__pyx_v_arr1d = NULL;
   __Pyx_memviewslice __pyx_v_scalar_flux = { 0, 0, { 0 }, { 0 }, { 0 } };
   int __pyx_v_converged;
@@ -2173,17 +2177,15 @@ static __Pyx_memviewslice __pyx_f_8x_sweeps_scalar_sweep(__Pyx_memviewslice __py
   int __pyx_t_11;
   Py_ssize_t __pyx_t_12;
   Py_ssize_t __pyx_t_13;
-  Py_ssize_t __pyx_t_14;
-  Py_ssize_t __pyx_t_15;
-  int __pyx_t_16;
+  int __pyx_t_14;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("scalar_sweep", 0);
+  __Pyx_RefNannySetupContext("x_scalar_sweep", 0);
 
-  /* "x_sweeps.pyx":29
- *             double[:]& angle_weight, int spatial, int boundary):
- * 
+  /* "ants/cyants/x_sweeps.pyx":29
+ *                             double[:]& angle_weight, int[:]& params, \
+ *                             size_t ex_group_idx):
  *     cdef int cells = len(scalar_flux_old)             # <<<<<<<<<<<<<<
  *     cdef int angles = len(angle_weight)
  *     cdef int cell, angle
@@ -2191,62 +2193,62 @@ static __Pyx_memviewslice __pyx_f_8x_sweeps_scalar_sweep(__Pyx_memviewslice __py
   __pyx_t_1 = __Pyx_MemoryView_Len(__pyx_v_scalar_flux_old); 
   __pyx_v_cells = __pyx_t_1;
 
-  /* "x_sweeps.pyx":30
- * 
+  /* "ants/cyants/x_sweeps.pyx":30
+ *                             size_t ex_group_idx):
  *     cdef int cells = len(scalar_flux_old)
  *     cdef int angles = len(angle_weight)             # <<<<<<<<<<<<<<
  *     cdef int cell, angle
- * 
+ *     cdef size_t ex_angle_idx
  */
   __pyx_t_1 = __Pyx_MemoryView_Len(__pyx_v_angle_weight); 
   __pyx_v_angles = __pyx_t_1;
 
-  /* "x_sweeps.pyx":33
- *     cdef int cell, angle
+  /* "ants/cyants/x_sweeps.pyx":34
+ *     cdef size_t ex_angle_idx
  * 
  *     arr1d = cvarray((cells,), itemsize=sizeof(double), format="d")             # <<<<<<<<<<<<<<
  *     cdef double[:] scalar_flux = arr1d
  *     scalar_flux[:] = 0
  */
-  __pyx_t_2 = __Pyx_PyInt_From_int(__pyx_v_cells); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 33, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyInt_From_int(__pyx_v_cells); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 34, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = PyTuple_New(1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 33, __pyx_L1_error)
+  __pyx_t_3 = PyTuple_New(1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 34, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_GIVEREF(__pyx_t_2);
   PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_t_2);
   __pyx_t_2 = 0;
-  __pyx_t_2 = PyTuple_New(1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 33, __pyx_L1_error)
+  __pyx_t_2 = PyTuple_New(1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 34, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_GIVEREF(__pyx_t_3);
   PyTuple_SET_ITEM(__pyx_t_2, 0, __pyx_t_3);
   __pyx_t_3 = 0;
-  __pyx_t_3 = __Pyx_PyDict_NewPresized(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 33, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyDict_NewPresized(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 34, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_4 = __Pyx_PyInt_FromSize_t((sizeof(double))); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 33, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyInt_FromSize_t((sizeof(double))); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 34, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
-  if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_itemsize, __pyx_t_4) < 0) __PYX_ERR(0, 33, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_itemsize, __pyx_t_4) < 0) __PYX_ERR(0, 34, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_format, __pyx_n_u_d) < 0) __PYX_ERR(0, 33, __pyx_L1_error)
-  __pyx_t_4 = __Pyx_PyObject_Call(((PyObject *)__pyx_array_type), __pyx_t_2, __pyx_t_3); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 33, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_format, __pyx_n_u_d) < 0) __PYX_ERR(0, 34, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyObject_Call(((PyObject *)__pyx_array_type), __pyx_t_2, __pyx_t_3); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 34, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
   __pyx_v_arr1d = __pyx_t_4;
   __pyx_t_4 = 0;
 
-  /* "x_sweeps.pyx":34
+  /* "ants/cyants/x_sweeps.pyx":35
  * 
  *     arr1d = cvarray((cells,), itemsize=sizeof(double), format="d")
  *     cdef double[:] scalar_flux = arr1d             # <<<<<<<<<<<<<<
  *     scalar_flux[:] = 0
  * 
  */
-  __pyx_t_5 = __Pyx_PyObject_to_MemoryviewSlice_ds_double(__pyx_v_arr1d, PyBUF_WRITABLE); if (unlikely(!__pyx_t_5.memview)) __PYX_ERR(0, 34, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyObject_to_MemoryviewSlice_ds_double(__pyx_v_arr1d, PyBUF_WRITABLE); if (unlikely(!__pyx_t_5.memview)) __PYX_ERR(0, 35, __pyx_L1_error)
   __pyx_v_scalar_flux = __pyx_t_5;
   __pyx_t_5.memview = NULL;
   __pyx_t_5.data = NULL;
 
-  /* "x_sweeps.pyx":35
+  /* "ants/cyants/x_sweeps.pyx":36
  *     arr1d = cvarray((cells,), itemsize=sizeof(double), format="d")
  *     cdef double[:] scalar_flux = arr1d
  *     scalar_flux[:] = 0             # <<<<<<<<<<<<<<
@@ -2268,7 +2270,7 @@ static __Pyx_memviewslice __pyx_f_8x_sweeps_scalar_sweep(__Pyx_memviewslice __py
       }
   }
 
-  /* "x_sweeps.pyx":37
+  /* "ants/cyants/x_sweeps.pyx":38
  *     scalar_flux[:] = 0
  * 
  *     cdef bint converged = False             # <<<<<<<<<<<<<<
@@ -2277,7 +2279,7 @@ static __Pyx_memviewslice __pyx_f_8x_sweeps_scalar_sweep(__Pyx_memviewslice __py
  */
   __pyx_v_converged = 0;
 
-  /* "x_sweeps.pyx":38
+  /* "ants/cyants/x_sweeps.pyx":39
  * 
  *     cdef bint converged = False
  *     cdef size_t count = 1             # <<<<<<<<<<<<<<
@@ -2286,7 +2288,7 @@ static __Pyx_memviewslice __pyx_f_8x_sweeps_scalar_sweep(__Pyx_memviewslice __py
  */
   __pyx_v_count = 1;
 
-  /* "x_sweeps.pyx":39
+  /* "ants/cyants/x_sweeps.pyx":40
  *     cdef bint converged = False
  *     cdef size_t count = 1
  *     cdef double change = 0.0             # <<<<<<<<<<<<<<
@@ -2295,7 +2297,7 @@ static __Pyx_memviewslice __pyx_f_8x_sweeps_scalar_sweep(__Pyx_memviewslice __py
  */
   __pyx_v_change = 0.0;
 
-  /* "x_sweeps.pyx":40
+  /* "ants/cyants/x_sweeps.pyx":41
  *     cdef size_t count = 1
  *     cdef double change = 0.0
  *     while not (converged):             # <<<<<<<<<<<<<<
@@ -2306,12 +2308,12 @@ static __Pyx_memviewslice __pyx_f_8x_sweeps_scalar_sweep(__Pyx_memviewslice __py
     __pyx_t_6 = ((!(__pyx_v_converged != 0)) != 0);
     if (!__pyx_t_6) break;
 
-    /* "x_sweeps.pyx":41
+    /* "ants/cyants/x_sweeps.pyx":42
  *     cdef double change = 0.0
  *     while not (converged):
  *         scalar_flux[:] = 0             # <<<<<<<<<<<<<<
  *         for angle in range(angles):
- *             if boundary == 0:
+ *             ex_angle_idx = 0 if params[4] == 1 else angle
  */
     {
         double __pyx_temp_scalar = 0.0;
@@ -2328,210 +2330,78 @@ static __Pyx_memviewslice __pyx_f_8x_sweeps_scalar_sweep(__Pyx_memviewslice __py
         }
     }
 
-    /* "x_sweeps.pyx":42
+    /* "ants/cyants/x_sweeps.pyx":43
  *     while not (converged):
  *         scalar_flux[:] = 0
  *         for angle in range(angles):             # <<<<<<<<<<<<<<
- *             if boundary == 0:
- *                 vacuum(scalar_flux, scalar_flux_old, \
+ *             ex_angle_idx = 0 if params[4] == 1 else angle
+ *             if params[2] == 0:
  */
     __pyx_t_7 = __pyx_v_angles;
     __pyx_t_8 = __pyx_t_7;
     for (__pyx_t_9 = 0; __pyx_t_9 < __pyx_t_8; __pyx_t_9+=1) {
       __pyx_v_angle = __pyx_t_9;
 
-      /* "x_sweeps.pyx":43
+      /* "ants/cyants/x_sweeps.pyx":44
  *         scalar_flux[:] = 0
  *         for angle in range(angles):
- *             if boundary == 0:             # <<<<<<<<<<<<<<
- *                 vacuum(scalar_flux, scalar_flux_old, \
- *                         medium_map, xs_total, xs_scatter, \
+ *             ex_angle_idx = 0 if params[4] == 1 else angle             # <<<<<<<<<<<<<<
+ *             if params[2] == 0:
+ *                 vacuum(scalar_flux, scalar_flux_old, medium_map, \
  */
-      __pyx_t_6 = ((__pyx_v_boundary == 0) != 0);
+      __pyx_t_10 = 4;
+      __pyx_t_11 = -1;
+      if (__pyx_t_10 < 0) {
+        __pyx_t_10 += __pyx_v_params.shape[0];
+        if (unlikely(__pyx_t_10 < 0)) __pyx_t_11 = 0;
+      } else if (unlikely(__pyx_t_10 >= __pyx_v_params.shape[0])) __pyx_t_11 = 0;
+      if (unlikely(__pyx_t_11 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_11);
+        __PYX_ERR(0, 44, __pyx_L1_error)
+      }
+      if ((((*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_10 * __pyx_v_params.strides[0]) ))) == 1) != 0)) {
+        __pyx_t_1 = 0;
+      } else {
+        __pyx_t_1 = __pyx_v_angle;
+      }
+      __pyx_v_ex_angle_idx = __pyx_t_1;
+
+      /* "ants/cyants/x_sweeps.pyx":45
+ *         for angle in range(angles):
+ *             ex_angle_idx = 0 if params[4] == 1 else angle
+ *             if params[2] == 0:             # <<<<<<<<<<<<<<
+ *                 vacuum(scalar_flux, scalar_flux_old, medium_map, \
+ *                        xs_total, xs_scatter, external_source, \
+ */
+      __pyx_t_10 = 2;
+      __pyx_t_11 = -1;
+      if (__pyx_t_10 < 0) {
+        __pyx_t_10 += __pyx_v_params.shape[0];
+        if (unlikely(__pyx_t_10 < 0)) __pyx_t_11 = 0;
+      } else if (unlikely(__pyx_t_10 >= __pyx_v_params.shape[0])) __pyx_t_11 = 0;
+      if (unlikely(__pyx_t_11 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_11);
+        __PYX_ERR(0, 45, __pyx_L1_error)
+      }
+      __pyx_t_6 = (((*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_10 * __pyx_v_params.strides[0]) ))) == 0) != 0);
       if (__pyx_t_6) {
 
-        /* "x_sweeps.pyx":46
- *                 vacuum(scalar_flux, scalar_flux_old, \
- *                         medium_map, xs_total, xs_scatter, \
- *                         external_source[:,angle], point_source_loc[0], \             # <<<<<<<<<<<<<<
- *                         point_source[:,angle][0], spatial_coef[angle], \
- *                         angle_weight[angle], spatial)
+        /* "ants/cyants/x_sweeps.pyx":48
+ *                 vacuum(scalar_flux, scalar_flux_old, medium_map, \
+ *                        xs_total, xs_scatter, external_source, \
+ *                        point_source[angle], spatial_coef[angle], \             # <<<<<<<<<<<<<<
+ *                        angle_weight[angle], params, ex_group_idx, \
+ *                        ex_angle_idx)
  */
-        __pyx_t_5.data = __pyx_v_external_source.data;
-        __pyx_t_5.memview = __pyx_v_external_source.memview;
-        __PYX_INC_MEMVIEW(&__pyx_t_5, 0);
-        __pyx_t_5.shape[0] = __pyx_v_external_source.shape[0];
-__pyx_t_5.strides[0] = __pyx_v_external_source.strides[0];
-    __pyx_t_5.suboffsets[0] = -1;
-
-{
-    Py_ssize_t __pyx_tmp_idx = __pyx_v_angle;
-        Py_ssize_t __pyx_tmp_shape = __pyx_v_external_source.shape[1];
-    Py_ssize_t __pyx_tmp_stride = __pyx_v_external_source.strides[1];
-        if (__pyx_tmp_idx < 0)
-            __pyx_tmp_idx += __pyx_tmp_shape;
-        if (unlikely(!__Pyx_is_valid_index(__pyx_tmp_idx, __pyx_tmp_shape))) {
-            PyErr_SetString(PyExc_IndexError,
-                            "Index out of bounds (axis 1)");
-            __PYX_ERR(0, 46, __pyx_L1_error)
-        }
-        __pyx_t_5.data += __pyx_tmp_idx * __pyx_tmp_stride;
-}
-
-__pyx_t_10 = 0;
+        __pyx_t_10 = __pyx_v_angle;
         __pyx_t_11 = -1;
         if (__pyx_t_10 < 0) {
-          __pyx_t_10 += __pyx_v_point_source_loc.shape[0];
+          __pyx_t_10 += __pyx_v_point_source.shape[0];
           if (unlikely(__pyx_t_10 < 0)) __pyx_t_11 = 0;
-        } else if (unlikely(__pyx_t_10 >= __pyx_v_point_source_loc.shape[0])) __pyx_t_11 = 0;
-        if (unlikely(__pyx_t_11 != -1)) {
-          __Pyx_RaiseBufferIndexError(__pyx_t_11);
-          __PYX_ERR(0, 46, __pyx_L1_error)
-        }
-
-        /* "x_sweeps.pyx":47
- *                         medium_map, xs_total, xs_scatter, \
- *                         external_source[:,angle], point_source_loc[0], \
- *                         point_source[:,angle][0], spatial_coef[angle], \             # <<<<<<<<<<<<<<
- *                         angle_weight[angle], spatial)
- *             elif boundary == 0:
- */
-        __pyx_t_12 = 0;
-        __pyx_t_13 = __pyx_v_angle;
-        __pyx_t_11 = -1;
-        if (__pyx_t_12 < 0) {
-          __pyx_t_12 += __pyx_v_point_source.shape[0];
-          if (unlikely(__pyx_t_12 < 0)) __pyx_t_11 = 0;
-        } else if (unlikely(__pyx_t_12 >= __pyx_v_point_source.shape[0])) __pyx_t_11 = 0;
-        if (__pyx_t_13 < 0) {
-          __pyx_t_13 += __pyx_v_point_source.shape[1];
-          if (unlikely(__pyx_t_13 < 0)) __pyx_t_11 = 1;
-        } else if (unlikely(__pyx_t_13 >= __pyx_v_point_source.shape[1])) __pyx_t_11 = 1;
-        if (unlikely(__pyx_t_11 != -1)) {
-          __Pyx_RaiseBufferIndexError(__pyx_t_11);
-          __PYX_ERR(0, 47, __pyx_L1_error)
-        }
-        __pyx_t_14 = __pyx_v_angle;
-        __pyx_t_11 = -1;
-        if (__pyx_t_14 < 0) {
-          __pyx_t_14 += __pyx_v_spatial_coef.shape[0];
-          if (unlikely(__pyx_t_14 < 0)) __pyx_t_11 = 0;
-        } else if (unlikely(__pyx_t_14 >= __pyx_v_spatial_coef.shape[0])) __pyx_t_11 = 0;
-        if (unlikely(__pyx_t_11 != -1)) {
-          __Pyx_RaiseBufferIndexError(__pyx_t_11);
-          __PYX_ERR(0, 47, __pyx_L1_error)
-        }
-
-        /* "x_sweeps.pyx":48
- *                         external_source[:,angle], point_source_loc[0], \
- *                         point_source[:,angle][0], spatial_coef[angle], \
- *                         angle_weight[angle], spatial)             # <<<<<<<<<<<<<<
- *             elif boundary == 0:
- *                 reflected(scalar_flux, scalar_flux_old, \
- */
-        __pyx_t_15 = __pyx_v_angle;
-        __pyx_t_11 = -1;
-        if (__pyx_t_15 < 0) {
-          __pyx_t_15 += __pyx_v_angle_weight.shape[0];
-          if (unlikely(__pyx_t_15 < 0)) __pyx_t_11 = 0;
-        } else if (unlikely(__pyx_t_15 >= __pyx_v_angle_weight.shape[0])) __pyx_t_11 = 0;
+        } else if (unlikely(__pyx_t_10 >= __pyx_v_point_source.shape[0])) __pyx_t_11 = 0;
         if (unlikely(__pyx_t_11 != -1)) {
           __Pyx_RaiseBufferIndexError(__pyx_t_11);
           __PYX_ERR(0, 48, __pyx_L1_error)
-        }
-
-        /* "x_sweeps.pyx":44
- *         for angle in range(angles):
- *             if boundary == 0:
- *                 vacuum(scalar_flux, scalar_flux_old, \             # <<<<<<<<<<<<<<
- *                         medium_map, xs_total, xs_scatter, \
- *                         external_source[:,angle], point_source_loc[0], \
- */
-        __pyx_f_8x_sweeps_vacuum(__pyx_v_scalar_flux, __pyx_v_scalar_flux_old, __pyx_v_medium_map, __pyx_v_xs_total, __pyx_v_xs_scatter, __pyx_t_5, (*((int *) ( /* dim=0 */ (__pyx_v_point_source_loc.data + __pyx_t_10 * __pyx_v_point_source_loc.strides[0]) ))), (*((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_point_source.data + __pyx_t_12 * __pyx_v_point_source.strides[0]) ) + __pyx_t_13 * __pyx_v_point_source.strides[1]) ))), (*((double *) ( /* dim=0 */ (__pyx_v_spatial_coef.data + __pyx_t_14 * __pyx_v_spatial_coef.strides[0]) ))), (*((double *) ( /* dim=0 */ (__pyx_v_angle_weight.data + __pyx_t_15 * __pyx_v_angle_weight.strides[0]) ))), __pyx_v_spatial);
-        __PYX_XDEC_MEMVIEW(&__pyx_t_5, 1);
-        __pyx_t_5.memview = NULL;
-        __pyx_t_5.data = NULL;
-
-        /* "x_sweeps.pyx":43
- *         scalar_flux[:] = 0
- *         for angle in range(angles):
- *             if boundary == 0:             # <<<<<<<<<<<<<<
- *                 vacuum(scalar_flux, scalar_flux_old, \
- *                         medium_map, xs_total, xs_scatter, \
- */
-        goto __pyx_L7;
-      }
-
-      /* "x_sweeps.pyx":49
- *                         point_source[:,angle][0], spatial_coef[angle], \
- *                         angle_weight[angle], spatial)
- *             elif boundary == 0:             # <<<<<<<<<<<<<<
- *                 reflected(scalar_flux, scalar_flux_old, \
- *                         medium_map, xs_total, xs_scatter, \
- */
-      __pyx_t_6 = ((__pyx_v_boundary == 0) != 0);
-      if (__pyx_t_6) {
-
-        /* "x_sweeps.pyx":52
- *                 reflected(scalar_flux, scalar_flux_old, \
- *                         medium_map, xs_total, xs_scatter, \
- *                         external_source[:,angle], point_source_loc[0], \             # <<<<<<<<<<<<<<
- *                         point_source[:,angle][0], spatial_coef[angle], \
- *                         angle_weight[angle], spatial)
- */
-        __pyx_t_5.data = __pyx_v_external_source.data;
-        __pyx_t_5.memview = __pyx_v_external_source.memview;
-        __PYX_INC_MEMVIEW(&__pyx_t_5, 0);
-        __pyx_t_5.shape[0] = __pyx_v_external_source.shape[0];
-__pyx_t_5.strides[0] = __pyx_v_external_source.strides[0];
-    __pyx_t_5.suboffsets[0] = -1;
-
-{
-    Py_ssize_t __pyx_tmp_idx = __pyx_v_angle;
-        Py_ssize_t __pyx_tmp_shape = __pyx_v_external_source.shape[1];
-    Py_ssize_t __pyx_tmp_stride = __pyx_v_external_source.strides[1];
-        if (__pyx_tmp_idx < 0)
-            __pyx_tmp_idx += __pyx_tmp_shape;
-        if (unlikely(!__Pyx_is_valid_index(__pyx_tmp_idx, __pyx_tmp_shape))) {
-            PyErr_SetString(PyExc_IndexError,
-                            "Index out of bounds (axis 1)");
-            __PYX_ERR(0, 52, __pyx_L1_error)
-        }
-        __pyx_t_5.data += __pyx_tmp_idx * __pyx_tmp_stride;
-}
-
-__pyx_t_15 = 0;
-        __pyx_t_11 = -1;
-        if (__pyx_t_15 < 0) {
-          __pyx_t_15 += __pyx_v_point_source_loc.shape[0];
-          if (unlikely(__pyx_t_15 < 0)) __pyx_t_11 = 0;
-        } else if (unlikely(__pyx_t_15 >= __pyx_v_point_source_loc.shape[0])) __pyx_t_11 = 0;
-        if (unlikely(__pyx_t_11 != -1)) {
-          __Pyx_RaiseBufferIndexError(__pyx_t_11);
-          __PYX_ERR(0, 52, __pyx_L1_error)
-        }
-
-        /* "x_sweeps.pyx":53
- *                         medium_map, xs_total, xs_scatter, \
- *                         external_source[:,angle], point_source_loc[0], \
- *                         point_source[:,angle][0], spatial_coef[angle], \             # <<<<<<<<<<<<<<
- *                         angle_weight[angle], spatial)
- *             else:
- */
-        __pyx_t_14 = 0;
-        __pyx_t_13 = __pyx_v_angle;
-        __pyx_t_11 = -1;
-        if (__pyx_t_14 < 0) {
-          __pyx_t_14 += __pyx_v_point_source.shape[0];
-          if (unlikely(__pyx_t_14 < 0)) __pyx_t_11 = 0;
-        } else if (unlikely(__pyx_t_14 >= __pyx_v_point_source.shape[0])) __pyx_t_11 = 0;
-        if (__pyx_t_13 < 0) {
-          __pyx_t_13 += __pyx_v_point_source.shape[1];
-          if (unlikely(__pyx_t_13 < 0)) __pyx_t_11 = 1;
-        } else if (unlikely(__pyx_t_13 >= __pyx_v_point_source.shape[1])) __pyx_t_11 = 1;
-        if (unlikely(__pyx_t_11 != -1)) {
-          __Pyx_RaiseBufferIndexError(__pyx_t_11);
-          __PYX_ERR(0, 53, __pyx_L1_error)
         }
         __pyx_t_12 = __pyx_v_angle;
         __pyx_t_11 = -1;
@@ -2541,15 +2411,100 @@ __pyx_t_15 = 0;
         } else if (unlikely(__pyx_t_12 >= __pyx_v_spatial_coef.shape[0])) __pyx_t_11 = 0;
         if (unlikely(__pyx_t_11 != -1)) {
           __Pyx_RaiseBufferIndexError(__pyx_t_11);
-          __PYX_ERR(0, 53, __pyx_L1_error)
+          __PYX_ERR(0, 48, __pyx_L1_error)
         }
 
-        /* "x_sweeps.pyx":54
- *                         external_source[:,angle], point_source_loc[0], \
- *                         point_source[:,angle][0], spatial_coef[angle], \
- *                         angle_weight[angle], spatial)             # <<<<<<<<<<<<<<
+        /* "ants/cyants/x_sweeps.pyx":49
+ *                        xs_total, xs_scatter, external_source, \
+ *                        point_source[angle], spatial_coef[angle], \
+ *                        angle_weight[angle], params, ex_group_idx, \             # <<<<<<<<<<<<<<
+ *                        ex_angle_idx)
+ *             elif params[2] == 1:
+ */
+        __pyx_t_13 = __pyx_v_angle;
+        __pyx_t_11 = -1;
+        if (__pyx_t_13 < 0) {
+          __pyx_t_13 += __pyx_v_angle_weight.shape[0];
+          if (unlikely(__pyx_t_13 < 0)) __pyx_t_11 = 0;
+        } else if (unlikely(__pyx_t_13 >= __pyx_v_angle_weight.shape[0])) __pyx_t_11 = 0;
+        if (unlikely(__pyx_t_11 != -1)) {
+          __Pyx_RaiseBufferIndexError(__pyx_t_11);
+          __PYX_ERR(0, 49, __pyx_L1_error)
+        }
+
+        /* "ants/cyants/x_sweeps.pyx":46
+ *             ex_angle_idx = 0 if params[4] == 1 else angle
+ *             if params[2] == 0:
+ *                 vacuum(scalar_flux, scalar_flux_old, medium_map, \             # <<<<<<<<<<<<<<
+ *                        xs_total, xs_scatter, external_source, \
+ *                        point_source[angle], spatial_coef[angle], \
+ */
+        __pyx_f_4ants_6cyants_8x_sweeps_vacuum(__pyx_v_scalar_flux, __pyx_v_scalar_flux_old, __pyx_v_medium_map, __pyx_v_xs_total, __pyx_v_xs_scatter, __pyx_v_external_source, (*((double *) ( /* dim=0 */ (__pyx_v_point_source.data + __pyx_t_10 * __pyx_v_point_source.strides[0]) ))), (*((double *) ( /* dim=0 */ (__pyx_v_spatial_coef.data + __pyx_t_12 * __pyx_v_spatial_coef.strides[0]) ))), (*((double *) ( /* dim=0 */ (__pyx_v_angle_weight.data + __pyx_t_13 * __pyx_v_angle_weight.strides[0]) ))), __pyx_v_params, __pyx_v_ex_group_idx, __pyx_v_ex_angle_idx);
+
+        /* "ants/cyants/x_sweeps.pyx":45
+ *         for angle in range(angles):
+ *             ex_angle_idx = 0 if params[4] == 1 else angle
+ *             if params[2] == 0:             # <<<<<<<<<<<<<<
+ *                 vacuum(scalar_flux, scalar_flux_old, medium_map, \
+ *                        xs_total, xs_scatter, external_source, \
+ */
+        goto __pyx_L7;
+      }
+
+      /* "ants/cyants/x_sweeps.pyx":51
+ *                        angle_weight[angle], params, ex_group_idx, \
+ *                        ex_angle_idx)
+ *             elif params[2] == 1:             # <<<<<<<<<<<<<<
+ *                 reflected(scalar_flux, scalar_flux_old, medium_map, \
+ *                           xs_total, xs_scatter, external_source, \
+ */
+      __pyx_t_13 = 2;
+      __pyx_t_11 = -1;
+      if (__pyx_t_13 < 0) {
+        __pyx_t_13 += __pyx_v_params.shape[0];
+        if (unlikely(__pyx_t_13 < 0)) __pyx_t_11 = 0;
+      } else if (unlikely(__pyx_t_13 >= __pyx_v_params.shape[0])) __pyx_t_11 = 0;
+      if (unlikely(__pyx_t_11 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_11);
+        __PYX_ERR(0, 51, __pyx_L1_error)
+      }
+      __pyx_t_6 = (((*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_13 * __pyx_v_params.strides[0]) ))) == 1) != 0);
+      if (__pyx_t_6) {
+
+        /* "ants/cyants/x_sweeps.pyx":54
+ *                 reflected(scalar_flux, scalar_flux_old, medium_map, \
+ *                           xs_total, xs_scatter, external_source, \
+ *                           point_source[angle], spatial_coef[angle], \             # <<<<<<<<<<<<<<
+ *                           angle_weight[angle], params, ex_group_idx, \
+ *                           ex_angle_idx)
+ */
+        __pyx_t_13 = __pyx_v_angle;
+        __pyx_t_11 = -1;
+        if (__pyx_t_13 < 0) {
+          __pyx_t_13 += __pyx_v_point_source.shape[0];
+          if (unlikely(__pyx_t_13 < 0)) __pyx_t_11 = 0;
+        } else if (unlikely(__pyx_t_13 >= __pyx_v_point_source.shape[0])) __pyx_t_11 = 0;
+        if (unlikely(__pyx_t_11 != -1)) {
+          __Pyx_RaiseBufferIndexError(__pyx_t_11);
+          __PYX_ERR(0, 54, __pyx_L1_error)
+        }
+        __pyx_t_12 = __pyx_v_angle;
+        __pyx_t_11 = -1;
+        if (__pyx_t_12 < 0) {
+          __pyx_t_12 += __pyx_v_spatial_coef.shape[0];
+          if (unlikely(__pyx_t_12 < 0)) __pyx_t_11 = 0;
+        } else if (unlikely(__pyx_t_12 >= __pyx_v_spatial_coef.shape[0])) __pyx_t_11 = 0;
+        if (unlikely(__pyx_t_11 != -1)) {
+          __Pyx_RaiseBufferIndexError(__pyx_t_11);
+          __PYX_ERR(0, 54, __pyx_L1_error)
+        }
+
+        /* "ants/cyants/x_sweeps.pyx":55
+ *                           xs_total, xs_scatter, external_source, \
+ *                           point_source[angle], spatial_coef[angle], \
+ *                           angle_weight[angle], params, ex_group_idx, \             # <<<<<<<<<<<<<<
+ *                           ex_angle_idx)
  *             else:
- *                 print("You are wrong")
  */
         __pyx_t_10 = __pyx_v_angle;
         __pyx_t_11 = -1;
@@ -2559,104 +2514,101 @@ __pyx_t_15 = 0;
         } else if (unlikely(__pyx_t_10 >= __pyx_v_angle_weight.shape[0])) __pyx_t_11 = 0;
         if (unlikely(__pyx_t_11 != -1)) {
           __Pyx_RaiseBufferIndexError(__pyx_t_11);
-          __PYX_ERR(0, 54, __pyx_L1_error)
+          __PYX_ERR(0, 55, __pyx_L1_error)
         }
 
-        /* "x_sweeps.pyx":50
- *                         angle_weight[angle], spatial)
- *             elif boundary == 0:
- *                 reflected(scalar_flux, scalar_flux_old, \             # <<<<<<<<<<<<<<
- *                         medium_map, xs_total, xs_scatter, \
- *                         external_source[:,angle], point_source_loc[0], \
+        /* "ants/cyants/x_sweeps.pyx":52
+ *                        ex_angle_idx)
+ *             elif params[2] == 1:
+ *                 reflected(scalar_flux, scalar_flux_old, medium_map, \             # <<<<<<<<<<<<<<
+ *                           xs_total, xs_scatter, external_source, \
+ *                           point_source[angle], spatial_coef[angle], \
  */
-        __pyx_f_8x_sweeps_reflected(__pyx_v_scalar_flux, __pyx_v_scalar_flux_old, __pyx_v_medium_map, __pyx_v_xs_total, __pyx_v_xs_scatter, __pyx_t_5, (*((int *) ( /* dim=0 */ (__pyx_v_point_source_loc.data + __pyx_t_15 * __pyx_v_point_source_loc.strides[0]) ))), (*((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_point_source.data + __pyx_t_14 * __pyx_v_point_source.strides[0]) ) + __pyx_t_13 * __pyx_v_point_source.strides[1]) ))), (*((double *) ( /* dim=0 */ (__pyx_v_spatial_coef.data + __pyx_t_12 * __pyx_v_spatial_coef.strides[0]) ))), (*((double *) ( /* dim=0 */ (__pyx_v_angle_weight.data + __pyx_t_10 * __pyx_v_angle_weight.strides[0]) ))), __pyx_v_spatial);
-        __PYX_XDEC_MEMVIEW(&__pyx_t_5, 1);
-        __pyx_t_5.memview = NULL;
-        __pyx_t_5.data = NULL;
+        __pyx_f_4ants_6cyants_8x_sweeps_reflected(__pyx_v_scalar_flux, __pyx_v_scalar_flux_old, __pyx_v_medium_map, __pyx_v_xs_total, __pyx_v_xs_scatter, __pyx_v_external_source, (*((double *) ( /* dim=0 */ (__pyx_v_point_source.data + __pyx_t_13 * __pyx_v_point_source.strides[0]) ))), (*((double *) ( /* dim=0 */ (__pyx_v_spatial_coef.data + __pyx_t_12 * __pyx_v_spatial_coef.strides[0]) ))), (*((double *) ( /* dim=0 */ (__pyx_v_angle_weight.data + __pyx_t_10 * __pyx_v_angle_weight.strides[0]) ))), __pyx_v_params, __pyx_v_ex_group_idx, __pyx_v_ex_angle_idx);
 
-        /* "x_sweeps.pyx":49
- *                         point_source[:,angle][0], spatial_coef[angle], \
- *                         angle_weight[angle], spatial)
- *             elif boundary == 0:             # <<<<<<<<<<<<<<
- *                 reflected(scalar_flux, scalar_flux_old, \
- *                         medium_map, xs_total, xs_scatter, \
+        /* "ants/cyants/x_sweeps.pyx":51
+ *                        angle_weight[angle], params, ex_group_idx, \
+ *                        ex_angle_idx)
+ *             elif params[2] == 1:             # <<<<<<<<<<<<<<
+ *                 reflected(scalar_flux, scalar_flux_old, medium_map, \
+ *                           xs_total, xs_scatter, external_source, \
  */
         goto __pyx_L7;
       }
 
-      /* "x_sweeps.pyx":56
- *                         angle_weight[angle], spatial)
+      /* "ants/cyants/x_sweeps.pyx":58
+ *                           ex_angle_idx)
  *             else:
  *                 print("You are wrong")             # <<<<<<<<<<<<<<
  *         change = scalar_convergence(scalar_flux, scalar_flux_old)
  *         # print("In Count", count, "Change", change)
  */
       /*else*/ {
-        __pyx_t_4 = __Pyx_PyObject_Call(__pyx_builtin_print, __pyx_tuple_, NULL); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 56, __pyx_L1_error)
+        __pyx_t_4 = __Pyx_PyObject_Call(__pyx_builtin_print, __pyx_tuple_, NULL); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 58, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_4);
         __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
       }
       __pyx_L7:;
     }
 
-    /* "x_sweeps.pyx":57
+    /* "ants/cyants/x_sweeps.pyx":59
  *             else:
  *                 print("You are wrong")
  *         change = scalar_convergence(scalar_flux, scalar_flux_old)             # <<<<<<<<<<<<<<
  *         # print("In Count", count, "Change", change)
  *         converged = (change < constants.INNER_TOLERANCE) \
  */
-    __pyx_v_change = __pyx_f_8x_sweeps_scalar_convergence(__pyx_v_scalar_flux, __pyx_v_scalar_flux_old);
+    __pyx_v_change = __pyx_f_4ants_6cyants_8x_sweeps_scalar_convergence(__pyx_v_scalar_flux, __pyx_v_scalar_flux_old);
 
-    /* "x_sweeps.pyx":59
+    /* "ants/cyants/x_sweeps.pyx":61
  *         change = scalar_convergence(scalar_flux, scalar_flux_old)
  *         # print("In Count", count, "Change", change)
  *         converged = (change < constants.INNER_TOLERANCE) \             # <<<<<<<<<<<<<<
  *                     or (count >= constants.MAX_ITERATIONS)
  *         count += 1
  */
-    __pyx_t_4 = PyFloat_FromDouble(__pyx_v_change); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 59, __pyx_L1_error)
+    __pyx_t_4 = PyFloat_FromDouble(__pyx_v_change); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 61, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
-    __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_constants); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 59, __pyx_L1_error)
+    __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_constants); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 61, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
-    __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_INNER_TOLERANCE); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 59, __pyx_L1_error)
+    __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_INNER_TOLERANCE); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 61, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    __pyx_t_3 = PyObject_RichCompare(__pyx_t_4, __pyx_t_2, Py_LT); __Pyx_XGOTREF(__pyx_t_3); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 59, __pyx_L1_error)
+    __pyx_t_3 = PyObject_RichCompare(__pyx_t_4, __pyx_t_2, Py_LT); __Pyx_XGOTREF(__pyx_t_3); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 61, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-    __pyx_t_16 = __Pyx_PyObject_IsTrue(__pyx_t_3); if (unlikely(__pyx_t_16 < 0)) __PYX_ERR(0, 59, __pyx_L1_error)
+    __pyx_t_14 = __Pyx_PyObject_IsTrue(__pyx_t_3); if (unlikely(__pyx_t_14 < 0)) __PYX_ERR(0, 61, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    if (!__pyx_t_16) {
+    if (!__pyx_t_14) {
     } else {
-      __pyx_t_6 = __pyx_t_16;
+      __pyx_t_6 = __pyx_t_14;
       goto __pyx_L8_bool_binop_done;
     }
 
-    /* "x_sweeps.pyx":60
+    /* "ants/cyants/x_sweeps.pyx":62
  *         # print("In Count", count, "Change", change)
  *         converged = (change < constants.INNER_TOLERANCE) \
  *                     or (count >= constants.MAX_ITERATIONS)             # <<<<<<<<<<<<<<
  *         count += 1
  *         scalar_flux_old[:] = scalar_flux[:]
  */
-    __pyx_t_3 = __Pyx_PyInt_FromSize_t(__pyx_v_count); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 60, __pyx_L1_error)
+    __pyx_t_3 = __Pyx_PyInt_FromSize_t(__pyx_v_count); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 62, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
-    __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_constants); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 60, __pyx_L1_error)
+    __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_constants); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 62, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
-    __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_MAX_ITERATIONS); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 60, __pyx_L1_error)
+    __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_MAX_ITERATIONS); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 62, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-    __pyx_t_2 = PyObject_RichCompare(__pyx_t_3, __pyx_t_4, Py_GE); __Pyx_XGOTREF(__pyx_t_2); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 60, __pyx_L1_error)
+    __pyx_t_2 = PyObject_RichCompare(__pyx_t_3, __pyx_t_4, Py_GE); __Pyx_XGOTREF(__pyx_t_2); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 62, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-    __pyx_t_16 = __Pyx_PyObject_IsTrue(__pyx_t_2); if (unlikely(__pyx_t_16 < 0)) __PYX_ERR(0, 60, __pyx_L1_error)
+    __pyx_t_14 = __Pyx_PyObject_IsTrue(__pyx_t_2); if (unlikely(__pyx_t_14 < 0)) __PYX_ERR(0, 62, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-    __pyx_t_6 = __pyx_t_16;
+    __pyx_t_6 = __pyx_t_14;
     __pyx_L8_bool_binop_done:;
     __pyx_v_converged = __pyx_t_6;
 
-    /* "x_sweeps.pyx":61
+    /* "ants/cyants/x_sweeps.pyx":63
  *         converged = (change < constants.INNER_TOLERANCE) \
  *                     or (count >= constants.MAX_ITERATIONS)
  *         count += 1             # <<<<<<<<<<<<<<
@@ -2665,17 +2617,17 @@ __pyx_t_15 = 0;
  */
     __pyx_v_count = (__pyx_v_count + 1);
 
-    /* "x_sweeps.pyx":62
+    /* "ants/cyants/x_sweeps.pyx":64
  *                     or (count >= constants.MAX_ITERATIONS)
  *         count += 1
  *         scalar_flux_old[:] = scalar_flux[:]             # <<<<<<<<<<<<<<
  *     return scalar_flux[:]
  * 
  */
-    if (unlikely(__pyx_memoryview_copy_contents(__pyx_v_scalar_flux, __pyx_v_scalar_flux_old, 1, 1, 0) < 0)) __PYX_ERR(0, 62, __pyx_L1_error)
+    if (unlikely(__pyx_memoryview_copy_contents(__pyx_v_scalar_flux, __pyx_v_scalar_flux_old, 1, 1, 0) < 0)) __PYX_ERR(0, 64, __pyx_L1_error)
   }
 
-  /* "x_sweeps.pyx":63
+  /* "ants/cyants/x_sweeps.pyx":65
  *         count += 1
  *         scalar_flux_old[:] = scalar_flux[:]
  *     return scalar_flux[:]             # <<<<<<<<<<<<<<
@@ -2686,12 +2638,12 @@ __pyx_t_15 = 0;
   __pyx_r = __pyx_v_scalar_flux;
   goto __pyx_L0;
 
-  /* "x_sweeps.pyx":23
+  /* "ants/cyants/x_sweeps.pyx":23
  * 
  * 
- * cdef double[:] scalar_sweep(double[:] scalar_flux_old, int[:]& medium_map, \             # <<<<<<<<<<<<<<
- *             double[:]& xs_total, double[:]& xs_scatter, \
- *             double[:,:]& external_source, int[:]& point_source_loc, \
+ * cdef double[:] x_scalar_sweep(double[:] scalar_flux_old, int[:]& medium_map, \             # <<<<<<<<<<<<<<
+ *                             double[:]& xs_total, double[:]& xs_scatter, \
+ *                             double[:]& external_source, \
  */
 
   /* function exit code */
@@ -2702,7 +2654,7 @@ __pyx_t_15 = 0;
   __PYX_XDEC_MEMVIEW(&__pyx_t_5, 1);
   __pyx_r.data = NULL;
   __pyx_r.memview = NULL;
-  __Pyx_AddTraceback("x_sweeps.scalar_sweep", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("ants.cyants.x_sweeps.x_scalar_sweep", __pyx_clineno, __pyx_lineno, __pyx_filename);
   goto __pyx_L2;
   __pyx_L0:;
   if (unlikely(!__pyx_r.memview)) {
@@ -2715,18 +2667,19 @@ __pyx_t_15 = 0;
   return __pyx_r;
 }
 
-/* "x_sweeps.pyx":66
+/* "ants/cyants/x_sweeps.pyx":68
  * 
  * 
- * cdef double[:,:] angular_sweep(double[:,:] angular_flux_old, int[:]& medium_map, \             # <<<<<<<<<<<<<<
- *             double[:]& xs_total, double[:]& xs_scatter, \
- *             double[:,:]& external_source, int[:]& point_source_loc, \
+ * cdef double[:,:] x_angular_sweep(double[:,:] angular_flux_old, int[:]& medium_map, \             # <<<<<<<<<<<<<<
+ *                                 double[:]& xs_total, double[:]& xs_scatter, \
+ *                                 double[:]& external_source, \
  */
 
-static __Pyx_memviewslice __pyx_f_8x_sweeps_angular_sweep(__Pyx_memviewslice __pyx_v_angular_flux_old, __Pyx_memviewslice &__pyx_v_medium_map, __Pyx_memviewslice &__pyx_v_xs_total, __Pyx_memviewslice &__pyx_v_xs_scatter, __Pyx_memviewslice &__pyx_v_external_source, __Pyx_memviewslice &__pyx_v_point_source_loc, __Pyx_memviewslice &__pyx_v_point_source, __Pyx_memviewslice &__pyx_v_spatial_coef, __Pyx_memviewslice &__pyx_v_angle_weight, int __pyx_v_spatial, int __pyx_v_boundary) {
+static __Pyx_memviewslice __pyx_f_4ants_6cyants_8x_sweeps_x_angular_sweep(__Pyx_memviewslice __pyx_v_angular_flux_old, __Pyx_memviewslice &__pyx_v_medium_map, __Pyx_memviewslice &__pyx_v_xs_total, __Pyx_memviewslice &__pyx_v_xs_scatter, __Pyx_memviewslice &__pyx_v_external_source, __Pyx_memviewslice &__pyx_v_point_source, __Pyx_memviewslice &__pyx_v_spatial_coef, __Pyx_memviewslice &__pyx_v_angle_weight, __Pyx_memviewslice &__pyx_v_params, size_t __pyx_v_ex_group_idx) {
   int __pyx_v_cells;
   int __pyx_v_angles;
   int __pyx_v_angle;
+  size_t __pyx_v_ex_angle_idx;
   PyObject *__pyx_v_arr2d = NULL;
   __Pyx_memviewslice __pyx_v_angular_flux = { 0, 0, { 0 }, { 0 }, { 0 } };
   PyObject *__pyx_v_arr1d_1 = NULL;
@@ -2748,22 +2701,19 @@ static __Pyx_memviewslice __pyx_f_8x_sweeps_angular_sweep(__Pyx_memviewslice __p
   int __pyx_t_8;
   int __pyx_t_9;
   int __pyx_t_10;
-  __Pyx_memviewslice __pyx_t_11 = { 0, 0, { 0 }, { 0 }, { 0 } };
-  Py_ssize_t __pyx_t_12;
-  int __pyx_t_13;
+  Py_ssize_t __pyx_t_11;
+  int __pyx_t_12;
+  Py_ssize_t __pyx_t_13;
   Py_ssize_t __pyx_t_14;
-  Py_ssize_t __pyx_t_15;
-  Py_ssize_t __pyx_t_16;
-  Py_ssize_t __pyx_t_17;
-  int __pyx_t_18;
+  int __pyx_t_15;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("angular_sweep", 0);
+  __Pyx_RefNannySetupContext("x_angular_sweep", 0);
 
-  /* "x_sweeps.pyx":72
- *             double[:]& angle_weight, int spatial, int boundary):
- * 
+  /* "ants/cyants/x_sweeps.pyx":74
+ *                                 double[:]& angle_weight, int[:]& params, \
+ *                                 size_t ex_group_idx):
  *     cdef int cells = len(medium_map)             # <<<<<<<<<<<<<<
  *     cdef int angles = len(angle_weight)
  *     cdef int cell, angle
@@ -2771,28 +2721,28 @@ static __Pyx_memviewslice __pyx_f_8x_sweeps_angular_sweep(__Pyx_memviewslice __p
   __pyx_t_1 = __Pyx_MemoryView_Len(__pyx_v_medium_map); 
   __pyx_v_cells = __pyx_t_1;
 
-  /* "x_sweeps.pyx":73
- * 
+  /* "ants/cyants/x_sweeps.pyx":75
+ *                                 size_t ex_group_idx):
  *     cdef int cells = len(medium_map)
  *     cdef int angles = len(angle_weight)             # <<<<<<<<<<<<<<
  *     cdef int cell, angle
- * 
+ *     cdef size_t ex_angle_idx
  */
   __pyx_t_1 = __Pyx_MemoryView_Len(__pyx_v_angle_weight); 
   __pyx_v_angles = __pyx_t_1;
 
-  /* "x_sweeps.pyx":76
- *     cdef int cell, angle
+  /* "ants/cyants/x_sweeps.pyx":79
+ *     cdef size_t ex_angle_idx
  * 
  *     arr2d = cvarray((cells, angles), itemsize=sizeof(double), format="d")             # <<<<<<<<<<<<<<
  *     cdef double[:,:] angular_flux = arr2d
  *     angular_flux[:,:] = 0
  */
-  __pyx_t_2 = __Pyx_PyInt_From_int(__pyx_v_cells); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 76, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyInt_From_int(__pyx_v_cells); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 79, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = __Pyx_PyInt_From_int(__pyx_v_angles); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 76, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyInt_From_int(__pyx_v_angles); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 79, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_4 = PyTuple_New(2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 76, __pyx_L1_error)
+  __pyx_t_4 = PyTuple_New(2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 79, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __Pyx_GIVEREF(__pyx_t_2);
   PyTuple_SET_ITEM(__pyx_t_4, 0, __pyx_t_2);
@@ -2800,38 +2750,38 @@ static __Pyx_memviewslice __pyx_f_8x_sweeps_angular_sweep(__Pyx_memviewslice __p
   PyTuple_SET_ITEM(__pyx_t_4, 1, __pyx_t_3);
   __pyx_t_2 = 0;
   __pyx_t_3 = 0;
-  __pyx_t_3 = PyTuple_New(1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 76, __pyx_L1_error)
+  __pyx_t_3 = PyTuple_New(1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 79, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_GIVEREF(__pyx_t_4);
   PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_t_4);
   __pyx_t_4 = 0;
-  __pyx_t_4 = __Pyx_PyDict_NewPresized(2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 76, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyDict_NewPresized(2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 79, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
-  __pyx_t_2 = __Pyx_PyInt_FromSize_t((sizeof(double))); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 76, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyInt_FromSize_t((sizeof(double))); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 79, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem(__pyx_t_4, __pyx_n_s_itemsize, __pyx_t_2) < 0) __PYX_ERR(0, 76, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_4, __pyx_n_s_itemsize, __pyx_t_2) < 0) __PYX_ERR(0, 79, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  if (PyDict_SetItem(__pyx_t_4, __pyx_n_s_format, __pyx_n_u_d) < 0) __PYX_ERR(0, 76, __pyx_L1_error)
-  __pyx_t_2 = __Pyx_PyObject_Call(((PyObject *)__pyx_array_type), __pyx_t_3, __pyx_t_4); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 76, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_4, __pyx_n_s_format, __pyx_n_u_d) < 0) __PYX_ERR(0, 79, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_Call(((PyObject *)__pyx_array_type), __pyx_t_3, __pyx_t_4); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 79, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
   __pyx_v_arr2d = __pyx_t_2;
   __pyx_t_2 = 0;
 
-  /* "x_sweeps.pyx":77
+  /* "ants/cyants/x_sweeps.pyx":80
  * 
  *     arr2d = cvarray((cells, angles), itemsize=sizeof(double), format="d")
  *     cdef double[:,:] angular_flux = arr2d             # <<<<<<<<<<<<<<
  *     angular_flux[:,:] = 0
  * 
  */
-  __pyx_t_5 = __Pyx_PyObject_to_MemoryviewSlice_dsds_double(__pyx_v_arr2d, PyBUF_WRITABLE); if (unlikely(!__pyx_t_5.memview)) __PYX_ERR(0, 77, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyObject_to_MemoryviewSlice_dsds_double(__pyx_v_arr2d, PyBUF_WRITABLE); if (unlikely(!__pyx_t_5.memview)) __PYX_ERR(0, 80, __pyx_L1_error)
   __pyx_v_angular_flux = __pyx_t_5;
   __pyx_t_5.memview = NULL;
   __pyx_t_5.data = NULL;
 
-  /* "x_sweeps.pyx":78
+  /* "ants/cyants/x_sweeps.pyx":81
  *     arr2d = cvarray((cells, angles), itemsize=sizeof(double), format="d")
  *     cdef double[:,:] angular_flux = arr2d
  *     angular_flux[:,:] = 0             # <<<<<<<<<<<<<<
@@ -2861,52 +2811,52 @@ static __Pyx_memviewslice __pyx_f_8x_sweeps_angular_sweep(__Pyx_memviewslice __p
       }
   }
 
-  /* "x_sweeps.pyx":80
+  /* "ants/cyants/x_sweeps.pyx":83
  *     angular_flux[:,:] = 0
  * 
  *     arr1d_1 = cvarray((angles,), itemsize=sizeof(double), format="d")             # <<<<<<<<<<<<<<
  *     cdef double[:] dummy_angle_weight = arr1d_1
  *     dummy_angle_weight[:] = 1
  */
-  __pyx_t_2 = __Pyx_PyInt_From_int(__pyx_v_angles); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 80, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyInt_From_int(__pyx_v_angles); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 83, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_4 = PyTuple_New(1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 80, __pyx_L1_error)
+  __pyx_t_4 = PyTuple_New(1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 83, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __Pyx_GIVEREF(__pyx_t_2);
   PyTuple_SET_ITEM(__pyx_t_4, 0, __pyx_t_2);
   __pyx_t_2 = 0;
-  __pyx_t_2 = PyTuple_New(1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 80, __pyx_L1_error)
+  __pyx_t_2 = PyTuple_New(1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 83, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_GIVEREF(__pyx_t_4);
   PyTuple_SET_ITEM(__pyx_t_2, 0, __pyx_t_4);
   __pyx_t_4 = 0;
-  __pyx_t_4 = __Pyx_PyDict_NewPresized(2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 80, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyDict_NewPresized(2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 83, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
-  __pyx_t_3 = __Pyx_PyInt_FromSize_t((sizeof(double))); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 80, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyInt_FromSize_t((sizeof(double))); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 83, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  if (PyDict_SetItem(__pyx_t_4, __pyx_n_s_itemsize, __pyx_t_3) < 0) __PYX_ERR(0, 80, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_4, __pyx_n_s_itemsize, __pyx_t_3) < 0) __PYX_ERR(0, 83, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  if (PyDict_SetItem(__pyx_t_4, __pyx_n_s_format, __pyx_n_u_d) < 0) __PYX_ERR(0, 80, __pyx_L1_error)
-  __pyx_t_3 = __Pyx_PyObject_Call(((PyObject *)__pyx_array_type), __pyx_t_2, __pyx_t_4); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 80, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_4, __pyx_n_s_format, __pyx_n_u_d) < 0) __PYX_ERR(0, 83, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_Call(((PyObject *)__pyx_array_type), __pyx_t_2, __pyx_t_4); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 83, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
   __pyx_v_arr1d_1 = __pyx_t_3;
   __pyx_t_3 = 0;
 
-  /* "x_sweeps.pyx":81
+  /* "ants/cyants/x_sweeps.pyx":84
  * 
  *     arr1d_1 = cvarray((angles,), itemsize=sizeof(double), format="d")
  *     cdef double[:] dummy_angle_weight = arr1d_1             # <<<<<<<<<<<<<<
  *     dummy_angle_weight[:] = 1
  * 
  */
-  __pyx_t_6 = __Pyx_PyObject_to_MemoryviewSlice_ds_double(__pyx_v_arr1d_1, PyBUF_WRITABLE); if (unlikely(!__pyx_t_6.memview)) __PYX_ERR(0, 81, __pyx_L1_error)
+  __pyx_t_6 = __Pyx_PyObject_to_MemoryviewSlice_ds_double(__pyx_v_arr1d_1, PyBUF_WRITABLE); if (unlikely(!__pyx_t_6.memview)) __PYX_ERR(0, 84, __pyx_L1_error)
   __pyx_v_dummy_angle_weight = __pyx_t_6;
   __pyx_t_6.memview = NULL;
   __pyx_t_6.data = NULL;
 
-  /* "x_sweeps.pyx":82
+  /* "ants/cyants/x_sweeps.pyx":85
  *     arr1d_1 = cvarray((angles,), itemsize=sizeof(double), format="d")
  *     cdef double[:] dummy_angle_weight = arr1d_1
  *     dummy_angle_weight[:] = 1             # <<<<<<<<<<<<<<
@@ -2928,52 +2878,52 @@ static __Pyx_memviewslice __pyx_f_8x_sweeps_angular_sweep(__Pyx_memviewslice __p
       }
   }
 
-  /* "x_sweeps.pyx":84
+  /* "ants/cyants/x_sweeps.pyx":87
  *     dummy_angle_weight[:] = 1
  * 
  *     arr1d_2 = cvarray((cells,), itemsize=sizeof(double), format="d")             # <<<<<<<<<<<<<<
  *     cdef double[:] scalar_flux = arr1d_2
  *     scalar_flux[:] = 0
  */
-  __pyx_t_3 = __Pyx_PyInt_From_int(__pyx_v_cells); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 84, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyInt_From_int(__pyx_v_cells); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 87, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_4 = PyTuple_New(1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 84, __pyx_L1_error)
+  __pyx_t_4 = PyTuple_New(1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 87, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __Pyx_GIVEREF(__pyx_t_3);
   PyTuple_SET_ITEM(__pyx_t_4, 0, __pyx_t_3);
   __pyx_t_3 = 0;
-  __pyx_t_3 = PyTuple_New(1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 84, __pyx_L1_error)
+  __pyx_t_3 = PyTuple_New(1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 87, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_GIVEREF(__pyx_t_4);
   PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_t_4);
   __pyx_t_4 = 0;
-  __pyx_t_4 = __Pyx_PyDict_NewPresized(2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 84, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyDict_NewPresized(2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 87, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
-  __pyx_t_2 = __Pyx_PyInt_FromSize_t((sizeof(double))); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 84, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyInt_FromSize_t((sizeof(double))); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 87, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem(__pyx_t_4, __pyx_n_s_itemsize, __pyx_t_2) < 0) __PYX_ERR(0, 84, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_4, __pyx_n_s_itemsize, __pyx_t_2) < 0) __PYX_ERR(0, 87, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  if (PyDict_SetItem(__pyx_t_4, __pyx_n_s_format, __pyx_n_u_d) < 0) __PYX_ERR(0, 84, __pyx_L1_error)
-  __pyx_t_2 = __Pyx_PyObject_Call(((PyObject *)__pyx_array_type), __pyx_t_3, __pyx_t_4); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 84, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_4, __pyx_n_s_format, __pyx_n_u_d) < 0) __PYX_ERR(0, 87, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_Call(((PyObject *)__pyx_array_type), __pyx_t_3, __pyx_t_4); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 87, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
   __pyx_v_arr1d_2 = __pyx_t_2;
   __pyx_t_2 = 0;
 
-  /* "x_sweeps.pyx":85
+  /* "ants/cyants/x_sweeps.pyx":88
  * 
  *     arr1d_2 = cvarray((cells,), itemsize=sizeof(double), format="d")
  *     cdef double[:] scalar_flux = arr1d_2             # <<<<<<<<<<<<<<
  *     scalar_flux[:] = 0
  * 
  */
-  __pyx_t_6 = __Pyx_PyObject_to_MemoryviewSlice_ds_double(__pyx_v_arr1d_2, PyBUF_WRITABLE); if (unlikely(!__pyx_t_6.memview)) __PYX_ERR(0, 85, __pyx_L1_error)
+  __pyx_t_6 = __Pyx_PyObject_to_MemoryviewSlice_ds_double(__pyx_v_arr1d_2, PyBUF_WRITABLE); if (unlikely(!__pyx_t_6.memview)) __PYX_ERR(0, 88, __pyx_L1_error)
   __pyx_v_scalar_flux = __pyx_t_6;
   __pyx_t_6.memview = NULL;
   __pyx_t_6.data = NULL;
 
-  /* "x_sweeps.pyx":86
+  /* "ants/cyants/x_sweeps.pyx":89
  *     arr1d_2 = cvarray((cells,), itemsize=sizeof(double), format="d")
  *     cdef double[:] scalar_flux = arr1d_2
  *     scalar_flux[:] = 0             # <<<<<<<<<<<<<<
@@ -2995,7 +2945,7 @@ static __Pyx_memviewslice __pyx_f_8x_sweeps_angular_sweep(__Pyx_memviewslice __p
       }
   }
 
-  /* "x_sweeps.pyx":88
+  /* "ants/cyants/x_sweeps.pyx":91
  *     scalar_flux[:] = 0
  * 
  *     cdef bint converged = False             # <<<<<<<<<<<<<<
@@ -3004,7 +2954,7 @@ static __Pyx_memviewslice __pyx_f_8x_sweeps_angular_sweep(__Pyx_memviewslice __p
  */
   __pyx_v_converged = 0;
 
-  /* "x_sweeps.pyx":89
+  /* "ants/cyants/x_sweeps.pyx":92
  * 
  *     cdef bint converged = False
  *     cdef size_t count = 1             # <<<<<<<<<<<<<<
@@ -3013,7 +2963,7 @@ static __Pyx_memviewslice __pyx_f_8x_sweeps_angular_sweep(__Pyx_memviewslice __p
  */
   __pyx_v_count = 1;
 
-  /* "x_sweeps.pyx":90
+  /* "ants/cyants/x_sweeps.pyx":93
  *     cdef bint converged = False
  *     cdef size_t count = 1
  *     cdef double change = 0.0             # <<<<<<<<<<<<<<
@@ -3022,7 +2972,7 @@ static __Pyx_memviewslice __pyx_f_8x_sweeps_angular_sweep(__Pyx_memviewslice __p
  */
   __pyx_v_change = 0.0;
 
-  /* "x_sweeps.pyx":91
+  /* "ants/cyants/x_sweeps.pyx":94
  *     cdef size_t count = 1
  *     cdef double change = 0.0
  *     while not (converged):             # <<<<<<<<<<<<<<
@@ -3033,7 +2983,7 @@ static __Pyx_memviewslice __pyx_f_8x_sweeps_angular_sweep(__Pyx_memviewslice __p
     __pyx_t_7 = ((!(__pyx_v_converged != 0)) != 0);
     if (!__pyx_t_7) break;
 
-    /* "x_sweeps.pyx":92
+    /* "ants/cyants/x_sweeps.pyx":95
  *     cdef double change = 0.0
  *     while not (converged):
  *         angular_flux[:,:] = 0             # <<<<<<<<<<<<<<
@@ -3063,43 +3013,77 @@ static __Pyx_memviewslice __pyx_f_8x_sweeps_angular_sweep(__Pyx_memviewslice __p
         }
     }
 
-    /* "x_sweeps.pyx":93
+    /* "ants/cyants/x_sweeps.pyx":96
  *     while not (converged):
  *         angular_flux[:,:] = 0
  *         angular_to_scalar_flux(scalar_flux, angular_flux_old, angle_weight)             # <<<<<<<<<<<<<<
  *         for angle in range(angles):
- *             if boundary == 0:
+ *             ex_angle_idx = 0 if params[4] == 1 else angle
  */
-    __pyx_f_8x_sweeps_angular_to_scalar_flux(__pyx_v_scalar_flux, __pyx_v_angular_flux_old, __pyx_v_angle_weight);
+    __pyx_f_4ants_6cyants_8x_sweeps_angular_to_scalar_flux(__pyx_v_scalar_flux, __pyx_v_angular_flux_old, __pyx_v_angle_weight);
 
-    /* "x_sweeps.pyx":94
+    /* "ants/cyants/x_sweeps.pyx":97
  *         angular_flux[:,:] = 0
  *         angular_to_scalar_flux(scalar_flux, angular_flux_old, angle_weight)
  *         for angle in range(angles):             # <<<<<<<<<<<<<<
- *             if boundary == 0:
- *                 vacuum(angular_flux[:,angle], scalar_flux, \
+ *             ex_angle_idx = 0 if params[4] == 1 else angle
+ *             if params[2] == 0:
  */
     __pyx_t_8 = __pyx_v_angles;
     __pyx_t_9 = __pyx_t_8;
     for (__pyx_t_10 = 0; __pyx_t_10 < __pyx_t_9; __pyx_t_10+=1) {
       __pyx_v_angle = __pyx_t_10;
 
-      /* "x_sweeps.pyx":95
+      /* "ants/cyants/x_sweeps.pyx":98
  *         angular_to_scalar_flux(scalar_flux, angular_flux_old, angle_weight)
  *         for angle in range(angles):
- *             if boundary == 0:             # <<<<<<<<<<<<<<
- *                 vacuum(angular_flux[:,angle], scalar_flux, \
- *                         medium_map, xs_total, xs_scatter, \
+ *             ex_angle_idx = 0 if params[4] == 1 else angle             # <<<<<<<<<<<<<<
+ *             if params[2] == 0:
+ *                 vacuum(angular_flux[:,angle], scalar_flux, medium_map, \
  */
-      __pyx_t_7 = ((__pyx_v_boundary == 0) != 0);
+      __pyx_t_11 = 4;
+      __pyx_t_12 = -1;
+      if (__pyx_t_11 < 0) {
+        __pyx_t_11 += __pyx_v_params.shape[0];
+        if (unlikely(__pyx_t_11 < 0)) __pyx_t_12 = 0;
+      } else if (unlikely(__pyx_t_11 >= __pyx_v_params.shape[0])) __pyx_t_12 = 0;
+      if (unlikely(__pyx_t_12 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_12);
+        __PYX_ERR(0, 98, __pyx_L1_error)
+      }
+      if ((((*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_11 * __pyx_v_params.strides[0]) ))) == 1) != 0)) {
+        __pyx_t_1 = 0;
+      } else {
+        __pyx_t_1 = __pyx_v_angle;
+      }
+      __pyx_v_ex_angle_idx = __pyx_t_1;
+
+      /* "ants/cyants/x_sweeps.pyx":99
+ *         for angle in range(angles):
+ *             ex_angle_idx = 0 if params[4] == 1 else angle
+ *             if params[2] == 0:             # <<<<<<<<<<<<<<
+ *                 vacuum(angular_flux[:,angle], scalar_flux, medium_map, \
+ *                        xs_total, xs_scatter, external_source, \
+ */
+      __pyx_t_11 = 2;
+      __pyx_t_12 = -1;
+      if (__pyx_t_11 < 0) {
+        __pyx_t_11 += __pyx_v_params.shape[0];
+        if (unlikely(__pyx_t_11 < 0)) __pyx_t_12 = 0;
+      } else if (unlikely(__pyx_t_11 >= __pyx_v_params.shape[0])) __pyx_t_12 = 0;
+      if (unlikely(__pyx_t_12 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_12);
+        __PYX_ERR(0, 99, __pyx_L1_error)
+      }
+      __pyx_t_7 = (((*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_11 * __pyx_v_params.strides[0]) ))) == 0) != 0);
       if (__pyx_t_7) {
 
-        /* "x_sweeps.pyx":96
- *         for angle in range(angles):
- *             if boundary == 0:
- *                 vacuum(angular_flux[:,angle], scalar_flux, \             # <<<<<<<<<<<<<<
- *                         medium_map, xs_total, xs_scatter, \
- *                         external_source[:,angle], point_source_loc[0], \
+        /* "ants/cyants/x_sweeps.pyx":100
+ *             ex_angle_idx = 0 if params[4] == 1 else angle
+ *             if params[2] == 0:
+ *                 vacuum(angular_flux[:,angle], scalar_flux, medium_map, \             # <<<<<<<<<<<<<<
+ *                        xs_total, xs_scatter, external_source, \
+ *                        point_source[angle], spatial_coef[angle], \
  */
         __pyx_t_6.data = __pyx_v_angular_flux.data;
         __pyx_t_6.memview = __pyx_v_angular_flux.memview;
@@ -3117,150 +3101,113 @@ __pyx_t_6.strides[0] = __pyx_v_angular_flux.strides[0];
         if (unlikely(!__Pyx_is_valid_index(__pyx_tmp_idx, __pyx_tmp_shape))) {
             PyErr_SetString(PyExc_IndexError,
                             "Index out of bounds (axis 1)");
-            __PYX_ERR(0, 96, __pyx_L1_error)
+            __PYX_ERR(0, 100, __pyx_L1_error)
         }
         __pyx_t_6.data += __pyx_tmp_idx * __pyx_tmp_stride;
 }
 
-__pyx_t_11.data = __pyx_v_external_source.data;
+__pyx_t_11 = __pyx_v_angle;
 
-        /* "x_sweeps.pyx":98
- *                 vacuum(angular_flux[:,angle], scalar_flux, \
- *                         medium_map, xs_total, xs_scatter, \
- *                         external_source[:,angle], point_source_loc[0], \             # <<<<<<<<<<<<<<
- *                         point_source[:,angle][0], spatial_coef[angle], \
- *                         dummy_angle_weight[angle], spatial)
+        /* "ants/cyants/x_sweeps.pyx":102
+ *                 vacuum(angular_flux[:,angle], scalar_flux, medium_map, \
+ *                        xs_total, xs_scatter, external_source, \
+ *                        point_source[angle], spatial_coef[angle], \             # <<<<<<<<<<<<<<
+ *                        dummy_angle_weight[angle], params, ex_group_idx, \
+ *                        ex_angle_idx)
  */
-        __pyx_t_11.memview = __pyx_v_external_source.memview;
-        __PYX_INC_MEMVIEW(&__pyx_t_11, 0);
-        __pyx_t_11.shape[0] = __pyx_v_external_source.shape[0];
-__pyx_t_11.strides[0] = __pyx_v_external_source.strides[0];
-    __pyx_t_11.suboffsets[0] = -1;
-
-{
-    Py_ssize_t __pyx_tmp_idx = __pyx_v_angle;
-        Py_ssize_t __pyx_tmp_shape = __pyx_v_external_source.shape[1];
-    Py_ssize_t __pyx_tmp_stride = __pyx_v_external_source.strides[1];
-        if (__pyx_tmp_idx < 0)
-            __pyx_tmp_idx += __pyx_tmp_shape;
-        if (unlikely(!__Pyx_is_valid_index(__pyx_tmp_idx, __pyx_tmp_shape))) {
-            PyErr_SetString(PyExc_IndexError,
-                            "Index out of bounds (axis 1)");
-            __PYX_ERR(0, 98, __pyx_L1_error)
+        __pyx_t_12 = -1;
+        if (__pyx_t_11 < 0) {
+          __pyx_t_11 += __pyx_v_point_source.shape[0];
+          if (unlikely(__pyx_t_11 < 0)) __pyx_t_12 = 0;
+        } else if (unlikely(__pyx_t_11 >= __pyx_v_point_source.shape[0])) __pyx_t_12 = 0;
+        if (unlikely(__pyx_t_12 != -1)) {
+          __Pyx_RaiseBufferIndexError(__pyx_t_12);
+          __PYX_ERR(0, 102, __pyx_L1_error)
         }
-        __pyx_t_11.data += __pyx_tmp_idx * __pyx_tmp_stride;
-}
-
-__pyx_t_12 = 0;
-        __pyx_t_13 = -1;
-        if (__pyx_t_12 < 0) {
-          __pyx_t_12 += __pyx_v_point_source_loc.shape[0];
-          if (unlikely(__pyx_t_12 < 0)) __pyx_t_13 = 0;
-        } else if (unlikely(__pyx_t_12 >= __pyx_v_point_source_loc.shape[0])) __pyx_t_13 = 0;
-        if (unlikely(__pyx_t_13 != -1)) {
-          __Pyx_RaiseBufferIndexError(__pyx_t_13);
-          __PYX_ERR(0, 98, __pyx_L1_error)
+        __pyx_t_13 = __pyx_v_angle;
+        __pyx_t_12 = -1;
+        if (__pyx_t_13 < 0) {
+          __pyx_t_13 += __pyx_v_spatial_coef.shape[0];
+          if (unlikely(__pyx_t_13 < 0)) __pyx_t_12 = 0;
+        } else if (unlikely(__pyx_t_13 >= __pyx_v_spatial_coef.shape[0])) __pyx_t_12 = 0;
+        if (unlikely(__pyx_t_12 != -1)) {
+          __Pyx_RaiseBufferIndexError(__pyx_t_12);
+          __PYX_ERR(0, 102, __pyx_L1_error)
         }
 
-        /* "x_sweeps.pyx":99
- *                         medium_map, xs_total, xs_scatter, \
- *                         external_source[:,angle], point_source_loc[0], \
- *                         point_source[:,angle][0], spatial_coef[angle], \             # <<<<<<<<<<<<<<
- *                         dummy_angle_weight[angle], spatial)
- *             elif boundary == 0:
+        /* "ants/cyants/x_sweeps.pyx":103
+ *                        xs_total, xs_scatter, external_source, \
+ *                        point_source[angle], spatial_coef[angle], \
+ *                        dummy_angle_weight[angle], params, ex_group_idx, \             # <<<<<<<<<<<<<<
+ *                        ex_angle_idx)
+ *             elif params[2] == 1:
  */
-        __pyx_t_14 = 0;
-        __pyx_t_15 = __pyx_v_angle;
-        __pyx_t_13 = -1;
+        __pyx_t_14 = __pyx_v_angle;
+        __pyx_t_12 = -1;
         if (__pyx_t_14 < 0) {
-          __pyx_t_14 += __pyx_v_point_source.shape[0];
-          if (unlikely(__pyx_t_14 < 0)) __pyx_t_13 = 0;
-        } else if (unlikely(__pyx_t_14 >= __pyx_v_point_source.shape[0])) __pyx_t_13 = 0;
-        if (__pyx_t_15 < 0) {
-          __pyx_t_15 += __pyx_v_point_source.shape[1];
-          if (unlikely(__pyx_t_15 < 0)) __pyx_t_13 = 1;
-        } else if (unlikely(__pyx_t_15 >= __pyx_v_point_source.shape[1])) __pyx_t_13 = 1;
-        if (unlikely(__pyx_t_13 != -1)) {
-          __Pyx_RaiseBufferIndexError(__pyx_t_13);
-          __PYX_ERR(0, 99, __pyx_L1_error)
-        }
-        __pyx_t_16 = __pyx_v_angle;
-        __pyx_t_13 = -1;
-        if (__pyx_t_16 < 0) {
-          __pyx_t_16 += __pyx_v_spatial_coef.shape[0];
-          if (unlikely(__pyx_t_16 < 0)) __pyx_t_13 = 0;
-        } else if (unlikely(__pyx_t_16 >= __pyx_v_spatial_coef.shape[0])) __pyx_t_13 = 0;
-        if (unlikely(__pyx_t_13 != -1)) {
-          __Pyx_RaiseBufferIndexError(__pyx_t_13);
-          __PYX_ERR(0, 99, __pyx_L1_error)
+          __pyx_t_14 += __pyx_v_dummy_angle_weight.shape[0];
+          if (unlikely(__pyx_t_14 < 0)) __pyx_t_12 = 0;
+        } else if (unlikely(__pyx_t_14 >= __pyx_v_dummy_angle_weight.shape[0])) __pyx_t_12 = 0;
+        if (unlikely(__pyx_t_12 != -1)) {
+          __Pyx_RaiseBufferIndexError(__pyx_t_12);
+          __PYX_ERR(0, 103, __pyx_L1_error)
         }
 
-        /* "x_sweeps.pyx":100
- *                         external_source[:,angle], point_source_loc[0], \
- *                         point_source[:,angle][0], spatial_coef[angle], \
- *                         dummy_angle_weight[angle], spatial)             # <<<<<<<<<<<<<<
- *             elif boundary == 0:
- *                 reflected(angular_flux[:,angle], scalar_flux, \
+        /* "ants/cyants/x_sweeps.pyx":100
+ *             ex_angle_idx = 0 if params[4] == 1 else angle
+ *             if params[2] == 0:
+ *                 vacuum(angular_flux[:,angle], scalar_flux, medium_map, \             # <<<<<<<<<<<<<<
+ *                        xs_total, xs_scatter, external_source, \
+ *                        point_source[angle], spatial_coef[angle], \
  */
-        __pyx_t_17 = __pyx_v_angle;
-        __pyx_t_13 = -1;
-        if (__pyx_t_17 < 0) {
-          __pyx_t_17 += __pyx_v_dummy_angle_weight.shape[0];
-          if (unlikely(__pyx_t_17 < 0)) __pyx_t_13 = 0;
-        } else if (unlikely(__pyx_t_17 >= __pyx_v_dummy_angle_weight.shape[0])) __pyx_t_13 = 0;
-        if (unlikely(__pyx_t_13 != -1)) {
-          __Pyx_RaiseBufferIndexError(__pyx_t_13);
-          __PYX_ERR(0, 100, __pyx_L1_error)
-        }
-
-        /* "x_sweeps.pyx":96
- *         for angle in range(angles):
- *             if boundary == 0:
- *                 vacuum(angular_flux[:,angle], scalar_flux, \             # <<<<<<<<<<<<<<
- *                         medium_map, xs_total, xs_scatter, \
- *                         external_source[:,angle], point_source_loc[0], \
- */
-        __pyx_f_8x_sweeps_vacuum(__pyx_t_6, __pyx_v_scalar_flux, __pyx_v_medium_map, __pyx_v_xs_total, __pyx_v_xs_scatter, __pyx_t_11, (*((int *) ( /* dim=0 */ (__pyx_v_point_source_loc.data + __pyx_t_12 * __pyx_v_point_source_loc.strides[0]) ))), (*((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_point_source.data + __pyx_t_14 * __pyx_v_point_source.strides[0]) ) + __pyx_t_15 * __pyx_v_point_source.strides[1]) ))), (*((double *) ( /* dim=0 */ (__pyx_v_spatial_coef.data + __pyx_t_16 * __pyx_v_spatial_coef.strides[0]) ))), (*((double *) ( /* dim=0 */ (__pyx_v_dummy_angle_weight.data + __pyx_t_17 * __pyx_v_dummy_angle_weight.strides[0]) ))), __pyx_v_spatial);
+        __pyx_f_4ants_6cyants_8x_sweeps_vacuum(__pyx_t_6, __pyx_v_scalar_flux, __pyx_v_medium_map, __pyx_v_xs_total, __pyx_v_xs_scatter, __pyx_v_external_source, (*((double *) ( /* dim=0 */ (__pyx_v_point_source.data + __pyx_t_11 * __pyx_v_point_source.strides[0]) ))), (*((double *) ( /* dim=0 */ (__pyx_v_spatial_coef.data + __pyx_t_13 * __pyx_v_spatial_coef.strides[0]) ))), (*((double *) ( /* dim=0 */ (__pyx_v_dummy_angle_weight.data + __pyx_t_14 * __pyx_v_dummy_angle_weight.strides[0]) ))), __pyx_v_params, __pyx_v_ex_group_idx, __pyx_v_ex_angle_idx);
         __PYX_XDEC_MEMVIEW(&__pyx_t_6, 1);
         __pyx_t_6.memview = NULL;
         __pyx_t_6.data = NULL;
-        __PYX_XDEC_MEMVIEW(&__pyx_t_11, 1);
-        __pyx_t_11.memview = NULL;
-        __pyx_t_11.data = NULL;
 
-        /* "x_sweeps.pyx":95
- *         angular_to_scalar_flux(scalar_flux, angular_flux_old, angle_weight)
+        /* "ants/cyants/x_sweeps.pyx":99
  *         for angle in range(angles):
- *             if boundary == 0:             # <<<<<<<<<<<<<<
- *                 vacuum(angular_flux[:,angle], scalar_flux, \
- *                         medium_map, xs_total, xs_scatter, \
+ *             ex_angle_idx = 0 if params[4] == 1 else angle
+ *             if params[2] == 0:             # <<<<<<<<<<<<<<
+ *                 vacuum(angular_flux[:,angle], scalar_flux, medium_map, \
+ *                        xs_total, xs_scatter, external_source, \
  */
         goto __pyx_L7;
       }
 
-      /* "x_sweeps.pyx":101
- *                         point_source[:,angle][0], spatial_coef[angle], \
- *                         dummy_angle_weight[angle], spatial)
- *             elif boundary == 0:             # <<<<<<<<<<<<<<
- *                 reflected(angular_flux[:,angle], scalar_flux, \
- *                         medium_map, xs_total, xs_scatter, \
+      /* "ants/cyants/x_sweeps.pyx":105
+ *                        dummy_angle_weight[angle], params, ex_group_idx, \
+ *                        ex_angle_idx)
+ *             elif params[2] == 1:             # <<<<<<<<<<<<<<
+ *                 reflected(angular_flux[:,angle], scalar_flux, medium_map, \
+ *                           xs_total, xs_scatter, external_source, \
  */
-      __pyx_t_7 = ((__pyx_v_boundary == 0) != 0);
+      __pyx_t_14 = 2;
+      __pyx_t_12 = -1;
+      if (__pyx_t_14 < 0) {
+        __pyx_t_14 += __pyx_v_params.shape[0];
+        if (unlikely(__pyx_t_14 < 0)) __pyx_t_12 = 0;
+      } else if (unlikely(__pyx_t_14 >= __pyx_v_params.shape[0])) __pyx_t_12 = 0;
+      if (unlikely(__pyx_t_12 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_12);
+        __PYX_ERR(0, 105, __pyx_L1_error)
+      }
+      __pyx_t_7 = (((*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_14 * __pyx_v_params.strides[0]) ))) == 1) != 0);
       if (__pyx_t_7) {
 
-        /* "x_sweeps.pyx":102
- *                         dummy_angle_weight[angle], spatial)
- *             elif boundary == 0:
- *                 reflected(angular_flux[:,angle], scalar_flux, \             # <<<<<<<<<<<<<<
- *                         medium_map, xs_total, xs_scatter, \
- *                         external_source[:,angle], point_source_loc[0], \
+        /* "ants/cyants/x_sweeps.pyx":106
+ *                        ex_angle_idx)
+ *             elif params[2] == 1:
+ *                 reflected(angular_flux[:,angle], scalar_flux, medium_map, \             # <<<<<<<<<<<<<<
+ *                           xs_total, xs_scatter, external_source, \
+ *                           point_source[angle], spatial_coef[angle], \
  */
-        __pyx_t_11.data = __pyx_v_angular_flux.data;
-        __pyx_t_11.memview = __pyx_v_angular_flux.memview;
-        __PYX_INC_MEMVIEW(&__pyx_t_11, 0);
-        __pyx_t_11.shape[0] = __pyx_v_angular_flux.shape[0];
-__pyx_t_11.strides[0] = __pyx_v_angular_flux.strides[0];
-    __pyx_t_11.suboffsets[0] = -1;
+        __pyx_t_6.data = __pyx_v_angular_flux.data;
+        __pyx_t_6.memview = __pyx_v_angular_flux.memview;
+        __PYX_INC_MEMVIEW(&__pyx_t_6, 0);
+        __pyx_t_6.shape[0] = __pyx_v_angular_flux.shape[0];
+__pyx_t_6.strides[0] = __pyx_v_angular_flux.strides[0];
+    __pyx_t_6.suboffsets[0] = -1;
 
 {
     Py_ssize_t __pyx_tmp_idx = __pyx_v_angle;
@@ -3271,200 +3218,153 @@ __pyx_t_11.strides[0] = __pyx_v_angular_flux.strides[0];
         if (unlikely(!__Pyx_is_valid_index(__pyx_tmp_idx, __pyx_tmp_shape))) {
             PyErr_SetString(PyExc_IndexError,
                             "Index out of bounds (axis 1)");
-            __PYX_ERR(0, 102, __pyx_L1_error)
-        }
-        __pyx_t_11.data += __pyx_tmp_idx * __pyx_tmp_stride;
-}
-
-__pyx_t_6.data = __pyx_v_external_source.data;
-
-        /* "x_sweeps.pyx":104
- *                 reflected(angular_flux[:,angle], scalar_flux, \
- *                         medium_map, xs_total, xs_scatter, \
- *                         external_source[:,angle], point_source_loc[0], \             # <<<<<<<<<<<<<<
- *                         point_source[:,angle][0], spatial_coef[angle], \
- *                         dummy_angle_weight[angle], spatial)
- */
-        __pyx_t_6.memview = __pyx_v_external_source.memview;
-        __PYX_INC_MEMVIEW(&__pyx_t_6, 0);
-        __pyx_t_6.shape[0] = __pyx_v_external_source.shape[0];
-__pyx_t_6.strides[0] = __pyx_v_external_source.strides[0];
-    __pyx_t_6.suboffsets[0] = -1;
-
-{
-    Py_ssize_t __pyx_tmp_idx = __pyx_v_angle;
-        Py_ssize_t __pyx_tmp_shape = __pyx_v_external_source.shape[1];
-    Py_ssize_t __pyx_tmp_stride = __pyx_v_external_source.strides[1];
-        if (__pyx_tmp_idx < 0)
-            __pyx_tmp_idx += __pyx_tmp_shape;
-        if (unlikely(!__Pyx_is_valid_index(__pyx_tmp_idx, __pyx_tmp_shape))) {
-            PyErr_SetString(PyExc_IndexError,
-                            "Index out of bounds (axis 1)");
-            __PYX_ERR(0, 104, __pyx_L1_error)
+            __PYX_ERR(0, 106, __pyx_L1_error)
         }
         __pyx_t_6.data += __pyx_tmp_idx * __pyx_tmp_stride;
 }
 
-__pyx_t_17 = 0;
-        __pyx_t_13 = -1;
-        if (__pyx_t_17 < 0) {
-          __pyx_t_17 += __pyx_v_point_source_loc.shape[0];
-          if (unlikely(__pyx_t_17 < 0)) __pyx_t_13 = 0;
-        } else if (unlikely(__pyx_t_17 >= __pyx_v_point_source_loc.shape[0])) __pyx_t_13 = 0;
-        if (unlikely(__pyx_t_13 != -1)) {
-          __Pyx_RaiseBufferIndexError(__pyx_t_13);
-          __PYX_ERR(0, 104, __pyx_L1_error)
-        }
+__pyx_t_14 = __pyx_v_angle;
 
-        /* "x_sweeps.pyx":105
- *                         medium_map, xs_total, xs_scatter, \
- *                         external_source[:,angle], point_source_loc[0], \
- *                         point_source[:,angle][0], spatial_coef[angle], \             # <<<<<<<<<<<<<<
- *                         dummy_angle_weight[angle], spatial)
- *             else:
+        /* "ants/cyants/x_sweeps.pyx":108
+ *                 reflected(angular_flux[:,angle], scalar_flux, medium_map, \
+ *                           xs_total, xs_scatter, external_source, \
+ *                           point_source[angle], spatial_coef[angle], \             # <<<<<<<<<<<<<<
+ *                           dummy_angle_weight[angle], params, \
+ *                           ex_group_idx, ex_angle_idx)
  */
-        __pyx_t_16 = 0;
-        __pyx_t_15 = __pyx_v_angle;
-        __pyx_t_13 = -1;
-        if (__pyx_t_16 < 0) {
-          __pyx_t_16 += __pyx_v_point_source.shape[0];
-          if (unlikely(__pyx_t_16 < 0)) __pyx_t_13 = 0;
-        } else if (unlikely(__pyx_t_16 >= __pyx_v_point_source.shape[0])) __pyx_t_13 = 0;
-        if (__pyx_t_15 < 0) {
-          __pyx_t_15 += __pyx_v_point_source.shape[1];
-          if (unlikely(__pyx_t_15 < 0)) __pyx_t_13 = 1;
-        } else if (unlikely(__pyx_t_15 >= __pyx_v_point_source.shape[1])) __pyx_t_13 = 1;
-        if (unlikely(__pyx_t_13 != -1)) {
-          __Pyx_RaiseBufferIndexError(__pyx_t_13);
-          __PYX_ERR(0, 105, __pyx_L1_error)
-        }
-        __pyx_t_14 = __pyx_v_angle;
-        __pyx_t_13 = -1;
+        __pyx_t_12 = -1;
         if (__pyx_t_14 < 0) {
-          __pyx_t_14 += __pyx_v_spatial_coef.shape[0];
-          if (unlikely(__pyx_t_14 < 0)) __pyx_t_13 = 0;
-        } else if (unlikely(__pyx_t_14 >= __pyx_v_spatial_coef.shape[0])) __pyx_t_13 = 0;
-        if (unlikely(__pyx_t_13 != -1)) {
-          __Pyx_RaiseBufferIndexError(__pyx_t_13);
-          __PYX_ERR(0, 105, __pyx_L1_error)
+          __pyx_t_14 += __pyx_v_point_source.shape[0];
+          if (unlikely(__pyx_t_14 < 0)) __pyx_t_12 = 0;
+        } else if (unlikely(__pyx_t_14 >= __pyx_v_point_source.shape[0])) __pyx_t_12 = 0;
+        if (unlikely(__pyx_t_12 != -1)) {
+          __Pyx_RaiseBufferIndexError(__pyx_t_12);
+          __PYX_ERR(0, 108, __pyx_L1_error)
+        }
+        __pyx_t_13 = __pyx_v_angle;
+        __pyx_t_12 = -1;
+        if (__pyx_t_13 < 0) {
+          __pyx_t_13 += __pyx_v_spatial_coef.shape[0];
+          if (unlikely(__pyx_t_13 < 0)) __pyx_t_12 = 0;
+        } else if (unlikely(__pyx_t_13 >= __pyx_v_spatial_coef.shape[0])) __pyx_t_12 = 0;
+        if (unlikely(__pyx_t_12 != -1)) {
+          __Pyx_RaiseBufferIndexError(__pyx_t_12);
+          __PYX_ERR(0, 108, __pyx_L1_error)
         }
 
-        /* "x_sweeps.pyx":106
- *                         external_source[:,angle], point_source_loc[0], \
- *                         point_source[:,angle][0], spatial_coef[angle], \
- *                         dummy_angle_weight[angle], spatial)             # <<<<<<<<<<<<<<
+        /* "ants/cyants/x_sweeps.pyx":109
+ *                           xs_total, xs_scatter, external_source, \
+ *                           point_source[angle], spatial_coef[angle], \
+ *                           dummy_angle_weight[angle], params, \             # <<<<<<<<<<<<<<
+ *                           ex_group_idx, ex_angle_idx)
  *             else:
- *                 print("You are wrong")
  */
-        __pyx_t_12 = __pyx_v_angle;
-        __pyx_t_13 = -1;
-        if (__pyx_t_12 < 0) {
-          __pyx_t_12 += __pyx_v_dummy_angle_weight.shape[0];
-          if (unlikely(__pyx_t_12 < 0)) __pyx_t_13 = 0;
-        } else if (unlikely(__pyx_t_12 >= __pyx_v_dummy_angle_weight.shape[0])) __pyx_t_13 = 0;
-        if (unlikely(__pyx_t_13 != -1)) {
-          __Pyx_RaiseBufferIndexError(__pyx_t_13);
-          __PYX_ERR(0, 106, __pyx_L1_error)
+        __pyx_t_11 = __pyx_v_angle;
+        __pyx_t_12 = -1;
+        if (__pyx_t_11 < 0) {
+          __pyx_t_11 += __pyx_v_dummy_angle_weight.shape[0];
+          if (unlikely(__pyx_t_11 < 0)) __pyx_t_12 = 0;
+        } else if (unlikely(__pyx_t_11 >= __pyx_v_dummy_angle_weight.shape[0])) __pyx_t_12 = 0;
+        if (unlikely(__pyx_t_12 != -1)) {
+          __Pyx_RaiseBufferIndexError(__pyx_t_12);
+          __PYX_ERR(0, 109, __pyx_L1_error)
         }
 
-        /* "x_sweeps.pyx":102
- *                         dummy_angle_weight[angle], spatial)
- *             elif boundary == 0:
- *                 reflected(angular_flux[:,angle], scalar_flux, \             # <<<<<<<<<<<<<<
- *                         medium_map, xs_total, xs_scatter, \
- *                         external_source[:,angle], point_source_loc[0], \
+        /* "ants/cyants/x_sweeps.pyx":106
+ *                        ex_angle_idx)
+ *             elif params[2] == 1:
+ *                 reflected(angular_flux[:,angle], scalar_flux, medium_map, \             # <<<<<<<<<<<<<<
+ *                           xs_total, xs_scatter, external_source, \
+ *                           point_source[angle], spatial_coef[angle], \
  */
-        __pyx_f_8x_sweeps_reflected(__pyx_t_11, __pyx_v_scalar_flux, __pyx_v_medium_map, __pyx_v_xs_total, __pyx_v_xs_scatter, __pyx_t_6, (*((int *) ( /* dim=0 */ (__pyx_v_point_source_loc.data + __pyx_t_17 * __pyx_v_point_source_loc.strides[0]) ))), (*((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_point_source.data + __pyx_t_16 * __pyx_v_point_source.strides[0]) ) + __pyx_t_15 * __pyx_v_point_source.strides[1]) ))), (*((double *) ( /* dim=0 */ (__pyx_v_spatial_coef.data + __pyx_t_14 * __pyx_v_spatial_coef.strides[0]) ))), (*((double *) ( /* dim=0 */ (__pyx_v_dummy_angle_weight.data + __pyx_t_12 * __pyx_v_dummy_angle_weight.strides[0]) ))), __pyx_v_spatial);
-        __PYX_XDEC_MEMVIEW(&__pyx_t_11, 1);
-        __pyx_t_11.memview = NULL;
-        __pyx_t_11.data = NULL;
+        __pyx_f_4ants_6cyants_8x_sweeps_reflected(__pyx_t_6, __pyx_v_scalar_flux, __pyx_v_medium_map, __pyx_v_xs_total, __pyx_v_xs_scatter, __pyx_v_external_source, (*((double *) ( /* dim=0 */ (__pyx_v_point_source.data + __pyx_t_14 * __pyx_v_point_source.strides[0]) ))), (*((double *) ( /* dim=0 */ (__pyx_v_spatial_coef.data + __pyx_t_13 * __pyx_v_spatial_coef.strides[0]) ))), (*((double *) ( /* dim=0 */ (__pyx_v_dummy_angle_weight.data + __pyx_t_11 * __pyx_v_dummy_angle_weight.strides[0]) ))), __pyx_v_params, __pyx_v_ex_group_idx, __pyx_v_ex_angle_idx);
         __PYX_XDEC_MEMVIEW(&__pyx_t_6, 1);
         __pyx_t_6.memview = NULL;
         __pyx_t_6.data = NULL;
 
-        /* "x_sweeps.pyx":101
- *                         point_source[:,angle][0], spatial_coef[angle], \
- *                         dummy_angle_weight[angle], spatial)
- *             elif boundary == 0:             # <<<<<<<<<<<<<<
- *                 reflected(angular_flux[:,angle], scalar_flux, \
- *                         medium_map, xs_total, xs_scatter, \
+        /* "ants/cyants/x_sweeps.pyx":105
+ *                        dummy_angle_weight[angle], params, ex_group_idx, \
+ *                        ex_angle_idx)
+ *             elif params[2] == 1:             # <<<<<<<<<<<<<<
+ *                 reflected(angular_flux[:,angle], scalar_flux, medium_map, \
+ *                           xs_total, xs_scatter, external_source, \
  */
         goto __pyx_L7;
       }
 
-      /* "x_sweeps.pyx":108
- *                         dummy_angle_weight[angle], spatial)
+      /* "ants/cyants/x_sweeps.pyx":112
+ *                           ex_group_idx, ex_angle_idx)
  *             else:
  *                 print("You are wrong")             # <<<<<<<<<<<<<<
  *         change = angular_convergence(angular_flux, angular_flux_old, angle_weight)
- *         # print("In Count", count, "Change", change)
+ *         converged = (change < constants.INNER_TOLERANCE) \
  */
       /*else*/ {
-        __pyx_t_2 = __Pyx_PyObject_Call(__pyx_builtin_print, __pyx_tuple_, NULL); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 108, __pyx_L1_error)
+        __pyx_t_2 = __Pyx_PyObject_Call(__pyx_builtin_print, __pyx_tuple_, NULL); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 112, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_2);
         __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
       }
       __pyx_L7:;
     }
 
-    /* "x_sweeps.pyx":109
+    /* "ants/cyants/x_sweeps.pyx":113
  *             else:
  *                 print("You are wrong")
  *         change = angular_convergence(angular_flux, angular_flux_old, angle_weight)             # <<<<<<<<<<<<<<
- *         # print("In Count", count, "Change", change)
  *         converged = (change < constants.INNER_TOLERANCE) \
+ *                     or (count >= constants.MAX_ITERATIONS)
  */
-    __pyx_v_change = __pyx_f_8x_sweeps_angular_convergence(__pyx_v_angular_flux, __pyx_v_angular_flux_old, __pyx_v_angle_weight);
+    __pyx_v_change = __pyx_f_4ants_6cyants_8x_sweeps_angular_convergence(__pyx_v_angular_flux, __pyx_v_angular_flux_old, __pyx_v_angle_weight);
 
-    /* "x_sweeps.pyx":111
+    /* "ants/cyants/x_sweeps.pyx":114
+ *                 print("You are wrong")
  *         change = angular_convergence(angular_flux, angular_flux_old, angle_weight)
- *         # print("In Count", count, "Change", change)
  *         converged = (change < constants.INNER_TOLERANCE) \             # <<<<<<<<<<<<<<
  *                     or (count >= constants.MAX_ITERATIONS)
  *         count += 1
  */
-    __pyx_t_2 = PyFloat_FromDouble(__pyx_v_change); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 111, __pyx_L1_error)
+    __pyx_t_2 = PyFloat_FromDouble(__pyx_v_change); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 114, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
-    __Pyx_GetModuleGlobalName(__pyx_t_4, __pyx_n_s_constants); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 111, __pyx_L1_error)
+    __Pyx_GetModuleGlobalName(__pyx_t_4, __pyx_n_s_constants); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 114, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
-    __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_INNER_TOLERANCE); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 111, __pyx_L1_error)
+    __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_INNER_TOLERANCE); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 114, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-    __pyx_t_4 = PyObject_RichCompare(__pyx_t_2, __pyx_t_3, Py_LT); __Pyx_XGOTREF(__pyx_t_4); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 111, __pyx_L1_error)
+    __pyx_t_4 = PyObject_RichCompare(__pyx_t_2, __pyx_t_3, Py_LT); __Pyx_XGOTREF(__pyx_t_4); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 114, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    __pyx_t_18 = __Pyx_PyObject_IsTrue(__pyx_t_4); if (unlikely(__pyx_t_18 < 0)) __PYX_ERR(0, 111, __pyx_L1_error)
+    __pyx_t_15 = __Pyx_PyObject_IsTrue(__pyx_t_4); if (unlikely(__pyx_t_15 < 0)) __PYX_ERR(0, 114, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-    if (!__pyx_t_18) {
+    if (!__pyx_t_15) {
     } else {
-      __pyx_t_7 = __pyx_t_18;
+      __pyx_t_7 = __pyx_t_15;
       goto __pyx_L8_bool_binop_done;
     }
 
-    /* "x_sweeps.pyx":112
- *         # print("In Count", count, "Change", change)
+    /* "ants/cyants/x_sweeps.pyx":115
+ *         change = angular_convergence(angular_flux, angular_flux_old, angle_weight)
  *         converged = (change < constants.INNER_TOLERANCE) \
  *                     or (count >= constants.MAX_ITERATIONS)             # <<<<<<<<<<<<<<
  *         count += 1
  *         angular_flux_old[:,:] = angular_flux[:,:]
  */
-    __pyx_t_4 = __Pyx_PyInt_FromSize_t(__pyx_v_count); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 112, __pyx_L1_error)
+    __pyx_t_4 = __Pyx_PyInt_FromSize_t(__pyx_v_count); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 115, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
-    __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_constants); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 112, __pyx_L1_error)
+    __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_constants); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 115, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
-    __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_MAX_ITERATIONS); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 112, __pyx_L1_error)
+    __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_MAX_ITERATIONS); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 115, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    __pyx_t_3 = PyObject_RichCompare(__pyx_t_4, __pyx_t_2, Py_GE); __Pyx_XGOTREF(__pyx_t_3); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 112, __pyx_L1_error)
+    __pyx_t_3 = PyObject_RichCompare(__pyx_t_4, __pyx_t_2, Py_GE); __Pyx_XGOTREF(__pyx_t_3); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 115, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-    __pyx_t_18 = __Pyx_PyObject_IsTrue(__pyx_t_3); if (unlikely(__pyx_t_18 < 0)) __PYX_ERR(0, 112, __pyx_L1_error)
+    __pyx_t_15 = __Pyx_PyObject_IsTrue(__pyx_t_3); if (unlikely(__pyx_t_15 < 0)) __PYX_ERR(0, 115, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    __pyx_t_7 = __pyx_t_18;
+    __pyx_t_7 = __pyx_t_15;
     __pyx_L8_bool_binop_done:;
     __pyx_v_converged = __pyx_t_7;
 
-    /* "x_sweeps.pyx":113
+    /* "ants/cyants/x_sweeps.pyx":116
  *         converged = (change < constants.INNER_TOLERANCE) \
  *                     or (count >= constants.MAX_ITERATIONS)
  *         count += 1             # <<<<<<<<<<<<<<
@@ -3473,17 +3373,17 @@ __pyx_t_17 = 0;
  */
     __pyx_v_count = (__pyx_v_count + 1);
 
-    /* "x_sweeps.pyx":114
+    /* "ants/cyants/x_sweeps.pyx":117
  *                     or (count >= constants.MAX_ITERATIONS)
  *         count += 1
  *         angular_flux_old[:,:] = angular_flux[:,:]             # <<<<<<<<<<<<<<
  *     return angular_flux[:,:]
  * 
  */
-    if (unlikely(__pyx_memoryview_copy_contents(__pyx_v_angular_flux, __pyx_v_angular_flux_old, 2, 2, 0) < 0)) __PYX_ERR(0, 114, __pyx_L1_error)
+    if (unlikely(__pyx_memoryview_copy_contents(__pyx_v_angular_flux, __pyx_v_angular_flux_old, 2, 2, 0) < 0)) __PYX_ERR(0, 117, __pyx_L1_error)
   }
 
-  /* "x_sweeps.pyx":115
+  /* "ants/cyants/x_sweeps.pyx":118
  *         count += 1
  *         angular_flux_old[:,:] = angular_flux[:,:]
  *     return angular_flux[:,:]             # <<<<<<<<<<<<<<
@@ -3494,12 +3394,12 @@ __pyx_t_17 = 0;
   __pyx_r = __pyx_v_angular_flux;
   goto __pyx_L0;
 
-  /* "x_sweeps.pyx":66
+  /* "ants/cyants/x_sweeps.pyx":68
  * 
  * 
- * cdef double[:,:] angular_sweep(double[:,:] angular_flux_old, int[:]& medium_map, \             # <<<<<<<<<<<<<<
- *             double[:]& xs_total, double[:]& xs_scatter, \
- *             double[:,:]& external_source, int[:]& point_source_loc, \
+ * cdef double[:,:] x_angular_sweep(double[:,:] angular_flux_old, int[:]& medium_map, \             # <<<<<<<<<<<<<<
+ *                                 double[:]& xs_total, double[:]& xs_scatter, \
+ *                                 double[:]& external_source, \
  */
 
   /* function exit code */
@@ -3509,10 +3409,9 @@ __pyx_t_17 = 0;
   __Pyx_XDECREF(__pyx_t_4);
   __PYX_XDEC_MEMVIEW(&__pyx_t_5, 1);
   __PYX_XDEC_MEMVIEW(&__pyx_t_6, 1);
-  __PYX_XDEC_MEMVIEW(&__pyx_t_11, 1);
   __pyx_r.data = NULL;
   __pyx_r.memview = NULL;
-  __Pyx_AddTraceback("x_sweeps.angular_sweep", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("ants.cyants.x_sweeps.x_angular_sweep", __pyx_clineno, __pyx_lineno, __pyx_filename);
   goto __pyx_L2;
   __pyx_L0:;
   if (unlikely(!__pyx_r.memview)) {
@@ -3529,15 +3428,703 @@ __pyx_t_17 = 0;
   return __pyx_r;
 }
 
-/* "x_sweeps.pyx":118
+/* "ants/cyants/x_sweeps.pyx":121
+ * 
+ * 
+ * cdef double[:,:] x_time_sweep(double[:,:] angular_flux_old, int[:]& medium_map, \             # <<<<<<<<<<<<<<
+ *                               double[:]& xs_total, double[:]& xs_matrix, \
+ *                               double[:]& external_source, \
+ */
+
+static __Pyx_memviewslice __pyx_f_4ants_6cyants_8x_sweeps_x_time_sweep(__Pyx_memviewslice __pyx_v_angular_flux_old, __Pyx_memviewslice &__pyx_v_medium_map, __Pyx_memviewslice &__pyx_v_xs_total, __Pyx_memviewslice &__pyx_v_xs_matrix, __Pyx_memviewslice &__pyx_v_external_source, __Pyx_memviewslice &__pyx_v_point_source, __Pyx_memviewslice &__pyx_v_spatial_coef, __Pyx_memviewslice &__pyx_v_angle_weight, __Pyx_memviewslice &__pyx_v_params, double __pyx_v_temporal_coef, double __pyx_v_time_const, size_t __pyx_v_ex_group_idx) {
+  int __pyx_v_cells;
+  int __pyx_v_angles;
+  size_t __pyx_v_ex_angle_idx;
+  size_t __pyx_v_angle;
+  PyObject *__pyx_v_arr2d = NULL;
+  __Pyx_memviewslice __pyx_v_angular_flux = { 0, 0, { 0 }, { 0 }, { 0 } };
+  PyObject *__pyx_v_arr2d_1 = NULL;
+  __Pyx_memviewslice __pyx_v_angular_flux_last = { 0, 0, { 0 }, { 0 }, { 0 } };
+  PyObject *__pyx_v_arr1d_1 = NULL;
+  __Pyx_memviewslice __pyx_v_dummy_angle_weight = { 0, 0, { 0 }, { 0 }, { 0 } };
+  PyObject *__pyx_v_arr1d_2 = NULL;
+  __Pyx_memviewslice __pyx_v_scalar_flux = { 0, 0, { 0 }, { 0 }, { 0 } };
+  int __pyx_v_converged;
+  size_t __pyx_v_count;
+  double __pyx_v_change;
+  __Pyx_memviewslice __pyx_r = { 0, 0, { 0 }, { 0 }, { 0 } };
+  __Pyx_RefNannyDeclarations
+  size_t __pyx_t_1;
+  PyObject *__pyx_t_2 = NULL;
+  PyObject *__pyx_t_3 = NULL;
+  PyObject *__pyx_t_4 = NULL;
+  __Pyx_memviewslice __pyx_t_5 = { 0, 0, { 0 }, { 0 }, { 0 } };
+  __Pyx_memviewslice __pyx_t_6 = { 0, 0, { 0 }, { 0 }, { 0 } };
+  int __pyx_t_7;
+  int __pyx_t_8;
+  int __pyx_t_9;
+  size_t __pyx_t_10;
+  Py_ssize_t __pyx_t_11;
+  int __pyx_t_12;
+  __Pyx_memviewslice __pyx_t_13 = { 0, 0, { 0 }, { 0 }, { 0 } };
+  size_t __pyx_t_14;
+  size_t __pyx_t_15;
+  int __pyx_t_16;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("x_time_sweep", 0);
+
+  /* "ants/cyants/x_sweeps.pyx":128
+ *                               double temporal_coef, double time_const, \
+ *                               size_t ex_group_idx):
+ *     cdef int cells = len(medium_map)             # <<<<<<<<<<<<<<
+ *     cdef int angles = len(angle_weight)
+ *     cdef size_t ex_angle_idx, cell, angle
+ */
+  __pyx_t_1 = __Pyx_MemoryView_Len(__pyx_v_medium_map); 
+  __pyx_v_cells = __pyx_t_1;
+
+  /* "ants/cyants/x_sweeps.pyx":129
+ *                               size_t ex_group_idx):
+ *     cdef int cells = len(medium_map)
+ *     cdef int angles = len(angle_weight)             # <<<<<<<<<<<<<<
+ *     cdef size_t ex_angle_idx, cell, angle
+ * 
+ */
+  __pyx_t_1 = __Pyx_MemoryView_Len(__pyx_v_angle_weight); 
+  __pyx_v_angles = __pyx_t_1;
+
+  /* "ants/cyants/x_sweeps.pyx":132
+ *     cdef size_t ex_angle_idx, cell, angle
+ * 
+ *     arr2d = cvarray((cells, angles), itemsize=sizeof(double), format="d")             # <<<<<<<<<<<<<<
+ *     cdef double[:,:] angular_flux = arr2d
+ *     angular_flux[:,:] = 0
+ */
+  __pyx_t_2 = __Pyx_PyInt_From_int(__pyx_v_cells); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 132, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  __pyx_t_3 = __Pyx_PyInt_From_int(__pyx_v_angles); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 132, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __pyx_t_4 = PyTuple_New(2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 132, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_4);
+  __Pyx_GIVEREF(__pyx_t_2);
+  PyTuple_SET_ITEM(__pyx_t_4, 0, __pyx_t_2);
+  __Pyx_GIVEREF(__pyx_t_3);
+  PyTuple_SET_ITEM(__pyx_t_4, 1, __pyx_t_3);
+  __pyx_t_2 = 0;
+  __pyx_t_3 = 0;
+  __pyx_t_3 = PyTuple_New(1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 132, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __Pyx_GIVEREF(__pyx_t_4);
+  PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_t_4);
+  __pyx_t_4 = 0;
+  __pyx_t_4 = __Pyx_PyDict_NewPresized(2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 132, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_4);
+  __pyx_t_2 = __Pyx_PyInt_FromSize_t((sizeof(double))); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 132, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  if (PyDict_SetItem(__pyx_t_4, __pyx_n_s_itemsize, __pyx_t_2) < 0) __PYX_ERR(0, 132, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  if (PyDict_SetItem(__pyx_t_4, __pyx_n_s_format, __pyx_n_u_d) < 0) __PYX_ERR(0, 132, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_Call(((PyObject *)__pyx_array_type), __pyx_t_3, __pyx_t_4); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 132, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+  __pyx_v_arr2d = __pyx_t_2;
+  __pyx_t_2 = 0;
+
+  /* "ants/cyants/x_sweeps.pyx":133
+ * 
+ *     arr2d = cvarray((cells, angles), itemsize=sizeof(double), format="d")
+ *     cdef double[:,:] angular_flux = arr2d             # <<<<<<<<<<<<<<
+ *     angular_flux[:,:] = 0
+ * 
+ */
+  __pyx_t_5 = __Pyx_PyObject_to_MemoryviewSlice_dsds_double(__pyx_v_arr2d, PyBUF_WRITABLE); if (unlikely(!__pyx_t_5.memview)) __PYX_ERR(0, 133, __pyx_L1_error)
+  __pyx_v_angular_flux = __pyx_t_5;
+  __pyx_t_5.memview = NULL;
+  __pyx_t_5.data = NULL;
+
+  /* "ants/cyants/x_sweeps.pyx":134
+ *     arr2d = cvarray((cells, angles), itemsize=sizeof(double), format="d")
+ *     cdef double[:,:] angular_flux = arr2d
+ *     angular_flux[:,:] = 0             # <<<<<<<<<<<<<<
+ * 
+ *     arr2d_1 = cvarray((cells, angles), itemsize=sizeof(double), format="d")
+ */
+  {
+      double __pyx_temp_scalar = 0.0;
+      {
+          Py_ssize_t __pyx_temp_extent_0 = __pyx_v_angular_flux.shape[0];
+          Py_ssize_t __pyx_temp_stride_0 = __pyx_v_angular_flux.strides[0];
+          char *__pyx_temp_pointer_0;
+          Py_ssize_t __pyx_temp_idx_0;
+          Py_ssize_t __pyx_temp_extent_1 = __pyx_v_angular_flux.shape[1];
+          Py_ssize_t __pyx_temp_stride_1 = __pyx_v_angular_flux.strides[1];
+          char *__pyx_temp_pointer_1;
+          Py_ssize_t __pyx_temp_idx_1;
+          __pyx_temp_pointer_0 = __pyx_v_angular_flux.data;
+          for (__pyx_temp_idx_0 = 0; __pyx_temp_idx_0 < __pyx_temp_extent_0; __pyx_temp_idx_0++) {
+            __pyx_temp_pointer_1 = __pyx_temp_pointer_0;
+            for (__pyx_temp_idx_1 = 0; __pyx_temp_idx_1 < __pyx_temp_extent_1; __pyx_temp_idx_1++) {
+              *((double *) __pyx_temp_pointer_1) = __pyx_temp_scalar;
+              __pyx_temp_pointer_1 += __pyx_temp_stride_1;
+            }
+            __pyx_temp_pointer_0 += __pyx_temp_stride_0;
+          }
+      }
+  }
+
+  /* "ants/cyants/x_sweeps.pyx":136
+ *     angular_flux[:,:] = 0
+ * 
+ *     arr2d_1 = cvarray((cells, angles), itemsize=sizeof(double), format="d")             # <<<<<<<<<<<<<<
+ *     cdef double[:,:] angular_flux_last = arr2d_1
+ *     angular_flux_last[:,:] = angular_flux_old[:,:]
+ */
+  __pyx_t_2 = __Pyx_PyInt_From_int(__pyx_v_cells); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 136, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  __pyx_t_4 = __Pyx_PyInt_From_int(__pyx_v_angles); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 136, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_4);
+  __pyx_t_3 = PyTuple_New(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 136, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __Pyx_GIVEREF(__pyx_t_2);
+  PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_t_2);
+  __Pyx_GIVEREF(__pyx_t_4);
+  PyTuple_SET_ITEM(__pyx_t_3, 1, __pyx_t_4);
+  __pyx_t_2 = 0;
+  __pyx_t_4 = 0;
+  __pyx_t_4 = PyTuple_New(1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 136, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_4);
+  __Pyx_GIVEREF(__pyx_t_3);
+  PyTuple_SET_ITEM(__pyx_t_4, 0, __pyx_t_3);
+  __pyx_t_3 = 0;
+  __pyx_t_3 = __Pyx_PyDict_NewPresized(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 136, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __pyx_t_2 = __Pyx_PyInt_FromSize_t((sizeof(double))); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 136, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_itemsize, __pyx_t_2) < 0) __PYX_ERR(0, 136, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_format, __pyx_n_u_d) < 0) __PYX_ERR(0, 136, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_Call(((PyObject *)__pyx_array_type), __pyx_t_4, __pyx_t_3); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 136, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  __pyx_v_arr2d_1 = __pyx_t_2;
+  __pyx_t_2 = 0;
+
+  /* "ants/cyants/x_sweeps.pyx":137
+ * 
+ *     arr2d_1 = cvarray((cells, angles), itemsize=sizeof(double), format="d")
+ *     cdef double[:,:] angular_flux_last = arr2d_1             # <<<<<<<<<<<<<<
+ *     angular_flux_last[:,:] = angular_flux_old[:,:]
+ * 
+ */
+  __pyx_t_5 = __Pyx_PyObject_to_MemoryviewSlice_dsds_double(__pyx_v_arr2d_1, PyBUF_WRITABLE); if (unlikely(!__pyx_t_5.memview)) __PYX_ERR(0, 137, __pyx_L1_error)
+  __pyx_v_angular_flux_last = __pyx_t_5;
+  __pyx_t_5.memview = NULL;
+  __pyx_t_5.data = NULL;
+
+  /* "ants/cyants/x_sweeps.pyx":138
+ *     arr2d_1 = cvarray((cells, angles), itemsize=sizeof(double), format="d")
+ *     cdef double[:,:] angular_flux_last = arr2d_1
+ *     angular_flux_last[:,:] = angular_flux_old[:,:]             # <<<<<<<<<<<<<<
+ * 
+ *     arr1d_1 = cvarray((angles,), itemsize=sizeof(double), format="d")
+ */
+  if (unlikely(__pyx_memoryview_copy_contents(__pyx_v_angular_flux_old, __pyx_v_angular_flux_last, 2, 2, 0) < 0)) __PYX_ERR(0, 138, __pyx_L1_error)
+
+  /* "ants/cyants/x_sweeps.pyx":140
+ *     angular_flux_last[:,:] = angular_flux_old[:,:]
+ * 
+ *     arr1d_1 = cvarray((angles,), itemsize=sizeof(double), format="d")             # <<<<<<<<<<<<<<
+ *     cdef double[:] dummy_angle_weight = arr1d_1
+ *     dummy_angle_weight[:] = 1
+ */
+  __pyx_t_2 = __Pyx_PyInt_From_int(__pyx_v_angles); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 140, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  __pyx_t_3 = PyTuple_New(1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 140, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __Pyx_GIVEREF(__pyx_t_2);
+  PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_t_2);
+  __pyx_t_2 = 0;
+  __pyx_t_2 = PyTuple_New(1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 140, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  __Pyx_GIVEREF(__pyx_t_3);
+  PyTuple_SET_ITEM(__pyx_t_2, 0, __pyx_t_3);
+  __pyx_t_3 = 0;
+  __pyx_t_3 = __Pyx_PyDict_NewPresized(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 140, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __pyx_t_4 = __Pyx_PyInt_FromSize_t((sizeof(double))); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 140, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_4);
+  if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_itemsize, __pyx_t_4) < 0) __PYX_ERR(0, 140, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+  if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_format, __pyx_n_u_d) < 0) __PYX_ERR(0, 140, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyObject_Call(((PyObject *)__pyx_array_type), __pyx_t_2, __pyx_t_3); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 140, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_4);
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  __pyx_v_arr1d_1 = __pyx_t_4;
+  __pyx_t_4 = 0;
+
+  /* "ants/cyants/x_sweeps.pyx":141
+ * 
+ *     arr1d_1 = cvarray((angles,), itemsize=sizeof(double), format="d")
+ *     cdef double[:] dummy_angle_weight = arr1d_1             # <<<<<<<<<<<<<<
+ *     dummy_angle_weight[:] = 1
+ * 
+ */
+  __pyx_t_6 = __Pyx_PyObject_to_MemoryviewSlice_ds_double(__pyx_v_arr1d_1, PyBUF_WRITABLE); if (unlikely(!__pyx_t_6.memview)) __PYX_ERR(0, 141, __pyx_L1_error)
+  __pyx_v_dummy_angle_weight = __pyx_t_6;
+  __pyx_t_6.memview = NULL;
+  __pyx_t_6.data = NULL;
+
+  /* "ants/cyants/x_sweeps.pyx":142
+ *     arr1d_1 = cvarray((angles,), itemsize=sizeof(double), format="d")
+ *     cdef double[:] dummy_angle_weight = arr1d_1
+ *     dummy_angle_weight[:] = 1             # <<<<<<<<<<<<<<
+ * 
+ *     arr1d_2 = cvarray((cells,), itemsize=sizeof(double), format="d")
+ */
+  {
+      double __pyx_temp_scalar = 1.0;
+      {
+          Py_ssize_t __pyx_temp_extent_0 = __pyx_v_dummy_angle_weight.shape[0];
+          Py_ssize_t __pyx_temp_stride_0 = __pyx_v_dummy_angle_weight.strides[0];
+          char *__pyx_temp_pointer_0;
+          Py_ssize_t __pyx_temp_idx_0;
+          __pyx_temp_pointer_0 = __pyx_v_dummy_angle_weight.data;
+          for (__pyx_temp_idx_0 = 0; __pyx_temp_idx_0 < __pyx_temp_extent_0; __pyx_temp_idx_0++) {
+            *((double *) __pyx_temp_pointer_0) = __pyx_temp_scalar;
+            __pyx_temp_pointer_0 += __pyx_temp_stride_0;
+          }
+      }
+  }
+
+  /* "ants/cyants/x_sweeps.pyx":144
+ *     dummy_angle_weight[:] = 1
+ * 
+ *     arr1d_2 = cvarray((cells,), itemsize=sizeof(double), format="d")             # <<<<<<<<<<<<<<
+ *     cdef double[:] scalar_flux = arr1d_2
+ *     scalar_flux[:] = 0
+ */
+  __pyx_t_4 = __Pyx_PyInt_From_int(__pyx_v_cells); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 144, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_4);
+  __pyx_t_3 = PyTuple_New(1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 144, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __Pyx_GIVEREF(__pyx_t_4);
+  PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_t_4);
+  __pyx_t_4 = 0;
+  __pyx_t_4 = PyTuple_New(1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 144, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_4);
+  __Pyx_GIVEREF(__pyx_t_3);
+  PyTuple_SET_ITEM(__pyx_t_4, 0, __pyx_t_3);
+  __pyx_t_3 = 0;
+  __pyx_t_3 = __Pyx_PyDict_NewPresized(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 144, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __pyx_t_2 = __Pyx_PyInt_FromSize_t((sizeof(double))); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 144, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_itemsize, __pyx_t_2) < 0) __PYX_ERR(0, 144, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_format, __pyx_n_u_d) < 0) __PYX_ERR(0, 144, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_Call(((PyObject *)__pyx_array_type), __pyx_t_4, __pyx_t_3); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 144, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+  __pyx_v_arr1d_2 = __pyx_t_2;
+  __pyx_t_2 = 0;
+
+  /* "ants/cyants/x_sweeps.pyx":145
+ * 
+ *     arr1d_2 = cvarray((cells,), itemsize=sizeof(double), format="d")
+ *     cdef double[:] scalar_flux = arr1d_2             # <<<<<<<<<<<<<<
+ *     scalar_flux[:] = 0
+ * 
+ */
+  __pyx_t_6 = __Pyx_PyObject_to_MemoryviewSlice_ds_double(__pyx_v_arr1d_2, PyBUF_WRITABLE); if (unlikely(!__pyx_t_6.memview)) __PYX_ERR(0, 145, __pyx_L1_error)
+  __pyx_v_scalar_flux = __pyx_t_6;
+  __pyx_t_6.memview = NULL;
+  __pyx_t_6.data = NULL;
+
+  /* "ants/cyants/x_sweeps.pyx":146
+ *     arr1d_2 = cvarray((cells,), itemsize=sizeof(double), format="d")
+ *     cdef double[:] scalar_flux = arr1d_2
+ *     scalar_flux[:] = 0             # <<<<<<<<<<<<<<
+ * 
+ *     cdef bint converged = False
+ */
+  {
+      double __pyx_temp_scalar = 0.0;
+      {
+          Py_ssize_t __pyx_temp_extent_0 = __pyx_v_scalar_flux.shape[0];
+          Py_ssize_t __pyx_temp_stride_0 = __pyx_v_scalar_flux.strides[0];
+          char *__pyx_temp_pointer_0;
+          Py_ssize_t __pyx_temp_idx_0;
+          __pyx_temp_pointer_0 = __pyx_v_scalar_flux.data;
+          for (__pyx_temp_idx_0 = 0; __pyx_temp_idx_0 < __pyx_temp_extent_0; __pyx_temp_idx_0++) {
+            *((double *) __pyx_temp_pointer_0) = __pyx_temp_scalar;
+            __pyx_temp_pointer_0 += __pyx_temp_stride_0;
+          }
+      }
+  }
+
+  /* "ants/cyants/x_sweeps.pyx":148
+ *     scalar_flux[:] = 0
+ * 
+ *     cdef bint converged = False             # <<<<<<<<<<<<<<
+ *     cdef size_t count = 1
+ *     cdef double change = 0.0
+ */
+  __pyx_v_converged = 0;
+
+  /* "ants/cyants/x_sweeps.pyx":149
+ * 
+ *     cdef bint converged = False
+ *     cdef size_t count = 1             # <<<<<<<<<<<<<<
+ *     cdef double change = 0.0
+ *     while not (converged):
+ */
+  __pyx_v_count = 1;
+
+  /* "ants/cyants/x_sweeps.pyx":150
+ *     cdef bint converged = False
+ *     cdef size_t count = 1
+ *     cdef double change = 0.0             # <<<<<<<<<<<<<<
+ *     while not (converged):
+ *         angular_flux[:,:] = 0
+ */
+  __pyx_v_change = 0.0;
+
+  /* "ants/cyants/x_sweeps.pyx":151
+ *     cdef size_t count = 1
+ *     cdef double change = 0.0
+ *     while not (converged):             # <<<<<<<<<<<<<<
+ *         angular_flux[:,:] = 0
+ *         angular_to_scalar_flux(scalar_flux, angular_flux_old, angle_weight)
+ */
+  while (1) {
+    __pyx_t_7 = ((!(__pyx_v_converged != 0)) != 0);
+    if (!__pyx_t_7) break;
+
+    /* "ants/cyants/x_sweeps.pyx":152
+ *     cdef double change = 0.0
+ *     while not (converged):
+ *         angular_flux[:,:] = 0             # <<<<<<<<<<<<<<
+ *         angular_to_scalar_flux(scalar_flux, angular_flux_old, angle_weight)
+ *         for angle in range(angles):
+ */
+    {
+        double __pyx_temp_scalar = 0.0;
+        {
+            Py_ssize_t __pyx_temp_extent_0 = __pyx_v_angular_flux.shape[0];
+            Py_ssize_t __pyx_temp_stride_0 = __pyx_v_angular_flux.strides[0];
+            char *__pyx_temp_pointer_0;
+            Py_ssize_t __pyx_temp_idx_0;
+            Py_ssize_t __pyx_temp_extent_1 = __pyx_v_angular_flux.shape[1];
+            Py_ssize_t __pyx_temp_stride_1 = __pyx_v_angular_flux.strides[1];
+            char *__pyx_temp_pointer_1;
+            Py_ssize_t __pyx_temp_idx_1;
+            __pyx_temp_pointer_0 = __pyx_v_angular_flux.data;
+            for (__pyx_temp_idx_0 = 0; __pyx_temp_idx_0 < __pyx_temp_extent_0; __pyx_temp_idx_0++) {
+              __pyx_temp_pointer_1 = __pyx_temp_pointer_0;
+              for (__pyx_temp_idx_1 = 0; __pyx_temp_idx_1 < __pyx_temp_extent_1; __pyx_temp_idx_1++) {
+                *((double *) __pyx_temp_pointer_1) = __pyx_temp_scalar;
+                __pyx_temp_pointer_1 += __pyx_temp_stride_1;
+              }
+              __pyx_temp_pointer_0 += __pyx_temp_stride_0;
+            }
+        }
+    }
+
+    /* "ants/cyants/x_sweeps.pyx":153
+ *     while not (converged):
+ *         angular_flux[:,:] = 0
+ *         angular_to_scalar_flux(scalar_flux, angular_flux_old, angle_weight)             # <<<<<<<<<<<<<<
+ *         for angle in range(angles):
+ *             ex_angle_idx = 0 if params[4] == 1 else angle
+ */
+    __pyx_f_4ants_6cyants_8x_sweeps_angular_to_scalar_flux(__pyx_v_scalar_flux, __pyx_v_angular_flux_old, __pyx_v_angle_weight);
+
+    /* "ants/cyants/x_sweeps.pyx":154
+ *         angular_flux[:,:] = 0
+ *         angular_to_scalar_flux(scalar_flux, angular_flux_old, angle_weight)
+ *         for angle in range(angles):             # <<<<<<<<<<<<<<
+ *             ex_angle_idx = 0 if params[4] == 1 else angle
+ *             time_vacuum(angular_flux[:,angle], scalar_flux, \
+ */
+    __pyx_t_8 = __pyx_v_angles;
+    __pyx_t_9 = __pyx_t_8;
+    for (__pyx_t_1 = 0; __pyx_t_1 < __pyx_t_9; __pyx_t_1+=1) {
+      __pyx_v_angle = __pyx_t_1;
+
+      /* "ants/cyants/x_sweeps.pyx":155
+ *         angular_to_scalar_flux(scalar_flux, angular_flux_old, angle_weight)
+ *         for angle in range(angles):
+ *             ex_angle_idx = 0 if params[4] == 1 else angle             # <<<<<<<<<<<<<<
+ *             time_vacuum(angular_flux[:,angle], scalar_flux, \
+ *                     angular_flux_last[:,angle], medium_map, xs_total, \
+ */
+      __pyx_t_11 = 4;
+      __pyx_t_12 = -1;
+      if (__pyx_t_11 < 0) {
+        __pyx_t_11 += __pyx_v_params.shape[0];
+        if (unlikely(__pyx_t_11 < 0)) __pyx_t_12 = 0;
+      } else if (unlikely(__pyx_t_11 >= __pyx_v_params.shape[0])) __pyx_t_12 = 0;
+      if (unlikely(__pyx_t_12 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_12);
+        __PYX_ERR(0, 155, __pyx_L1_error)
+      }
+      if ((((*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_11 * __pyx_v_params.strides[0]) ))) == 1) != 0)) {
+        __pyx_t_10 = 0;
+      } else {
+        __pyx_t_10 = __pyx_v_angle;
+      }
+      __pyx_v_ex_angle_idx = __pyx_t_10;
+
+      /* "ants/cyants/x_sweeps.pyx":156
+ *         for angle in range(angles):
+ *             ex_angle_idx = 0 if params[4] == 1 else angle
+ *             time_vacuum(angular_flux[:,angle], scalar_flux, \             # <<<<<<<<<<<<<<
+ *                     angular_flux_last[:,angle], medium_map, xs_total, \
+ *                     xs_matrix, external_source, point_source[angle], \
+ */
+      __pyx_t_6.data = __pyx_v_angular_flux.data;
+      __pyx_t_6.memview = __pyx_v_angular_flux.memview;
+      __PYX_INC_MEMVIEW(&__pyx_t_6, 0);
+      __pyx_t_6.shape[0] = __pyx_v_angular_flux.shape[0];
+__pyx_t_6.strides[0] = __pyx_v_angular_flux.strides[0];
+    __pyx_t_6.suboffsets[0] = -1;
+
+{
+    Py_ssize_t __pyx_tmp_idx = __pyx_v_angle;
+        Py_ssize_t __pyx_tmp_shape = __pyx_v_angular_flux.shape[1];
+    Py_ssize_t __pyx_tmp_stride = __pyx_v_angular_flux.strides[1];
+        if (__pyx_tmp_idx < 0)
+            __pyx_tmp_idx += __pyx_tmp_shape;
+        if (unlikely(!__Pyx_is_valid_index(__pyx_tmp_idx, __pyx_tmp_shape))) {
+            PyErr_SetString(PyExc_IndexError,
+                            "Index out of bounds (axis 1)");
+            __PYX_ERR(0, 156, __pyx_L1_error)
+        }
+        __pyx_t_6.data += __pyx_tmp_idx * __pyx_tmp_stride;
+}
+
+__pyx_t_13.data = __pyx_v_angular_flux_last.data;
+
+      /* "ants/cyants/x_sweeps.pyx":157
+ *             ex_angle_idx = 0 if params[4] == 1 else angle
+ *             time_vacuum(angular_flux[:,angle], scalar_flux, \
+ *                     angular_flux_last[:,angle], medium_map, xs_total, \             # <<<<<<<<<<<<<<
+ *                     xs_matrix, external_source, point_source[angle], \
+ *                     spatial_coef[angle], dummy_angle_weight[angle], \
+ */
+      __pyx_t_13.memview = __pyx_v_angular_flux_last.memview;
+      __PYX_INC_MEMVIEW(&__pyx_t_13, 0);
+      __pyx_t_13.shape[0] = __pyx_v_angular_flux_last.shape[0];
+__pyx_t_13.strides[0] = __pyx_v_angular_flux_last.strides[0];
+    __pyx_t_13.suboffsets[0] = -1;
+
+{
+    Py_ssize_t __pyx_tmp_idx = __pyx_v_angle;
+        Py_ssize_t __pyx_tmp_shape = __pyx_v_angular_flux_last.shape[1];
+    Py_ssize_t __pyx_tmp_stride = __pyx_v_angular_flux_last.strides[1];
+        if (__pyx_tmp_idx < 0)
+            __pyx_tmp_idx += __pyx_tmp_shape;
+        if (unlikely(!__Pyx_is_valid_index(__pyx_tmp_idx, __pyx_tmp_shape))) {
+            PyErr_SetString(PyExc_IndexError,
+                            "Index out of bounds (axis 1)");
+            __PYX_ERR(0, 157, __pyx_L1_error)
+        }
+        __pyx_t_13.data += __pyx_tmp_idx * __pyx_tmp_stride;
+}
+
+__pyx_t_10 = __pyx_v_angle;
+
+      /* "ants/cyants/x_sweeps.pyx":158
+ *             time_vacuum(angular_flux[:,angle], scalar_flux, \
+ *                     angular_flux_last[:,angle], medium_map, xs_total, \
+ *                     xs_matrix, external_source, point_source[angle], \             # <<<<<<<<<<<<<<
+ *                     spatial_coef[angle], dummy_angle_weight[angle], \
+ *                     params, temporal_coef, time_const, ex_group_idx, ex_angle_idx)
+ */
+      __pyx_t_12 = -1;
+      if (unlikely(__pyx_t_10 >= (size_t)__pyx_v_point_source.shape[0])) __pyx_t_12 = 0;
+      if (unlikely(__pyx_t_12 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_12);
+        __PYX_ERR(0, 158, __pyx_L1_error)
+      }
+
+      /* "ants/cyants/x_sweeps.pyx":159
+ *                     angular_flux_last[:,angle], medium_map, xs_total, \
+ *                     xs_matrix, external_source, point_source[angle], \
+ *                     spatial_coef[angle], dummy_angle_weight[angle], \             # <<<<<<<<<<<<<<
+ *                     params, temporal_coef, time_const, ex_group_idx, ex_angle_idx)
+ *         change = angular_convergence(angular_flux, angular_flux_old, angle_weight)
+ */
+      __pyx_t_14 = __pyx_v_angle;
+      __pyx_t_12 = -1;
+      if (unlikely(__pyx_t_14 >= (size_t)__pyx_v_spatial_coef.shape[0])) __pyx_t_12 = 0;
+      if (unlikely(__pyx_t_12 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_12);
+        __PYX_ERR(0, 159, __pyx_L1_error)
+      }
+      __pyx_t_15 = __pyx_v_angle;
+      __pyx_t_12 = -1;
+      if (unlikely(__pyx_t_15 >= (size_t)__pyx_v_dummy_angle_weight.shape[0])) __pyx_t_12 = 0;
+      if (unlikely(__pyx_t_12 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_12);
+        __PYX_ERR(0, 159, __pyx_L1_error)
+      }
+
+      /* "ants/cyants/x_sweeps.pyx":156
+ *         for angle in range(angles):
+ *             ex_angle_idx = 0 if params[4] == 1 else angle
+ *             time_vacuum(angular_flux[:,angle], scalar_flux, \             # <<<<<<<<<<<<<<
+ *                     angular_flux_last[:,angle], medium_map, xs_total, \
+ *                     xs_matrix, external_source, point_source[angle], \
+ */
+      __pyx_f_4ants_6cyants_8x_sweeps_time_vacuum(__pyx_t_6, __pyx_v_scalar_flux, __pyx_t_13, __pyx_v_medium_map, __pyx_v_xs_total, __pyx_v_xs_matrix, __pyx_v_external_source, (*((double *) ( /* dim=0 */ (__pyx_v_point_source.data + __pyx_t_10 * __pyx_v_point_source.strides[0]) ))), (*((double *) ( /* dim=0 */ (__pyx_v_spatial_coef.data + __pyx_t_14 * __pyx_v_spatial_coef.strides[0]) ))), (*((double *) ( /* dim=0 */ (__pyx_v_dummy_angle_weight.data + __pyx_t_15 * __pyx_v_dummy_angle_weight.strides[0]) ))), __pyx_v_params, __pyx_v_temporal_coef, __pyx_v_time_const, __pyx_v_ex_group_idx, __pyx_v_ex_angle_idx);
+      __PYX_XDEC_MEMVIEW(&__pyx_t_6, 1);
+      __pyx_t_6.memview = NULL;
+      __pyx_t_6.data = NULL;
+      __PYX_XDEC_MEMVIEW(&__pyx_t_13, 1);
+      __pyx_t_13.memview = NULL;
+      __pyx_t_13.data = NULL;
+    }
+
+    /* "ants/cyants/x_sweeps.pyx":161
+ *                     spatial_coef[angle], dummy_angle_weight[angle], \
+ *                     params, temporal_coef, time_const, ex_group_idx, ex_angle_idx)
+ *         change = angular_convergence(angular_flux, angular_flux_old, angle_weight)             # <<<<<<<<<<<<<<
+ *         # print("In Count", count, "Change", change)
+ *         converged = (change < constants.INNER_TOLERANCE) \
+ */
+    __pyx_v_change = __pyx_f_4ants_6cyants_8x_sweeps_angular_convergence(__pyx_v_angular_flux, __pyx_v_angular_flux_old, __pyx_v_angle_weight);
+
+    /* "ants/cyants/x_sweeps.pyx":163
+ *         change = angular_convergence(angular_flux, angular_flux_old, angle_weight)
+ *         # print("In Count", count, "Change", change)
+ *         converged = (change < constants.INNER_TOLERANCE) \             # <<<<<<<<<<<<<<
+ *                     or (count >= constants.MAX_ITERATIONS)
+ *         count += 1
+ */
+    __pyx_t_2 = PyFloat_FromDouble(__pyx_v_change); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 163, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_2);
+    __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_constants); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 163, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_3);
+    __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_INNER_TOLERANCE); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 163, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_4);
+    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+    __pyx_t_3 = PyObject_RichCompare(__pyx_t_2, __pyx_t_4, Py_LT); __Pyx_XGOTREF(__pyx_t_3); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 163, __pyx_L1_error)
+    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+    __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+    __pyx_t_16 = __Pyx_PyObject_IsTrue(__pyx_t_3); if (unlikely(__pyx_t_16 < 0)) __PYX_ERR(0, 163, __pyx_L1_error)
+    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+    if (!__pyx_t_16) {
+    } else {
+      __pyx_t_7 = __pyx_t_16;
+      goto __pyx_L7_bool_binop_done;
+    }
+
+    /* "ants/cyants/x_sweeps.pyx":164
+ *         # print("In Count", count, "Change", change)
+ *         converged = (change < constants.INNER_TOLERANCE) \
+ *                     or (count >= constants.MAX_ITERATIONS)             # <<<<<<<<<<<<<<
+ *         count += 1
+ *         angular_flux_old[:,:] = angular_flux[:,:]
+ */
+    __pyx_t_3 = __Pyx_PyInt_FromSize_t(__pyx_v_count); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 164, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_3);
+    __Pyx_GetModuleGlobalName(__pyx_t_4, __pyx_n_s_constants); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 164, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_4);
+    __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_MAX_ITERATIONS); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 164, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_2);
+    __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+    __pyx_t_4 = PyObject_RichCompare(__pyx_t_3, __pyx_t_2, Py_GE); __Pyx_XGOTREF(__pyx_t_4); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 164, __pyx_L1_error)
+    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+    __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+    __pyx_t_16 = __Pyx_PyObject_IsTrue(__pyx_t_4); if (unlikely(__pyx_t_16 < 0)) __PYX_ERR(0, 164, __pyx_L1_error)
+    __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+    __pyx_t_7 = __pyx_t_16;
+    __pyx_L7_bool_binop_done:;
+    __pyx_v_converged = __pyx_t_7;
+
+    /* "ants/cyants/x_sweeps.pyx":165
+ *         converged = (change < constants.INNER_TOLERANCE) \
+ *                     or (count >= constants.MAX_ITERATIONS)
+ *         count += 1             # <<<<<<<<<<<<<<
+ *         angular_flux_old[:,:] = angular_flux[:,:]
+ *     return angular_flux[:,:]
+ */
+    __pyx_v_count = (__pyx_v_count + 1);
+
+    /* "ants/cyants/x_sweeps.pyx":166
+ *                     or (count >= constants.MAX_ITERATIONS)
+ *         count += 1
+ *         angular_flux_old[:,:] = angular_flux[:,:]             # <<<<<<<<<<<<<<
+ *     return angular_flux[:,:]
+ * 
+ */
+    if (unlikely(__pyx_memoryview_copy_contents(__pyx_v_angular_flux, __pyx_v_angular_flux_old, 2, 2, 0) < 0)) __PYX_ERR(0, 166, __pyx_L1_error)
+  }
+
+  /* "ants/cyants/x_sweeps.pyx":167
+ *         count += 1
+ *         angular_flux_old[:,:] = angular_flux[:,:]
+ *     return angular_flux[:,:]             # <<<<<<<<<<<<<<
+ * 
+ * 
+ */
+  __PYX_INC_MEMVIEW(&__pyx_v_angular_flux, 0);
+  __pyx_r = __pyx_v_angular_flux;
+  goto __pyx_L0;
+
+  /* "ants/cyants/x_sweeps.pyx":121
+ * 
+ * 
+ * cdef double[:,:] x_time_sweep(double[:,:] angular_flux_old, int[:]& medium_map, \             # <<<<<<<<<<<<<<
+ *                               double[:]& xs_total, double[:]& xs_matrix, \
+ *                               double[:]& external_source, \
+ */
+
+  /* function exit code */
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_2);
+  __Pyx_XDECREF(__pyx_t_3);
+  __Pyx_XDECREF(__pyx_t_4);
+  __PYX_XDEC_MEMVIEW(&__pyx_t_5, 1);
+  __PYX_XDEC_MEMVIEW(&__pyx_t_6, 1);
+  __PYX_XDEC_MEMVIEW(&__pyx_t_13, 1);
+  __pyx_r.data = NULL;
+  __pyx_r.memview = NULL;
+  __Pyx_AddTraceback("ants.cyants.x_sweeps.x_time_sweep", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  goto __pyx_L2;
+  __pyx_L0:;
+  if (unlikely(!__pyx_r.memview)) {
+    PyErr_SetString(PyExc_TypeError, "Memoryview return value is not initialized");
+  }
+  __pyx_L2:;
+  __Pyx_XDECREF(__pyx_v_arr2d);
+  __PYX_XDEC_MEMVIEW(&__pyx_v_angular_flux, 1);
+  __Pyx_XDECREF(__pyx_v_arr2d_1);
+  __PYX_XDEC_MEMVIEW(&__pyx_v_angular_flux_last, 1);
+  __Pyx_XDECREF(__pyx_v_arr1d_1);
+  __PYX_XDEC_MEMVIEW(&__pyx_v_dummy_angle_weight, 1);
+  __Pyx_XDECREF(__pyx_v_arr1d_2);
+  __PYX_XDEC_MEMVIEW(&__pyx_v_scalar_flux, 1);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* "ants/cyants/x_sweeps.pyx":170
  * 
  * 
  * cdef void vacuum(double[:]& scalar_flux, double[:]& scalar_flux_old, \             # <<<<<<<<<<<<<<
- *                         int[:]& medium_map, \
- *                         double[:]& xs_total, double[:]& xs_scatter, \
+ *                 int[:]& medium_map, double[:]& xs_total, \
+ *                 double[:]& xs_scatter, double[:]& external_source, \
  */
 
-static void __pyx_f_8x_sweeps_vacuum(__Pyx_memviewslice &__pyx_v_scalar_flux, __Pyx_memviewslice &__pyx_v_scalar_flux_old, __Pyx_memviewslice &__pyx_v_medium_map, __Pyx_memviewslice &__pyx_v_xs_total, __Pyx_memviewslice &__pyx_v_xs_scatter, __Pyx_memviewslice &__pyx_v_external_source, int __pyx_v_point_source_loc, double __pyx_v_point_source, double __pyx_v_spatial_coef, double __pyx_v_angle_weight, int __pyx_v_spatial) {
+static void __pyx_f_4ants_6cyants_8x_sweeps_vacuum(__Pyx_memviewslice &__pyx_v_scalar_flux, __Pyx_memviewslice &__pyx_v_scalar_flux_old, __Pyx_memviewslice &__pyx_v_medium_map, __Pyx_memviewslice &__pyx_v_xs_total, __Pyx_memviewslice &__pyx_v_xs_scatter, __Pyx_memviewslice &__pyx_v_external_source, double __pyx_v_point_source, double __pyx_v_spatial_coef, double __pyx_v_angle_weight, __Pyx_memviewslice &__pyx_v_params, size_t __pyx_v_ex_group_idx, size_t __pyx_v_ex_angle_idx) {
   double __pyx_v_edge_one;
   double __pyx_v_edge_two;
   int __pyx_v_material;
@@ -3554,22 +4141,23 @@ static void __pyx_f_8x_sweeps_vacuum(__Pyx_memviewslice &__pyx_v_scalar_flux, __
   Py_ssize_t __pyx_t_8;
   Py_ssize_t __pyx_t_9;
   Py_ssize_t __pyx_t_10;
+  __Pyx_memviewslice __pyx_t_11 = { 0, 0, { 0 }, { 0 }, { 0 } };
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("vacuum", 0);
 
-  /* "x_sweeps.pyx":124
- *                         double point_source, double spatial_coef, \
- *                         double angle_weight, int spatial):
+  /* "ants/cyants/x_sweeps.pyx":176
+ *                 double angle_weight, int[:]& params, size_t ex_group_idx, \
+ *                 size_t ex_angle_idx):
  *     cdef double edge_one = 0             # <<<<<<<<<<<<<<
  *     cdef double edge_two = 0
  *     cdef int material, cell
  */
   __pyx_v_edge_one = 0.0;
 
-  /* "x_sweeps.pyx":125
- *                         double angle_weight, int spatial):
+  /* "ants/cyants/x_sweeps.pyx":177
+ *                 size_t ex_angle_idx):
  *     cdef double edge_one = 0
  *     cdef double edge_two = 0             # <<<<<<<<<<<<<<
  *     cdef int material, cell
@@ -3577,7 +4165,7 @@ static void __pyx_f_8x_sweeps_vacuum(__Pyx_memviewslice &__pyx_v_scalar_flux, __
  */
   __pyx_v_edge_two = 0.0;
 
-  /* "x_sweeps.pyx":127
+  /* "ants/cyants/x_sweeps.pyx":179
  *     cdef double edge_two = 0
  *     cdef int material, cell
  *     cdef int cells = medium_map.shape[0]             # <<<<<<<<<<<<<<
@@ -3586,7 +4174,7 @@ static void __pyx_f_8x_sweeps_vacuum(__Pyx_memviewslice &__pyx_v_scalar_flux, __
  */
   __pyx_v_cells = (__pyx_v_medium_map.shape[0]);
 
-  /* "x_sweeps.pyx":128
+  /* "ants/cyants/x_sweeps.pyx":180
  *     cdef int material, cell
  *     cdef int cells = medium_map.shape[0]
  *     if spatial_coef > 0:             # <<<<<<<<<<<<<<
@@ -3596,23 +4184,23 @@ static void __pyx_f_8x_sweeps_vacuum(__Pyx_memviewslice &__pyx_v_scalar_flux, __
   __pyx_t_1 = ((__pyx_v_spatial_coef > 0.0) != 0);
   if (__pyx_t_1) {
 
-    /* "x_sweeps.pyx":129
+    /* "ants/cyants/x_sweeps.pyx":181
  *     cdef int cells = medium_map.shape[0]
  *     if spatial_coef > 0:
  *         for cell in range(cells):             # <<<<<<<<<<<<<<
  *             material = medium_map[cell]
- *             if cell == point_source_loc:
+ *             if cell == params[5]:
  */
     __pyx_t_2 = __pyx_v_cells;
     __pyx_t_3 = __pyx_t_2;
     for (__pyx_t_4 = 0; __pyx_t_4 < __pyx_t_3; __pyx_t_4+=1) {
       __pyx_v_cell = __pyx_t_4;
 
-      /* "x_sweeps.pyx":130
+      /* "ants/cyants/x_sweeps.pyx":182
  *     if spatial_coef > 0:
  *         for cell in range(cells):
  *             material = medium_map[cell]             # <<<<<<<<<<<<<<
- *             if cell == point_source_loc:
+ *             if cell == params[5]:
  *                 edge_one += point_source
  */
       __pyx_t_5 = __pyx_v_cell;
@@ -3623,44 +4211,54 @@ static void __pyx_f_8x_sweeps_vacuum(__Pyx_memviewslice &__pyx_v_scalar_flux, __
       } else if (unlikely(__pyx_t_5 >= __pyx_v_medium_map.shape[0])) __pyx_t_6 = 0;
       if (unlikely(__pyx_t_6 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_6);
-        __PYX_ERR(0, 130, __pyx_L1_error)
+        __PYX_ERR(0, 182, __pyx_L1_error)
       }
       __pyx_v_material = (*((int *) ( /* dim=0 */ (__pyx_v_medium_map.data + __pyx_t_5 * __pyx_v_medium_map.strides[0]) )));
 
-      /* "x_sweeps.pyx":131
+      /* "ants/cyants/x_sweeps.pyx":183
  *         for cell in range(cells):
  *             material = medium_map[cell]
- *             if cell == point_source_loc:             # <<<<<<<<<<<<<<
+ *             if cell == params[5]:             # <<<<<<<<<<<<<<
  *                 edge_one += point_source
  *             edge_two = (xs_scatter[material] * scalar_flux_old[cell] \
  */
-      __pyx_t_1 = ((__pyx_v_cell == __pyx_v_point_source_loc) != 0);
+      __pyx_t_5 = 5;
+      __pyx_t_6 = -1;
+      if (__pyx_t_5 < 0) {
+        __pyx_t_5 += __pyx_v_params.shape[0];
+        if (unlikely(__pyx_t_5 < 0)) __pyx_t_6 = 0;
+      } else if (unlikely(__pyx_t_5 >= __pyx_v_params.shape[0])) __pyx_t_6 = 0;
+      if (unlikely(__pyx_t_6 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_6);
+        __PYX_ERR(0, 183, __pyx_L1_error)
+      }
+      __pyx_t_1 = ((__pyx_v_cell == (*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_5 * __pyx_v_params.strides[0]) )))) != 0);
       if (__pyx_t_1) {
 
-        /* "x_sweeps.pyx":132
+        /* "ants/cyants/x_sweeps.pyx":184
  *             material = medium_map[cell]
- *             if cell == point_source_loc:
+ *             if cell == params[5]:
  *                 edge_one += point_source             # <<<<<<<<<<<<<<
  *             edge_two = (xs_scatter[material] * scalar_flux_old[cell] \
- *                         + external_source[cell] + edge_one * (abs(spatial_coef) \
+ *                         + external_source[ex_group_idx + ex_angle_idx*params[3]::params[4]*params[3]][cell] \
  */
         __pyx_v_edge_one = (__pyx_v_edge_one + __pyx_v_point_source);
 
-        /* "x_sweeps.pyx":131
+        /* "ants/cyants/x_sweeps.pyx":183
  *         for cell in range(cells):
  *             material = medium_map[cell]
- *             if cell == point_source_loc:             # <<<<<<<<<<<<<<
+ *             if cell == params[5]:             # <<<<<<<<<<<<<<
  *                 edge_one += point_source
  *             edge_two = (xs_scatter[material] * scalar_flux_old[cell] \
  */
       }
 
-      /* "x_sweeps.pyx":133
- *             if cell == point_source_loc:
+      /* "ants/cyants/x_sweeps.pyx":185
+ *             if cell == params[5]:
  *                 edge_one += point_source
  *             edge_two = (xs_scatter[material] * scalar_flux_old[cell] \             # <<<<<<<<<<<<<<
- *                         + external_source[cell] + edge_one * (abs(spatial_coef) \
- *                         - 0.5 * xs_total[material])) \
+ *                         + external_source[ex_group_idx + ex_angle_idx*params[3]::params[4]*params[3]][cell] \
+ *                         + edge_one * (abs(spatial_coef) \
  */
       __pyx_t_5 = __pyx_v_material;
       __pyx_t_6 = -1;
@@ -3670,7 +4268,7 @@ static void __pyx_f_8x_sweeps_vacuum(__Pyx_memviewslice &__pyx_v_scalar_flux, __
       } else if (unlikely(__pyx_t_5 >= __pyx_v_xs_scatter.shape[0])) __pyx_t_6 = 0;
       if (unlikely(__pyx_t_6 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_6);
-        __PYX_ERR(0, 133, __pyx_L1_error)
+        __PYX_ERR(0, 185, __pyx_L1_error)
       }
       __pyx_t_7 = __pyx_v_cell;
       __pyx_t_6 = -1;
@@ -3680,33 +4278,84 @@ static void __pyx_f_8x_sweeps_vacuum(__Pyx_memviewslice &__pyx_v_scalar_flux, __
       } else if (unlikely(__pyx_t_7 >= __pyx_v_scalar_flux_old.shape[0])) __pyx_t_6 = 0;
       if (unlikely(__pyx_t_6 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_6);
-        __PYX_ERR(0, 133, __pyx_L1_error)
+        __PYX_ERR(0, 185, __pyx_L1_error)
       }
 
-      /* "x_sweeps.pyx":134
+      /* "ants/cyants/x_sweeps.pyx":186
  *                 edge_one += point_source
  *             edge_two = (xs_scatter[material] * scalar_flux_old[cell] \
- *                         + external_source[cell] + edge_one * (abs(spatial_coef) \             # <<<<<<<<<<<<<<
+ *                         + external_source[ex_group_idx + ex_angle_idx*params[3]::params[4]*params[3]][cell] \             # <<<<<<<<<<<<<<
+ *                         + edge_one * (abs(spatial_coef) \
  *                         - 0.5 * xs_total[material])) \
- *                         * 1/(abs(spatial_coef) + 0.5 * xs_total[material])
  */
-      __pyx_t_8 = __pyx_v_cell;
+      __pyx_t_8 = 3;
       __pyx_t_6 = -1;
       if (__pyx_t_8 < 0) {
-        __pyx_t_8 += __pyx_v_external_source.shape[0];
+        __pyx_t_8 += __pyx_v_params.shape[0];
         if (unlikely(__pyx_t_8 < 0)) __pyx_t_6 = 0;
-      } else if (unlikely(__pyx_t_8 >= __pyx_v_external_source.shape[0])) __pyx_t_6 = 0;
+      } else if (unlikely(__pyx_t_8 >= __pyx_v_params.shape[0])) __pyx_t_6 = 0;
       if (unlikely(__pyx_t_6 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_6);
-        __PYX_ERR(0, 134, __pyx_L1_error)
+        __PYX_ERR(0, 186, __pyx_L1_error)
+      }
+      __pyx_t_9 = 4;
+      __pyx_t_6 = -1;
+      if (__pyx_t_9 < 0) {
+        __pyx_t_9 += __pyx_v_params.shape[0];
+        if (unlikely(__pyx_t_9 < 0)) __pyx_t_6 = 0;
+      } else if (unlikely(__pyx_t_9 >= __pyx_v_params.shape[0])) __pyx_t_6 = 0;
+      if (unlikely(__pyx_t_6 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_6);
+        __PYX_ERR(0, 186, __pyx_L1_error)
+      }
+      __pyx_t_10 = 3;
+      __pyx_t_6 = -1;
+      if (__pyx_t_10 < 0) {
+        __pyx_t_10 += __pyx_v_params.shape[0];
+        if (unlikely(__pyx_t_10 < 0)) __pyx_t_6 = 0;
+      } else if (unlikely(__pyx_t_10 >= __pyx_v_params.shape[0])) __pyx_t_6 = 0;
+      if (unlikely(__pyx_t_6 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_6);
+        __PYX_ERR(0, 186, __pyx_L1_error)
+      }
+      __pyx_t_11.data = __pyx_v_external_source.data;
+      __pyx_t_11.memview = __pyx_v_external_source.memview;
+      __PYX_INC_MEMVIEW(&__pyx_t_11, 0);
+      __pyx_t_6 = -1;
+      if (unlikely(__pyx_memoryview_slice_memviewslice(
+    &__pyx_t_11,
+    __pyx_v_external_source.shape[0], __pyx_v_external_source.strides[0], __pyx_v_external_source.suboffsets[0],
+    0,
+    0,
+    &__pyx_t_6,
+    (__pyx_v_ex_group_idx + (__pyx_v_ex_angle_idx * (*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_8 * __pyx_v_params.strides[0]) ))))),
+    0,
+    ((*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_9 * __pyx_v_params.strides[0]) ))) * (*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_10 * __pyx_v_params.strides[0]) )))),
+    1,
+    0,
+    1,
+    1) < 0))
+{
+    __PYX_ERR(0, 186, __pyx_L1_error)
+}
+
+__pyx_t_10 = __pyx_v_cell;
+      __pyx_t_6 = -1;
+      if (__pyx_t_10 < 0) {
+        __pyx_t_10 += __pyx_t_11.shape[0];
+        if (unlikely(__pyx_t_10 < 0)) __pyx_t_6 = 0;
+      } else if (unlikely(__pyx_t_10 >= __pyx_t_11.shape[0])) __pyx_t_6 = 0;
+      if (unlikely(__pyx_t_6 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_6);
+        __PYX_ERR(0, 186, __pyx_L1_error)
       }
 
-      /* "x_sweeps.pyx":135
- *             edge_two = (xs_scatter[material] * scalar_flux_old[cell] \
- *                         + external_source[cell] + edge_one * (abs(spatial_coef) \
+      /* "ants/cyants/x_sweeps.pyx":188
+ *                         + external_source[ex_group_idx + ex_angle_idx*params[3]::params[4]*params[3]][cell] \
+ *                         + edge_one * (abs(spatial_coef) \
  *                         - 0.5 * xs_total[material])) \             # <<<<<<<<<<<<<<
  *                         * 1/(abs(spatial_coef) + 0.5 * xs_total[material])
- *             if spatial == 2:
+ *             if params[1] == 2:
  */
       __pyx_t_9 = __pyx_v_material;
       __pyx_t_6 = -1;
@@ -3716,99 +4365,131 @@ static void __pyx_f_8x_sweeps_vacuum(__Pyx_memviewslice &__pyx_v_scalar_flux, __
       } else if (unlikely(__pyx_t_9 >= __pyx_v_xs_total.shape[0])) __pyx_t_6 = 0;
       if (unlikely(__pyx_t_6 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_6);
-        __PYX_ERR(0, 135, __pyx_L1_error)
+        __PYX_ERR(0, 188, __pyx_L1_error)
       }
 
-      /* "x_sweeps.pyx":136
- *                         + external_source[cell] + edge_one * (abs(spatial_coef) \
+      /* "ants/cyants/x_sweeps.pyx":189
+ *                         + edge_one * (abs(spatial_coef) \
  *                         - 0.5 * xs_total[material])) \
  *                         * 1/(abs(spatial_coef) + 0.5 * xs_total[material])             # <<<<<<<<<<<<<<
- *             if spatial == 2:
+ *             if params[1] == 2:
  *                 scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)
  */
-      __pyx_t_10 = __pyx_v_material;
+      __pyx_t_8 = __pyx_v_material;
       __pyx_t_6 = -1;
-      if (__pyx_t_10 < 0) {
-        __pyx_t_10 += __pyx_v_xs_total.shape[0];
-        if (unlikely(__pyx_t_10 < 0)) __pyx_t_6 = 0;
-      } else if (unlikely(__pyx_t_10 >= __pyx_v_xs_total.shape[0])) __pyx_t_6 = 0;
+      if (__pyx_t_8 < 0) {
+        __pyx_t_8 += __pyx_v_xs_total.shape[0];
+        if (unlikely(__pyx_t_8 < 0)) __pyx_t_6 = 0;
+      } else if (unlikely(__pyx_t_8 >= __pyx_v_xs_total.shape[0])) __pyx_t_6 = 0;
       if (unlikely(__pyx_t_6 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_6);
-        __PYX_ERR(0, 136, __pyx_L1_error)
+        __PYX_ERR(0, 189, __pyx_L1_error)
       }
-      __pyx_v_edge_two = ((((((*((double *) ( /* dim=0 */ (__pyx_v_xs_scatter.data + __pyx_t_5 * __pyx_v_xs_scatter.strides[0]) ))) * (*((double *) ( /* dim=0 */ (__pyx_v_scalar_flux_old.data + __pyx_t_7 * __pyx_v_scalar_flux_old.strides[0]) )))) + (*((double *) ( /* dim=0 */ (__pyx_v_external_source.data + __pyx_t_8 * __pyx_v_external_source.strides[0]) )))) + (__pyx_v_edge_one * (fabs(__pyx_v_spatial_coef) - (0.5 * (*((double *) ( /* dim=0 */ (__pyx_v_xs_total.data + __pyx_t_9 * __pyx_v_xs_total.strides[0]) ))))))) * 1.0) / (fabs(__pyx_v_spatial_coef) + (0.5 * (*((double *) ( /* dim=0 */ (__pyx_v_xs_total.data + __pyx_t_10 * __pyx_v_xs_total.strides[0]) ))))));
+      __pyx_v_edge_two = ((((((*((double *) ( /* dim=0 */ (__pyx_v_xs_scatter.data + __pyx_t_5 * __pyx_v_xs_scatter.strides[0]) ))) * (*((double *) ( /* dim=0 */ (__pyx_v_scalar_flux_old.data + __pyx_t_7 * __pyx_v_scalar_flux_old.strides[0]) )))) + (*((double *) ( /* dim=0 */ (__pyx_t_11.data + __pyx_t_10 * __pyx_t_11.strides[0]) )))) + (__pyx_v_edge_one * (fabs(__pyx_v_spatial_coef) - (0.5 * (*((double *) ( /* dim=0 */ (__pyx_v_xs_total.data + __pyx_t_9 * __pyx_v_xs_total.strides[0]) ))))))) * 1.0) / (fabs(__pyx_v_spatial_coef) + (0.5 * (*((double *) ( /* dim=0 */ (__pyx_v_xs_total.data + __pyx_t_8 * __pyx_v_xs_total.strides[0]) ))))));
+      __PYX_XDEC_MEMVIEW(&__pyx_t_11, 1);
+      __pyx_t_11.memview = NULL;
+      __pyx_t_11.data = NULL;
 
-      /* "x_sweeps.pyx":137
+      /* "ants/cyants/x_sweeps.pyx":190
  *                         - 0.5 * xs_total[material])) \
  *                         * 1/(abs(spatial_coef) + 0.5 * xs_total[material])
- *             if spatial == 2:             # <<<<<<<<<<<<<<
+ *             if params[1] == 2:             # <<<<<<<<<<<<<<
  *                 scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)
- *             elif spatial == 1:
+ *             elif params[1] == 1:
  */
-      switch (__pyx_v_spatial) {
-        case 2:
+      __pyx_t_8 = 1;
+      __pyx_t_6 = -1;
+      if (__pyx_t_8 < 0) {
+        __pyx_t_8 += __pyx_v_params.shape[0];
+        if (unlikely(__pyx_t_8 < 0)) __pyx_t_6 = 0;
+      } else if (unlikely(__pyx_t_8 >= __pyx_v_params.shape[0])) __pyx_t_6 = 0;
+      if (unlikely(__pyx_t_6 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_6);
+        __PYX_ERR(0, 190, __pyx_L1_error)
+      }
+      __pyx_t_1 = (((*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_8 * __pyx_v_params.strides[0]) ))) == 2) != 0);
+      if (__pyx_t_1) {
 
-        /* "x_sweeps.pyx":138
+        /* "ants/cyants/x_sweeps.pyx":191
  *                         * 1/(abs(spatial_coef) + 0.5 * xs_total[material])
- *             if spatial == 2:
+ *             if params[1] == 2:
  *                 scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)             # <<<<<<<<<<<<<<
- *             elif spatial == 1:
+ *             elif params[1] == 1:
  *                 scalar_flux[cell] += angle_weight * edge_two
  */
-        __pyx_t_10 = __pyx_v_cell;
+        __pyx_t_8 = __pyx_v_cell;
         __pyx_t_6 = -1;
-        if (__pyx_t_10 < 0) {
-          __pyx_t_10 += __pyx_v_scalar_flux.shape[0];
-          if (unlikely(__pyx_t_10 < 0)) __pyx_t_6 = 0;
-        } else if (unlikely(__pyx_t_10 >= __pyx_v_scalar_flux.shape[0])) __pyx_t_6 = 0;
+        if (__pyx_t_8 < 0) {
+          __pyx_t_8 += __pyx_v_scalar_flux.shape[0];
+          if (unlikely(__pyx_t_8 < 0)) __pyx_t_6 = 0;
+        } else if (unlikely(__pyx_t_8 >= __pyx_v_scalar_flux.shape[0])) __pyx_t_6 = 0;
         if (unlikely(__pyx_t_6 != -1)) {
           __Pyx_RaiseBufferIndexError(__pyx_t_6);
-          __PYX_ERR(0, 138, __pyx_L1_error)
+          __PYX_ERR(0, 191, __pyx_L1_error)
         }
-        *((double *) ( /* dim=0 */ (__pyx_v_scalar_flux.data + __pyx_t_10 * __pyx_v_scalar_flux.strides[0]) )) += ((__pyx_v_angle_weight * 0.5) * (__pyx_v_edge_one + __pyx_v_edge_two));
+        *((double *) ( /* dim=0 */ (__pyx_v_scalar_flux.data + __pyx_t_8 * __pyx_v_scalar_flux.strides[0]) )) += ((__pyx_v_angle_weight * 0.5) * (__pyx_v_edge_one + __pyx_v_edge_two));
 
-        /* "x_sweeps.pyx":137
+        /* "ants/cyants/x_sweeps.pyx":190
  *                         - 0.5 * xs_total[material])) \
  *                         * 1/(abs(spatial_coef) + 0.5 * xs_total[material])
- *             if spatial == 2:             # <<<<<<<<<<<<<<
+ *             if params[1] == 2:             # <<<<<<<<<<<<<<
  *                 scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)
- *             elif spatial == 1:
+ *             elif params[1] == 1:
  */
-        break;
-        case 1:
+        goto __pyx_L7;
+      }
 
-        /* "x_sweeps.pyx":140
+      /* "ants/cyants/x_sweeps.pyx":192
+ *             if params[1] == 2:
  *                 scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)
- *             elif spatial == 1:
+ *             elif params[1] == 1:             # <<<<<<<<<<<<<<
+ *                 scalar_flux[cell] += angle_weight * edge_two
+ *             edge_one = edge_two
+ */
+      __pyx_t_8 = 1;
+      __pyx_t_6 = -1;
+      if (__pyx_t_8 < 0) {
+        __pyx_t_8 += __pyx_v_params.shape[0];
+        if (unlikely(__pyx_t_8 < 0)) __pyx_t_6 = 0;
+      } else if (unlikely(__pyx_t_8 >= __pyx_v_params.shape[0])) __pyx_t_6 = 0;
+      if (unlikely(__pyx_t_6 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_6);
+        __PYX_ERR(0, 192, __pyx_L1_error)
+      }
+      __pyx_t_1 = (((*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_8 * __pyx_v_params.strides[0]) ))) == 1) != 0);
+      if (__pyx_t_1) {
+
+        /* "ants/cyants/x_sweeps.pyx":193
+ *                 scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)
+ *             elif params[1] == 1:
  *                 scalar_flux[cell] += angle_weight * edge_two             # <<<<<<<<<<<<<<
  *             edge_one = edge_two
  *     elif spatial_coef < 0:
  */
-        __pyx_t_10 = __pyx_v_cell;
+        __pyx_t_8 = __pyx_v_cell;
         __pyx_t_6 = -1;
-        if (__pyx_t_10 < 0) {
-          __pyx_t_10 += __pyx_v_scalar_flux.shape[0];
-          if (unlikely(__pyx_t_10 < 0)) __pyx_t_6 = 0;
-        } else if (unlikely(__pyx_t_10 >= __pyx_v_scalar_flux.shape[0])) __pyx_t_6 = 0;
+        if (__pyx_t_8 < 0) {
+          __pyx_t_8 += __pyx_v_scalar_flux.shape[0];
+          if (unlikely(__pyx_t_8 < 0)) __pyx_t_6 = 0;
+        } else if (unlikely(__pyx_t_8 >= __pyx_v_scalar_flux.shape[0])) __pyx_t_6 = 0;
         if (unlikely(__pyx_t_6 != -1)) {
           __Pyx_RaiseBufferIndexError(__pyx_t_6);
-          __PYX_ERR(0, 140, __pyx_L1_error)
+          __PYX_ERR(0, 193, __pyx_L1_error)
         }
-        *((double *) ( /* dim=0 */ (__pyx_v_scalar_flux.data + __pyx_t_10 * __pyx_v_scalar_flux.strides[0]) )) += (__pyx_v_angle_weight * __pyx_v_edge_two);
+        *((double *) ( /* dim=0 */ (__pyx_v_scalar_flux.data + __pyx_t_8 * __pyx_v_scalar_flux.strides[0]) )) += (__pyx_v_angle_weight * __pyx_v_edge_two);
 
-        /* "x_sweeps.pyx":139
- *             if spatial == 2:
+        /* "ants/cyants/x_sweeps.pyx":192
+ *             if params[1] == 2:
  *                 scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)
- *             elif spatial == 1:             # <<<<<<<<<<<<<<
+ *             elif params[1] == 1:             # <<<<<<<<<<<<<<
  *                 scalar_flux[cell] += angle_weight * edge_two
  *             edge_one = edge_two
  */
-        break;
-        default: break;
       }
+      __pyx_L7:;
 
-      /* "x_sweeps.pyx":141
- *             elif spatial == 1:
+      /* "ants/cyants/x_sweeps.pyx":194
+ *             elif params[1] == 1:
  *                 scalar_flux[cell] += angle_weight * edge_two
  *             edge_one = edge_two             # <<<<<<<<<<<<<<
  *     elif spatial_coef < 0:
@@ -3817,7 +4498,7 @@ static void __pyx_f_8x_sweeps_vacuum(__Pyx_memviewslice &__pyx_v_scalar_flux, __
       __pyx_v_edge_one = __pyx_v_edge_two;
     }
 
-    /* "x_sweeps.pyx":128
+    /* "ants/cyants/x_sweeps.pyx":180
  *     cdef int material, cell
  *     cdef int cells = medium_map.shape[0]
  *     if spatial_coef > 0:             # <<<<<<<<<<<<<<
@@ -3827,7 +4508,7 @@ static void __pyx_f_8x_sweeps_vacuum(__Pyx_memviewslice &__pyx_v_scalar_flux, __
     goto __pyx_L3;
   }
 
-  /* "x_sweeps.pyx":142
+  /* "ants/cyants/x_sweeps.pyx":195
  *                 scalar_flux[cell] += angle_weight * edge_two
  *             edge_one = edge_two
  *     elif spatial_coef < 0:             # <<<<<<<<<<<<<<
@@ -3837,79 +4518,89 @@ static void __pyx_f_8x_sweeps_vacuum(__Pyx_memviewslice &__pyx_v_scalar_flux, __
   __pyx_t_1 = ((__pyx_v_spatial_coef < 0.0) != 0);
   if (__pyx_t_1) {
 
-    /* "x_sweeps.pyx":143
+    /* "ants/cyants/x_sweeps.pyx":196
  *             edge_one = edge_two
  *     elif spatial_coef < 0:
  *         for cell in range(cells-1, -1, -1):             # <<<<<<<<<<<<<<
  *             material = medium_map[cell]
- *             if (cell + 1) == point_source_loc:
+ *             if (cell + 1) == params[5]:
  */
     for (__pyx_t_2 = (__pyx_v_cells - 1); __pyx_t_2 > -1; __pyx_t_2-=1) {
       __pyx_v_cell = __pyx_t_2;
 
-      /* "x_sweeps.pyx":144
+      /* "ants/cyants/x_sweeps.pyx":197
  *     elif spatial_coef < 0:
  *         for cell in range(cells-1, -1, -1):
  *             material = medium_map[cell]             # <<<<<<<<<<<<<<
- *             if (cell + 1) == point_source_loc:
+ *             if (cell + 1) == params[5]:
  *                 edge_two += point_source
  */
-      __pyx_t_10 = __pyx_v_cell;
+      __pyx_t_8 = __pyx_v_cell;
       __pyx_t_3 = -1;
-      if (__pyx_t_10 < 0) {
-        __pyx_t_10 += __pyx_v_medium_map.shape[0];
-        if (unlikely(__pyx_t_10 < 0)) __pyx_t_3 = 0;
-      } else if (unlikely(__pyx_t_10 >= __pyx_v_medium_map.shape[0])) __pyx_t_3 = 0;
+      if (__pyx_t_8 < 0) {
+        __pyx_t_8 += __pyx_v_medium_map.shape[0];
+        if (unlikely(__pyx_t_8 < 0)) __pyx_t_3 = 0;
+      } else if (unlikely(__pyx_t_8 >= __pyx_v_medium_map.shape[0])) __pyx_t_3 = 0;
       if (unlikely(__pyx_t_3 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_3);
-        __PYX_ERR(0, 144, __pyx_L1_error)
+        __PYX_ERR(0, 197, __pyx_L1_error)
       }
-      __pyx_v_material = (*((int *) ( /* dim=0 */ (__pyx_v_medium_map.data + __pyx_t_10 * __pyx_v_medium_map.strides[0]) )));
+      __pyx_v_material = (*((int *) ( /* dim=0 */ (__pyx_v_medium_map.data + __pyx_t_8 * __pyx_v_medium_map.strides[0]) )));
 
-      /* "x_sweeps.pyx":145
+      /* "ants/cyants/x_sweeps.pyx":198
  *         for cell in range(cells-1, -1, -1):
  *             material = medium_map[cell]
- *             if (cell + 1) == point_source_loc:             # <<<<<<<<<<<<<<
+ *             if (cell + 1) == params[5]:             # <<<<<<<<<<<<<<
  *                 edge_two += point_source
  *             edge_one = (xs_scatter[material] * scalar_flux_old[cell] \
  */
-      __pyx_t_1 = (((__pyx_v_cell + 1) == __pyx_v_point_source_loc) != 0);
+      __pyx_t_8 = 5;
+      __pyx_t_3 = -1;
+      if (__pyx_t_8 < 0) {
+        __pyx_t_8 += __pyx_v_params.shape[0];
+        if (unlikely(__pyx_t_8 < 0)) __pyx_t_3 = 0;
+      } else if (unlikely(__pyx_t_8 >= __pyx_v_params.shape[0])) __pyx_t_3 = 0;
+      if (unlikely(__pyx_t_3 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_3);
+        __PYX_ERR(0, 198, __pyx_L1_error)
+      }
+      __pyx_t_1 = (((__pyx_v_cell + 1) == (*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_8 * __pyx_v_params.strides[0]) )))) != 0);
       if (__pyx_t_1) {
 
-        /* "x_sweeps.pyx":146
+        /* "ants/cyants/x_sweeps.pyx":199
  *             material = medium_map[cell]
- *             if (cell + 1) == point_source_loc:
+ *             if (cell + 1) == params[5]:
  *                 edge_two += point_source             # <<<<<<<<<<<<<<
  *             edge_one = (xs_scatter[material] * scalar_flux_old[cell] \
- *                         + external_source[cell] + edge_two * (abs(spatial_coef) \
+ *                         + external_source[ex_group_idx + ex_angle_idx*params[3]::params[4]*params[3]][cell] \
  */
         __pyx_v_edge_two = (__pyx_v_edge_two + __pyx_v_point_source);
 
-        /* "x_sweeps.pyx":145
+        /* "ants/cyants/x_sweeps.pyx":198
  *         for cell in range(cells-1, -1, -1):
  *             material = medium_map[cell]
- *             if (cell + 1) == point_source_loc:             # <<<<<<<<<<<<<<
+ *             if (cell + 1) == params[5]:             # <<<<<<<<<<<<<<
  *                 edge_two += point_source
  *             edge_one = (xs_scatter[material] * scalar_flux_old[cell] \
  */
       }
 
-      /* "x_sweeps.pyx":147
- *             if (cell + 1) == point_source_loc:
+      /* "ants/cyants/x_sweeps.pyx":200
+ *             if (cell + 1) == params[5]:
  *                 edge_two += point_source
  *             edge_one = (xs_scatter[material] * scalar_flux_old[cell] \             # <<<<<<<<<<<<<<
- *                         + external_source[cell] + edge_two * (abs(spatial_coef) \
- *                         - 0.5 * xs_total[material])) \
+ *                         + external_source[ex_group_idx + ex_angle_idx*params[3]::params[4]*params[3]][cell] \
+ *                         + edge_two * (abs(spatial_coef) \
  */
-      __pyx_t_10 = __pyx_v_material;
+      __pyx_t_8 = __pyx_v_material;
       __pyx_t_3 = -1;
-      if (__pyx_t_10 < 0) {
-        __pyx_t_10 += __pyx_v_xs_scatter.shape[0];
-        if (unlikely(__pyx_t_10 < 0)) __pyx_t_3 = 0;
-      } else if (unlikely(__pyx_t_10 >= __pyx_v_xs_scatter.shape[0])) __pyx_t_3 = 0;
+      if (__pyx_t_8 < 0) {
+        __pyx_t_8 += __pyx_v_xs_scatter.shape[0];
+        if (unlikely(__pyx_t_8 < 0)) __pyx_t_3 = 0;
+      } else if (unlikely(__pyx_t_8 >= __pyx_v_xs_scatter.shape[0])) __pyx_t_3 = 0;
       if (unlikely(__pyx_t_3 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_3);
-        __PYX_ERR(0, 147, __pyx_L1_error)
+        __PYX_ERR(0, 200, __pyx_L1_error)
       }
       __pyx_t_9 = __pyx_v_cell;
       __pyx_t_3 = -1;
@@ -3919,33 +4610,84 @@ static void __pyx_f_8x_sweeps_vacuum(__Pyx_memviewslice &__pyx_v_scalar_flux, __
       } else if (unlikely(__pyx_t_9 >= __pyx_v_scalar_flux_old.shape[0])) __pyx_t_3 = 0;
       if (unlikely(__pyx_t_3 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_3);
-        __PYX_ERR(0, 147, __pyx_L1_error)
+        __PYX_ERR(0, 200, __pyx_L1_error)
       }
 
-      /* "x_sweeps.pyx":148
+      /* "ants/cyants/x_sweeps.pyx":201
  *                 edge_two += point_source
  *             edge_one = (xs_scatter[material] * scalar_flux_old[cell] \
- *                         + external_source[cell] + edge_two * (abs(spatial_coef) \             # <<<<<<<<<<<<<<
+ *                         + external_source[ex_group_idx + ex_angle_idx*params[3]::params[4]*params[3]][cell] \             # <<<<<<<<<<<<<<
+ *                         + edge_two * (abs(spatial_coef) \
  *                         - 0.5 * xs_total[material])) \
- *                         * 1/(abs(spatial_coef) + 0.5 * xs_total[material])
  */
-      __pyx_t_8 = __pyx_v_cell;
+      __pyx_t_10 = 3;
       __pyx_t_3 = -1;
-      if (__pyx_t_8 < 0) {
-        __pyx_t_8 += __pyx_v_external_source.shape[0];
-        if (unlikely(__pyx_t_8 < 0)) __pyx_t_3 = 0;
-      } else if (unlikely(__pyx_t_8 >= __pyx_v_external_source.shape[0])) __pyx_t_3 = 0;
+      if (__pyx_t_10 < 0) {
+        __pyx_t_10 += __pyx_v_params.shape[0];
+        if (unlikely(__pyx_t_10 < 0)) __pyx_t_3 = 0;
+      } else if (unlikely(__pyx_t_10 >= __pyx_v_params.shape[0])) __pyx_t_3 = 0;
       if (unlikely(__pyx_t_3 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_3);
-        __PYX_ERR(0, 148, __pyx_L1_error)
+        __PYX_ERR(0, 201, __pyx_L1_error)
+      }
+      __pyx_t_7 = 4;
+      __pyx_t_3 = -1;
+      if (__pyx_t_7 < 0) {
+        __pyx_t_7 += __pyx_v_params.shape[0];
+        if (unlikely(__pyx_t_7 < 0)) __pyx_t_3 = 0;
+      } else if (unlikely(__pyx_t_7 >= __pyx_v_params.shape[0])) __pyx_t_3 = 0;
+      if (unlikely(__pyx_t_3 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_3);
+        __PYX_ERR(0, 201, __pyx_L1_error)
+      }
+      __pyx_t_5 = 3;
+      __pyx_t_3 = -1;
+      if (__pyx_t_5 < 0) {
+        __pyx_t_5 += __pyx_v_params.shape[0];
+        if (unlikely(__pyx_t_5 < 0)) __pyx_t_3 = 0;
+      } else if (unlikely(__pyx_t_5 >= __pyx_v_params.shape[0])) __pyx_t_3 = 0;
+      if (unlikely(__pyx_t_3 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_3);
+        __PYX_ERR(0, 201, __pyx_L1_error)
+      }
+      __pyx_t_11.data = __pyx_v_external_source.data;
+      __pyx_t_11.memview = __pyx_v_external_source.memview;
+      __PYX_INC_MEMVIEW(&__pyx_t_11, 0);
+      __pyx_t_3 = -1;
+      if (unlikely(__pyx_memoryview_slice_memviewslice(
+    &__pyx_t_11,
+    __pyx_v_external_source.shape[0], __pyx_v_external_source.strides[0], __pyx_v_external_source.suboffsets[0],
+    0,
+    0,
+    &__pyx_t_3,
+    (__pyx_v_ex_group_idx + (__pyx_v_ex_angle_idx * (*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_10 * __pyx_v_params.strides[0]) ))))),
+    0,
+    ((*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_7 * __pyx_v_params.strides[0]) ))) * (*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_5 * __pyx_v_params.strides[0]) )))),
+    1,
+    0,
+    1,
+    1) < 0))
+{
+    __PYX_ERR(0, 201, __pyx_L1_error)
+}
+
+__pyx_t_5 = __pyx_v_cell;
+      __pyx_t_3 = -1;
+      if (__pyx_t_5 < 0) {
+        __pyx_t_5 += __pyx_t_11.shape[0];
+        if (unlikely(__pyx_t_5 < 0)) __pyx_t_3 = 0;
+      } else if (unlikely(__pyx_t_5 >= __pyx_t_11.shape[0])) __pyx_t_3 = 0;
+      if (unlikely(__pyx_t_3 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_3);
+        __PYX_ERR(0, 201, __pyx_L1_error)
       }
 
-      /* "x_sweeps.pyx":149
- *             edge_one = (xs_scatter[material] * scalar_flux_old[cell] \
- *                         + external_source[cell] + edge_two * (abs(spatial_coef) \
+      /* "ants/cyants/x_sweeps.pyx":203
+ *                         + external_source[ex_group_idx + ex_angle_idx*params[3]::params[4]*params[3]][cell] \
+ *                         + edge_two * (abs(spatial_coef) \
  *                         - 0.5 * xs_total[material])) \             # <<<<<<<<<<<<<<
  *                         * 1/(abs(spatial_coef) + 0.5 * xs_total[material])
- *             if spatial == 2:
+ *             if params[1] == 2:
  */
       __pyx_t_7 = __pyx_v_material;
       __pyx_t_3 = -1;
@@ -3955,99 +4697,131 @@ static void __pyx_f_8x_sweeps_vacuum(__Pyx_memviewslice &__pyx_v_scalar_flux, __
       } else if (unlikely(__pyx_t_7 >= __pyx_v_xs_total.shape[0])) __pyx_t_3 = 0;
       if (unlikely(__pyx_t_3 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_3);
-        __PYX_ERR(0, 149, __pyx_L1_error)
+        __PYX_ERR(0, 203, __pyx_L1_error)
       }
 
-      /* "x_sweeps.pyx":150
- *                         + external_source[cell] + edge_two * (abs(spatial_coef) \
+      /* "ants/cyants/x_sweeps.pyx":204
+ *                         + edge_two * (abs(spatial_coef) \
  *                         - 0.5 * xs_total[material])) \
  *                         * 1/(abs(spatial_coef) + 0.5 * xs_total[material])             # <<<<<<<<<<<<<<
- *             if spatial == 2:
+ *             if params[1] == 2:
  *                 scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)
  */
-      __pyx_t_5 = __pyx_v_material;
+      __pyx_t_10 = __pyx_v_material;
       __pyx_t_3 = -1;
-      if (__pyx_t_5 < 0) {
-        __pyx_t_5 += __pyx_v_xs_total.shape[0];
-        if (unlikely(__pyx_t_5 < 0)) __pyx_t_3 = 0;
-      } else if (unlikely(__pyx_t_5 >= __pyx_v_xs_total.shape[0])) __pyx_t_3 = 0;
+      if (__pyx_t_10 < 0) {
+        __pyx_t_10 += __pyx_v_xs_total.shape[0];
+        if (unlikely(__pyx_t_10 < 0)) __pyx_t_3 = 0;
+      } else if (unlikely(__pyx_t_10 >= __pyx_v_xs_total.shape[0])) __pyx_t_3 = 0;
       if (unlikely(__pyx_t_3 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_3);
-        __PYX_ERR(0, 150, __pyx_L1_error)
+        __PYX_ERR(0, 204, __pyx_L1_error)
       }
-      __pyx_v_edge_one = ((((((*((double *) ( /* dim=0 */ (__pyx_v_xs_scatter.data + __pyx_t_10 * __pyx_v_xs_scatter.strides[0]) ))) * (*((double *) ( /* dim=0 */ (__pyx_v_scalar_flux_old.data + __pyx_t_9 * __pyx_v_scalar_flux_old.strides[0]) )))) + (*((double *) ( /* dim=0 */ (__pyx_v_external_source.data + __pyx_t_8 * __pyx_v_external_source.strides[0]) )))) + (__pyx_v_edge_two * (fabs(__pyx_v_spatial_coef) - (0.5 * (*((double *) ( /* dim=0 */ (__pyx_v_xs_total.data + __pyx_t_7 * __pyx_v_xs_total.strides[0]) ))))))) * 1.0) / (fabs(__pyx_v_spatial_coef) + (0.5 * (*((double *) ( /* dim=0 */ (__pyx_v_xs_total.data + __pyx_t_5 * __pyx_v_xs_total.strides[0]) ))))));
+      __pyx_v_edge_one = ((((((*((double *) ( /* dim=0 */ (__pyx_v_xs_scatter.data + __pyx_t_8 * __pyx_v_xs_scatter.strides[0]) ))) * (*((double *) ( /* dim=0 */ (__pyx_v_scalar_flux_old.data + __pyx_t_9 * __pyx_v_scalar_flux_old.strides[0]) )))) + (*((double *) ( /* dim=0 */ (__pyx_t_11.data + __pyx_t_5 * __pyx_t_11.strides[0]) )))) + (__pyx_v_edge_two * (fabs(__pyx_v_spatial_coef) - (0.5 * (*((double *) ( /* dim=0 */ (__pyx_v_xs_total.data + __pyx_t_7 * __pyx_v_xs_total.strides[0]) ))))))) * 1.0) / (fabs(__pyx_v_spatial_coef) + (0.5 * (*((double *) ( /* dim=0 */ (__pyx_v_xs_total.data + __pyx_t_10 * __pyx_v_xs_total.strides[0]) ))))));
+      __PYX_XDEC_MEMVIEW(&__pyx_t_11, 1);
+      __pyx_t_11.memview = NULL;
+      __pyx_t_11.data = NULL;
 
-      /* "x_sweeps.pyx":151
+      /* "ants/cyants/x_sweeps.pyx":205
  *                         - 0.5 * xs_total[material])) \
  *                         * 1/(abs(spatial_coef) + 0.5 * xs_total[material])
- *             if spatial == 2:             # <<<<<<<<<<<<<<
+ *             if params[1] == 2:             # <<<<<<<<<<<<<<
  *                 scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)
- *             elif spatial == 1:
+ *             elif params[1] == 1:
  */
-      switch (__pyx_v_spatial) {
-        case 2:
+      __pyx_t_10 = 1;
+      __pyx_t_3 = -1;
+      if (__pyx_t_10 < 0) {
+        __pyx_t_10 += __pyx_v_params.shape[0];
+        if (unlikely(__pyx_t_10 < 0)) __pyx_t_3 = 0;
+      } else if (unlikely(__pyx_t_10 >= __pyx_v_params.shape[0])) __pyx_t_3 = 0;
+      if (unlikely(__pyx_t_3 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_3);
+        __PYX_ERR(0, 205, __pyx_L1_error)
+      }
+      __pyx_t_1 = (((*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_10 * __pyx_v_params.strides[0]) ))) == 2) != 0);
+      if (__pyx_t_1) {
 
-        /* "x_sweeps.pyx":152
+        /* "ants/cyants/x_sweeps.pyx":206
  *                         * 1/(abs(spatial_coef) + 0.5 * xs_total[material])
- *             if spatial == 2:
+ *             if params[1] == 2:
  *                 scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)             # <<<<<<<<<<<<<<
- *             elif spatial == 1:
+ *             elif params[1] == 1:
  *                 scalar_flux[cell] += angle_weight * edge_one
  */
-        __pyx_t_5 = __pyx_v_cell;
+        __pyx_t_10 = __pyx_v_cell;
         __pyx_t_3 = -1;
-        if (__pyx_t_5 < 0) {
-          __pyx_t_5 += __pyx_v_scalar_flux.shape[0];
-          if (unlikely(__pyx_t_5 < 0)) __pyx_t_3 = 0;
-        } else if (unlikely(__pyx_t_5 >= __pyx_v_scalar_flux.shape[0])) __pyx_t_3 = 0;
+        if (__pyx_t_10 < 0) {
+          __pyx_t_10 += __pyx_v_scalar_flux.shape[0];
+          if (unlikely(__pyx_t_10 < 0)) __pyx_t_3 = 0;
+        } else if (unlikely(__pyx_t_10 >= __pyx_v_scalar_flux.shape[0])) __pyx_t_3 = 0;
         if (unlikely(__pyx_t_3 != -1)) {
           __Pyx_RaiseBufferIndexError(__pyx_t_3);
-          __PYX_ERR(0, 152, __pyx_L1_error)
+          __PYX_ERR(0, 206, __pyx_L1_error)
         }
-        *((double *) ( /* dim=0 */ (__pyx_v_scalar_flux.data + __pyx_t_5 * __pyx_v_scalar_flux.strides[0]) )) += ((__pyx_v_angle_weight * 0.5) * (__pyx_v_edge_one + __pyx_v_edge_two));
+        *((double *) ( /* dim=0 */ (__pyx_v_scalar_flux.data + __pyx_t_10 * __pyx_v_scalar_flux.strides[0]) )) += ((__pyx_v_angle_weight * 0.5) * (__pyx_v_edge_one + __pyx_v_edge_two));
 
-        /* "x_sweeps.pyx":151
+        /* "ants/cyants/x_sweeps.pyx":205
  *                         - 0.5 * xs_total[material])) \
  *                         * 1/(abs(spatial_coef) + 0.5 * xs_total[material])
- *             if spatial == 2:             # <<<<<<<<<<<<<<
+ *             if params[1] == 2:             # <<<<<<<<<<<<<<
  *                 scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)
- *             elif spatial == 1:
+ *             elif params[1] == 1:
  */
-        break;
-        case 1:
+        goto __pyx_L11;
+      }
 
-        /* "x_sweeps.pyx":154
+      /* "ants/cyants/x_sweeps.pyx":207
+ *             if params[1] == 2:
  *                 scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)
- *             elif spatial == 1:
+ *             elif params[1] == 1:             # <<<<<<<<<<<<<<
+ *                 scalar_flux[cell] += angle_weight * edge_one
+ *             edge_two = edge_one
+ */
+      __pyx_t_10 = 1;
+      __pyx_t_3 = -1;
+      if (__pyx_t_10 < 0) {
+        __pyx_t_10 += __pyx_v_params.shape[0];
+        if (unlikely(__pyx_t_10 < 0)) __pyx_t_3 = 0;
+      } else if (unlikely(__pyx_t_10 >= __pyx_v_params.shape[0])) __pyx_t_3 = 0;
+      if (unlikely(__pyx_t_3 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_3);
+        __PYX_ERR(0, 207, __pyx_L1_error)
+      }
+      __pyx_t_1 = (((*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_10 * __pyx_v_params.strides[0]) ))) == 1) != 0);
+      if (__pyx_t_1) {
+
+        /* "ants/cyants/x_sweeps.pyx":208
+ *                 scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)
+ *             elif params[1] == 1:
  *                 scalar_flux[cell] += angle_weight * edge_one             # <<<<<<<<<<<<<<
  *             edge_two = edge_one
  * 
  */
-        __pyx_t_5 = __pyx_v_cell;
+        __pyx_t_10 = __pyx_v_cell;
         __pyx_t_3 = -1;
-        if (__pyx_t_5 < 0) {
-          __pyx_t_5 += __pyx_v_scalar_flux.shape[0];
-          if (unlikely(__pyx_t_5 < 0)) __pyx_t_3 = 0;
-        } else if (unlikely(__pyx_t_5 >= __pyx_v_scalar_flux.shape[0])) __pyx_t_3 = 0;
+        if (__pyx_t_10 < 0) {
+          __pyx_t_10 += __pyx_v_scalar_flux.shape[0];
+          if (unlikely(__pyx_t_10 < 0)) __pyx_t_3 = 0;
+        } else if (unlikely(__pyx_t_10 >= __pyx_v_scalar_flux.shape[0])) __pyx_t_3 = 0;
         if (unlikely(__pyx_t_3 != -1)) {
           __Pyx_RaiseBufferIndexError(__pyx_t_3);
-          __PYX_ERR(0, 154, __pyx_L1_error)
+          __PYX_ERR(0, 208, __pyx_L1_error)
         }
-        *((double *) ( /* dim=0 */ (__pyx_v_scalar_flux.data + __pyx_t_5 * __pyx_v_scalar_flux.strides[0]) )) += (__pyx_v_angle_weight * __pyx_v_edge_one);
+        *((double *) ( /* dim=0 */ (__pyx_v_scalar_flux.data + __pyx_t_10 * __pyx_v_scalar_flux.strides[0]) )) += (__pyx_v_angle_weight * __pyx_v_edge_one);
 
-        /* "x_sweeps.pyx":153
- *             if spatial == 2:
+        /* "ants/cyants/x_sweeps.pyx":207
+ *             if params[1] == 2:
  *                 scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)
- *             elif spatial == 1:             # <<<<<<<<<<<<<<
+ *             elif params[1] == 1:             # <<<<<<<<<<<<<<
  *                 scalar_flux[cell] += angle_weight * edge_one
  *             edge_two = edge_one
  */
-        break;
-        default: break;
       }
+      __pyx_L11:;
 
-      /* "x_sweeps.pyx":155
- *             elif spatial == 1:
+      /* "ants/cyants/x_sweeps.pyx":209
+ *             elif params[1] == 1:
  *                 scalar_flux[cell] += angle_weight * edge_one
  *             edge_two = edge_one             # <<<<<<<<<<<<<<
  * 
@@ -4056,7 +4830,7 @@ static void __pyx_f_8x_sweeps_vacuum(__Pyx_memviewslice &__pyx_v_scalar_flux, __
       __pyx_v_edge_two = __pyx_v_edge_one;
     }
 
-    /* "x_sweeps.pyx":142
+    /* "ants/cyants/x_sweeps.pyx":195
  *                 scalar_flux[cell] += angle_weight * edge_two
  *             edge_one = edge_two
  *     elif spatial_coef < 0:             # <<<<<<<<<<<<<<
@@ -4066,31 +4840,32 @@ static void __pyx_f_8x_sweeps_vacuum(__Pyx_memviewslice &__pyx_v_scalar_flux, __
   }
   __pyx_L3:;
 
-  /* "x_sweeps.pyx":118
+  /* "ants/cyants/x_sweeps.pyx":170
  * 
  * 
  * cdef void vacuum(double[:]& scalar_flux, double[:]& scalar_flux_old, \             # <<<<<<<<<<<<<<
- *                         int[:]& medium_map, \
- *                         double[:]& xs_total, double[:]& xs_scatter, \
+ *                 int[:]& medium_map, double[:]& xs_total, \
+ *                 double[:]& xs_scatter, double[:]& external_source, \
  */
 
   /* function exit code */
   goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_WriteUnraisable("x_sweeps.vacuum", __pyx_clineno, __pyx_lineno, __pyx_filename, 1, 0);
+  __PYX_XDEC_MEMVIEW(&__pyx_t_11, 1);
+  __Pyx_WriteUnraisable("ants.cyants.x_sweeps.vacuum", __pyx_clineno, __pyx_lineno, __pyx_filename, 1, 0);
   __pyx_L0:;
   __Pyx_RefNannyFinishContext();
 }
 
-/* "x_sweeps.pyx":158
+/* "ants/cyants/x_sweeps.pyx":212
  * 
  * 
  * cdef void reflected(double[:]& scalar_flux, double[:]& scalar_flux_old, \             # <<<<<<<<<<<<<<
- *                         int[:]& medium_map, \
- *                         double[:]& xs_total, double[:]& xs_scatter, \
+ *                     int[:]& medium_map, double[:]& xs_total, \
+ *                     double[:]& xs_scatter, double[:]& external_source, \
  */
 
-static void __pyx_f_8x_sweeps_reflected(__Pyx_memviewslice &__pyx_v_scalar_flux, __Pyx_memviewslice &__pyx_v_scalar_flux_old, __Pyx_memviewslice &__pyx_v_medium_map, __Pyx_memviewslice &__pyx_v_xs_total, __Pyx_memviewslice &__pyx_v_xs_scatter, __Pyx_memviewslice &__pyx_v_external_source, int __pyx_v_point_source_loc, double __pyx_v_point_source, double __pyx_v_spatial_coef, double __pyx_v_angle_weight, int __pyx_v_spatial) {
+static void __pyx_f_4ants_6cyants_8x_sweeps_reflected(__Pyx_memviewslice &__pyx_v_scalar_flux, __Pyx_memviewslice &__pyx_v_scalar_flux_old, __Pyx_memviewslice &__pyx_v_medium_map, __Pyx_memviewslice &__pyx_v_xs_total, __Pyx_memviewslice &__pyx_v_xs_scatter, __Pyx_memviewslice &__pyx_v_external_source, double __pyx_v_point_source, double __pyx_v_spatial_coef, double __pyx_v_angle_weight, __Pyx_memviewslice &__pyx_v_params, size_t __pyx_v_ex_group_idx, size_t __pyx_v_ex_angle_idx) {
   double __pyx_v_edge_one;
   double __pyx_v_edge_two;
   int __pyx_v_material;
@@ -4107,22 +4882,23 @@ static void __pyx_f_8x_sweeps_reflected(__Pyx_memviewslice &__pyx_v_scalar_flux,
   Py_ssize_t __pyx_t_8;
   Py_ssize_t __pyx_t_9;
   Py_ssize_t __pyx_t_10;
+  __Pyx_memviewslice __pyx_t_11 = { 0, 0, { 0 }, { 0 }, { 0 } };
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("reflected", 0);
 
-  /* "x_sweeps.pyx":164
- *                         double point_source, double spatial_coef, \
- *                         double angle_weight, int spatial):
+  /* "ants/cyants/x_sweeps.pyx":218
+ *                     double angle_weight, int[:]& params, \
+ *                     size_t ex_group_idx, size_t ex_angle_idx):
  *     cdef double edge_one = 0             # <<<<<<<<<<<<<<
  *     cdef double edge_two = 0
  *     cdef int material, cell
  */
   __pyx_v_edge_one = 0.0;
 
-  /* "x_sweeps.pyx":165
- *                         double angle_weight, int spatial):
+  /* "ants/cyants/x_sweeps.pyx":219
+ *                     size_t ex_group_idx, size_t ex_angle_idx):
  *     cdef double edge_one = 0
  *     cdef double edge_two = 0             # <<<<<<<<<<<<<<
  *     cdef int material, cell
@@ -4130,7 +4906,7 @@ static void __pyx_f_8x_sweeps_reflected(__Pyx_memviewslice &__pyx_v_scalar_flux,
  */
   __pyx_v_edge_two = 0.0;
 
-  /* "x_sweeps.pyx":167
+  /* "ants/cyants/x_sweeps.pyx":221
  *     cdef double edge_two = 0
  *     cdef int material, cell
  *     cdef int cells = medium_map.shape[0]             # <<<<<<<<<<<<<<
@@ -4139,23 +4915,23 @@ static void __pyx_f_8x_sweeps_reflected(__Pyx_memviewslice &__pyx_v_scalar_flux,
  */
   __pyx_v_cells = (__pyx_v_medium_map.shape[0]);
 
-  /* "x_sweeps.pyx":169
+  /* "ants/cyants/x_sweeps.pyx":223
  *     cdef int cells = medium_map.shape[0]
  * 
  *     for cell in range(cells):             # <<<<<<<<<<<<<<
  *         material = medium_map[cell]
- *         if cell == point_source_loc:
+ *         if cell == params[5]:
  */
   __pyx_t_1 = __pyx_v_cells;
   __pyx_t_2 = __pyx_t_1;
   for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_2; __pyx_t_3+=1) {
     __pyx_v_cell = __pyx_t_3;
 
-    /* "x_sweeps.pyx":170
+    /* "ants/cyants/x_sweeps.pyx":224
  * 
  *     for cell in range(cells):
  *         material = medium_map[cell]             # <<<<<<<<<<<<<<
- *         if cell == point_source_loc:
+ *         if cell == params[5]:
  *             edge_one += point_source
  */
     __pyx_t_4 = __pyx_v_cell;
@@ -4166,44 +4942,54 @@ static void __pyx_f_8x_sweeps_reflected(__Pyx_memviewslice &__pyx_v_scalar_flux,
     } else if (unlikely(__pyx_t_4 >= __pyx_v_medium_map.shape[0])) __pyx_t_5 = 0;
     if (unlikely(__pyx_t_5 != -1)) {
       __Pyx_RaiseBufferIndexError(__pyx_t_5);
-      __PYX_ERR(0, 170, __pyx_L1_error)
+      __PYX_ERR(0, 224, __pyx_L1_error)
     }
     __pyx_v_material = (*((int *) ( /* dim=0 */ (__pyx_v_medium_map.data + __pyx_t_4 * __pyx_v_medium_map.strides[0]) )));
 
-    /* "x_sweeps.pyx":171
+    /* "ants/cyants/x_sweeps.pyx":225
  *     for cell in range(cells):
  *         material = medium_map[cell]
- *         if cell == point_source_loc:             # <<<<<<<<<<<<<<
+ *         if cell == params[5]:             # <<<<<<<<<<<<<<
  *             edge_one += point_source
  *         edge_two = (xs_scatter[material] * scalar_flux_old[cell] \
  */
-    __pyx_t_6 = ((__pyx_v_cell == __pyx_v_point_source_loc) != 0);
+    __pyx_t_4 = 5;
+    __pyx_t_5 = -1;
+    if (__pyx_t_4 < 0) {
+      __pyx_t_4 += __pyx_v_params.shape[0];
+      if (unlikely(__pyx_t_4 < 0)) __pyx_t_5 = 0;
+    } else if (unlikely(__pyx_t_4 >= __pyx_v_params.shape[0])) __pyx_t_5 = 0;
+    if (unlikely(__pyx_t_5 != -1)) {
+      __Pyx_RaiseBufferIndexError(__pyx_t_5);
+      __PYX_ERR(0, 225, __pyx_L1_error)
+    }
+    __pyx_t_6 = ((__pyx_v_cell == (*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_4 * __pyx_v_params.strides[0]) )))) != 0);
     if (__pyx_t_6) {
 
-      /* "x_sweeps.pyx":172
+      /* "ants/cyants/x_sweeps.pyx":226
  *         material = medium_map[cell]
- *         if cell == point_source_loc:
+ *         if cell == params[5]:
  *             edge_one += point_source             # <<<<<<<<<<<<<<
  *         edge_two = (xs_scatter[material] * scalar_flux_old[cell] \
- *                     + external_source[cell] + edge_one * (abs(spatial_coef) \
+ *                     + external_source[ex_group_idx + ex_angle_idx*params[3]::params[4]*params[3]][cell] \
  */
       __pyx_v_edge_one = (__pyx_v_edge_one + __pyx_v_point_source);
 
-      /* "x_sweeps.pyx":171
+      /* "ants/cyants/x_sweeps.pyx":225
  *     for cell in range(cells):
  *         material = medium_map[cell]
- *         if cell == point_source_loc:             # <<<<<<<<<<<<<<
+ *         if cell == params[5]:             # <<<<<<<<<<<<<<
  *             edge_one += point_source
  *         edge_two = (xs_scatter[material] * scalar_flux_old[cell] \
  */
     }
 
-    /* "x_sweeps.pyx":173
- *         if cell == point_source_loc:
+    /* "ants/cyants/x_sweeps.pyx":227
+ *         if cell == params[5]:
  *             edge_one += point_source
  *         edge_two = (xs_scatter[material] * scalar_flux_old[cell] \             # <<<<<<<<<<<<<<
- *                     + external_source[cell] + edge_one * (abs(spatial_coef) \
- *                     - 0.5 * xs_total[material])) \
+ *                     + external_source[ex_group_idx + ex_angle_idx*params[3]::params[4]*params[3]][cell] \
+ *                     + edge_one * (abs(spatial_coef) \
  */
     __pyx_t_4 = __pyx_v_material;
     __pyx_t_5 = -1;
@@ -4213,7 +4999,7 @@ static void __pyx_f_8x_sweeps_reflected(__Pyx_memviewslice &__pyx_v_scalar_flux,
     } else if (unlikely(__pyx_t_4 >= __pyx_v_xs_scatter.shape[0])) __pyx_t_5 = 0;
     if (unlikely(__pyx_t_5 != -1)) {
       __Pyx_RaiseBufferIndexError(__pyx_t_5);
-      __PYX_ERR(0, 173, __pyx_L1_error)
+      __PYX_ERR(0, 227, __pyx_L1_error)
     }
     __pyx_t_7 = __pyx_v_cell;
     __pyx_t_5 = -1;
@@ -4223,33 +5009,84 @@ static void __pyx_f_8x_sweeps_reflected(__Pyx_memviewslice &__pyx_v_scalar_flux,
     } else if (unlikely(__pyx_t_7 >= __pyx_v_scalar_flux_old.shape[0])) __pyx_t_5 = 0;
     if (unlikely(__pyx_t_5 != -1)) {
       __Pyx_RaiseBufferIndexError(__pyx_t_5);
-      __PYX_ERR(0, 173, __pyx_L1_error)
+      __PYX_ERR(0, 227, __pyx_L1_error)
     }
 
-    /* "x_sweeps.pyx":174
+    /* "ants/cyants/x_sweeps.pyx":228
  *             edge_one += point_source
  *         edge_two = (xs_scatter[material] * scalar_flux_old[cell] \
- *                     + external_source[cell] + edge_one * (abs(spatial_coef) \             # <<<<<<<<<<<<<<
+ *                     + external_source[ex_group_idx + ex_angle_idx*params[3]::params[4]*params[3]][cell] \             # <<<<<<<<<<<<<<
+ *                     + edge_one * (abs(spatial_coef) \
  *                     - 0.5 * xs_total[material])) \
- *                     * 1/(abs(spatial_coef) + 0.5 * xs_total[material])
  */
-    __pyx_t_8 = __pyx_v_cell;
+    __pyx_t_8 = 3;
     __pyx_t_5 = -1;
     if (__pyx_t_8 < 0) {
-      __pyx_t_8 += __pyx_v_external_source.shape[0];
+      __pyx_t_8 += __pyx_v_params.shape[0];
       if (unlikely(__pyx_t_8 < 0)) __pyx_t_5 = 0;
-    } else if (unlikely(__pyx_t_8 >= __pyx_v_external_source.shape[0])) __pyx_t_5 = 0;
+    } else if (unlikely(__pyx_t_8 >= __pyx_v_params.shape[0])) __pyx_t_5 = 0;
     if (unlikely(__pyx_t_5 != -1)) {
       __Pyx_RaiseBufferIndexError(__pyx_t_5);
-      __PYX_ERR(0, 174, __pyx_L1_error)
+      __PYX_ERR(0, 228, __pyx_L1_error)
+    }
+    __pyx_t_9 = 4;
+    __pyx_t_5 = -1;
+    if (__pyx_t_9 < 0) {
+      __pyx_t_9 += __pyx_v_params.shape[0];
+      if (unlikely(__pyx_t_9 < 0)) __pyx_t_5 = 0;
+    } else if (unlikely(__pyx_t_9 >= __pyx_v_params.shape[0])) __pyx_t_5 = 0;
+    if (unlikely(__pyx_t_5 != -1)) {
+      __Pyx_RaiseBufferIndexError(__pyx_t_5);
+      __PYX_ERR(0, 228, __pyx_L1_error)
+    }
+    __pyx_t_10 = 3;
+    __pyx_t_5 = -1;
+    if (__pyx_t_10 < 0) {
+      __pyx_t_10 += __pyx_v_params.shape[0];
+      if (unlikely(__pyx_t_10 < 0)) __pyx_t_5 = 0;
+    } else if (unlikely(__pyx_t_10 >= __pyx_v_params.shape[0])) __pyx_t_5 = 0;
+    if (unlikely(__pyx_t_5 != -1)) {
+      __Pyx_RaiseBufferIndexError(__pyx_t_5);
+      __PYX_ERR(0, 228, __pyx_L1_error)
+    }
+    __pyx_t_11.data = __pyx_v_external_source.data;
+    __pyx_t_11.memview = __pyx_v_external_source.memview;
+    __PYX_INC_MEMVIEW(&__pyx_t_11, 0);
+    __pyx_t_5 = -1;
+    if (unlikely(__pyx_memoryview_slice_memviewslice(
+    &__pyx_t_11,
+    __pyx_v_external_source.shape[0], __pyx_v_external_source.strides[0], __pyx_v_external_source.suboffsets[0],
+    0,
+    0,
+    &__pyx_t_5,
+    (__pyx_v_ex_group_idx + (__pyx_v_ex_angle_idx * (*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_8 * __pyx_v_params.strides[0]) ))))),
+    0,
+    ((*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_9 * __pyx_v_params.strides[0]) ))) * (*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_10 * __pyx_v_params.strides[0]) )))),
+    1,
+    0,
+    1,
+    1) < 0))
+{
+    __PYX_ERR(0, 228, __pyx_L1_error)
+}
+
+__pyx_t_10 = __pyx_v_cell;
+    __pyx_t_5 = -1;
+    if (__pyx_t_10 < 0) {
+      __pyx_t_10 += __pyx_t_11.shape[0];
+      if (unlikely(__pyx_t_10 < 0)) __pyx_t_5 = 0;
+    } else if (unlikely(__pyx_t_10 >= __pyx_t_11.shape[0])) __pyx_t_5 = 0;
+    if (unlikely(__pyx_t_5 != -1)) {
+      __Pyx_RaiseBufferIndexError(__pyx_t_5);
+      __PYX_ERR(0, 228, __pyx_L1_error)
     }
 
-    /* "x_sweeps.pyx":175
- *         edge_two = (xs_scatter[material] * scalar_flux_old[cell] \
- *                     + external_source[cell] + edge_one * (abs(spatial_coef) \
+    /* "ants/cyants/x_sweeps.pyx":230
+ *                     + external_source[ex_group_idx + ex_angle_idx*params[3]::params[4]*params[3]][cell] \
+ *                     + edge_one * (abs(spatial_coef) \
  *                     - 0.5 * xs_total[material])) \             # <<<<<<<<<<<<<<
  *                     * 1/(abs(spatial_coef) + 0.5 * xs_total[material])
- *         if spatial == 2:
+ *         if params[1] == 2:
  */
     __pyx_t_9 = __pyx_v_material;
     __pyx_t_5 = -1;
@@ -4259,99 +5096,131 @@ static void __pyx_f_8x_sweeps_reflected(__Pyx_memviewslice &__pyx_v_scalar_flux,
     } else if (unlikely(__pyx_t_9 >= __pyx_v_xs_total.shape[0])) __pyx_t_5 = 0;
     if (unlikely(__pyx_t_5 != -1)) {
       __Pyx_RaiseBufferIndexError(__pyx_t_5);
-      __PYX_ERR(0, 175, __pyx_L1_error)
+      __PYX_ERR(0, 230, __pyx_L1_error)
     }
 
-    /* "x_sweeps.pyx":176
- *                     + external_source[cell] + edge_one * (abs(spatial_coef) \
+    /* "ants/cyants/x_sweeps.pyx":231
+ *                     + edge_one * (abs(spatial_coef) \
  *                     - 0.5 * xs_total[material])) \
  *                     * 1/(abs(spatial_coef) + 0.5 * xs_total[material])             # <<<<<<<<<<<<<<
- *         if spatial == 2:
+ *         if params[1] == 2:
  *             scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)
  */
-    __pyx_t_10 = __pyx_v_material;
+    __pyx_t_8 = __pyx_v_material;
     __pyx_t_5 = -1;
-    if (__pyx_t_10 < 0) {
-      __pyx_t_10 += __pyx_v_xs_total.shape[0];
-      if (unlikely(__pyx_t_10 < 0)) __pyx_t_5 = 0;
-    } else if (unlikely(__pyx_t_10 >= __pyx_v_xs_total.shape[0])) __pyx_t_5 = 0;
+    if (__pyx_t_8 < 0) {
+      __pyx_t_8 += __pyx_v_xs_total.shape[0];
+      if (unlikely(__pyx_t_8 < 0)) __pyx_t_5 = 0;
+    } else if (unlikely(__pyx_t_8 >= __pyx_v_xs_total.shape[0])) __pyx_t_5 = 0;
     if (unlikely(__pyx_t_5 != -1)) {
       __Pyx_RaiseBufferIndexError(__pyx_t_5);
-      __PYX_ERR(0, 176, __pyx_L1_error)
+      __PYX_ERR(0, 231, __pyx_L1_error)
     }
-    __pyx_v_edge_two = ((((((*((double *) ( /* dim=0 */ (__pyx_v_xs_scatter.data + __pyx_t_4 * __pyx_v_xs_scatter.strides[0]) ))) * (*((double *) ( /* dim=0 */ (__pyx_v_scalar_flux_old.data + __pyx_t_7 * __pyx_v_scalar_flux_old.strides[0]) )))) + (*((double *) ( /* dim=0 */ (__pyx_v_external_source.data + __pyx_t_8 * __pyx_v_external_source.strides[0]) )))) + (__pyx_v_edge_one * (fabs(__pyx_v_spatial_coef) - (0.5 * (*((double *) ( /* dim=0 */ (__pyx_v_xs_total.data + __pyx_t_9 * __pyx_v_xs_total.strides[0]) ))))))) * 1.0) / (fabs(__pyx_v_spatial_coef) + (0.5 * (*((double *) ( /* dim=0 */ (__pyx_v_xs_total.data + __pyx_t_10 * __pyx_v_xs_total.strides[0]) ))))));
+    __pyx_v_edge_two = ((((((*((double *) ( /* dim=0 */ (__pyx_v_xs_scatter.data + __pyx_t_4 * __pyx_v_xs_scatter.strides[0]) ))) * (*((double *) ( /* dim=0 */ (__pyx_v_scalar_flux_old.data + __pyx_t_7 * __pyx_v_scalar_flux_old.strides[0]) )))) + (*((double *) ( /* dim=0 */ (__pyx_t_11.data + __pyx_t_10 * __pyx_t_11.strides[0]) )))) + (__pyx_v_edge_one * (fabs(__pyx_v_spatial_coef) - (0.5 * (*((double *) ( /* dim=0 */ (__pyx_v_xs_total.data + __pyx_t_9 * __pyx_v_xs_total.strides[0]) ))))))) * 1.0) / (fabs(__pyx_v_spatial_coef) + (0.5 * (*((double *) ( /* dim=0 */ (__pyx_v_xs_total.data + __pyx_t_8 * __pyx_v_xs_total.strides[0]) ))))));
+    __PYX_XDEC_MEMVIEW(&__pyx_t_11, 1);
+    __pyx_t_11.memview = NULL;
+    __pyx_t_11.data = NULL;
 
-    /* "x_sweeps.pyx":177
+    /* "ants/cyants/x_sweeps.pyx":232
  *                     - 0.5 * xs_total[material])) \
  *                     * 1/(abs(spatial_coef) + 0.5 * xs_total[material])
- *         if spatial == 2:             # <<<<<<<<<<<<<<
+ *         if params[1] == 2:             # <<<<<<<<<<<<<<
  *             scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)
- *         elif spatial == 1:
+ *         elif params[1] == 1:
  */
-    switch (__pyx_v_spatial) {
-      case 2:
+    __pyx_t_8 = 1;
+    __pyx_t_5 = -1;
+    if (__pyx_t_8 < 0) {
+      __pyx_t_8 += __pyx_v_params.shape[0];
+      if (unlikely(__pyx_t_8 < 0)) __pyx_t_5 = 0;
+    } else if (unlikely(__pyx_t_8 >= __pyx_v_params.shape[0])) __pyx_t_5 = 0;
+    if (unlikely(__pyx_t_5 != -1)) {
+      __Pyx_RaiseBufferIndexError(__pyx_t_5);
+      __PYX_ERR(0, 232, __pyx_L1_error)
+    }
+    __pyx_t_6 = (((*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_8 * __pyx_v_params.strides[0]) ))) == 2) != 0);
+    if (__pyx_t_6) {
 
-      /* "x_sweeps.pyx":178
+      /* "ants/cyants/x_sweeps.pyx":233
  *                     * 1/(abs(spatial_coef) + 0.5 * xs_total[material])
- *         if spatial == 2:
+ *         if params[1] == 2:
  *             scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)             # <<<<<<<<<<<<<<
- *         elif spatial == 1:
+ *         elif params[1] == 1:
  *             scalar_flux[cell] += angle_weight * edge_two
  */
-      __pyx_t_10 = __pyx_v_cell;
+      __pyx_t_8 = __pyx_v_cell;
       __pyx_t_5 = -1;
-      if (__pyx_t_10 < 0) {
-        __pyx_t_10 += __pyx_v_scalar_flux.shape[0];
-        if (unlikely(__pyx_t_10 < 0)) __pyx_t_5 = 0;
-      } else if (unlikely(__pyx_t_10 >= __pyx_v_scalar_flux.shape[0])) __pyx_t_5 = 0;
+      if (__pyx_t_8 < 0) {
+        __pyx_t_8 += __pyx_v_scalar_flux.shape[0];
+        if (unlikely(__pyx_t_8 < 0)) __pyx_t_5 = 0;
+      } else if (unlikely(__pyx_t_8 >= __pyx_v_scalar_flux.shape[0])) __pyx_t_5 = 0;
       if (unlikely(__pyx_t_5 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_5);
-        __PYX_ERR(0, 178, __pyx_L1_error)
+        __PYX_ERR(0, 233, __pyx_L1_error)
       }
-      *((double *) ( /* dim=0 */ (__pyx_v_scalar_flux.data + __pyx_t_10 * __pyx_v_scalar_flux.strides[0]) )) += ((__pyx_v_angle_weight * 0.5) * (__pyx_v_edge_one + __pyx_v_edge_two));
+      *((double *) ( /* dim=0 */ (__pyx_v_scalar_flux.data + __pyx_t_8 * __pyx_v_scalar_flux.strides[0]) )) += ((__pyx_v_angle_weight * 0.5) * (__pyx_v_edge_one + __pyx_v_edge_two));
 
-      /* "x_sweeps.pyx":177
+      /* "ants/cyants/x_sweeps.pyx":232
  *                     - 0.5 * xs_total[material])) \
  *                     * 1/(abs(spatial_coef) + 0.5 * xs_total[material])
- *         if spatial == 2:             # <<<<<<<<<<<<<<
+ *         if params[1] == 2:             # <<<<<<<<<<<<<<
  *             scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)
- *         elif spatial == 1:
+ *         elif params[1] == 1:
  */
-      break;
-      case 1:
+      goto __pyx_L6;
+    }
 
-      /* "x_sweeps.pyx":180
+    /* "ants/cyants/x_sweeps.pyx":234
+ *         if params[1] == 2:
  *             scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)
- *         elif spatial == 1:
+ *         elif params[1] == 1:             # <<<<<<<<<<<<<<
+ *             scalar_flux[cell] += angle_weight * edge_two
+ *         edge_one = edge_two
+ */
+    __pyx_t_8 = 1;
+    __pyx_t_5 = -1;
+    if (__pyx_t_8 < 0) {
+      __pyx_t_8 += __pyx_v_params.shape[0];
+      if (unlikely(__pyx_t_8 < 0)) __pyx_t_5 = 0;
+    } else if (unlikely(__pyx_t_8 >= __pyx_v_params.shape[0])) __pyx_t_5 = 0;
+    if (unlikely(__pyx_t_5 != -1)) {
+      __Pyx_RaiseBufferIndexError(__pyx_t_5);
+      __PYX_ERR(0, 234, __pyx_L1_error)
+    }
+    __pyx_t_6 = (((*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_8 * __pyx_v_params.strides[0]) ))) == 1) != 0);
+    if (__pyx_t_6) {
+
+      /* "ants/cyants/x_sweeps.pyx":235
+ *             scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)
+ *         elif params[1] == 1:
  *             scalar_flux[cell] += angle_weight * edge_two             # <<<<<<<<<<<<<<
  *         edge_one = edge_two
  * 
  */
-      __pyx_t_10 = __pyx_v_cell;
+      __pyx_t_8 = __pyx_v_cell;
       __pyx_t_5 = -1;
-      if (__pyx_t_10 < 0) {
-        __pyx_t_10 += __pyx_v_scalar_flux.shape[0];
-        if (unlikely(__pyx_t_10 < 0)) __pyx_t_5 = 0;
-      } else if (unlikely(__pyx_t_10 >= __pyx_v_scalar_flux.shape[0])) __pyx_t_5 = 0;
+      if (__pyx_t_8 < 0) {
+        __pyx_t_8 += __pyx_v_scalar_flux.shape[0];
+        if (unlikely(__pyx_t_8 < 0)) __pyx_t_5 = 0;
+      } else if (unlikely(__pyx_t_8 >= __pyx_v_scalar_flux.shape[0])) __pyx_t_5 = 0;
       if (unlikely(__pyx_t_5 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_5);
-        __PYX_ERR(0, 180, __pyx_L1_error)
+        __PYX_ERR(0, 235, __pyx_L1_error)
       }
-      *((double *) ( /* dim=0 */ (__pyx_v_scalar_flux.data + __pyx_t_10 * __pyx_v_scalar_flux.strides[0]) )) += (__pyx_v_angle_weight * __pyx_v_edge_two);
+      *((double *) ( /* dim=0 */ (__pyx_v_scalar_flux.data + __pyx_t_8 * __pyx_v_scalar_flux.strides[0]) )) += (__pyx_v_angle_weight * __pyx_v_edge_two);
 
-      /* "x_sweeps.pyx":179
- *         if spatial == 2:
+      /* "ants/cyants/x_sweeps.pyx":234
+ *         if params[1] == 2:
  *             scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)
- *         elif spatial == 1:             # <<<<<<<<<<<<<<
+ *         elif params[1] == 1:             # <<<<<<<<<<<<<<
  *             scalar_flux[cell] += angle_weight * edge_two
  *         edge_one = edge_two
  */
-      break;
-      default: break;
     }
+    __pyx_L6:;
 
-    /* "x_sweeps.pyx":181
- *         elif spatial == 1:
+    /* "ants/cyants/x_sweeps.pyx":236
+ *         elif params[1] == 1:
  *             scalar_flux[cell] += angle_weight * edge_two
  *         edge_one = edge_two             # <<<<<<<<<<<<<<
  * 
@@ -4360,79 +5229,89 @@ static void __pyx_f_8x_sweeps_reflected(__Pyx_memviewslice &__pyx_v_scalar_flux,
     __pyx_v_edge_one = __pyx_v_edge_two;
   }
 
-  /* "x_sweeps.pyx":183
+  /* "ants/cyants/x_sweeps.pyx":238
  *         edge_one = edge_two
  * 
  *     for cell in range(cells-1, -1, -1):             # <<<<<<<<<<<<<<
  *         material = medium_map[cell]
- *         if (cell + 1) == point_source_loc:
+ *         if (cell + 1) == params[5]:
  */
   for (__pyx_t_1 = (__pyx_v_cells - 1); __pyx_t_1 > -1; __pyx_t_1-=1) {
     __pyx_v_cell = __pyx_t_1;
 
-    /* "x_sweeps.pyx":184
+    /* "ants/cyants/x_sweeps.pyx":239
  * 
  *     for cell in range(cells-1, -1, -1):
  *         material = medium_map[cell]             # <<<<<<<<<<<<<<
- *         if (cell + 1) == point_source_loc:
+ *         if (cell + 1) == params[5]:
  *             edge_two += point_source
  */
-    __pyx_t_10 = __pyx_v_cell;
+    __pyx_t_8 = __pyx_v_cell;
     __pyx_t_2 = -1;
-    if (__pyx_t_10 < 0) {
-      __pyx_t_10 += __pyx_v_medium_map.shape[0];
-      if (unlikely(__pyx_t_10 < 0)) __pyx_t_2 = 0;
-    } else if (unlikely(__pyx_t_10 >= __pyx_v_medium_map.shape[0])) __pyx_t_2 = 0;
+    if (__pyx_t_8 < 0) {
+      __pyx_t_8 += __pyx_v_medium_map.shape[0];
+      if (unlikely(__pyx_t_8 < 0)) __pyx_t_2 = 0;
+    } else if (unlikely(__pyx_t_8 >= __pyx_v_medium_map.shape[0])) __pyx_t_2 = 0;
     if (unlikely(__pyx_t_2 != -1)) {
       __Pyx_RaiseBufferIndexError(__pyx_t_2);
-      __PYX_ERR(0, 184, __pyx_L1_error)
+      __PYX_ERR(0, 239, __pyx_L1_error)
     }
-    __pyx_v_material = (*((int *) ( /* dim=0 */ (__pyx_v_medium_map.data + __pyx_t_10 * __pyx_v_medium_map.strides[0]) )));
+    __pyx_v_material = (*((int *) ( /* dim=0 */ (__pyx_v_medium_map.data + __pyx_t_8 * __pyx_v_medium_map.strides[0]) )));
 
-    /* "x_sweeps.pyx":185
+    /* "ants/cyants/x_sweeps.pyx":240
  *     for cell in range(cells-1, -1, -1):
  *         material = medium_map[cell]
- *         if (cell + 1) == point_source_loc:             # <<<<<<<<<<<<<<
+ *         if (cell + 1) == params[5]:             # <<<<<<<<<<<<<<
  *             edge_two += point_source
  *         edge_one = (xs_scatter[material] * scalar_flux_old[cell] \
  */
-    __pyx_t_6 = (((__pyx_v_cell + 1) == __pyx_v_point_source_loc) != 0);
+    __pyx_t_8 = 5;
+    __pyx_t_2 = -1;
+    if (__pyx_t_8 < 0) {
+      __pyx_t_8 += __pyx_v_params.shape[0];
+      if (unlikely(__pyx_t_8 < 0)) __pyx_t_2 = 0;
+    } else if (unlikely(__pyx_t_8 >= __pyx_v_params.shape[0])) __pyx_t_2 = 0;
+    if (unlikely(__pyx_t_2 != -1)) {
+      __Pyx_RaiseBufferIndexError(__pyx_t_2);
+      __PYX_ERR(0, 240, __pyx_L1_error)
+    }
+    __pyx_t_6 = (((__pyx_v_cell + 1) == (*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_8 * __pyx_v_params.strides[0]) )))) != 0);
     if (__pyx_t_6) {
 
-      /* "x_sweeps.pyx":186
+      /* "ants/cyants/x_sweeps.pyx":241
  *         material = medium_map[cell]
- *         if (cell + 1) == point_source_loc:
+ *         if (cell + 1) == params[5]:
  *             edge_two += point_source             # <<<<<<<<<<<<<<
  *         edge_one = (xs_scatter[material] * scalar_flux_old[cell] \
- *                     + external_source[cell] + edge_two * (abs(spatial_coef) \
+ *                     + external_source[ex_group_idx + ex_angle_idx*params[3]::params[4]*params[3]][cell] \
  */
       __pyx_v_edge_two = (__pyx_v_edge_two + __pyx_v_point_source);
 
-      /* "x_sweeps.pyx":185
+      /* "ants/cyants/x_sweeps.pyx":240
  *     for cell in range(cells-1, -1, -1):
  *         material = medium_map[cell]
- *         if (cell + 1) == point_source_loc:             # <<<<<<<<<<<<<<
+ *         if (cell + 1) == params[5]:             # <<<<<<<<<<<<<<
  *             edge_two += point_source
  *         edge_one = (xs_scatter[material] * scalar_flux_old[cell] \
  */
     }
 
-    /* "x_sweeps.pyx":187
- *         if (cell + 1) == point_source_loc:
+    /* "ants/cyants/x_sweeps.pyx":242
+ *         if (cell + 1) == params[5]:
  *             edge_two += point_source
  *         edge_one = (xs_scatter[material] * scalar_flux_old[cell] \             # <<<<<<<<<<<<<<
- *                     + external_source[cell] + edge_two * (abs(spatial_coef) \
- *                     - 0.5 * xs_total[material])) \
+ *                     + external_source[ex_group_idx + ex_angle_idx*params[3]::params[4]*params[3]][cell] \
+ *                     + edge_two * (abs(spatial_coef) \
  */
-    __pyx_t_10 = __pyx_v_material;
+    __pyx_t_8 = __pyx_v_material;
     __pyx_t_2 = -1;
-    if (__pyx_t_10 < 0) {
-      __pyx_t_10 += __pyx_v_xs_scatter.shape[0];
-      if (unlikely(__pyx_t_10 < 0)) __pyx_t_2 = 0;
-    } else if (unlikely(__pyx_t_10 >= __pyx_v_xs_scatter.shape[0])) __pyx_t_2 = 0;
+    if (__pyx_t_8 < 0) {
+      __pyx_t_8 += __pyx_v_xs_scatter.shape[0];
+      if (unlikely(__pyx_t_8 < 0)) __pyx_t_2 = 0;
+    } else if (unlikely(__pyx_t_8 >= __pyx_v_xs_scatter.shape[0])) __pyx_t_2 = 0;
     if (unlikely(__pyx_t_2 != -1)) {
       __Pyx_RaiseBufferIndexError(__pyx_t_2);
-      __PYX_ERR(0, 187, __pyx_L1_error)
+      __PYX_ERR(0, 242, __pyx_L1_error)
     }
     __pyx_t_9 = __pyx_v_cell;
     __pyx_t_2 = -1;
@@ -4442,33 +5321,84 @@ static void __pyx_f_8x_sweeps_reflected(__Pyx_memviewslice &__pyx_v_scalar_flux,
     } else if (unlikely(__pyx_t_9 >= __pyx_v_scalar_flux_old.shape[0])) __pyx_t_2 = 0;
     if (unlikely(__pyx_t_2 != -1)) {
       __Pyx_RaiseBufferIndexError(__pyx_t_2);
-      __PYX_ERR(0, 187, __pyx_L1_error)
+      __PYX_ERR(0, 242, __pyx_L1_error)
     }
 
-    /* "x_sweeps.pyx":188
+    /* "ants/cyants/x_sweeps.pyx":243
  *             edge_two += point_source
  *         edge_one = (xs_scatter[material] * scalar_flux_old[cell] \
- *                     + external_source[cell] + edge_two * (abs(spatial_coef) \             # <<<<<<<<<<<<<<
+ *                     + external_source[ex_group_idx + ex_angle_idx*params[3]::params[4]*params[3]][cell] \             # <<<<<<<<<<<<<<
+ *                     + edge_two * (abs(spatial_coef) \
  *                     - 0.5 * xs_total[material])) \
- *                     * 1/(abs(spatial_coef) + 0.5 * xs_total[material])
  */
-    __pyx_t_8 = __pyx_v_cell;
+    __pyx_t_10 = 3;
     __pyx_t_2 = -1;
-    if (__pyx_t_8 < 0) {
-      __pyx_t_8 += __pyx_v_external_source.shape[0];
-      if (unlikely(__pyx_t_8 < 0)) __pyx_t_2 = 0;
-    } else if (unlikely(__pyx_t_8 >= __pyx_v_external_source.shape[0])) __pyx_t_2 = 0;
+    if (__pyx_t_10 < 0) {
+      __pyx_t_10 += __pyx_v_params.shape[0];
+      if (unlikely(__pyx_t_10 < 0)) __pyx_t_2 = 0;
+    } else if (unlikely(__pyx_t_10 >= __pyx_v_params.shape[0])) __pyx_t_2 = 0;
     if (unlikely(__pyx_t_2 != -1)) {
       __Pyx_RaiseBufferIndexError(__pyx_t_2);
-      __PYX_ERR(0, 188, __pyx_L1_error)
+      __PYX_ERR(0, 243, __pyx_L1_error)
+    }
+    __pyx_t_7 = 4;
+    __pyx_t_2 = -1;
+    if (__pyx_t_7 < 0) {
+      __pyx_t_7 += __pyx_v_params.shape[0];
+      if (unlikely(__pyx_t_7 < 0)) __pyx_t_2 = 0;
+    } else if (unlikely(__pyx_t_7 >= __pyx_v_params.shape[0])) __pyx_t_2 = 0;
+    if (unlikely(__pyx_t_2 != -1)) {
+      __Pyx_RaiseBufferIndexError(__pyx_t_2);
+      __PYX_ERR(0, 243, __pyx_L1_error)
+    }
+    __pyx_t_4 = 3;
+    __pyx_t_2 = -1;
+    if (__pyx_t_4 < 0) {
+      __pyx_t_4 += __pyx_v_params.shape[0];
+      if (unlikely(__pyx_t_4 < 0)) __pyx_t_2 = 0;
+    } else if (unlikely(__pyx_t_4 >= __pyx_v_params.shape[0])) __pyx_t_2 = 0;
+    if (unlikely(__pyx_t_2 != -1)) {
+      __Pyx_RaiseBufferIndexError(__pyx_t_2);
+      __PYX_ERR(0, 243, __pyx_L1_error)
+    }
+    __pyx_t_11.data = __pyx_v_external_source.data;
+    __pyx_t_11.memview = __pyx_v_external_source.memview;
+    __PYX_INC_MEMVIEW(&__pyx_t_11, 0);
+    __pyx_t_2 = -1;
+    if (unlikely(__pyx_memoryview_slice_memviewslice(
+    &__pyx_t_11,
+    __pyx_v_external_source.shape[0], __pyx_v_external_source.strides[0], __pyx_v_external_source.suboffsets[0],
+    0,
+    0,
+    &__pyx_t_2,
+    (__pyx_v_ex_group_idx + (__pyx_v_ex_angle_idx * (*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_10 * __pyx_v_params.strides[0]) ))))),
+    0,
+    ((*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_7 * __pyx_v_params.strides[0]) ))) * (*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_4 * __pyx_v_params.strides[0]) )))),
+    1,
+    0,
+    1,
+    1) < 0))
+{
+    __PYX_ERR(0, 243, __pyx_L1_error)
+}
+
+__pyx_t_4 = __pyx_v_cell;
+    __pyx_t_2 = -1;
+    if (__pyx_t_4 < 0) {
+      __pyx_t_4 += __pyx_t_11.shape[0];
+      if (unlikely(__pyx_t_4 < 0)) __pyx_t_2 = 0;
+    } else if (unlikely(__pyx_t_4 >= __pyx_t_11.shape[0])) __pyx_t_2 = 0;
+    if (unlikely(__pyx_t_2 != -1)) {
+      __Pyx_RaiseBufferIndexError(__pyx_t_2);
+      __PYX_ERR(0, 243, __pyx_L1_error)
     }
 
-    /* "x_sweeps.pyx":189
- *         edge_one = (xs_scatter[material] * scalar_flux_old[cell] \
- *                     + external_source[cell] + edge_two * (abs(spatial_coef) \
+    /* "ants/cyants/x_sweeps.pyx":245
+ *                     + external_source[ex_group_idx + ex_angle_idx*params[3]::params[4]*params[3]][cell] \
+ *                     + edge_two * (abs(spatial_coef) \
  *                     - 0.5 * xs_total[material])) \             # <<<<<<<<<<<<<<
  *                     * 1/(abs(spatial_coef) + 0.5 * xs_total[material])
- *         if spatial == 2:
+ *         if params[1] == 2:
  */
     __pyx_t_7 = __pyx_v_material;
     __pyx_t_2 = -1;
@@ -4478,99 +5408,131 @@ static void __pyx_f_8x_sweeps_reflected(__Pyx_memviewslice &__pyx_v_scalar_flux,
     } else if (unlikely(__pyx_t_7 >= __pyx_v_xs_total.shape[0])) __pyx_t_2 = 0;
     if (unlikely(__pyx_t_2 != -1)) {
       __Pyx_RaiseBufferIndexError(__pyx_t_2);
-      __PYX_ERR(0, 189, __pyx_L1_error)
+      __PYX_ERR(0, 245, __pyx_L1_error)
     }
 
-    /* "x_sweeps.pyx":190
- *                     + external_source[cell] + edge_two * (abs(spatial_coef) \
+    /* "ants/cyants/x_sweeps.pyx":246
+ *                     + edge_two * (abs(spatial_coef) \
  *                     - 0.5 * xs_total[material])) \
  *                     * 1/(abs(spatial_coef) + 0.5 * xs_total[material])             # <<<<<<<<<<<<<<
- *         if spatial == 2:
+ *         if params[1] == 2:
  *             scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)
  */
-    __pyx_t_4 = __pyx_v_material;
+    __pyx_t_10 = __pyx_v_material;
     __pyx_t_2 = -1;
-    if (__pyx_t_4 < 0) {
-      __pyx_t_4 += __pyx_v_xs_total.shape[0];
-      if (unlikely(__pyx_t_4 < 0)) __pyx_t_2 = 0;
-    } else if (unlikely(__pyx_t_4 >= __pyx_v_xs_total.shape[0])) __pyx_t_2 = 0;
+    if (__pyx_t_10 < 0) {
+      __pyx_t_10 += __pyx_v_xs_total.shape[0];
+      if (unlikely(__pyx_t_10 < 0)) __pyx_t_2 = 0;
+    } else if (unlikely(__pyx_t_10 >= __pyx_v_xs_total.shape[0])) __pyx_t_2 = 0;
     if (unlikely(__pyx_t_2 != -1)) {
       __Pyx_RaiseBufferIndexError(__pyx_t_2);
-      __PYX_ERR(0, 190, __pyx_L1_error)
+      __PYX_ERR(0, 246, __pyx_L1_error)
     }
-    __pyx_v_edge_one = ((((((*((double *) ( /* dim=0 */ (__pyx_v_xs_scatter.data + __pyx_t_10 * __pyx_v_xs_scatter.strides[0]) ))) * (*((double *) ( /* dim=0 */ (__pyx_v_scalar_flux_old.data + __pyx_t_9 * __pyx_v_scalar_flux_old.strides[0]) )))) + (*((double *) ( /* dim=0 */ (__pyx_v_external_source.data + __pyx_t_8 * __pyx_v_external_source.strides[0]) )))) + (__pyx_v_edge_two * (fabs(__pyx_v_spatial_coef) - (0.5 * (*((double *) ( /* dim=0 */ (__pyx_v_xs_total.data + __pyx_t_7 * __pyx_v_xs_total.strides[0]) ))))))) * 1.0) / (fabs(__pyx_v_spatial_coef) + (0.5 * (*((double *) ( /* dim=0 */ (__pyx_v_xs_total.data + __pyx_t_4 * __pyx_v_xs_total.strides[0]) ))))));
+    __pyx_v_edge_one = ((((((*((double *) ( /* dim=0 */ (__pyx_v_xs_scatter.data + __pyx_t_8 * __pyx_v_xs_scatter.strides[0]) ))) * (*((double *) ( /* dim=0 */ (__pyx_v_scalar_flux_old.data + __pyx_t_9 * __pyx_v_scalar_flux_old.strides[0]) )))) + (*((double *) ( /* dim=0 */ (__pyx_t_11.data + __pyx_t_4 * __pyx_t_11.strides[0]) )))) + (__pyx_v_edge_two * (fabs(__pyx_v_spatial_coef) - (0.5 * (*((double *) ( /* dim=0 */ (__pyx_v_xs_total.data + __pyx_t_7 * __pyx_v_xs_total.strides[0]) ))))))) * 1.0) / (fabs(__pyx_v_spatial_coef) + (0.5 * (*((double *) ( /* dim=0 */ (__pyx_v_xs_total.data + __pyx_t_10 * __pyx_v_xs_total.strides[0]) ))))));
+    __PYX_XDEC_MEMVIEW(&__pyx_t_11, 1);
+    __pyx_t_11.memview = NULL;
+    __pyx_t_11.data = NULL;
 
-    /* "x_sweeps.pyx":191
+    /* "ants/cyants/x_sweeps.pyx":247
  *                     - 0.5 * xs_total[material])) \
  *                     * 1/(abs(spatial_coef) + 0.5 * xs_total[material])
- *         if spatial == 2:             # <<<<<<<<<<<<<<
+ *         if params[1] == 2:             # <<<<<<<<<<<<<<
  *             scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)
- *         elif spatial == 1:
+ *         elif params[1] == 1:
  */
-    switch (__pyx_v_spatial) {
-      case 2:
+    __pyx_t_10 = 1;
+    __pyx_t_2 = -1;
+    if (__pyx_t_10 < 0) {
+      __pyx_t_10 += __pyx_v_params.shape[0];
+      if (unlikely(__pyx_t_10 < 0)) __pyx_t_2 = 0;
+    } else if (unlikely(__pyx_t_10 >= __pyx_v_params.shape[0])) __pyx_t_2 = 0;
+    if (unlikely(__pyx_t_2 != -1)) {
+      __Pyx_RaiseBufferIndexError(__pyx_t_2);
+      __PYX_ERR(0, 247, __pyx_L1_error)
+    }
+    __pyx_t_6 = (((*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_10 * __pyx_v_params.strides[0]) ))) == 2) != 0);
+    if (__pyx_t_6) {
 
-      /* "x_sweeps.pyx":192
+      /* "ants/cyants/x_sweeps.pyx":248
  *                     * 1/(abs(spatial_coef) + 0.5 * xs_total[material])
- *         if spatial == 2:
+ *         if params[1] == 2:
  *             scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)             # <<<<<<<<<<<<<<
- *         elif spatial == 1:
+ *         elif params[1] == 1:
  *             scalar_flux[cell] += angle_weight * edge_one
  */
-      __pyx_t_4 = __pyx_v_cell;
+      __pyx_t_10 = __pyx_v_cell;
       __pyx_t_2 = -1;
-      if (__pyx_t_4 < 0) {
-        __pyx_t_4 += __pyx_v_scalar_flux.shape[0];
-        if (unlikely(__pyx_t_4 < 0)) __pyx_t_2 = 0;
-      } else if (unlikely(__pyx_t_4 >= __pyx_v_scalar_flux.shape[0])) __pyx_t_2 = 0;
+      if (__pyx_t_10 < 0) {
+        __pyx_t_10 += __pyx_v_scalar_flux.shape[0];
+        if (unlikely(__pyx_t_10 < 0)) __pyx_t_2 = 0;
+      } else if (unlikely(__pyx_t_10 >= __pyx_v_scalar_flux.shape[0])) __pyx_t_2 = 0;
       if (unlikely(__pyx_t_2 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_2);
-        __PYX_ERR(0, 192, __pyx_L1_error)
+        __PYX_ERR(0, 248, __pyx_L1_error)
       }
-      *((double *) ( /* dim=0 */ (__pyx_v_scalar_flux.data + __pyx_t_4 * __pyx_v_scalar_flux.strides[0]) )) += ((__pyx_v_angle_weight * 0.5) * (__pyx_v_edge_one + __pyx_v_edge_two));
+      *((double *) ( /* dim=0 */ (__pyx_v_scalar_flux.data + __pyx_t_10 * __pyx_v_scalar_flux.strides[0]) )) += ((__pyx_v_angle_weight * 0.5) * (__pyx_v_edge_one + __pyx_v_edge_two));
 
-      /* "x_sweeps.pyx":191
+      /* "ants/cyants/x_sweeps.pyx":247
  *                     - 0.5 * xs_total[material])) \
  *                     * 1/(abs(spatial_coef) + 0.5 * xs_total[material])
- *         if spatial == 2:             # <<<<<<<<<<<<<<
+ *         if params[1] == 2:             # <<<<<<<<<<<<<<
  *             scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)
- *         elif spatial == 1:
+ *         elif params[1] == 1:
  */
-      break;
-      case 1:
+      goto __pyx_L10;
+    }
 
-      /* "x_sweeps.pyx":194
+    /* "ants/cyants/x_sweeps.pyx":249
+ *         if params[1] == 2:
  *             scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)
- *         elif spatial == 1:
+ *         elif params[1] == 1:             # <<<<<<<<<<<<<<
+ *             scalar_flux[cell] += angle_weight * edge_one
+ *         edge_two = edge_one
+ */
+    __pyx_t_10 = 1;
+    __pyx_t_2 = -1;
+    if (__pyx_t_10 < 0) {
+      __pyx_t_10 += __pyx_v_params.shape[0];
+      if (unlikely(__pyx_t_10 < 0)) __pyx_t_2 = 0;
+    } else if (unlikely(__pyx_t_10 >= __pyx_v_params.shape[0])) __pyx_t_2 = 0;
+    if (unlikely(__pyx_t_2 != -1)) {
+      __Pyx_RaiseBufferIndexError(__pyx_t_2);
+      __PYX_ERR(0, 249, __pyx_L1_error)
+    }
+    __pyx_t_6 = (((*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_10 * __pyx_v_params.strides[0]) ))) == 1) != 0);
+    if (__pyx_t_6) {
+
+      /* "ants/cyants/x_sweeps.pyx":250
+ *             scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)
+ *         elif params[1] == 1:
  *             scalar_flux[cell] += angle_weight * edge_one             # <<<<<<<<<<<<<<
  *         edge_two = edge_one
  * 
  */
-      __pyx_t_4 = __pyx_v_cell;
+      __pyx_t_10 = __pyx_v_cell;
       __pyx_t_2 = -1;
-      if (__pyx_t_4 < 0) {
-        __pyx_t_4 += __pyx_v_scalar_flux.shape[0];
-        if (unlikely(__pyx_t_4 < 0)) __pyx_t_2 = 0;
-      } else if (unlikely(__pyx_t_4 >= __pyx_v_scalar_flux.shape[0])) __pyx_t_2 = 0;
+      if (__pyx_t_10 < 0) {
+        __pyx_t_10 += __pyx_v_scalar_flux.shape[0];
+        if (unlikely(__pyx_t_10 < 0)) __pyx_t_2 = 0;
+      } else if (unlikely(__pyx_t_10 >= __pyx_v_scalar_flux.shape[0])) __pyx_t_2 = 0;
       if (unlikely(__pyx_t_2 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_2);
-        __PYX_ERR(0, 194, __pyx_L1_error)
+        __PYX_ERR(0, 250, __pyx_L1_error)
       }
-      *((double *) ( /* dim=0 */ (__pyx_v_scalar_flux.data + __pyx_t_4 * __pyx_v_scalar_flux.strides[0]) )) += (__pyx_v_angle_weight * __pyx_v_edge_one);
+      *((double *) ( /* dim=0 */ (__pyx_v_scalar_flux.data + __pyx_t_10 * __pyx_v_scalar_flux.strides[0]) )) += (__pyx_v_angle_weight * __pyx_v_edge_one);
 
-      /* "x_sweeps.pyx":193
- *         if spatial == 2:
+      /* "ants/cyants/x_sweeps.pyx":249
+ *         if params[1] == 2:
  *             scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)
- *         elif spatial == 1:             # <<<<<<<<<<<<<<
+ *         elif params[1] == 1:             # <<<<<<<<<<<<<<
  *             scalar_flux[cell] += angle_weight * edge_one
  *         edge_two = edge_one
  */
-      break;
-      default: break;
     }
+    __pyx_L10:;
 
-    /* "x_sweeps.pyx":195
- *         elif spatial == 1:
+    /* "ants/cyants/x_sweeps.pyx":251
+ *         elif params[1] == 1:
  *             scalar_flux[cell] += angle_weight * edge_one
  *         edge_two = edge_one             # <<<<<<<<<<<<<<
  * 
@@ -4579,31 +5541,810 @@ static void __pyx_f_8x_sweeps_reflected(__Pyx_memviewslice &__pyx_v_scalar_flux,
     __pyx_v_edge_two = __pyx_v_edge_one;
   }
 
-  /* "x_sweeps.pyx":158
+  /* "ants/cyants/x_sweeps.pyx":212
  * 
  * 
  * cdef void reflected(double[:]& scalar_flux, double[:]& scalar_flux_old, \             # <<<<<<<<<<<<<<
- *                         int[:]& medium_map, \
- *                         double[:]& xs_total, double[:]& xs_scatter, \
+ *                     int[:]& medium_map, double[:]& xs_total, \
+ *                     double[:]& xs_scatter, double[:]& external_source, \
  */
 
   /* function exit code */
   goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_WriteUnraisable("x_sweeps.reflected", __pyx_clineno, __pyx_lineno, __pyx_filename, 1, 0);
+  __PYX_XDEC_MEMVIEW(&__pyx_t_11, 1);
+  __Pyx_WriteUnraisable("ants.cyants.x_sweeps.reflected", __pyx_clineno, __pyx_lineno, __pyx_filename, 1, 0);
   __pyx_L0:;
   __Pyx_RefNannyFinishContext();
 }
 
-/* "x_sweeps.pyx":198
+/* "ants/cyants/x_sweeps.pyx":254
  * 
  * 
- * cdef void angular_to_scalar_flux(double[:]& scalar_flux, \             # <<<<<<<<<<<<<<
- *                                       double[:,:]& angular_flux, \
- *                                       double[:]& angle_weight):
+ * cdef void time_vacuum(double[:]& scalar_flux, double[:]& scalar_flux_old, \             # <<<<<<<<<<<<<<
+ *                         double [:]& angular_flux_last, int[:]& medium_map, \
+ *                         double[:]& xs_total, double[:]& xs_matrix, \
  */
 
-static void __pyx_f_8x_sweeps_angular_to_scalar_flux(__Pyx_memviewslice &__pyx_v_scalar_flux, __Pyx_memviewslice &__pyx_v_angular_flux, __Pyx_memviewslice &__pyx_v_angle_weight) {
+static void __pyx_f_4ants_6cyants_8x_sweeps_time_vacuum(__Pyx_memviewslice &__pyx_v_scalar_flux, __Pyx_memviewslice &__pyx_v_scalar_flux_old, __Pyx_memviewslice &__pyx_v_angular_flux_last, __Pyx_memviewslice &__pyx_v_medium_map, __Pyx_memviewslice &__pyx_v_xs_total, __Pyx_memviewslice &__pyx_v_xs_matrix, __Pyx_memviewslice &__pyx_v_external_source, double __pyx_v_point_source, double __pyx_v_spatial_coef, double __pyx_v_angle_weight, __Pyx_memviewslice &__pyx_v_params, double __pyx_v_temporal_coef, double __pyx_v_time_const, size_t __pyx_v_ex_group_idx, size_t __pyx_v_ex_angle_idx) {
+  double __pyx_v_edge_one;
+  double __pyx_v_edge_two;
+  int __pyx_v_material;
+  int __pyx_v_cell;
+  int __pyx_v_cells;
+  __Pyx_RefNannyDeclarations
+  int __pyx_t_1;
+  int __pyx_t_2;
+  int __pyx_t_3;
+  int __pyx_t_4;
+  Py_ssize_t __pyx_t_5;
+  int __pyx_t_6;
+  Py_ssize_t __pyx_t_7;
+  Py_ssize_t __pyx_t_8;
+  Py_ssize_t __pyx_t_9;
+  Py_ssize_t __pyx_t_10;
+  __Pyx_memviewslice __pyx_t_11 = { 0, 0, { 0 }, { 0 }, { 0 } };
+  Py_ssize_t __pyx_t_12;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("time_vacuum", 0);
+
+  /* "ants/cyants/x_sweeps.pyx":264
+ *                         size_t ex_angle_idx):
+ * 
+ *     cdef double edge_one = 0             # <<<<<<<<<<<<<<
+ *     cdef double edge_two = 0
+ *     cdef int material, cell
+ */
+  __pyx_v_edge_one = 0.0;
+
+  /* "ants/cyants/x_sweeps.pyx":265
+ * 
+ *     cdef double edge_one = 0
+ *     cdef double edge_two = 0             # <<<<<<<<<<<<<<
+ *     cdef int material, cell
+ *     cdef int cells = medium_map.shape[0]
+ */
+  __pyx_v_edge_two = 0.0;
+
+  /* "ants/cyants/x_sweeps.pyx":267
+ *     cdef double edge_two = 0
+ *     cdef int material, cell
+ *     cdef int cells = medium_map.shape[0]             # <<<<<<<<<<<<<<
+ *     if spatial_coef > 0:
+ *         for cell in range(cells):
+ */
+  __pyx_v_cells = (__pyx_v_medium_map.shape[0]);
+
+  /* "ants/cyants/x_sweeps.pyx":268
+ *     cdef int material, cell
+ *     cdef int cells = medium_map.shape[0]
+ *     if spatial_coef > 0:             # <<<<<<<<<<<<<<
+ *         for cell in range(cells):
+ *             material = medium_map[cell]
+ */
+  __pyx_t_1 = ((__pyx_v_spatial_coef > 0.0) != 0);
+  if (__pyx_t_1) {
+
+    /* "ants/cyants/x_sweeps.pyx":269
+ *     cdef int cells = medium_map.shape[0]
+ *     if spatial_coef > 0:
+ *         for cell in range(cells):             # <<<<<<<<<<<<<<
+ *             material = medium_map[cell]
+ *             if cell == params[5]:
+ */
+    __pyx_t_2 = __pyx_v_cells;
+    __pyx_t_3 = __pyx_t_2;
+    for (__pyx_t_4 = 0; __pyx_t_4 < __pyx_t_3; __pyx_t_4+=1) {
+      __pyx_v_cell = __pyx_t_4;
+
+      /* "ants/cyants/x_sweeps.pyx":270
+ *     if spatial_coef > 0:
+ *         for cell in range(cells):
+ *             material = medium_map[cell]             # <<<<<<<<<<<<<<
+ *             if cell == params[5]:
+ *                 edge_one += point_source
+ */
+      __pyx_t_5 = __pyx_v_cell;
+      __pyx_t_6 = -1;
+      if (__pyx_t_5 < 0) {
+        __pyx_t_5 += __pyx_v_medium_map.shape[0];
+        if (unlikely(__pyx_t_5 < 0)) __pyx_t_6 = 0;
+      } else if (unlikely(__pyx_t_5 >= __pyx_v_medium_map.shape[0])) __pyx_t_6 = 0;
+      if (unlikely(__pyx_t_6 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_6);
+        __PYX_ERR(0, 270, __pyx_L1_error)
+      }
+      __pyx_v_material = (*((int *) ( /* dim=0 */ (__pyx_v_medium_map.data + __pyx_t_5 * __pyx_v_medium_map.strides[0]) )));
+
+      /* "ants/cyants/x_sweeps.pyx":271
+ *         for cell in range(cells):
+ *             material = medium_map[cell]
+ *             if cell == params[5]:             # <<<<<<<<<<<<<<
+ *                 edge_one += point_source
+ *             edge_two = (xs_matrix[material] * scalar_flux_old[cell] \
+ */
+      __pyx_t_5 = 5;
+      __pyx_t_6 = -1;
+      if (__pyx_t_5 < 0) {
+        __pyx_t_5 += __pyx_v_params.shape[0];
+        if (unlikely(__pyx_t_5 < 0)) __pyx_t_6 = 0;
+      } else if (unlikely(__pyx_t_5 >= __pyx_v_params.shape[0])) __pyx_t_6 = 0;
+      if (unlikely(__pyx_t_6 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_6);
+        __PYX_ERR(0, 271, __pyx_L1_error)
+      }
+      __pyx_t_1 = ((__pyx_v_cell == (*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_5 * __pyx_v_params.strides[0]) )))) != 0);
+      if (__pyx_t_1) {
+
+        /* "ants/cyants/x_sweeps.pyx":272
+ *             material = medium_map[cell]
+ *             if cell == params[5]:
+ *                 edge_one += point_source             # <<<<<<<<<<<<<<
+ *             edge_two = (xs_matrix[material] * scalar_flux_old[cell] \
+ *                         + external_source[ex_group_idx + ex_angle_idx*params[3]::params[4]*params[3]][cell] \
+ */
+        __pyx_v_edge_one = (__pyx_v_edge_one + __pyx_v_point_source);
+
+        /* "ants/cyants/x_sweeps.pyx":271
+ *         for cell in range(cells):
+ *             material = medium_map[cell]
+ *             if cell == params[5]:             # <<<<<<<<<<<<<<
+ *                 edge_one += point_source
+ *             edge_two = (xs_matrix[material] * scalar_flux_old[cell] \
+ */
+      }
+
+      /* "ants/cyants/x_sweeps.pyx":273
+ *             if cell == params[5]:
+ *                 edge_one += point_source
+ *             edge_two = (xs_matrix[material] * scalar_flux_old[cell] \             # <<<<<<<<<<<<<<
+ *                         + external_source[ex_group_idx + ex_angle_idx*params[3]::params[4]*params[3]][cell] \
+ *                          + angular_flux_last[cell] * temporal_coef + edge_one * (abs(spatial_coef) \
+ */
+      __pyx_t_5 = __pyx_v_material;
+      __pyx_t_6 = -1;
+      if (__pyx_t_5 < 0) {
+        __pyx_t_5 += __pyx_v_xs_matrix.shape[0];
+        if (unlikely(__pyx_t_5 < 0)) __pyx_t_6 = 0;
+      } else if (unlikely(__pyx_t_5 >= __pyx_v_xs_matrix.shape[0])) __pyx_t_6 = 0;
+      if (unlikely(__pyx_t_6 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_6);
+        __PYX_ERR(0, 273, __pyx_L1_error)
+      }
+      __pyx_t_7 = __pyx_v_cell;
+      __pyx_t_6 = -1;
+      if (__pyx_t_7 < 0) {
+        __pyx_t_7 += __pyx_v_scalar_flux_old.shape[0];
+        if (unlikely(__pyx_t_7 < 0)) __pyx_t_6 = 0;
+      } else if (unlikely(__pyx_t_7 >= __pyx_v_scalar_flux_old.shape[0])) __pyx_t_6 = 0;
+      if (unlikely(__pyx_t_6 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_6);
+        __PYX_ERR(0, 273, __pyx_L1_error)
+      }
+
+      /* "ants/cyants/x_sweeps.pyx":274
+ *                 edge_one += point_source
+ *             edge_two = (xs_matrix[material] * scalar_flux_old[cell] \
+ *                         + external_source[ex_group_idx + ex_angle_idx*params[3]::params[4]*params[3]][cell] \             # <<<<<<<<<<<<<<
+ *                          + angular_flux_last[cell] * temporal_coef + edge_one * (abs(spatial_coef) \
+ *                         - 0.5 * xs_total[material] - time_const * temporal_coef)) \
+ */
+      __pyx_t_8 = 3;
+      __pyx_t_6 = -1;
+      if (__pyx_t_8 < 0) {
+        __pyx_t_8 += __pyx_v_params.shape[0];
+        if (unlikely(__pyx_t_8 < 0)) __pyx_t_6 = 0;
+      } else if (unlikely(__pyx_t_8 >= __pyx_v_params.shape[0])) __pyx_t_6 = 0;
+      if (unlikely(__pyx_t_6 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_6);
+        __PYX_ERR(0, 274, __pyx_L1_error)
+      }
+      __pyx_t_9 = 4;
+      __pyx_t_6 = -1;
+      if (__pyx_t_9 < 0) {
+        __pyx_t_9 += __pyx_v_params.shape[0];
+        if (unlikely(__pyx_t_9 < 0)) __pyx_t_6 = 0;
+      } else if (unlikely(__pyx_t_9 >= __pyx_v_params.shape[0])) __pyx_t_6 = 0;
+      if (unlikely(__pyx_t_6 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_6);
+        __PYX_ERR(0, 274, __pyx_L1_error)
+      }
+      __pyx_t_10 = 3;
+      __pyx_t_6 = -1;
+      if (__pyx_t_10 < 0) {
+        __pyx_t_10 += __pyx_v_params.shape[0];
+        if (unlikely(__pyx_t_10 < 0)) __pyx_t_6 = 0;
+      } else if (unlikely(__pyx_t_10 >= __pyx_v_params.shape[0])) __pyx_t_6 = 0;
+      if (unlikely(__pyx_t_6 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_6);
+        __PYX_ERR(0, 274, __pyx_L1_error)
+      }
+      __pyx_t_11.data = __pyx_v_external_source.data;
+      __pyx_t_11.memview = __pyx_v_external_source.memview;
+      __PYX_INC_MEMVIEW(&__pyx_t_11, 0);
+      __pyx_t_6 = -1;
+      if (unlikely(__pyx_memoryview_slice_memviewslice(
+    &__pyx_t_11,
+    __pyx_v_external_source.shape[0], __pyx_v_external_source.strides[0], __pyx_v_external_source.suboffsets[0],
+    0,
+    0,
+    &__pyx_t_6,
+    (__pyx_v_ex_group_idx + (__pyx_v_ex_angle_idx * (*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_8 * __pyx_v_params.strides[0]) ))))),
+    0,
+    ((*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_9 * __pyx_v_params.strides[0]) ))) * (*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_10 * __pyx_v_params.strides[0]) )))),
+    1,
+    0,
+    1,
+    1) < 0))
+{
+    __PYX_ERR(0, 274, __pyx_L1_error)
+}
+
+__pyx_t_10 = __pyx_v_cell;
+      __pyx_t_6 = -1;
+      if (__pyx_t_10 < 0) {
+        __pyx_t_10 += __pyx_t_11.shape[0];
+        if (unlikely(__pyx_t_10 < 0)) __pyx_t_6 = 0;
+      } else if (unlikely(__pyx_t_10 >= __pyx_t_11.shape[0])) __pyx_t_6 = 0;
+      if (unlikely(__pyx_t_6 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_6);
+        __PYX_ERR(0, 274, __pyx_L1_error)
+      }
+
+      /* "ants/cyants/x_sweeps.pyx":275
+ *             edge_two = (xs_matrix[material] * scalar_flux_old[cell] \
+ *                         + external_source[ex_group_idx + ex_angle_idx*params[3]::params[4]*params[3]][cell] \
+ *                          + angular_flux_last[cell] * temporal_coef + edge_one * (abs(spatial_coef) \             # <<<<<<<<<<<<<<
+ *                         - 0.5 * xs_total[material] - time_const * temporal_coef)) \
+ *                         * 1/(abs(spatial_coef) + 0.5 * xs_total[material] + time_const * temporal_coef)
+ */
+      __pyx_t_9 = __pyx_v_cell;
+      __pyx_t_6 = -1;
+      if (__pyx_t_9 < 0) {
+        __pyx_t_9 += __pyx_v_angular_flux_last.shape[0];
+        if (unlikely(__pyx_t_9 < 0)) __pyx_t_6 = 0;
+      } else if (unlikely(__pyx_t_9 >= __pyx_v_angular_flux_last.shape[0])) __pyx_t_6 = 0;
+      if (unlikely(__pyx_t_6 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_6);
+        __PYX_ERR(0, 275, __pyx_L1_error)
+      }
+
+      /* "ants/cyants/x_sweeps.pyx":276
+ *                         + external_source[ex_group_idx + ex_angle_idx*params[3]::params[4]*params[3]][cell] \
+ *                          + angular_flux_last[cell] * temporal_coef + edge_one * (abs(spatial_coef) \
+ *                         - 0.5 * xs_total[material] - time_const * temporal_coef)) \             # <<<<<<<<<<<<<<
+ *                         * 1/(abs(spatial_coef) + 0.5 * xs_total[material] + time_const * temporal_coef)
+ *             if params[1] == 2:
+ */
+      __pyx_t_8 = __pyx_v_material;
+      __pyx_t_6 = -1;
+      if (__pyx_t_8 < 0) {
+        __pyx_t_8 += __pyx_v_xs_total.shape[0];
+        if (unlikely(__pyx_t_8 < 0)) __pyx_t_6 = 0;
+      } else if (unlikely(__pyx_t_8 >= __pyx_v_xs_total.shape[0])) __pyx_t_6 = 0;
+      if (unlikely(__pyx_t_6 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_6);
+        __PYX_ERR(0, 276, __pyx_L1_error)
+      }
+
+      /* "ants/cyants/x_sweeps.pyx":277
+ *                          + angular_flux_last[cell] * temporal_coef + edge_one * (abs(spatial_coef) \
+ *                         - 0.5 * xs_total[material] - time_const * temporal_coef)) \
+ *                         * 1/(abs(spatial_coef) + 0.5 * xs_total[material] + time_const * temporal_coef)             # <<<<<<<<<<<<<<
+ *             if params[1] == 2:
+ *                 scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)
+ */
+      __pyx_t_12 = __pyx_v_material;
+      __pyx_t_6 = -1;
+      if (__pyx_t_12 < 0) {
+        __pyx_t_12 += __pyx_v_xs_total.shape[0];
+        if (unlikely(__pyx_t_12 < 0)) __pyx_t_6 = 0;
+      } else if (unlikely(__pyx_t_12 >= __pyx_v_xs_total.shape[0])) __pyx_t_6 = 0;
+      if (unlikely(__pyx_t_6 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_6);
+        __PYX_ERR(0, 277, __pyx_L1_error)
+      }
+      __pyx_v_edge_two = (((((((*((double *) ( /* dim=0 */ (__pyx_v_xs_matrix.data + __pyx_t_5 * __pyx_v_xs_matrix.strides[0]) ))) * (*((double *) ( /* dim=0 */ (__pyx_v_scalar_flux_old.data + __pyx_t_7 * __pyx_v_scalar_flux_old.strides[0]) )))) + (*((double *) ( /* dim=0 */ (__pyx_t_11.data + __pyx_t_10 * __pyx_t_11.strides[0]) )))) + ((*((double *) ( /* dim=0 */ (__pyx_v_angular_flux_last.data + __pyx_t_9 * __pyx_v_angular_flux_last.strides[0]) ))) * __pyx_v_temporal_coef)) + (__pyx_v_edge_one * ((fabs(__pyx_v_spatial_coef) - (0.5 * (*((double *) ( /* dim=0 */ (__pyx_v_xs_total.data + __pyx_t_8 * __pyx_v_xs_total.strides[0]) ))))) - (__pyx_v_time_const * __pyx_v_temporal_coef)))) * 1.0) / ((fabs(__pyx_v_spatial_coef) + (0.5 * (*((double *) ( /* dim=0 */ (__pyx_v_xs_total.data + __pyx_t_12 * __pyx_v_xs_total.strides[0]) ))))) + (__pyx_v_time_const * __pyx_v_temporal_coef)));
+      __PYX_XDEC_MEMVIEW(&__pyx_t_11, 1);
+      __pyx_t_11.memview = NULL;
+      __pyx_t_11.data = NULL;
+
+      /* "ants/cyants/x_sweeps.pyx":278
+ *                         - 0.5 * xs_total[material] - time_const * temporal_coef)) \
+ *                         * 1/(abs(spatial_coef) + 0.5 * xs_total[material] + time_const * temporal_coef)
+ *             if params[1] == 2:             # <<<<<<<<<<<<<<
+ *                 scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)
+ *             elif params[1] == 1:
+ */
+      __pyx_t_12 = 1;
+      __pyx_t_6 = -1;
+      if (__pyx_t_12 < 0) {
+        __pyx_t_12 += __pyx_v_params.shape[0];
+        if (unlikely(__pyx_t_12 < 0)) __pyx_t_6 = 0;
+      } else if (unlikely(__pyx_t_12 >= __pyx_v_params.shape[0])) __pyx_t_6 = 0;
+      if (unlikely(__pyx_t_6 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_6);
+        __PYX_ERR(0, 278, __pyx_L1_error)
+      }
+      __pyx_t_1 = (((*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_12 * __pyx_v_params.strides[0]) ))) == 2) != 0);
+      if (__pyx_t_1) {
+
+        /* "ants/cyants/x_sweeps.pyx":279
+ *                         * 1/(abs(spatial_coef) + 0.5 * xs_total[material] + time_const * temporal_coef)
+ *             if params[1] == 2:
+ *                 scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)             # <<<<<<<<<<<<<<
+ *             elif params[1] == 1:
+ *                 scalar_flux[cell] += angle_weight * edge_two
+ */
+        __pyx_t_12 = __pyx_v_cell;
+        __pyx_t_6 = -1;
+        if (__pyx_t_12 < 0) {
+          __pyx_t_12 += __pyx_v_scalar_flux.shape[0];
+          if (unlikely(__pyx_t_12 < 0)) __pyx_t_6 = 0;
+        } else if (unlikely(__pyx_t_12 >= __pyx_v_scalar_flux.shape[0])) __pyx_t_6 = 0;
+        if (unlikely(__pyx_t_6 != -1)) {
+          __Pyx_RaiseBufferIndexError(__pyx_t_6);
+          __PYX_ERR(0, 279, __pyx_L1_error)
+        }
+        *((double *) ( /* dim=0 */ (__pyx_v_scalar_flux.data + __pyx_t_12 * __pyx_v_scalar_flux.strides[0]) )) += ((__pyx_v_angle_weight * 0.5) * (__pyx_v_edge_one + __pyx_v_edge_two));
+
+        /* "ants/cyants/x_sweeps.pyx":278
+ *                         - 0.5 * xs_total[material] - time_const * temporal_coef)) \
+ *                         * 1/(abs(spatial_coef) + 0.5 * xs_total[material] + time_const * temporal_coef)
+ *             if params[1] == 2:             # <<<<<<<<<<<<<<
+ *                 scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)
+ *             elif params[1] == 1:
+ */
+        goto __pyx_L7;
+      }
+
+      /* "ants/cyants/x_sweeps.pyx":280
+ *             if params[1] == 2:
+ *                 scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)
+ *             elif params[1] == 1:             # <<<<<<<<<<<<<<
+ *                 scalar_flux[cell] += angle_weight * edge_two
+ *             edge_one = edge_two
+ */
+      __pyx_t_12 = 1;
+      __pyx_t_6 = -1;
+      if (__pyx_t_12 < 0) {
+        __pyx_t_12 += __pyx_v_params.shape[0];
+        if (unlikely(__pyx_t_12 < 0)) __pyx_t_6 = 0;
+      } else if (unlikely(__pyx_t_12 >= __pyx_v_params.shape[0])) __pyx_t_6 = 0;
+      if (unlikely(__pyx_t_6 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_6);
+        __PYX_ERR(0, 280, __pyx_L1_error)
+      }
+      __pyx_t_1 = (((*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_12 * __pyx_v_params.strides[0]) ))) == 1) != 0);
+      if (__pyx_t_1) {
+
+        /* "ants/cyants/x_sweeps.pyx":281
+ *                 scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)
+ *             elif params[1] == 1:
+ *                 scalar_flux[cell] += angle_weight * edge_two             # <<<<<<<<<<<<<<
+ *             edge_one = edge_two
+ *     elif spatial_coef < 0:
+ */
+        __pyx_t_12 = __pyx_v_cell;
+        __pyx_t_6 = -1;
+        if (__pyx_t_12 < 0) {
+          __pyx_t_12 += __pyx_v_scalar_flux.shape[0];
+          if (unlikely(__pyx_t_12 < 0)) __pyx_t_6 = 0;
+        } else if (unlikely(__pyx_t_12 >= __pyx_v_scalar_flux.shape[0])) __pyx_t_6 = 0;
+        if (unlikely(__pyx_t_6 != -1)) {
+          __Pyx_RaiseBufferIndexError(__pyx_t_6);
+          __PYX_ERR(0, 281, __pyx_L1_error)
+        }
+        *((double *) ( /* dim=0 */ (__pyx_v_scalar_flux.data + __pyx_t_12 * __pyx_v_scalar_flux.strides[0]) )) += (__pyx_v_angle_weight * __pyx_v_edge_two);
+
+        /* "ants/cyants/x_sweeps.pyx":280
+ *             if params[1] == 2:
+ *                 scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)
+ *             elif params[1] == 1:             # <<<<<<<<<<<<<<
+ *                 scalar_flux[cell] += angle_weight * edge_two
+ *             edge_one = edge_two
+ */
+      }
+      __pyx_L7:;
+
+      /* "ants/cyants/x_sweeps.pyx":282
+ *             elif params[1] == 1:
+ *                 scalar_flux[cell] += angle_weight * edge_two
+ *             edge_one = edge_two             # <<<<<<<<<<<<<<
+ *     elif spatial_coef < 0:
+ *         for cell in range(cells-1, -1, -1):
+ */
+      __pyx_v_edge_one = __pyx_v_edge_two;
+    }
+
+    /* "ants/cyants/x_sweeps.pyx":268
+ *     cdef int material, cell
+ *     cdef int cells = medium_map.shape[0]
+ *     if spatial_coef > 0:             # <<<<<<<<<<<<<<
+ *         for cell in range(cells):
+ *             material = medium_map[cell]
+ */
+    goto __pyx_L3;
+  }
+
+  /* "ants/cyants/x_sweeps.pyx":283
+ *                 scalar_flux[cell] += angle_weight * edge_two
+ *             edge_one = edge_two
+ *     elif spatial_coef < 0:             # <<<<<<<<<<<<<<
+ *         for cell in range(cells-1, -1, -1):
+ *             material = medium_map[cell]
+ */
+  __pyx_t_1 = ((__pyx_v_spatial_coef < 0.0) != 0);
+  if (__pyx_t_1) {
+
+    /* "ants/cyants/x_sweeps.pyx":284
+ *             edge_one = edge_two
+ *     elif spatial_coef < 0:
+ *         for cell in range(cells-1, -1, -1):             # <<<<<<<<<<<<<<
+ *             material = medium_map[cell]
+ *             if (cell + 1) == params[5]:
+ */
+    for (__pyx_t_2 = (__pyx_v_cells - 1); __pyx_t_2 > -1; __pyx_t_2-=1) {
+      __pyx_v_cell = __pyx_t_2;
+
+      /* "ants/cyants/x_sweeps.pyx":285
+ *     elif spatial_coef < 0:
+ *         for cell in range(cells-1, -1, -1):
+ *             material = medium_map[cell]             # <<<<<<<<<<<<<<
+ *             if (cell + 1) == params[5]:
+ *                 edge_two += point_source
+ */
+      __pyx_t_12 = __pyx_v_cell;
+      __pyx_t_3 = -1;
+      if (__pyx_t_12 < 0) {
+        __pyx_t_12 += __pyx_v_medium_map.shape[0];
+        if (unlikely(__pyx_t_12 < 0)) __pyx_t_3 = 0;
+      } else if (unlikely(__pyx_t_12 >= __pyx_v_medium_map.shape[0])) __pyx_t_3 = 0;
+      if (unlikely(__pyx_t_3 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_3);
+        __PYX_ERR(0, 285, __pyx_L1_error)
+      }
+      __pyx_v_material = (*((int *) ( /* dim=0 */ (__pyx_v_medium_map.data + __pyx_t_12 * __pyx_v_medium_map.strides[0]) )));
+
+      /* "ants/cyants/x_sweeps.pyx":286
+ *         for cell in range(cells-1, -1, -1):
+ *             material = medium_map[cell]
+ *             if (cell + 1) == params[5]:             # <<<<<<<<<<<<<<
+ *                 edge_two += point_source
+ *             edge_one = (xs_matrix[material] * scalar_flux_old[cell] \
+ */
+      __pyx_t_12 = 5;
+      __pyx_t_3 = -1;
+      if (__pyx_t_12 < 0) {
+        __pyx_t_12 += __pyx_v_params.shape[0];
+        if (unlikely(__pyx_t_12 < 0)) __pyx_t_3 = 0;
+      } else if (unlikely(__pyx_t_12 >= __pyx_v_params.shape[0])) __pyx_t_3 = 0;
+      if (unlikely(__pyx_t_3 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_3);
+        __PYX_ERR(0, 286, __pyx_L1_error)
+      }
+      __pyx_t_1 = (((__pyx_v_cell + 1) == (*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_12 * __pyx_v_params.strides[0]) )))) != 0);
+      if (__pyx_t_1) {
+
+        /* "ants/cyants/x_sweeps.pyx":287
+ *             material = medium_map[cell]
+ *             if (cell + 1) == params[5]:
+ *                 edge_two += point_source             # <<<<<<<<<<<<<<
+ *             edge_one = (xs_matrix[material] * scalar_flux_old[cell] \
+ *                         + external_source[ex_group_idx + ex_angle_idx*params[3]::params[4]*params[3]][cell] \
+ */
+        __pyx_v_edge_two = (__pyx_v_edge_two + __pyx_v_point_source);
+
+        /* "ants/cyants/x_sweeps.pyx":286
+ *         for cell in range(cells-1, -1, -1):
+ *             material = medium_map[cell]
+ *             if (cell + 1) == params[5]:             # <<<<<<<<<<<<<<
+ *                 edge_two += point_source
+ *             edge_one = (xs_matrix[material] * scalar_flux_old[cell] \
+ */
+      }
+
+      /* "ants/cyants/x_sweeps.pyx":288
+ *             if (cell + 1) == params[5]:
+ *                 edge_two += point_source
+ *             edge_one = (xs_matrix[material] * scalar_flux_old[cell] \             # <<<<<<<<<<<<<<
+ *                         + external_source[ex_group_idx + ex_angle_idx*params[3]::params[4]*params[3]][cell] \
+ *                          + angular_flux_last[cell] * temporal_coef + edge_two * (abs(spatial_coef) \
+ */
+      __pyx_t_12 = __pyx_v_material;
+      __pyx_t_3 = -1;
+      if (__pyx_t_12 < 0) {
+        __pyx_t_12 += __pyx_v_xs_matrix.shape[0];
+        if (unlikely(__pyx_t_12 < 0)) __pyx_t_3 = 0;
+      } else if (unlikely(__pyx_t_12 >= __pyx_v_xs_matrix.shape[0])) __pyx_t_3 = 0;
+      if (unlikely(__pyx_t_3 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_3);
+        __PYX_ERR(0, 288, __pyx_L1_error)
+      }
+      __pyx_t_8 = __pyx_v_cell;
+      __pyx_t_3 = -1;
+      if (__pyx_t_8 < 0) {
+        __pyx_t_8 += __pyx_v_scalar_flux_old.shape[0];
+        if (unlikely(__pyx_t_8 < 0)) __pyx_t_3 = 0;
+      } else if (unlikely(__pyx_t_8 >= __pyx_v_scalar_flux_old.shape[0])) __pyx_t_3 = 0;
+      if (unlikely(__pyx_t_3 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_3);
+        __PYX_ERR(0, 288, __pyx_L1_error)
+      }
+
+      /* "ants/cyants/x_sweeps.pyx":289
+ *                 edge_two += point_source
+ *             edge_one = (xs_matrix[material] * scalar_flux_old[cell] \
+ *                         + external_source[ex_group_idx + ex_angle_idx*params[3]::params[4]*params[3]][cell] \             # <<<<<<<<<<<<<<
+ *                          + angular_flux_last[cell] * temporal_coef + edge_two * (abs(spatial_coef) \
+ *                         - 0.5 * xs_total[material] - time_const * temporal_coef)) \
+ */
+      __pyx_t_9 = 3;
+      __pyx_t_3 = -1;
+      if (__pyx_t_9 < 0) {
+        __pyx_t_9 += __pyx_v_params.shape[0];
+        if (unlikely(__pyx_t_9 < 0)) __pyx_t_3 = 0;
+      } else if (unlikely(__pyx_t_9 >= __pyx_v_params.shape[0])) __pyx_t_3 = 0;
+      if (unlikely(__pyx_t_3 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_3);
+        __PYX_ERR(0, 289, __pyx_L1_error)
+      }
+      __pyx_t_10 = 4;
+      __pyx_t_3 = -1;
+      if (__pyx_t_10 < 0) {
+        __pyx_t_10 += __pyx_v_params.shape[0];
+        if (unlikely(__pyx_t_10 < 0)) __pyx_t_3 = 0;
+      } else if (unlikely(__pyx_t_10 >= __pyx_v_params.shape[0])) __pyx_t_3 = 0;
+      if (unlikely(__pyx_t_3 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_3);
+        __PYX_ERR(0, 289, __pyx_L1_error)
+      }
+      __pyx_t_7 = 3;
+      __pyx_t_3 = -1;
+      if (__pyx_t_7 < 0) {
+        __pyx_t_7 += __pyx_v_params.shape[0];
+        if (unlikely(__pyx_t_7 < 0)) __pyx_t_3 = 0;
+      } else if (unlikely(__pyx_t_7 >= __pyx_v_params.shape[0])) __pyx_t_3 = 0;
+      if (unlikely(__pyx_t_3 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_3);
+        __PYX_ERR(0, 289, __pyx_L1_error)
+      }
+      __pyx_t_11.data = __pyx_v_external_source.data;
+      __pyx_t_11.memview = __pyx_v_external_source.memview;
+      __PYX_INC_MEMVIEW(&__pyx_t_11, 0);
+      __pyx_t_3 = -1;
+      if (unlikely(__pyx_memoryview_slice_memviewslice(
+    &__pyx_t_11,
+    __pyx_v_external_source.shape[0], __pyx_v_external_source.strides[0], __pyx_v_external_source.suboffsets[0],
+    0,
+    0,
+    &__pyx_t_3,
+    (__pyx_v_ex_group_idx + (__pyx_v_ex_angle_idx * (*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_9 * __pyx_v_params.strides[0]) ))))),
+    0,
+    ((*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_10 * __pyx_v_params.strides[0]) ))) * (*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_7 * __pyx_v_params.strides[0]) )))),
+    1,
+    0,
+    1,
+    1) < 0))
+{
+    __PYX_ERR(0, 289, __pyx_L1_error)
+}
+
+__pyx_t_7 = __pyx_v_cell;
+      __pyx_t_3 = -1;
+      if (__pyx_t_7 < 0) {
+        __pyx_t_7 += __pyx_t_11.shape[0];
+        if (unlikely(__pyx_t_7 < 0)) __pyx_t_3 = 0;
+      } else if (unlikely(__pyx_t_7 >= __pyx_t_11.shape[0])) __pyx_t_3 = 0;
+      if (unlikely(__pyx_t_3 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_3);
+        __PYX_ERR(0, 289, __pyx_L1_error)
+      }
+
+      /* "ants/cyants/x_sweeps.pyx":290
+ *             edge_one = (xs_matrix[material] * scalar_flux_old[cell] \
+ *                         + external_source[ex_group_idx + ex_angle_idx*params[3]::params[4]*params[3]][cell] \
+ *                          + angular_flux_last[cell] * temporal_coef + edge_two * (abs(spatial_coef) \             # <<<<<<<<<<<<<<
+ *                         - 0.5 * xs_total[material] - time_const * temporal_coef)) \
+ *                         * 1/(abs(spatial_coef) + 0.5 * xs_total[material] + time_const * temporal_coef)
+ */
+      __pyx_t_10 = __pyx_v_cell;
+      __pyx_t_3 = -1;
+      if (__pyx_t_10 < 0) {
+        __pyx_t_10 += __pyx_v_angular_flux_last.shape[0];
+        if (unlikely(__pyx_t_10 < 0)) __pyx_t_3 = 0;
+      } else if (unlikely(__pyx_t_10 >= __pyx_v_angular_flux_last.shape[0])) __pyx_t_3 = 0;
+      if (unlikely(__pyx_t_3 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_3);
+        __PYX_ERR(0, 290, __pyx_L1_error)
+      }
+
+      /* "ants/cyants/x_sweeps.pyx":291
+ *                         + external_source[ex_group_idx + ex_angle_idx*params[3]::params[4]*params[3]][cell] \
+ *                          + angular_flux_last[cell] * temporal_coef + edge_two * (abs(spatial_coef) \
+ *                         - 0.5 * xs_total[material] - time_const * temporal_coef)) \             # <<<<<<<<<<<<<<
+ *                         * 1/(abs(spatial_coef) + 0.5 * xs_total[material] + time_const * temporal_coef)
+ *             if params[1] == 2:
+ */
+      __pyx_t_9 = __pyx_v_material;
+      __pyx_t_3 = -1;
+      if (__pyx_t_9 < 0) {
+        __pyx_t_9 += __pyx_v_xs_total.shape[0];
+        if (unlikely(__pyx_t_9 < 0)) __pyx_t_3 = 0;
+      } else if (unlikely(__pyx_t_9 >= __pyx_v_xs_total.shape[0])) __pyx_t_3 = 0;
+      if (unlikely(__pyx_t_3 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_3);
+        __PYX_ERR(0, 291, __pyx_L1_error)
+      }
+
+      /* "ants/cyants/x_sweeps.pyx":292
+ *                          + angular_flux_last[cell] * temporal_coef + edge_two * (abs(spatial_coef) \
+ *                         - 0.5 * xs_total[material] - time_const * temporal_coef)) \
+ *                         * 1/(abs(spatial_coef) + 0.5 * xs_total[material] + time_const * temporal_coef)             # <<<<<<<<<<<<<<
+ *             if params[1] == 2:
+ *                 scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)
+ */
+      __pyx_t_5 = __pyx_v_material;
+      __pyx_t_3 = -1;
+      if (__pyx_t_5 < 0) {
+        __pyx_t_5 += __pyx_v_xs_total.shape[0];
+        if (unlikely(__pyx_t_5 < 0)) __pyx_t_3 = 0;
+      } else if (unlikely(__pyx_t_5 >= __pyx_v_xs_total.shape[0])) __pyx_t_3 = 0;
+      if (unlikely(__pyx_t_3 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_3);
+        __PYX_ERR(0, 292, __pyx_L1_error)
+      }
+      __pyx_v_edge_one = (((((((*((double *) ( /* dim=0 */ (__pyx_v_xs_matrix.data + __pyx_t_12 * __pyx_v_xs_matrix.strides[0]) ))) * (*((double *) ( /* dim=0 */ (__pyx_v_scalar_flux_old.data + __pyx_t_8 * __pyx_v_scalar_flux_old.strides[0]) )))) + (*((double *) ( /* dim=0 */ (__pyx_t_11.data + __pyx_t_7 * __pyx_t_11.strides[0]) )))) + ((*((double *) ( /* dim=0 */ (__pyx_v_angular_flux_last.data + __pyx_t_10 * __pyx_v_angular_flux_last.strides[0]) ))) * __pyx_v_temporal_coef)) + (__pyx_v_edge_two * ((fabs(__pyx_v_spatial_coef) - (0.5 * (*((double *) ( /* dim=0 */ (__pyx_v_xs_total.data + __pyx_t_9 * __pyx_v_xs_total.strides[0]) ))))) - (__pyx_v_time_const * __pyx_v_temporal_coef)))) * 1.0) / ((fabs(__pyx_v_spatial_coef) + (0.5 * (*((double *) ( /* dim=0 */ (__pyx_v_xs_total.data + __pyx_t_5 * __pyx_v_xs_total.strides[0]) ))))) + (__pyx_v_time_const * __pyx_v_temporal_coef)));
+      __PYX_XDEC_MEMVIEW(&__pyx_t_11, 1);
+      __pyx_t_11.memview = NULL;
+      __pyx_t_11.data = NULL;
+
+      /* "ants/cyants/x_sweeps.pyx":293
+ *                         - 0.5 * xs_total[material] - time_const * temporal_coef)) \
+ *                         * 1/(abs(spatial_coef) + 0.5 * xs_total[material] + time_const * temporal_coef)
+ *             if params[1] == 2:             # <<<<<<<<<<<<<<
+ *                 scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)
+ *             elif params[1] == 1:
+ */
+      __pyx_t_5 = 1;
+      __pyx_t_3 = -1;
+      if (__pyx_t_5 < 0) {
+        __pyx_t_5 += __pyx_v_params.shape[0];
+        if (unlikely(__pyx_t_5 < 0)) __pyx_t_3 = 0;
+      } else if (unlikely(__pyx_t_5 >= __pyx_v_params.shape[0])) __pyx_t_3 = 0;
+      if (unlikely(__pyx_t_3 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_3);
+        __PYX_ERR(0, 293, __pyx_L1_error)
+      }
+      __pyx_t_1 = (((*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_5 * __pyx_v_params.strides[0]) ))) == 2) != 0);
+      if (__pyx_t_1) {
+
+        /* "ants/cyants/x_sweeps.pyx":294
+ *                         * 1/(abs(spatial_coef) + 0.5 * xs_total[material] + time_const * temporal_coef)
+ *             if params[1] == 2:
+ *                 scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)             # <<<<<<<<<<<<<<
+ *             elif params[1] == 1:
+ *                 scalar_flux[cell] += angle_weight * edge_one
+ */
+        __pyx_t_5 = __pyx_v_cell;
+        __pyx_t_3 = -1;
+        if (__pyx_t_5 < 0) {
+          __pyx_t_5 += __pyx_v_scalar_flux.shape[0];
+          if (unlikely(__pyx_t_5 < 0)) __pyx_t_3 = 0;
+        } else if (unlikely(__pyx_t_5 >= __pyx_v_scalar_flux.shape[0])) __pyx_t_3 = 0;
+        if (unlikely(__pyx_t_3 != -1)) {
+          __Pyx_RaiseBufferIndexError(__pyx_t_3);
+          __PYX_ERR(0, 294, __pyx_L1_error)
+        }
+        *((double *) ( /* dim=0 */ (__pyx_v_scalar_flux.data + __pyx_t_5 * __pyx_v_scalar_flux.strides[0]) )) += ((__pyx_v_angle_weight * 0.5) * (__pyx_v_edge_one + __pyx_v_edge_two));
+
+        /* "ants/cyants/x_sweeps.pyx":293
+ *                         - 0.5 * xs_total[material] - time_const * temporal_coef)) \
+ *                         * 1/(abs(spatial_coef) + 0.5 * xs_total[material] + time_const * temporal_coef)
+ *             if params[1] == 2:             # <<<<<<<<<<<<<<
+ *                 scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)
+ *             elif params[1] == 1:
+ */
+        goto __pyx_L11;
+      }
+
+      /* "ants/cyants/x_sweeps.pyx":295
+ *             if params[1] == 2:
+ *                 scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)
+ *             elif params[1] == 1:             # <<<<<<<<<<<<<<
+ *                 scalar_flux[cell] += angle_weight * edge_one
+ *             edge_two = edge_one
+ */
+      __pyx_t_5 = 1;
+      __pyx_t_3 = -1;
+      if (__pyx_t_5 < 0) {
+        __pyx_t_5 += __pyx_v_params.shape[0];
+        if (unlikely(__pyx_t_5 < 0)) __pyx_t_3 = 0;
+      } else if (unlikely(__pyx_t_5 >= __pyx_v_params.shape[0])) __pyx_t_3 = 0;
+      if (unlikely(__pyx_t_3 != -1)) {
+        __Pyx_RaiseBufferIndexError(__pyx_t_3);
+        __PYX_ERR(0, 295, __pyx_L1_error)
+      }
+      __pyx_t_1 = (((*((int *) ( /* dim=0 */ (__pyx_v_params.data + __pyx_t_5 * __pyx_v_params.strides[0]) ))) == 1) != 0);
+      if (__pyx_t_1) {
+
+        /* "ants/cyants/x_sweeps.pyx":296
+ *                 scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)
+ *             elif params[1] == 1:
+ *                 scalar_flux[cell] += angle_weight * edge_one             # <<<<<<<<<<<<<<
+ *             edge_two = edge_one
+ * 
+ */
+        __pyx_t_5 = __pyx_v_cell;
+        __pyx_t_3 = -1;
+        if (__pyx_t_5 < 0) {
+          __pyx_t_5 += __pyx_v_scalar_flux.shape[0];
+          if (unlikely(__pyx_t_5 < 0)) __pyx_t_3 = 0;
+        } else if (unlikely(__pyx_t_5 >= __pyx_v_scalar_flux.shape[0])) __pyx_t_3 = 0;
+        if (unlikely(__pyx_t_3 != -1)) {
+          __Pyx_RaiseBufferIndexError(__pyx_t_3);
+          __PYX_ERR(0, 296, __pyx_L1_error)
+        }
+        *((double *) ( /* dim=0 */ (__pyx_v_scalar_flux.data + __pyx_t_5 * __pyx_v_scalar_flux.strides[0]) )) += (__pyx_v_angle_weight * __pyx_v_edge_one);
+
+        /* "ants/cyants/x_sweeps.pyx":295
+ *             if params[1] == 2:
+ *                 scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)
+ *             elif params[1] == 1:             # <<<<<<<<<<<<<<
+ *                 scalar_flux[cell] += angle_weight * edge_one
+ *             edge_two = edge_one
+ */
+      }
+      __pyx_L11:;
+
+      /* "ants/cyants/x_sweeps.pyx":297
+ *             elif params[1] == 1:
+ *                 scalar_flux[cell] += angle_weight * edge_one
+ *             edge_two = edge_one             # <<<<<<<<<<<<<<
+ * 
+ * 
+ */
+      __pyx_v_edge_two = __pyx_v_edge_one;
+    }
+
+    /* "ants/cyants/x_sweeps.pyx":283
+ *                 scalar_flux[cell] += angle_weight * edge_two
+ *             edge_one = edge_two
+ *     elif spatial_coef < 0:             # <<<<<<<<<<<<<<
+ *         for cell in range(cells-1, -1, -1):
+ *             material = medium_map[cell]
+ */
+  }
+  __pyx_L3:;
+
+  /* "ants/cyants/x_sweeps.pyx":254
+ * 
+ * 
+ * cdef void time_vacuum(double[:]& scalar_flux, double[:]& scalar_flux_old, \             # <<<<<<<<<<<<<<
+ *                         double [:]& angular_flux_last, int[:]& medium_map, \
+ *                         double[:]& xs_total, double[:]& xs_matrix, \
+ */
+
+  /* function exit code */
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __PYX_XDEC_MEMVIEW(&__pyx_t_11, 1);
+  __Pyx_WriteUnraisable("ants.cyants.x_sweeps.time_vacuum", __pyx_clineno, __pyx_lineno, __pyx_filename, 1, 0);
+  __pyx_L0:;
+  __Pyx_RefNannyFinishContext();
+}
+
+/* "ants/cyants/x_sweeps.pyx":300
+ * 
+ * 
+ * cdef void angular_to_scalar_flux(double[:]& scalar_flux,             # <<<<<<<<<<<<<<
+ *                     double[:,:]& angular_flux, double[:]& angle_weight):
+ *     cdef size_t cells, angles, cell, angle
+ */
+
+static void __pyx_f_4ants_6cyants_8x_sweeps_angular_to_scalar_flux(__Pyx_memviewslice &__pyx_v_scalar_flux, __Pyx_memviewslice &__pyx_v_angular_flux, __Pyx_memviewslice &__pyx_v_angle_weight) {
   size_t __pyx_v_cells;
   size_t __pyx_v_angles;
   size_t __pyx_v_cell;
@@ -4625,8 +6366,8 @@ static void __pyx_f_8x_sweeps_angular_to_scalar_flux(__Pyx_memviewslice &__pyx_v
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("angular_to_scalar_flux", 0);
 
-  /* "x_sweeps.pyx":202
- *                                       double[:]& angle_weight):
+  /* "ants/cyants/x_sweeps.pyx":303
+ *                     double[:,:]& angular_flux, double[:]& angle_weight):
  *     cdef size_t cells, angles, cell, angle
  *     cells = angular_flux.shape[0]             # <<<<<<<<<<<<<<
  *     angles = angular_flux.shape[1]
@@ -4634,7 +6375,7 @@ static void __pyx_f_8x_sweeps_angular_to_scalar_flux(__Pyx_memviewslice &__pyx_v
  */
   __pyx_v_cells = (__pyx_v_angular_flux.shape[0]);
 
-  /* "x_sweeps.pyx":203
+  /* "ants/cyants/x_sweeps.pyx":304
  *     cdef size_t cells, angles, cell, angle
  *     cells = angular_flux.shape[0]
  *     angles = angular_flux.shape[1]             # <<<<<<<<<<<<<<
@@ -4643,7 +6384,7 @@ static void __pyx_f_8x_sweeps_angular_to_scalar_flux(__Pyx_memviewslice &__pyx_v
  */
   __pyx_v_angles = (__pyx_v_angular_flux.shape[1]);
 
-  /* "x_sweeps.pyx":204
+  /* "ants/cyants/x_sweeps.pyx":305
  *     cells = angular_flux.shape[0]
  *     angles = angular_flux.shape[1]
  *     scalar_flux[:] = 0             # <<<<<<<<<<<<<<
@@ -4665,7 +6406,7 @@ static void __pyx_f_8x_sweeps_angular_to_scalar_flux(__Pyx_memviewslice &__pyx_v
       }
   }
 
-  /* "x_sweeps.pyx":205
+  /* "ants/cyants/x_sweeps.pyx":306
  *     angles = angular_flux.shape[1]
  *     scalar_flux[:] = 0
  *     for angle in range(angles):             # <<<<<<<<<<<<<<
@@ -4677,7 +6418,7 @@ static void __pyx_f_8x_sweeps_angular_to_scalar_flux(__Pyx_memviewslice &__pyx_v
   for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_2; __pyx_t_3+=1) {
     __pyx_v_angle = __pyx_t_3;
 
-    /* "x_sweeps.pyx":206
+    /* "ants/cyants/x_sweeps.pyx":307
  *     scalar_flux[:] = 0
  *     for angle in range(angles):
  *         for cell in range(cells):             # <<<<<<<<<<<<<<
@@ -4689,7 +6430,7 @@ static void __pyx_f_8x_sweeps_angular_to_scalar_flux(__Pyx_memviewslice &__pyx_v
     for (__pyx_t_6 = 0; __pyx_t_6 < __pyx_t_5; __pyx_t_6+=1) {
       __pyx_v_cell = __pyx_t_6;
 
-      /* "x_sweeps.pyx":207
+      /* "ants/cyants/x_sweeps.pyx":308
  *     for angle in range(angles):
  *         for cell in range(cells):
  *             scalar_flux[cell] += angle_weight[angle] * angular_flux[cell][angle]             # <<<<<<<<<<<<<<
@@ -4701,7 +6442,7 @@ static void __pyx_f_8x_sweeps_angular_to_scalar_flux(__Pyx_memviewslice &__pyx_v
       if (unlikely(__pyx_t_7 >= (size_t)__pyx_v_angle_weight.shape[0])) __pyx_t_8 = 0;
       if (unlikely(__pyx_t_8 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_8);
-        __PYX_ERR(0, 207, __pyx_L1_error)
+        __PYX_ERR(0, 308, __pyx_L1_error)
       }
       __pyx_t_9 = __pyx_v_cell;
       __pyx_t_10 = __pyx_v_angle;
@@ -4710,36 +6451,36 @@ static void __pyx_f_8x_sweeps_angular_to_scalar_flux(__Pyx_memviewslice &__pyx_v
       if (unlikely(__pyx_t_10 >= (size_t)__pyx_v_angular_flux.shape[1])) __pyx_t_8 = 1;
       if (unlikely(__pyx_t_8 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_8);
-        __PYX_ERR(0, 207, __pyx_L1_error)
+        __PYX_ERR(0, 308, __pyx_L1_error)
       }
       __pyx_t_11 = __pyx_v_cell;
       __pyx_t_8 = -1;
       if (unlikely(__pyx_t_11 >= (size_t)__pyx_v_scalar_flux.shape[0])) __pyx_t_8 = 0;
       if (unlikely(__pyx_t_8 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_8);
-        __PYX_ERR(0, 207, __pyx_L1_error)
+        __PYX_ERR(0, 308, __pyx_L1_error)
       }
       *((double *) ( /* dim=0 */ (__pyx_v_scalar_flux.data + __pyx_t_11 * __pyx_v_scalar_flux.strides[0]) )) += ((*((double *) ( /* dim=0 */ (__pyx_v_angle_weight.data + __pyx_t_7 * __pyx_v_angle_weight.strides[0]) ))) * (*((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_angular_flux.data + __pyx_t_9 * __pyx_v_angular_flux.strides[0]) ) + __pyx_t_10 * __pyx_v_angular_flux.strides[1]) ))));
     }
   }
 
-  /* "x_sweeps.pyx":198
+  /* "ants/cyants/x_sweeps.pyx":300
  * 
  * 
- * cdef void angular_to_scalar_flux(double[:]& scalar_flux, \             # <<<<<<<<<<<<<<
- *                                       double[:,:]& angular_flux, \
- *                                       double[:]& angle_weight):
+ * cdef void angular_to_scalar_flux(double[:]& scalar_flux,             # <<<<<<<<<<<<<<
+ *                     double[:,:]& angular_flux, double[:]& angle_weight):
+ *     cdef size_t cells, angles, cell, angle
  */
 
   /* function exit code */
   goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_WriteUnraisable("x_sweeps.angular_to_scalar_flux", __pyx_clineno, __pyx_lineno, __pyx_filename, 1, 0);
+  __Pyx_WriteUnraisable("ants.cyants.x_sweeps.angular_to_scalar_flux", __pyx_clineno, __pyx_lineno, __pyx_filename, 1, 0);
   __pyx_L0:;
   __Pyx_RefNannyFinishContext();
 }
 
-/* "x_sweeps.pyx":210
+/* "ants/cyants/x_sweeps.pyx":311
  * 
  * 
  * cdef double scalar_convergence(double [:]& arr1, double [:]& arr2):             # <<<<<<<<<<<<<<
@@ -4747,7 +6488,7 @@ static void __pyx_f_8x_sweeps_angular_to_scalar_flux(__Pyx_memviewslice &__pyx_v
  *     cdef double change = 0.0
  */
 
-static double __pyx_f_8x_sweeps_scalar_convergence(__Pyx_memviewslice &__pyx_v_arr1, __Pyx_memviewslice &__pyx_v_arr2) {
+static double __pyx_f_4ants_6cyants_8x_sweeps_scalar_convergence(__Pyx_memviewslice &__pyx_v_arr1, __Pyx_memviewslice &__pyx_v_arr2) {
   PyObject *__pyx_v_n = NULL;
   double __pyx_v_change;
   int __pyx_v_cell;
@@ -4768,19 +6509,19 @@ static double __pyx_f_8x_sweeps_scalar_convergence(__Pyx_memviewslice &__pyx_v_a
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("scalar_convergence", 0);
 
-  /* "x_sweeps.pyx":211
+  /* "ants/cyants/x_sweeps.pyx":312
  * 
  * cdef double scalar_convergence(double [:]& arr1, double [:]& arr2):
  *     n = arr1.shape[0]             # <<<<<<<<<<<<<<
  *     cdef double change = 0.0
  *     for cell in range(<int> n):
  */
-  __pyx_t_1 = PyInt_FromSsize_t((__pyx_v_arr1.shape[0])); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 211, __pyx_L1_error)
+  __pyx_t_1 = PyInt_FromSsize_t((__pyx_v_arr1.shape[0])); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 312, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_v_n = __pyx_t_1;
   __pyx_t_1 = 0;
 
-  /* "x_sweeps.pyx":212
+  /* "ants/cyants/x_sweeps.pyx":313
  * cdef double scalar_convergence(double [:]& arr1, double [:]& arr2):
  *     n = arr1.shape[0]
  *     cdef double change = 0.0             # <<<<<<<<<<<<<<
@@ -4789,20 +6530,20 @@ static double __pyx_f_8x_sweeps_scalar_convergence(__Pyx_memviewslice &__pyx_v_a
  */
   __pyx_v_change = 0.0;
 
-  /* "x_sweeps.pyx":213
+  /* "ants/cyants/x_sweeps.pyx":314
  *     n = arr1.shape[0]
  *     cdef double change = 0.0
  *     for cell in range(<int> n):             # <<<<<<<<<<<<<<
  *         change += pow((arr1[cell] - arr2[cell]) / arr1[cell] / n, 2)
  *     change = sqrt(change)
  */
-  __pyx_t_2 = __Pyx_PyInt_As_int(__pyx_v_n); if (unlikely((__pyx_t_2 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 213, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyInt_As_int(__pyx_v_n); if (unlikely((__pyx_t_2 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 314, __pyx_L1_error)
   __pyx_t_3 = ((int)__pyx_t_2);
   __pyx_t_2 = __pyx_t_3;
   for (__pyx_t_4 = 0; __pyx_t_4 < __pyx_t_2; __pyx_t_4+=1) {
     __pyx_v_cell = __pyx_t_4;
 
-    /* "x_sweeps.pyx":214
+    /* "ants/cyants/x_sweeps.pyx":315
  *     cdef double change = 0.0
  *     for cell in range(<int> n):
  *         change += pow((arr1[cell] - arr2[cell]) / arr1[cell] / n, 2)             # <<<<<<<<<<<<<<
@@ -4817,7 +6558,7 @@ static double __pyx_f_8x_sweeps_scalar_convergence(__Pyx_memviewslice &__pyx_v_a
     } else if (unlikely(__pyx_t_5 >= __pyx_v_arr1.shape[0])) __pyx_t_6 = 0;
     if (unlikely(__pyx_t_6 != -1)) {
       __Pyx_RaiseBufferIndexError(__pyx_t_6);
-      __PYX_ERR(0, 214, __pyx_L1_error)
+      __PYX_ERR(0, 315, __pyx_L1_error)
     }
     __pyx_t_7 = __pyx_v_cell;
     __pyx_t_6 = -1;
@@ -4827,7 +6568,7 @@ static double __pyx_f_8x_sweeps_scalar_convergence(__Pyx_memviewslice &__pyx_v_a
     } else if (unlikely(__pyx_t_7 >= __pyx_v_arr2.shape[0])) __pyx_t_6 = 0;
     if (unlikely(__pyx_t_6 != -1)) {
       __Pyx_RaiseBufferIndexError(__pyx_t_6);
-      __PYX_ERR(0, 214, __pyx_L1_error)
+      __PYX_ERR(0, 315, __pyx_L1_error)
     }
     __pyx_t_8 = __pyx_v_cell;
     __pyx_t_6 = -1;
@@ -4837,19 +6578,19 @@ static double __pyx_f_8x_sweeps_scalar_convergence(__Pyx_memviewslice &__pyx_v_a
     } else if (unlikely(__pyx_t_8 >= __pyx_v_arr1.shape[0])) __pyx_t_6 = 0;
     if (unlikely(__pyx_t_6 != -1)) {
       __Pyx_RaiseBufferIndexError(__pyx_t_6);
-      __PYX_ERR(0, 214, __pyx_L1_error)
+      __PYX_ERR(0, 315, __pyx_L1_error)
     }
-    __pyx_t_1 = PyFloat_FromDouble((((*((double *) ( /* dim=0 */ (__pyx_v_arr1.data + __pyx_t_5 * __pyx_v_arr1.strides[0]) ))) - (*((double *) ( /* dim=0 */ (__pyx_v_arr2.data + __pyx_t_7 * __pyx_v_arr2.strides[0]) )))) / (*((double *) ( /* dim=0 */ (__pyx_v_arr1.data + __pyx_t_8 * __pyx_v_arr1.strides[0]) ))))); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 214, __pyx_L1_error)
+    __pyx_t_1 = PyFloat_FromDouble((((*((double *) ( /* dim=0 */ (__pyx_v_arr1.data + __pyx_t_5 * __pyx_v_arr1.strides[0]) ))) - (*((double *) ( /* dim=0 */ (__pyx_v_arr2.data + __pyx_t_7 * __pyx_v_arr2.strides[0]) )))) / (*((double *) ( /* dim=0 */ (__pyx_v_arr1.data + __pyx_t_8 * __pyx_v_arr1.strides[0]) ))))); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 315, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
-    __pyx_t_9 = __Pyx_PyNumber_Divide(__pyx_t_1, __pyx_v_n); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 214, __pyx_L1_error)
+    __pyx_t_9 = __Pyx_PyNumber_Divide(__pyx_t_1, __pyx_v_n); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 315, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_9);
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-    __pyx_t_10 = __pyx_PyFloat_AsDouble(__pyx_t_9); if (unlikely((__pyx_t_10 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 214, __pyx_L1_error)
+    __pyx_t_10 = __pyx_PyFloat_AsDouble(__pyx_t_9); if (unlikely((__pyx_t_10 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 315, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
     __pyx_v_change = (__pyx_v_change + pow(__pyx_t_10, 2.0));
   }
 
-  /* "x_sweeps.pyx":215
+  /* "ants/cyants/x_sweeps.pyx":316
  *     for cell in range(<int> n):
  *         change += pow((arr1[cell] - arr2[cell]) / arr1[cell] / n, 2)
  *     change = sqrt(change)             # <<<<<<<<<<<<<<
@@ -4858,7 +6599,7 @@ static double __pyx_f_8x_sweeps_scalar_convergence(__Pyx_memviewslice &__pyx_v_a
  */
   __pyx_v_change = sqrt(__pyx_v_change);
 
-  /* "x_sweeps.pyx":216
+  /* "ants/cyants/x_sweeps.pyx":317
  *         change += pow((arr1[cell] - arr2[cell]) / arr1[cell] / n, 2)
  *     change = sqrt(change)
  *     return change             # <<<<<<<<<<<<<<
@@ -4868,7 +6609,7 @@ static double __pyx_f_8x_sweeps_scalar_convergence(__Pyx_memviewslice &__pyx_v_a
   __pyx_r = __pyx_v_change;
   goto __pyx_L0;
 
-  /* "x_sweeps.pyx":210
+  /* "ants/cyants/x_sweeps.pyx":311
  * 
  * 
  * cdef double scalar_convergence(double [:]& arr1, double [:]& arr2):             # <<<<<<<<<<<<<<
@@ -4880,7 +6621,7 @@ static double __pyx_f_8x_sweeps_scalar_convergence(__Pyx_memviewslice &__pyx_v_a
   __pyx_L1_error:;
   __Pyx_XDECREF(__pyx_t_1);
   __Pyx_XDECREF(__pyx_t_9);
-  __Pyx_WriteUnraisable("x_sweeps.scalar_convergence", __pyx_clineno, __pyx_lineno, __pyx_filename, 1, 0);
+  __Pyx_WriteUnraisable("ants.cyants.x_sweeps.scalar_convergence", __pyx_clineno, __pyx_lineno, __pyx_filename, 1, 0);
   __pyx_r = 0;
   __pyx_L0:;
   __Pyx_XDECREF(__pyx_v_n);
@@ -4888,15 +6629,15 @@ static double __pyx_f_8x_sweeps_scalar_convergence(__Pyx_memviewslice &__pyx_v_a
   return __pyx_r;
 }
 
-/* "x_sweeps.pyx":219
+/* "ants/cyants/x_sweeps.pyx":320
  * 
  * 
- * cdef double angular_convergence(double[:,:]& angular_flux, \             # <<<<<<<<<<<<<<
- *                                 double [:,:]& angular_flux_old, \
- *                                 double [:]& angle_weight):
+ * cdef double angular_convergence(double[:,:]& angular_flux,             # <<<<<<<<<<<<<<
+ *                 double [:,:]& angular_flux_old, double [:]& angle_weight):
+ *     cdef size_t cells, angles
  */
 
-static double __pyx_f_8x_sweeps_angular_convergence(__Pyx_memviewslice &__pyx_v_angular_flux, __Pyx_memviewslice &__pyx_v_angular_flux_old, __Pyx_memviewslice &__pyx_v_angle_weight) {
+static double __pyx_f_4ants_6cyants_8x_sweeps_angular_convergence(__Pyx_memviewslice &__pyx_v_angular_flux, __Pyx_memviewslice &__pyx_v_angular_flux_old, __Pyx_memviewslice &__pyx_v_angle_weight) {
   size_t __pyx_v_cells;
   size_t __pyx_v_angles;
   double __pyx_v_change;
@@ -4921,17 +6662,17 @@ static double __pyx_f_8x_sweeps_angular_convergence(__Pyx_memviewslice &__pyx_v_
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("angular_convergence", 0);
 
-  /* "x_sweeps.pyx":224
+  /* "ants/cyants/x_sweeps.pyx":323
+ *                 double [:,:]& angular_flux_old, double [:]& angle_weight):
  *     cdef size_t cells, angles
- *     # cdef size_t cell, angle
  *     cells = angular_flux.shape[0]             # <<<<<<<<<<<<<<
  *     angles = angular_flux.shape[1]
  *     cdef double change = 0.0
  */
   __pyx_v_cells = (__pyx_v_angular_flux.shape[0]);
 
-  /* "x_sweeps.pyx":225
- *     # cdef size_t cell, angle
+  /* "ants/cyants/x_sweeps.pyx":324
+ *     cdef size_t cells, angles
  *     cells = angular_flux.shape[0]
  *     angles = angular_flux.shape[1]             # <<<<<<<<<<<<<<
  *     cdef double change = 0.0
@@ -4939,7 +6680,7 @@ static double __pyx_f_8x_sweeps_angular_convergence(__Pyx_memviewslice &__pyx_v_
  */
   __pyx_v_angles = (__pyx_v_angular_flux.shape[1]);
 
-  /* "x_sweeps.pyx":226
+  /* "ants/cyants/x_sweeps.pyx":325
  *     cells = angular_flux.shape[0]
  *     angles = angular_flux.shape[1]
  *     cdef double change = 0.0             # <<<<<<<<<<<<<<
@@ -4948,7 +6689,7 @@ static double __pyx_f_8x_sweeps_angular_convergence(__Pyx_memviewslice &__pyx_v_
  */
   __pyx_v_change = 0.0;
 
-  /* "x_sweeps.pyx":228
+  /* "ants/cyants/x_sweeps.pyx":327
  *     cdef double change = 0.0
  *     cdef double scalar_flux, scalar_flux_old
  *     for cell in range(cells):             # <<<<<<<<<<<<<<
@@ -4960,7 +6701,7 @@ static double __pyx_f_8x_sweeps_angular_convergence(__Pyx_memviewslice &__pyx_v_
   for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_2; __pyx_t_3+=1) {
     __pyx_v_cell = __pyx_t_3;
 
-    /* "x_sweeps.pyx":229
+    /* "ants/cyants/x_sweeps.pyx":328
  *     cdef double scalar_flux, scalar_flux_old
  *     for cell in range(cells):
  *         scalar_flux = 0             # <<<<<<<<<<<<<<
@@ -4969,7 +6710,7 @@ static double __pyx_f_8x_sweeps_angular_convergence(__Pyx_memviewslice &__pyx_v_
  */
     __pyx_v_scalar_flux = 0.0;
 
-    /* "x_sweeps.pyx":230
+    /* "ants/cyants/x_sweeps.pyx":329
  *     for cell in range(cells):
  *         scalar_flux = 0
  *         scalar_flux_old = 0             # <<<<<<<<<<<<<<
@@ -4978,7 +6719,7 @@ static double __pyx_f_8x_sweeps_angular_convergence(__Pyx_memviewslice &__pyx_v_
  */
     __pyx_v_scalar_flux_old = 0.0;
 
-    /* "x_sweeps.pyx":231
+    /* "ants/cyants/x_sweeps.pyx":330
  *         scalar_flux = 0
  *         scalar_flux_old = 0
  *         for angle in range(angles):             # <<<<<<<<<<<<<<
@@ -4990,7 +6731,7 @@ static double __pyx_f_8x_sweeps_angular_convergence(__Pyx_memviewslice &__pyx_v_
     for (__pyx_t_6 = 0; __pyx_t_6 < __pyx_t_5; __pyx_t_6+=1) {
       __pyx_v_angle = __pyx_t_6;
 
-      /* "x_sweeps.pyx":232
+      /* "ants/cyants/x_sweeps.pyx":331
  *         scalar_flux_old = 0
  *         for angle in range(angles):
  *             scalar_flux += angle_weight[angle] * angular_flux[cell][angle]             # <<<<<<<<<<<<<<
@@ -5002,7 +6743,7 @@ static double __pyx_f_8x_sweeps_angular_convergence(__Pyx_memviewslice &__pyx_v_
       if (unlikely(__pyx_t_7 >= (size_t)__pyx_v_angle_weight.shape[0])) __pyx_t_8 = 0;
       if (unlikely(__pyx_t_8 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_8);
-        __PYX_ERR(0, 232, __pyx_L1_error)
+        __PYX_ERR(0, 331, __pyx_L1_error)
       }
       __pyx_t_9 = __pyx_v_cell;
       __pyx_t_10 = __pyx_v_angle;
@@ -5011,11 +6752,11 @@ static double __pyx_f_8x_sweeps_angular_convergence(__Pyx_memviewslice &__pyx_v_
       if (unlikely(__pyx_t_10 >= (size_t)__pyx_v_angular_flux.shape[1])) __pyx_t_8 = 1;
       if (unlikely(__pyx_t_8 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_8);
-        __PYX_ERR(0, 232, __pyx_L1_error)
+        __PYX_ERR(0, 331, __pyx_L1_error)
       }
       __pyx_v_scalar_flux = (__pyx_v_scalar_flux + ((*((double *) ( /* dim=0 */ (__pyx_v_angle_weight.data + __pyx_t_7 * __pyx_v_angle_weight.strides[0]) ))) * (*((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_angular_flux.data + __pyx_t_9 * __pyx_v_angular_flux.strides[0]) ) + __pyx_t_10 * __pyx_v_angular_flux.strides[1]) )))));
 
-      /* "x_sweeps.pyx":233
+      /* "ants/cyants/x_sweeps.pyx":332
  *         for angle in range(angles):
  *             scalar_flux += angle_weight[angle] * angular_flux[cell][angle]
  *             scalar_flux_old += angle_weight[angle] * angular_flux_old[cell][angle]             # <<<<<<<<<<<<<<
@@ -5027,7 +6768,7 @@ static double __pyx_f_8x_sweeps_angular_convergence(__Pyx_memviewslice &__pyx_v_
       if (unlikely(__pyx_t_10 >= (size_t)__pyx_v_angle_weight.shape[0])) __pyx_t_8 = 0;
       if (unlikely(__pyx_t_8 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_8);
-        __PYX_ERR(0, 233, __pyx_L1_error)
+        __PYX_ERR(0, 332, __pyx_L1_error)
       }
       __pyx_t_9 = __pyx_v_cell;
       __pyx_t_7 = __pyx_v_angle;
@@ -5036,12 +6777,12 @@ static double __pyx_f_8x_sweeps_angular_convergence(__Pyx_memviewslice &__pyx_v_
       if (unlikely(__pyx_t_7 >= (size_t)__pyx_v_angular_flux_old.shape[1])) __pyx_t_8 = 1;
       if (unlikely(__pyx_t_8 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_8);
-        __PYX_ERR(0, 233, __pyx_L1_error)
+        __PYX_ERR(0, 332, __pyx_L1_error)
       }
       __pyx_v_scalar_flux_old = (__pyx_v_scalar_flux_old + ((*((double *) ( /* dim=0 */ (__pyx_v_angle_weight.data + __pyx_t_10 * __pyx_v_angle_weight.strides[0]) ))) * (*((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_angular_flux_old.data + __pyx_t_9 * __pyx_v_angular_flux_old.strides[0]) ) + __pyx_t_7 * __pyx_v_angular_flux_old.strides[1]) )))));
     }
 
-    /* "x_sweeps.pyx":234
+    /* "ants/cyants/x_sweeps.pyx":333
  *             scalar_flux += angle_weight[angle] * angular_flux[cell][angle]
  *             scalar_flux_old += angle_weight[angle] * angular_flux_old[cell][angle]
  *         change += pow((scalar_flux - scalar_flux_old) / \             # <<<<<<<<<<<<<<
@@ -5051,7 +6792,7 @@ static double __pyx_f_8x_sweeps_angular_convergence(__Pyx_memviewslice &__pyx_v_
     __pyx_v_change = (__pyx_v_change + pow((((__pyx_v_scalar_flux - __pyx_v_scalar_flux_old) / __pyx_v_scalar_flux) / ((double)__pyx_v_cells)), 2.0));
   }
 
-  /* "x_sweeps.pyx":236
+  /* "ants/cyants/x_sweeps.pyx":335
  *         change += pow((scalar_flux - scalar_flux_old) / \
  *                         scalar_flux / cells, 2)
  *     change = sqrt(change)             # <<<<<<<<<<<<<<
@@ -5059,7 +6800,7 @@ static double __pyx_f_8x_sweeps_angular_convergence(__Pyx_memviewslice &__pyx_v_
  */
   __pyx_v_change = sqrt(__pyx_v_change);
 
-  /* "x_sweeps.pyx":237
+  /* "ants/cyants/x_sweeps.pyx":336
  *                         scalar_flux / cells, 2)
  *     change = sqrt(change)
  *     return change             # <<<<<<<<<<<<<<
@@ -5067,17 +6808,17 @@ static double __pyx_f_8x_sweeps_angular_convergence(__Pyx_memviewslice &__pyx_v_
   __pyx_r = __pyx_v_change;
   goto __pyx_L0;
 
-  /* "x_sweeps.pyx":219
+  /* "ants/cyants/x_sweeps.pyx":320
  * 
  * 
- * cdef double angular_convergence(double[:,:]& angular_flux, \             # <<<<<<<<<<<<<<
- *                                 double [:,:]& angular_flux_old, \
- *                                 double [:]& angle_weight):
+ * cdef double angular_convergence(double[:,:]& angular_flux,             # <<<<<<<<<<<<<<
+ *                 double [:,:]& angular_flux_old, double [:]& angle_weight):
+ *     cdef size_t cells, angles
  */
 
   /* function exit code */
   __pyx_L1_error:;
-  __Pyx_WriteUnraisable("x_sweeps.angular_convergence", __pyx_clineno, __pyx_lineno, __pyx_filename, 1, 0);
+  __Pyx_WriteUnraisable("ants.cyants.x_sweeps.angular_convergence", __pyx_clineno, __pyx_lineno, __pyx_filename, 1, 0);
   __pyx_r = 0;
   __pyx_L0:;
   __Pyx_RefNannyFinishContext();
@@ -18224,7 +19965,7 @@ static PyBufferProcs __pyx_tp_as_buffer_array = {
 
 static PyTypeObject __pyx_type___pyx_array = {
   PyVarObject_HEAD_INIT(0, 0)
-  "x_sweeps.array", /*tp_name*/
+  "ants.cyants.x_sweeps.array", /*tp_name*/
   sizeof(struct __pyx_array_obj), /*tp_basicsize*/
   0, /*tp_itemsize*/
   __pyx_tp_dealloc_array, /*tp_dealloc*/
@@ -18346,7 +20087,7 @@ static PyMethodDef __pyx_methods_Enum[] = {
 
 static PyTypeObject __pyx_type___pyx_MemviewEnum = {
   PyVarObject_HEAD_INIT(0, 0)
-  "x_sweeps.Enum", /*tp_name*/
+  "ants.cyants.x_sweeps.Enum", /*tp_name*/
   sizeof(struct __pyx_MemviewEnum_obj), /*tp_basicsize*/
   0, /*tp_itemsize*/
   __pyx_tp_dealloc_Enum, /*tp_dealloc*/
@@ -18610,7 +20351,7 @@ static PyBufferProcs __pyx_tp_as_buffer_memoryview = {
 
 static PyTypeObject __pyx_type___pyx_memoryview = {
   PyVarObject_HEAD_INIT(0, 0)
-  "x_sweeps.memoryview", /*tp_name*/
+  "ants.cyants.x_sweeps.memoryview", /*tp_name*/
   sizeof(struct __pyx_memoryview_obj), /*tp_basicsize*/
   0, /*tp_itemsize*/
   __pyx_tp_dealloc_memoryview, /*tp_dealloc*/
@@ -18751,7 +20492,7 @@ static struct PyGetSetDef __pyx_getsets__memoryviewslice[] = {
 
 static PyTypeObject __pyx_type___pyx_memoryviewslice = {
   PyVarObject_HEAD_INIT(0, 0)
-  "x_sweeps._memoryviewslice", /*tp_name*/
+  "ants.cyants.x_sweeps._memoryviewslice", /*tp_name*/
   sizeof(struct __pyx_memoryviewslice_obj), /*tp_basicsize*/
   0, /*tp_itemsize*/
   __pyx_tp_dealloc__memoryviewslice, /*tp_dealloc*/
@@ -18972,8 +20713,8 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {0, 0, 0, 0, 0, 0, 0}
 };
 static CYTHON_SMALL_CODE int __Pyx_InitCachedBuiltins(void) {
-  __pyx_builtin_range = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_range) __PYX_ERR(0, 42, __pyx_L1_error)
-  __pyx_builtin_print = __Pyx_GetBuiltinName(__pyx_n_s_print); if (!__pyx_builtin_print) __PYX_ERR(0, 56, __pyx_L1_error)
+  __pyx_builtin_range = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_range) __PYX_ERR(0, 43, __pyx_L1_error)
+  __pyx_builtin_print = __Pyx_GetBuiltinName(__pyx_n_s_print); if (!__pyx_builtin_print) __PYX_ERR(0, 58, __pyx_L1_error)
   __pyx_builtin_ValueError = __Pyx_GetBuiltinName(__pyx_n_s_ValueError); if (!__pyx_builtin_ValueError) __PYX_ERR(1, 133, __pyx_L1_error)
   __pyx_builtin_MemoryError = __Pyx_GetBuiltinName(__pyx_n_s_MemoryError); if (!__pyx_builtin_MemoryError) __PYX_ERR(1, 148, __pyx_L1_error)
   __pyx_builtin_enumerate = __Pyx_GetBuiltinName(__pyx_n_s_enumerate); if (!__pyx_builtin_enumerate) __PYX_ERR(1, 151, __pyx_L1_error)
@@ -18990,14 +20731,14 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__Pyx_InitCachedConstants", 0);
 
-  /* "x_sweeps.pyx":56
- *                         angle_weight[angle], spatial)
+  /* "ants/cyants/x_sweeps.pyx":58
+ *                           ex_angle_idx)
  *             else:
  *                 print("You are wrong")             # <<<<<<<<<<<<<<
  *         change = scalar_convergence(scalar_flux, scalar_flux_old)
  *         # print("In Count", count, "Change", change)
  */
-  __pyx_tuple_ = PyTuple_Pack(1, __pyx_kp_u_You_are_wrong); if (unlikely(!__pyx_tuple_)) __PYX_ERR(0, 56, __pyx_L1_error)
+  __pyx_tuple_ = PyTuple_Pack(1, __pyx_kp_u_You_are_wrong); if (unlikely(!__pyx_tuple_)) __PYX_ERR(0, 58, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple_);
   __Pyx_GIVEREF(__pyx_tuple_);
 
@@ -19311,8 +21052,9 @@ static int __Pyx_modinit_function_export_code(void) {
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("__Pyx_modinit_function_export_code", 0);
   /*--- Function export code ---*/
-  if (__Pyx_ExportFunction("scalar_sweep", (void (*)(void))__pyx_f_8x_sweeps_scalar_sweep, "__Pyx_memviewslice (__Pyx_memviewslice, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, int, int)") < 0) __PYX_ERR(0, 1, __pyx_L1_error)
-  if (__Pyx_ExportFunction("angular_sweep", (void (*)(void))__pyx_f_8x_sweeps_angular_sweep, "__Pyx_memviewslice (__Pyx_memviewslice, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, int, int)") < 0) __PYX_ERR(0, 1, __pyx_L1_error)
+  if (__Pyx_ExportFunction("x_scalar_sweep", (void (*)(void))__pyx_f_4ants_6cyants_8x_sweeps_x_scalar_sweep, "__Pyx_memviewslice (__Pyx_memviewslice, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, size_t)") < 0) __PYX_ERR(0, 1, __pyx_L1_error)
+  if (__Pyx_ExportFunction("x_angular_sweep", (void (*)(void))__pyx_f_4ants_6cyants_8x_sweeps_x_angular_sweep, "__Pyx_memviewslice (__Pyx_memviewslice, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, size_t)") < 0) __PYX_ERR(0, 1, __pyx_L1_error)
+  if (__Pyx_ExportFunction("x_time_sweep", (void (*)(void))__pyx_f_4ants_6cyants_8x_sweeps_x_time_sweep, "__Pyx_memviewslice (__Pyx_memviewslice, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, double, double, size_t)") < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   __Pyx_RefNannyFinishContext();
   return 0;
   __pyx_L1_error:;
@@ -19583,14 +21325,14 @@ if (!__Pyx_RefNanny) {
   #if PY_MAJOR_VERSION < 3 && (__PYX_DEFAULT_STRING_ENCODING_IS_ASCII || __PYX_DEFAULT_STRING_ENCODING_IS_DEFAULT)
   if (__Pyx_init_sys_getdefaultencoding_params() < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   #endif
-  if (__pyx_module_is_main_x_sweeps) {
+  if (__pyx_module_is_main_ants__cyants__x_sweeps) {
     if (PyObject_SetAttr(__pyx_m, __pyx_n_s_name_2, __pyx_n_s_main) < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   }
   #if PY_MAJOR_VERSION >= 3
   {
     PyObject *modules = PyImport_GetModuleDict(); if (unlikely(!modules)) __PYX_ERR(0, 1, __pyx_L1_error)
-    if (!PyDict_GetItemString(modules, "x_sweeps")) {
-      if (unlikely(PyDict_SetItemString(modules, "x_sweeps", __pyx_m) < 0)) __PYX_ERR(0, 1, __pyx_L1_error)
+    if (!PyDict_GetItemString(modules, "ants.cyants.x_sweeps")) {
+      if (unlikely(PyDict_SetItemString(modules, "ants.cyants.x_sweeps", __pyx_m) < 0)) __PYX_ERR(0, 1, __pyx_L1_error)
     }
   }
   #endif
@@ -19611,7 +21353,7 @@ if (!__Pyx_RefNanny) {
   if (__Pyx_patch_abc() < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   #endif
 
-  /* "x_sweeps.pyx":15
+  /* "ants/cyants/x_sweeps.pyx":15
  * # cython: cdivision=True
  * 
  * import ants.constants as constants             # <<<<<<<<<<<<<<
@@ -19629,7 +21371,7 @@ if (!__Pyx_RefNanny) {
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_constants, __pyx_t_2) < 0) __PYX_ERR(0, 15, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "x_sweeps.pyx":1
+  /* "ants/cyants/x_sweeps.pyx":1
  * ########################################################################             # <<<<<<<<<<<<<<
  * #                        ___    _   _____________
  * #                       /   |  / | / /_  __/ ___/
@@ -19800,11 +21542,11 @@ if (!__Pyx_RefNanny) {
   __Pyx_XDECREF(__pyx_t_2);
   if (__pyx_m) {
     if (__pyx_d) {
-      __Pyx_AddTraceback("init x_sweeps", __pyx_clineno, __pyx_lineno, __pyx_filename);
+      __Pyx_AddTraceback("init ants.cyants.x_sweeps", __pyx_clineno, __pyx_lineno, __pyx_filename);
     }
     Py_CLEAR(__pyx_m);
   } else if (!PyErr_Occurred()) {
-    PyErr_SetString(PyExc_ImportError, "init x_sweeps");
+    PyErr_SetString(PyExc_ImportError, "init ants.cyants.x_sweeps");
   }
   __pyx_L0:;
   __Pyx_RefNannyFinishContext();
@@ -19882,6 +21624,73 @@ static CYTHON_INLINE PyObject* __Pyx_PyObject_Call(PyObject *func, PyObject *arg
     return result;
 }
 #endif
+
+/* BufferIndexError */
+static void __Pyx_RaiseBufferIndexError(int axis) {
+  PyErr_Format(PyExc_IndexError,
+     "Out of bounds on buffer access (axis %d)", axis);
+}
+
+/* PyDictVersioning */
+#if CYTHON_USE_DICT_VERSIONS && CYTHON_USE_TYPE_SLOTS
+static CYTHON_INLINE PY_UINT64_T __Pyx_get_tp_dict_version(PyObject *obj) {
+    PyObject *dict = Py_TYPE(obj)->tp_dict;
+    return likely(dict) ? __PYX_GET_DICT_VERSION(dict) : 0;
+}
+static CYTHON_INLINE PY_UINT64_T __Pyx_get_object_dict_version(PyObject *obj) {
+    PyObject **dictptr = NULL;
+    Py_ssize_t offset = Py_TYPE(obj)->tp_dictoffset;
+    if (offset) {
+#if CYTHON_COMPILING_IN_CPYTHON
+        dictptr = (likely(offset > 0)) ? (PyObject **) ((char *)obj + offset) : _PyObject_GetDictPtr(obj);
+#else
+        dictptr = _PyObject_GetDictPtr(obj);
+#endif
+    }
+    return (dictptr && *dictptr) ? __PYX_GET_DICT_VERSION(*dictptr) : 0;
+}
+static CYTHON_INLINE int __Pyx_object_dict_version_matches(PyObject* obj, PY_UINT64_T tp_dict_version, PY_UINT64_T obj_dict_version) {
+    PyObject *dict = Py_TYPE(obj)->tp_dict;
+    if (unlikely(!dict) || unlikely(tp_dict_version != __PYX_GET_DICT_VERSION(dict)))
+        return 0;
+    return obj_dict_version == __Pyx_get_object_dict_version(obj);
+}
+#endif
+
+/* GetModuleGlobalName */
+#if CYTHON_USE_DICT_VERSIONS
+static PyObject *__Pyx__GetModuleGlobalName(PyObject *name, PY_UINT64_T *dict_version, PyObject **dict_cached_value)
+#else
+static CYTHON_INLINE PyObject *__Pyx__GetModuleGlobalName(PyObject *name)
+#endif
+{
+    PyObject *result;
+#if !CYTHON_AVOID_BORROWED_REFS
+#if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX >= 0x030500A1
+    result = _PyDict_GetItem_KnownHash(__pyx_d, name, ((PyASCIIObject *) name)->hash);
+    __PYX_UPDATE_DICT_CACHE(__pyx_d, result, *dict_cached_value, *dict_version)
+    if (likely(result)) {
+        return __Pyx_NewRef(result);
+    } else if (unlikely(PyErr_Occurred())) {
+        return NULL;
+    }
+#else
+    result = PyDict_GetItem(__pyx_d, name);
+    __PYX_UPDATE_DICT_CACHE(__pyx_d, result, *dict_cached_value, *dict_version)
+    if (likely(result)) {
+        return __Pyx_NewRef(result);
+    }
+#endif
+#else
+    result = PyObject_GetItem(__pyx_d, name);
+    __PYX_UPDATE_DICT_CACHE(__pyx_d, result, *dict_cached_value, *dict_version)
+    if (likely(result)) {
+        return __Pyx_NewRef(result);
+    }
+    PyErr_Clear();
+#endif
+    return __Pyx_GetBuiltinName(name);
+}
 
 /* MemviewSliceInit */
 static int
@@ -20013,73 +21822,6 @@ static CYTHON_INLINE void __Pyx_XDEC_MEMVIEW(__Pyx_memviewslice *memslice,
     } else {
         memslice->memview = NULL;
     }
-}
-
-/* BufferIndexError */
-static void __Pyx_RaiseBufferIndexError(int axis) {
-  PyErr_Format(PyExc_IndexError,
-     "Out of bounds on buffer access (axis %d)", axis);
-}
-
-/* PyDictVersioning */
-#if CYTHON_USE_DICT_VERSIONS && CYTHON_USE_TYPE_SLOTS
-static CYTHON_INLINE PY_UINT64_T __Pyx_get_tp_dict_version(PyObject *obj) {
-    PyObject *dict = Py_TYPE(obj)->tp_dict;
-    return likely(dict) ? __PYX_GET_DICT_VERSION(dict) : 0;
-}
-static CYTHON_INLINE PY_UINT64_T __Pyx_get_object_dict_version(PyObject *obj) {
-    PyObject **dictptr = NULL;
-    Py_ssize_t offset = Py_TYPE(obj)->tp_dictoffset;
-    if (offset) {
-#if CYTHON_COMPILING_IN_CPYTHON
-        dictptr = (likely(offset > 0)) ? (PyObject **) ((char *)obj + offset) : _PyObject_GetDictPtr(obj);
-#else
-        dictptr = _PyObject_GetDictPtr(obj);
-#endif
-    }
-    return (dictptr && *dictptr) ? __PYX_GET_DICT_VERSION(*dictptr) : 0;
-}
-static CYTHON_INLINE int __Pyx_object_dict_version_matches(PyObject* obj, PY_UINT64_T tp_dict_version, PY_UINT64_T obj_dict_version) {
-    PyObject *dict = Py_TYPE(obj)->tp_dict;
-    if (unlikely(!dict) || unlikely(tp_dict_version != __PYX_GET_DICT_VERSION(dict)))
-        return 0;
-    return obj_dict_version == __Pyx_get_object_dict_version(obj);
-}
-#endif
-
-/* GetModuleGlobalName */
-#if CYTHON_USE_DICT_VERSIONS
-static PyObject *__Pyx__GetModuleGlobalName(PyObject *name, PY_UINT64_T *dict_version, PyObject **dict_cached_value)
-#else
-static CYTHON_INLINE PyObject *__Pyx__GetModuleGlobalName(PyObject *name)
-#endif
-{
-    PyObject *result;
-#if !CYTHON_AVOID_BORROWED_REFS
-#if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX >= 0x030500A1
-    result = _PyDict_GetItem_KnownHash(__pyx_d, name, ((PyASCIIObject *) name)->hash);
-    __PYX_UPDATE_DICT_CACHE(__pyx_d, result, *dict_cached_value, *dict_version)
-    if (likely(result)) {
-        return __Pyx_NewRef(result);
-    } else if (unlikely(PyErr_Occurred())) {
-        return NULL;
-    }
-#else
-    result = PyDict_GetItem(__pyx_d, name);
-    __PYX_UPDATE_DICT_CACHE(__pyx_d, result, *dict_cached_value, *dict_version)
-    if (likely(result)) {
-        return __Pyx_NewRef(result);
-    }
-#endif
-#else
-    result = PyObject_GetItem(__pyx_d, name);
-    __PYX_UPDATE_DICT_CACHE(__pyx_d, result, *dict_cached_value, *dict_version)
-    if (likely(result)) {
-        return __Pyx_NewRef(result);
-    }
-    PyErr_Clear();
-#endif
-    return __Pyx_GetBuiltinName(name);
 }
 
 /* PyErrFetchRestore */
@@ -23182,44 +24924,6 @@ raise_neg_overflow:
     return (int) -1;
 }
 
-/* CIntToPy */
-  static CYTHON_INLINE PyObject* __Pyx_PyInt_From_long(long value) {
-#ifdef __Pyx_HAS_GCC_DIAGNOSTIC
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-    const long neg_one = (long) -1, const_zero = (long) 0;
-#ifdef __Pyx_HAS_GCC_DIAGNOSTIC
-#pragma GCC diagnostic pop
-#endif
-    const int is_unsigned = neg_one > const_zero;
-    if (is_unsigned) {
-        if (sizeof(long) < sizeof(long)) {
-            return PyInt_FromLong((long) value);
-        } else if (sizeof(long) <= sizeof(unsigned long)) {
-            return PyLong_FromUnsignedLong((unsigned long) value);
-#ifdef HAVE_LONG_LONG
-        } else if (sizeof(long) <= sizeof(unsigned PY_LONG_LONG)) {
-            return PyLong_FromUnsignedLongLong((unsigned PY_LONG_LONG) value);
-#endif
-        }
-    } else {
-        if (sizeof(long) <= sizeof(long)) {
-            return PyInt_FromLong((long) value);
-#ifdef HAVE_LONG_LONG
-        } else if (sizeof(long) <= sizeof(PY_LONG_LONG)) {
-            return PyLong_FromLongLong((PY_LONG_LONG) value);
-#endif
-        }
-    }
-    {
-        int one = 1; int little = (int)*(unsigned char *)&one;
-        unsigned char *bytes = (unsigned char *)&value;
-        return _PyLong_FromByteArray(bytes, sizeof(long),
-                                     little, !is_unsigned);
-    }
-}
-
 /* CIntFromPy */
   static CYTHON_INLINE size_t __Pyx_PyInt_As_size_t(PyObject *x) {
 #ifdef __Pyx_HAS_GCC_DIAGNOSTIC
@@ -23414,6 +25118,44 @@ raise_neg_overflow:
     PyErr_SetString(PyExc_OverflowError,
         "can't convert negative value to size_t");
     return (size_t) -1;
+}
+
+/* CIntToPy */
+  static CYTHON_INLINE PyObject* __Pyx_PyInt_From_long(long value) {
+#ifdef __Pyx_HAS_GCC_DIAGNOSTIC
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+    const long neg_one = (long) -1, const_zero = (long) 0;
+#ifdef __Pyx_HAS_GCC_DIAGNOSTIC
+#pragma GCC diagnostic pop
+#endif
+    const int is_unsigned = neg_one > const_zero;
+    if (is_unsigned) {
+        if (sizeof(long) < sizeof(long)) {
+            return PyInt_FromLong((long) value);
+        } else if (sizeof(long) <= sizeof(unsigned long)) {
+            return PyLong_FromUnsignedLong((unsigned long) value);
+#ifdef HAVE_LONG_LONG
+        } else if (sizeof(long) <= sizeof(unsigned PY_LONG_LONG)) {
+            return PyLong_FromUnsignedLongLong((unsigned PY_LONG_LONG) value);
+#endif
+        }
+    } else {
+        if (sizeof(long) <= sizeof(long)) {
+            return PyInt_FromLong((long) value);
+#ifdef HAVE_LONG_LONG
+        } else if (sizeof(long) <= sizeof(PY_LONG_LONG)) {
+            return PyLong_FromLongLong((PY_LONG_LONG) value);
+#endif
+        }
+    }
+    {
+        int one = 1; int little = (int)*(unsigned char *)&one;
+        unsigned char *bytes = (unsigned char *)&value;
+        return _PyLong_FromByteArray(bytes, sizeof(long),
+                                     little, !is_unsigned);
+    }
 }
 
 /* CIntFromPy */
