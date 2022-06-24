@@ -3,4 +3,5 @@ The Neutron Transport Equation
 
 .. toctree::
     
-	spatial-sweep.rst
+    spatial-sweep.rst
+    neutron-data.rst
