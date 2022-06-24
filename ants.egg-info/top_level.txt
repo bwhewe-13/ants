@@ -1,4 +1,2 @@
 ants
-multi_group
 tests
-x_sweeps

@@ -1839,7 +1839,7 @@ static double __pyx_f_4ants_6cyants_11multi_group_scalar_convergence(__Pyx_memvi
 static double __pyx_f_4ants_6cyants_11multi_group_angular_convergence(__Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &); /*proto*/
 static void __pyx_f_4ants_6cyants_11multi_group__time_coef(__Pyx_memviewslice &, __Pyx_memviewslice &, double); /*proto*/
 static __Pyx_memviewslice __pyx_f_4ants_6cyants_11multi_group_time_source_iteration(__Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, double); /*proto*/
-static void __pyx_f_4ants_6cyants_11multi_group_angular_to_scalar_flux(__Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, size_t); /*proto*/
+static void __pyx_f_4ants_6cyants_11multi_group_angular_to_scalar(__Pyx_memviewslice &, __Pyx_memviewslice &, __Pyx_memviewslice &, size_t); /*proto*/
 static struct __pyx_array_obj *__pyx_array_new(PyObject *, Py_ssize_t, char *, char *, char *); /*proto*/
 static void *__pyx_align_pointer(void *, size_t); /*proto*/
 static PyObject *__pyx_memoryview_new(PyObject *, int, int, __Pyx_TypeInfo *); /*proto*/
@@ -2543,7 +2543,7 @@ static PyObject *__pyx_pf_4ants_6cyants_11multi_group_source_iteration(CYTHON_UN
  * 
  * cdef double[:,:] mg_scalar_flux(int[:] medium_map, double[:,:] xs_total, \             # <<<<<<<<<<<<<<
  *                     double[:,:,:] xs_scatter, double[:,:,:] xs_fission, \
- *                     double[:] external_source, double [:] point_source, \
+ *                     double[:] external_source, double[:] point_source, \
  */
 
 static __Pyx_memviewslice __pyx_f_4ants_6cyants_11multi_group_mg_scalar_flux(__Pyx_memviewslice __pyx_v_medium_map, __Pyx_memviewslice __pyx_v_xs_total, __Pyx_memviewslice __pyx_v_xs_scatter, CYTHON_UNUSED __Pyx_memviewslice __pyx_v_xs_fission, __Pyx_memviewslice __pyx_v_external_source, __Pyx_memviewslice __pyx_v_point_source, __Pyx_memviewslice __pyx_v_spatial_coef, __Pyx_memviewslice __pyx_v_angle_weight, __Pyx_memviewslice __pyx_v_params) {
@@ -3237,7 +3237,7 @@ if (unlikely(__pyx_memoryview_copy_contents(__pyx_t_15, __pyx_t_14, 1, 1, 0) < 0
  * 
  * cdef double[:,:] mg_scalar_flux(int[:] medium_map, double[:,:] xs_total, \             # <<<<<<<<<<<<<<
  *                     double[:,:,:] xs_scatter, double[:,:,:] xs_fission, \
- *                     double[:] external_source, double [:] point_source, \
+ *                     double[:] external_source, double[:] point_source, \
  */
 
   /* function exit code */
@@ -5178,16 +5178,16 @@ static PyObject *__pyx_pf_4ants_6cyants_11multi_group_2time_dependent(CYTHON_UNU
     /* "ants/cyants/multi_group.pyx":201
  *                 point_source, spatial_coef, angle_weight, \
  *                 temporal_coef, params, time_const)
- *         angular_to_scalar_flux(time_step_flux, angular_flux, angle_weight, step)             # <<<<<<<<<<<<<<
+ *         angular_to_scalar(time_step_flux, angular_flux, angle_weight, step)             # <<<<<<<<<<<<<<
  *         angular_flux_last[:,:,:] = angular_flux[:,:,:]
  *     return np.asarray(time_step_flux)
  */
     __pyx_t_12 = __Pyx_PyInt_As_size_t(__pyx_v_step); if (unlikely((__pyx_t_12 == (size_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 201, __pyx_L1_error)
-    __pyx_f_4ants_6cyants_11multi_group_angular_to_scalar_flux(__pyx_v_time_step_flux, __pyx_v_angular_flux, __pyx_v_angle_weight, __pyx_t_12);
+    __pyx_f_4ants_6cyants_11multi_group_angular_to_scalar(__pyx_v_time_step_flux, __pyx_v_angular_flux, __pyx_v_angle_weight, __pyx_t_12);
 
     /* "ants/cyants/multi_group.pyx":202
  *                 temporal_coef, params, time_const)
- *         angular_to_scalar_flux(time_step_flux, angular_flux, angle_weight, step)
+ *         angular_to_scalar(time_step_flux, angular_flux, angle_weight, step)
  *         angular_flux_last[:,:,:] = angular_flux[:,:,:]             # <<<<<<<<<<<<<<
  *     return np.asarray(time_step_flux)
  * 
@@ -5205,7 +5205,7 @@ static PyObject *__pyx_pf_4ants_6cyants_11multi_group_2time_dependent(CYTHON_UNU
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
   /* "ants/cyants/multi_group.pyx":203
- *         angular_to_scalar_flux(time_step_flux, angular_flux, angle_weight, step)
+ *         angular_to_scalar(time_step_flux, angular_flux, angle_weight, step)
  *         angular_flux_last[:,:,:] = angular_flux[:,:,:]
  *     return np.asarray(time_step_flux)             # <<<<<<<<<<<<<<
  * 
@@ -6089,12 +6089,12 @@ if (unlikely(__pyx_memoryview_copy_contents(__pyx_t_6, __pyx_t_17, 2, 2, 0) < 0)
 /* "ants/cyants/multi_group.pyx":259
  * 
  * 
- * cdef void angular_to_scalar_flux(double[:,:,:]& time_step_flux, \             # <<<<<<<<<<<<<<
+ * cdef void angular_to_scalar(double[:,:,:]& time_step_flux, \             # <<<<<<<<<<<<<<
  *             double[:,:,:]& angular_flux, double[:]& angle_weight, \
  *             size_t time_step):
  */
 
-static void __pyx_f_4ants_6cyants_11multi_group_angular_to_scalar_flux(__Pyx_memviewslice &__pyx_v_time_step_flux, __Pyx_memviewslice &__pyx_v_angular_flux, __Pyx_memviewslice &__pyx_v_angle_weight, size_t __pyx_v_time_step) {
+static void __pyx_f_4ants_6cyants_11multi_group_angular_to_scalar(__Pyx_memviewslice &__pyx_v_time_step_flux, __Pyx_memviewslice &__pyx_v_angular_flux, __Pyx_memviewslice &__pyx_v_angle_weight, size_t __pyx_v_time_step) {
   size_t __pyx_v_cell;
   size_t __pyx_v_angle;
   size_t __pyx_v_group;
@@ -6122,7 +6122,7 @@ static void __pyx_f_4ants_6cyants_11multi_group_angular_to_scalar_flux(__Pyx_mem
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("angular_to_scalar_flux", 0);
+  __Pyx_RefNannySetupContext("angular_to_scalar", 0);
 
   /* "ants/cyants/multi_group.pyx":263
  *             size_t time_step):
@@ -6243,7 +6243,7 @@ static void __pyx_f_4ants_6cyants_11multi_group_angular_to_scalar_flux(__Pyx_mem
   /* "ants/cyants/multi_group.pyx":259
  * 
  * 
- * cdef void angular_to_scalar_flux(double[:,:,:]& time_step_flux, \             # <<<<<<<<<<<<<<
+ * cdef void angular_to_scalar(double[:,:,:]& time_step_flux, \             # <<<<<<<<<<<<<<
  *             double[:,:,:]& angular_flux, double[:]& angle_weight, \
  *             size_t time_step):
  */
@@ -6251,7 +6251,7 @@ static void __pyx_f_4ants_6cyants_11multi_group_angular_to_scalar_flux(__Pyx_mem
   /* function exit code */
   goto __pyx_L0;
   __pyx_L1_error:;
-  __Pyx_WriteUnraisable("ants.cyants.multi_group.angular_to_scalar_flux", __pyx_clineno, __pyx_lineno, __pyx_filename, 1, 0);
+  __Pyx_WriteUnraisable("ants.cyants.multi_group.angular_to_scalar", __pyx_clineno, __pyx_lineno, __pyx_filename, 1, 0);
   __pyx_L0:;
   __Pyx_RefNannyFinishContext();
 }

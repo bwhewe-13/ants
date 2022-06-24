@@ -26,8 +26,8 @@ cdef double[:] x_scalar_sweep(double[:] scalar_flux_old, int[:]& medium_map, \
                             double[:]& point_source, double[:]& spatial_coef, \
                             double[:]& angle_weight, int[:]& params, \
                             size_t ex_group_idx): 
-    cdef int cells = len(scalar_flux_old)
-    cdef int angles = len(angle_weight)
+    cdef int cells = medium_map.shape[0]
+    cdef int angles = angle_weight.shape[0]
     cdef int cell, angle
     cdef size_t ex_angle_idx
 
@@ -71,8 +71,8 @@ cdef double[:,:] x_angular_sweep(double[:,:] angular_flux_old, int[:]& medium_ma
                                 double[:]& point_source, double[:]& spatial_coef, \
                                 double[:]& angle_weight, int[:]& params, \
                                 size_t ex_group_idx): 
-    cdef int cells = len(medium_map)
-    cdef int angles = len(angle_weight)
+    cdef int cells = medium_map.shape[0]
+    cdef int angles = angle_weight.shape[0]
     cdef int cell, angle
     cdef size_t ex_angle_idx
 
@@ -93,7 +93,7 @@ cdef double[:,:] x_angular_sweep(double[:,:] angular_flux_old, int[:]& medium_ma
     cdef double change = 0.0
     while not (converged):
         angular_flux[:,:] = 0
-        angular_to_scalar_flux(scalar_flux, angular_flux_old, angle_weight)
+        angular_to_scalar(scalar_flux, angular_flux_old, angle_weight)
         for angle in range(angles):
             ex_angle_idx = 0 if params[4] == 1 else angle
             if params[2] == 0:
@@ -125,8 +125,8 @@ cdef double[:,:] x_time_sweep(double[:,:] angular_flux_old, int[:]& medium_map, 
                               double[:]& angle_weight, int[:]& params, \
                               double temporal_coef, double time_const, \
                               size_t ex_group_idx):    
-    cdef int cells = len(medium_map)
-    cdef int angles = len(angle_weight)
+    cdef int cells = medium_map.shape[0]
+    cdef int angles = angle_weight.shape[0]
     cdef size_t ex_angle_idx, cell, angle
 
     arr2d = cvarray((cells, angles), itemsize=sizeof(double), format="d")
@@ -150,7 +150,7 @@ cdef double[:,:] x_time_sweep(double[:,:] angular_flux_old, int[:]& medium_map, 
     cdef double change = 0.0
     while not (converged):
         angular_flux[:,:] = 0
-        angular_to_scalar_flux(scalar_flux, angular_flux_old, angle_weight)
+        angular_to_scalar(scalar_flux, angular_flux_old, angle_weight)
         for angle in range(angles):
             ex_angle_idx = 0 if params[4] == 1 else angle
             time_vacuum(angular_flux[:,angle], scalar_flux, \
@@ -236,6 +236,7 @@ cdef void reflected(double[:]& scalar_flux, double[:]& scalar_flux_old, \
         edge_one = edge_two
 
     for cell in range(cells-1, -1, -1):
+        edge_two = edge_one
         material = medium_map[cell]
         if (cell + 1) == params[5]:
             edge_two += point_source
@@ -248,7 +249,6 @@ cdef void reflected(double[:]& scalar_flux, double[:]& scalar_flux_old, \
             scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two) 
         elif params[1] == 1:
             scalar_flux[cell] += angle_weight * edge_one
-        edge_two = edge_one
 
 
 cdef void time_vacuum(double[:]& scalar_flux, double[:]& scalar_flux_old, \
@@ -297,7 +297,7 @@ cdef void time_vacuum(double[:]& scalar_flux, double[:]& scalar_flux_old, \
             edge_two = edge_one
 
 
-cdef void angular_to_scalar_flux(double[:]& scalar_flux, 
+cdef void angular_to_scalar(double[:]& scalar_flux, 
                     double[:,:]& angular_flux, double[:]& angle_weight):
     cdef size_t cells, angles, cell, angle
     cells = angular_flux.shape[0]

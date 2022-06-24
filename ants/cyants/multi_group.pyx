@@ -38,7 +38,7 @@ def source_iteration(int[:] medium_map, double[:,:] xs_total, \
 
 cdef double[:,:] mg_scalar_flux(int[:] medium_map, double[:,:] xs_total, \
                     double[:,:,:] xs_scatter, double[:,:,:] xs_fission, \
-                    double[:] external_source, double [:] point_source, \
+                    double[:] external_source, double[:] point_source, \
                     double[:] spatial_coef, double[:] angle_weight, \
                     int[:] params):
     cdef size_t cells = medium_map.shape[0]
@@ -198,7 +198,7 @@ def time_dependent(int[:] medium_map, double[:,:] xs_total, \
                 xs_total, xs_matrix, external_source, \
                 point_source, spatial_coef, angle_weight, \
                 temporal_coef, params, time_const)
-        angular_to_scalar_flux(time_step_flux, angular_flux, angle_weight, step)
+        angular_to_scalar(time_step_flux, angular_flux, angle_weight, step)
         angular_flux_last[:,:,:] = angular_flux[:,:,:]
     return np.asarray(time_step_flux)
 
@@ -256,7 +256,7 @@ cdef double[:,:,:] time_source_iteration(double[:,:,:]& angular_flux_last, \
     return angular_flux_next
 
 
-cdef void angular_to_scalar_flux(double[:,:,:]& time_step_flux, \
+cdef void angular_to_scalar(double[:,:,:]& time_step_flux, \
             double[:,:,:]& angular_flux, double[:]& angle_weight, \
             size_t time_step):
     cdef size_t cell, angle, group
