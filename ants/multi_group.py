@@ -49,8 +49,8 @@ def source_iteration(medium_map, xs_total, xs_scatter, xs_fission, \
 # @numba.jit(nopython=True, cache=True)
 def convergence(flux, flux_old, angle_weight, angular=False):
     if angular:
-        flux = np.sum(flux * angle_weight[None,:,None],axis=1)
-        flux_old = np.sum(flux_old * angle_weight[None,:,None],axis=1)
+        flux = np.sum(flux * np.atleast_3d(angle_weight),axis=1)
+        flux_old = np.sum(flux_old * np.atleast_3d(angle_weight),axis=1)
     return np.linalg.norm((flux - flux_old) / flux / (flux.shape[0]))
 
 # @numba.jit(nopython=True, cache=True)
@@ -64,10 +64,7 @@ def time_dependent(medium_map, xs_total, xs_matrix, external_source, \
     neutron_flux = np.zeros((cells, angles, groups), dtype=np.float64)
     neutron_flux_last = np.zeros((cells, angles, groups), dtype=np.float64)
     time_step_flux = np.zeros((params[8], cells, groups), dtype=np.float64)
-    if params[7] == 1:
-        time_const = 0.5
-    elif params[7] == 2:
-        time_const = 0.75
+    time_const = 0.5 if params[7] == 1 else 0.75
     for step in tqdm(range(params[8]), desc="Time Steps"):
         neutron_flux = time_source_iteration(neutron_flux_last, medium_map, \
                         xs_total, xs_matrix, external_source, point_source, \
@@ -83,7 +80,7 @@ def _time_coef(velocity, time_step_size):
 
 # @numba.jit(nopython=True, cache=True)
 def angular_to_scalar(angular_flux, angle_weight):
-    return np.sum(angular_flux * angle_weight[None,:,None], axis=1)
+    return np.sum(angular_flux * np.atleast_3d(angle_weight), axis=1)
 
 # @numba.jit(nopython=True, cache=True)
 def time_source_iteration(neutron_flux_last, medium_map, xs_total, \

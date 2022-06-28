@@ -14,7 +14,7 @@
 
 import ants.constants as constants
 
-# from libcpp cimport float
+from libcpp cimport float
 from libc.math cimport sqrt, pow
 from cython.view cimport array as cvarray
 # import numpy as np
@@ -175,8 +175,10 @@ cdef void vacuum(double[:]& scalar_flux, double[:]& scalar_flux_old, \
                 size_t ex_angle_idx):
     cdef double edge_one = 0
     cdef double edge_two = 0
-    cdef int material, cell
+    # cdef int material, cell
     cdef int cells = medium_map.shape[0]
+    cdef float xs1_const = 0 if params[1] == 1 else -0.5
+    cdef float xs2_const = 1 if params[1] == 1 else 0.5
     if spatial_coef > 0:
         for cell in range(cells):
             material = medium_map[cell]
@@ -185,12 +187,12 @@ cdef void vacuum(double[:]& scalar_flux, double[:]& scalar_flux_old, \
             edge_two = (xs_scatter[material] * scalar_flux_old[cell] \
                         + external_source[ex_group_idx + ex_angle_idx*params[3]::params[4]*params[3]][cell] \
                         + edge_one * (abs(spatial_coef) \
-                        - 0.5 * xs_total[material])) \
-                        * 1/(abs(spatial_coef) + 0.5 * xs_total[material])
-            if params[1] == 2:
-                scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two) 
-            elif params[1] == 1:
+                        + xs1_const * xs_total[material])) \
+                        * 1/(abs(spatial_coef) + xs2_const * xs_total[material])
+            if params[1] == 1:
                 scalar_flux[cell] += angle_weight * edge_two
+            elif params[1] == 2:
+                scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two) 
             edge_one = edge_two
     elif spatial_coef < 0:
         for cell in range(cells-1, -1, -1):
@@ -200,12 +202,12 @@ cdef void vacuum(double[:]& scalar_flux, double[:]& scalar_flux_old, \
             edge_one = (xs_scatter[material] * scalar_flux_old[cell] \
                         + external_source[ex_group_idx + ex_angle_idx*params[3]::params[4]*params[3]][cell] \
                         + edge_two * (abs(spatial_coef) \
-                        - 0.5 * xs_total[material])) \
-                        * 1/(abs(spatial_coef) + 0.5 * xs_total[material])
-            if params[1] == 2:
-                scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two) 
-            elif params[1] == 1:
+                        + xs1_const * xs_total[material])) \
+                        * 1/(abs(spatial_coef) + xs2_const * xs_total[material])
+            if params[1] == 1:
                 scalar_flux[cell] += angle_weight * edge_one
+            elif params[1] == 2:
+                scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two) 
             edge_two = edge_one
 
 
@@ -217,9 +219,10 @@ cdef void reflected(double[:]& scalar_flux, double[:]& scalar_flux_old, \
                     size_t ex_group_idx, size_t ex_angle_idx):
     cdef double edge_one = 0
     cdef double edge_two = 0
-    cdef int material, cell
+    # cdef int material, cell
     cdef int cells = medium_map.shape[0]
-
+    cdef float xs1_const = 0 if params[1] == 1 else -0.5
+    cdef float xs2_const = 1 if params[1] == 1 else 0.5
     for cell in range(cells):
         material = medium_map[cell]
         if cell == params[5]:
@@ -227,12 +230,12 @@ cdef void reflected(double[:]& scalar_flux, double[:]& scalar_flux_old, \
         edge_two = (xs_scatter[material] * scalar_flux_old[cell] \
                     + external_source[ex_group_idx + ex_angle_idx*params[3]::params[4]*params[3]][cell] \
                     + edge_one * (abs(spatial_coef) \
-                    - 0.5 * xs_total[material])) \
-                    * 1/(abs(spatial_coef) + 0.5 * xs_total[material])
-        if params[1] == 2:
-            scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two) 
-        elif params[1] == 1:
+                    + xs1_const * xs_total[material])) \
+                    * 1/(abs(spatial_coef) + xs2_const * xs_total[material])
+        if params[1] == 1:
             scalar_flux[cell] += angle_weight * edge_two
+        elif params[1] == 2:
+            scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)             
         edge_one = edge_two
 
     for cell in range(cells-1, -1, -1):
@@ -243,12 +246,12 @@ cdef void reflected(double[:]& scalar_flux, double[:]& scalar_flux_old, \
         edge_one = (xs_scatter[material] * scalar_flux_old[cell] \
                     + external_source[ex_group_idx + ex_angle_idx*params[3]::params[4]*params[3]][cell] \
                     + edge_two * (abs(spatial_coef) \
-                    - 0.5 * xs_total[material])) \
-                    * 1/(abs(spatial_coef) + 0.5 * xs_total[material])
-        if params[1] == 2:
-            scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two) 
-        elif params[1] == 1:
+                    + xs1_const * xs_total[material])) \
+                    * 1/(abs(spatial_coef) + xs2_const * xs_total[material])
+        if params[1] == 1:
             scalar_flux[cell] += angle_weight * edge_one
+        elif params[1] == 2:
+            scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two) 
 
 
 cdef void time_vacuum(double[:]& scalar_flux, double[:]& scalar_flux_old, \
@@ -263,8 +266,10 @@ cdef void time_vacuum(double[:]& scalar_flux, double[:]& scalar_flux_old, \
 
     cdef double edge_one = 0
     cdef double edge_two = 0
-    cdef int material, cell
+    # cdef int material, cell
     cdef int cells = medium_map.shape[0]
+    cdef float xs1_const = 0 if params[1] == 1 else -0.5
+    cdef float xs2_const = 1 if params[1] == 1 else 0.5
     if spatial_coef > 0:
         for cell in range(cells):
             material = medium_map[cell]
@@ -273,12 +278,12 @@ cdef void time_vacuum(double[:]& scalar_flux, double[:]& scalar_flux_old, \
             edge_two = (xs_matrix[material] * scalar_flux_old[cell] \
                         + external_source[ex_group_idx + ex_angle_idx*params[3]::params[4]*params[3]][cell] \
                          + angular_flux_last[cell] * temporal_coef + edge_one * (abs(spatial_coef) \
-                        - 0.5 * xs_total[material] - time_const * temporal_coef)) \
-                        * 1/(abs(spatial_coef) + 0.5 * xs_total[material] + time_const * temporal_coef)
-            if params[1] == 2:
-                scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two) 
-            elif params[1] == 1:
+                        + xs1_const * xs_total[material] - time_const * temporal_coef)) \
+                        * 1/(abs(spatial_coef) + xs2_const * xs_total[material] + time_const * temporal_coef)
+            if params[1] == 1:
                 scalar_flux[cell] += angle_weight * edge_two
+            elif params[1] == 2:
+                scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)                 
             edge_one = edge_two
     elif spatial_coef < 0:
         for cell in range(cells-1, -1, -1):
@@ -288,12 +293,12 @@ cdef void time_vacuum(double[:]& scalar_flux, double[:]& scalar_flux_old, \
             edge_one = (xs_matrix[material] * scalar_flux_old[cell] \
                         + external_source[ex_group_idx + ex_angle_idx*params[3]::params[4]*params[3]][cell] \
                          + angular_flux_last[cell] * temporal_coef + edge_two * (abs(spatial_coef) \
-                        - 0.5 * xs_total[material] - time_const * temporal_coef)) \
-                        * 1/(abs(spatial_coef) + 0.5 * xs_total[material] + time_const * temporal_coef)
-            if params[1] == 2:
-                scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two) 
-            elif params[1] == 1:
+                        + xs1_const * xs_total[material] - time_const * temporal_coef)) \
+                        * 1/(abs(spatial_coef) + xs2_const * xs_total[material] + time_const * temporal_coef)
+            if params[1] == 1:
                 scalar_flux[cell] += angle_weight * edge_one
+            elif params[1] == 2:
+                scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)                 
             edge_two = edge_one
 
 
