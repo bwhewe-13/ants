@@ -25,3 +25,12 @@ def create_slices(array):
         splits.append(slice(start, ii+1))
         start = ii + 1
     return splits
+
+def matrix_reduction(matrix, idx):
+    energy_groups = len(idx) - 1
+    return [[np.sum(matrix[idx[ii]:idx[ii+1],idx[jj]:idx[jj+1]]) \
+        for jj in range(energy_groups)] for ii in range(energy_groups)]
+
+def vector_reduction(vector, idx):
+    energy_groups = len(idx) - 1
+    return [sum(vector[idx[ii]:idx[ii+1]]) for ii in range(energy_groups)]

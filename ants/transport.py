@@ -10,11 +10,8 @@
 # 
 ########################################################################
 
-from ants.medium import MediumX
-from ants.materials import Materials
-from ants.mapper import Mapper
-from ants.fixed_source import backward_euler
-from ants.criticality import keigenvalue
+from ants import problem_setup
+from ants.constants import PARAMS_DICT
 
 import numpy as np
 import os
@@ -34,12 +31,10 @@ class Transport:
         "POINT SOURCE NAME", "BOUNDARY X", "BOUNDARY Y", "SVD", "DJINN", \
         "AUTOENCODER", "DJINN-AUTOENCODER", "HYBRID", "MMS", "MNB", "NOTE")
 
-    def __init__(self, input_file):
+    def __init__(self, input_file, solve_type="numba"):
         self.input_file = input_file
         self._read_input()
-        self._generate_medium_obj()
-        self._generate_materials_obj()
-        self._generate_cross_section()
+        self.create_problem()
 
     def __str__(self):
         string = ""
@@ -55,57 +50,31 @@ class Transport:
             string += temp
         return string
 
+    def create_problem(self):
+        self._generate_parameters()
+        self._generate_angles()
+        self._generate_medium_map()
+        self._generate_cross_sections()
+        self._generate_external_source()
+        self._generate_point_source()
+        self._generate_parameter_list()
+        # Move These To Run Function
+        self.external_source = self.external_source.flatten()
+        self.point_source = self.point_source.flatten()
+
     def change_param(self, name, value):
-        # if name.upper() in self.info.keys():
         if name.upper() in self.__class__.__parameters:
             self.info[name.upper()] = "-".join(str(value).lower().split())
         else:
             raise KeyError("Not an Input File Key\nAvailable Keys:\
                             \n{}".format(self.__class__.__parameters))
-        self._generate_medium_obj()
-        self._generate_materials_obj()
-        self._generate_cross_section()
-
-    def run(self):
-        if self.info.get("PROBLEM") == "fixed-source":
-            scalar, angular = self._run_fixed_source()
-            return scalar, angular
-        elif self.info.get("PROBLEM") == "criticality":
-            self._run_criticality()
-
-    def _run_criticality(self):
-        scalar, keff = keigenvalue(self.medium_map, self.xs_total, 
-                        self.xs_scatter, self.xs_fission, \
-                        self.medium_obj.spatial_coef, self.medium_obj.weight, \
-                        spatial=self.info.get("SPATIAL DISCRETE"))
-        self.scalar = np.array(scalar)
-        self.keff = keff
-        return scalar, keff
-
-    def _run_fixed_source(self):
-        if self.info.get("TIME DISCRETE", "backward-euler") == "backward-euler":
-            scalar, angular = backward_euler(self.medium_map, self.xs_total, \
-                        self.xs_scatter, self.xs_fission, \
-                        self.medium_obj.ex_source, self.point_source_locs, \
-                        self.point_sources, self.medium_obj.spatial_coef, \
-                        self.medium_obj.weight, self.materials_obj.velocity, \
-                        int(self.info.get("TIME STEPS", "0")), \
-                        float(self.info.get("TIME STEP SIZE", "0")), \
-                        spatial=self.info.get("SPATIAL DISCRETE"))
-        if int(self.info.get("TIME STEPS", "0")) == 0:
-            scalar = np.array(scalar[0])
-        else:
-            scalar = np.array(scalar)
-        self.scalar = scalar
-        self.angular = angular
-        return scalar, angular
+        self.create_problem()
 
     def save_input_file(self, file_name=None):
         PATH = pkg_resources.resource_filename("ants","../examples/")
         if file_name is None:
             file_name = self.input_file
         shutil.copyfile(PATH + "template.inp", file_name)
-        # print(self.info["NOTE"])
         with open(file_name) as fp:
             text = [x for x in fp.read().splitlines()]
         for kk, vv in self.info.items():
@@ -166,114 +135,127 @@ class Transport:
 
     def _read_input(self):
         self.info = {}
+        self.materials = []
+        notes = []
         with open(self.input_file, "r") as fp:
             for line in fp:
-                if line[0] == "#":
-                    continue
-                if line[:2] == "\n":
+                if (line[0] == "#") or (line[:2] == "\n"):
                     continue
                 key, value = line.split(":")
-                if key in self.info.keys() and key == "NOTE":
-                    self.info[key] += "\n" + value.strip().lower()
+                value = value.strip().lower()
+                if key == "MATERIAL":
+                    self.materials.append(value)
                 elif key == "NOTE":
-                    self.info[key] = value.strip().lower() 
-                elif key in self.info.keys():
-                    self.info[key] += "\n" \
-                              + "-".join(value.strip().lower().split())
+                    notes.append(value)
                 else:
-                    self.info[key] = "-".join(value.strip().lower().split())
+                    value = "-".join(value.split())
+                    self.info[self.info.get(key, key)] = value
+        self.info["NOTE"] = "\n".join(notes)
+        self.info["MATERIAL"] = "\n".join(self.materials)
 
-    def _generate_boundaries(self):
-        def boundary(string):
-            if string == "vacuum":
-                return 0
-            elif string == "reflected":
-                return 1
-        if self.info.get("GEOMETRY") == "slab":
-            lhs_x = 0
-        elif self.info.get("GEOMETRY") == "sphere":
-            lhs_x = 1
-        rhs_x = boundary(self.info.get("BOUNDARY X"))
-        xbounds = np.array([lhs_x, rhs_x])
-        return xbounds
-
-    def _generate_cross_section(self):
-        map_obj_loc = os.path.join(self.info.get("FILE LOCATION", "."), \
-                               self.info.get("MAP FILE"))
-        self.map_obj = Mapper.load_map(map_obj_loc)
-        if int(self.info.get("SPATIAL X CELLS")) != self.map_obj.cells_x:
-            self.map_obj.adjust_widths(int(self.info.get("SPATIAL X CELLS")))
-        self.medium_map = self.map_obj.map_x.astype(int)
-        self.medium_map_key = self.map_obj.map_key
-        reversed_key = {v: k for k, v in self.map_obj.map_key.items()}
-        total = []
-        scatter = []
-        fission = []
-        for position in range(len(self.map_obj.map_key)):
-            map_material = reversed_key[position]
-            total.append(self.materials_obj.data[map_material][0])
-            scatter.append(self.materials_obj.data[map_material][1])
-            fission.append(self.materials_obj.data[map_material][2])
-        self.xs_total = np.array(total)
-        self.xs_scatter = np.array(scatter)
-        self.xs_fission = np.array(fission)
-
-    def _generate_file_name(self):
-        file_name = os.path.join(self.info.get("FILE LOCATION", "."), \
-                            self.info.get("FILE NAME"))
-        file_number = 0
-        while os.path.exists(file_name + str(file_number) + ".npz"):
-            file_number += 1
-        return file_name + str(file_number)
-
-    def _generate_medium_obj(self):
-        xbounds = self._generate_boundaries()
-        cells = int(self.info.get("SPATIAL X CELLS"))
+    def _generate_parameters(self):
+        self.cells = int(self.info.get("SPATIAL X CELLS"))
         if "SPATIAL X LENGTH" in self.info.keys():
             medium_width = float(self.info.get("SPATIAL X LENGTH"))
-            cell_width = medium_width / cells
+            self.cell_width = medium_width / self.cells
         else:
-            cell_width = float(self.info.get("CELL WIDTH X"))
-        self.cell_width = cell_width
-        angles = int(self.info.get("ANGLES"))
-        self.medium_obj = MediumX(cells, cell_width, angles, xbounds)
-        self.medium_obj.add_external_source(self.info.get("EXTERNAL SOURCE"))
+            self.cell_width = float(self.info.get("CELL WIDTH X"))
+        self.angles = int(self.info.get("ANGLES"))
+        self.groups = int(self.info.get("ENERGY GROUPS"))
+        
+    def _generate_angles(self):
+        self.mu, self.angle_weight = np.polynomial.legendre.leggauss(self.angles)
+        self.angle_weight /= np.sum(self.angle_weight)
+        # left hand boundary at cell_x = 0 is reflective - negative
+        if self.info.get("BOUNDARY X") == "reflected":
+            self.mu = self.mu[:int(0.5 * self.angles)]
+            self.angle_weight = self.angle_weight[:int(0.5 * self.angles)]
+        elif self.info.get("GEOMETRY") == "sphere":
+            self.mu = self.mu[int(0.5 * self.angles):]
+            self.angle_weight = self.angle_weight[int(0.5 * self.angles):]
+        self.spatial_coef = self.mu / self.cell_width
+
+    def _generate_medium_map(self):
+        mat_width = []
+        mat_id = []
+        mat_start = []
+        self.material_key = {}
+        for material in self.materials:
+            material = material.split("//")
+            self.material_key[material[1].strip()] = int(material[0])
+            for ii in material[2].split(","):
+                mat_id.append(int(material[0].strip()))
+                mat_width.append(abs(eval(ii)) / self.cell_width)
+                mat_start.append(int(int(ii.split("-")[0]) / self.cell_width))
+        mat_id = np.array(mat_id)[np.argsort(mat_start)]
+        mat_width = np.array(mat_width, dtype=np.int32)[np.argsort(mat_start)]
+        mat_start = np.sort(mat_start)
+        self.medium_map = np.ones((self.cells)) * -1
+        for idx, size, mat in zip(mat_start, mat_width, mat_id):
+            self.medium_map[idx:idx+size] = mat
+        assert np.all(self.medium_map != -1)
+        self.medium_map = self.medium_map.astype(np.int32)
+
+    def _generate_cross_sections(self):
+        reversed_key = {v: k for k, v in self.material_key.items()}
+        self.xs_total = []
+        self.xs_scatter = []
+        self.xs_fission = []
+        creator = problem_setup.Materials(list(self.material_key.keys()), \
+                    self.groups, self.info.get("ENERGY BOUNDS", None), \
+                    self.info.get("ENERGY INDEX", None))
+        for idx in range(len(self.material_key.items())):
+            material = reversed_key[idx]
+            self.xs_total.append(creator.material_key[material][0])
+            self.xs_scatter.append(creator.material_key[material][1])
+            self.xs_fission.append(creator.material_key[material][2])
+        self.xs_total = np.array(self.xs_total)
+        self.xs_scatter = np.array(self.xs_scatter)
+        self.xs_fission = np.array(self.xs_fission)
+        self.velocity = creator.velocity
+
+    def _generate_external_source(self):
+        creator = problem_setup.ExternalSource( \
+                                self.info.get("EXTERNAL SOURCE", None), \
+                                self.cells, self.cell_width, self.mu)
+        self.external_source = creator._generate_source()
         if self.info.get("EXTERNAL SOURCE FILE", False):
             file_name = os.path.join(self.info.get("FILE LOCATION", "."), \
                     self.info.get("EXTERNAL SOURCE FILE"))
             file_source = np.load(file_name)
-            assert (cells == len(file_source)), ("External source size"
-                "will not match with problem")
-            self.medium_obj.ex_source += file_source
+            assert (self.external_source.shape == file_source.shape), \
+                ("External source size will not match with problem")
+            self.external_source += file_source
         
-    def _generate_materials_obj(self):
-        self.materials_obj = Materials(self.info.get("MATERIAL").split("\n"), \
-                                   int(self.info.get("ENERGY GROUPS")), 
-                                   None)
-        ps_locs = self.info.get("POINT SOURCE LOCATION", "").split("\n")
-        ps_names = self.info.get("POINT SOURCE NAME", "").split("\n")
-        for loc, name in zip(ps_locs, ps_names):
-            try:
-                self.materials_obj.add_point_source(name, int(loc), \
-                                                    self.medium_obj.mu)
-            except ValueError:
-                if loc == "right-edge":
-                    edge = int(self.info.get("SPATIAL X CELLS"))
-                    self.materials_obj.add_point_source(name, edge, \
-                                    self.medium_obj.mu)
-        locations = []
-        point_source = []
-        for value in self.materials_obj.p_sources.values():
-            locations.append(value[0])
-            point_source.append(value[1])
-        self.point_source_locs = np.array(locations)
-        self.point_sources = np.array(point_source)
+    def _generate_point_source(self):
+        self.point_source_loc = self.info.get("POINT SOURCE LOCATION", 0)
+        if self.point_source_loc == "right-edge":
+            self.point_source_loc = int(self.info.get("SPATIAL X CELLS"))
+        creator = problem_setup.PointSource( \
+            self.info.get("POINT SOURCE NAME", None), self.angles, \
+            self.groups, self.info.get("ENERGY BOUNDS", None), \
+            self.info.get("ENERGY INDEX", None))
+        self.point_source = creator._generate_source()
 
-
-if __name__ == "__main__":
-    print("Spatial Discretizations")
-    print("="*30,"\t1 = Step Method\n\t2 = Diamond Difference\n")
-    print("Boundary Conditions")
-    print("="*30,"\t0 = Vacuum\n\t1 = Reflected\n")
-    print("Temporal Discretizations")
-    print("="*30,"\t1 = BDF1 (Backward Euler)\n\t2 = BDF2\n")
+    def _generate_parameter_list(self):
+        external_group_index = 1
+        external_angle_index = 1
+        if self.external_source.ndim == 2:
+            external_group_index = int(self.info.get("ENERGY GROUPS"))
+        elif self.external_source.ndim == 3:
+            external_group_index = int(self.info.get("ENERGY GROUPS"))
+            external_angle_index = int(self.info.get("ANGLES"))
+        point_source_group_index = 1
+        if self.point_source.ndim == 2:
+            point_source_group_index = int(self.info.get("ENERGY GROUPS"))
+        self.params = np.array([
+            PARAMS_DICT[self.info.get("GEOMETRY")],
+            PARAMS_DICT[self.info.get("SPATIAL DISCRETE")],
+            PARAMS_DICT[self.info.get("BOUNDARY X")],
+            external_group_index,
+            external_angle_index,
+            self.point_source_loc,
+            point_source_group_index,
+            PARAMS_DICT[self.info.get("TIME DISCRETE","None")],
+            PARAMS_DICT[self.info.get("TIME STEPS","None")]
+            ], dtype=np.int32)
