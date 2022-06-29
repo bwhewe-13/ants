@@ -34,7 +34,7 @@ def source_iteration(medium_map, xs_total, xs_scatter, xs_fission, \
         neutron_flux *= 0
         for group in range(groups):
             ex_group_idx = 0 if params[3] == 1 else group
-            ps_group_idx = 0 if params[5] == 1 else group
+            ps_group_idx = 0 if params[6] == 1 else group
             neutron_flux[(...,group)] = sweep(neutron_flux_old[(...,group)], \
                     medium_map, xs_total[:,group], xs_scatter[:,group,group], \
                     external_source, point_source[ps_group_idx::params[6]], \

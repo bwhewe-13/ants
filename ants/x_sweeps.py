@@ -27,7 +27,7 @@ def x_scalar_sweep(neutron_flux_old, medium_map, xs_total, xs_scatter, \
     while not (converged):
         neutron_flux *= 0
         for angle in range(angles):
-            ex_angle_idx == 0 if params[4] == 1 else angle
+            ex_angle_idx = 0 if params[4] == 1 else angle
             if params[2] == 0:
                 vacuum(neutron_flux, neutron_flux_old, medium_map, xs_total, \
                       xs_scatter, external_source, point_source[angle], \
@@ -70,7 +70,7 @@ def vacuum(neutron_flux, neutron_flux_old, medium_map, xs_total, xs_scatter, \
             edge_two = (xs_scatter[material] * neutron_flux_old[cell] \
                 + external_source[ex_group_idx+ex_angle_idx*params[3]::params[4]*params[3]][cell] \
                 + edge_one * (abs(spatial_coef) + xs1_const * xs_total[material])) \
-                /(abs(spatial_coef) + xs2_const * xs_total[material])
+                *1/(abs(spatial_coef) + xs2_const * xs_total[material])
             if params[1] == 1: # Step Method
                 neutron_flux[cell] += angle_weight * edge_two
             elif params[1] == 2: # Diamond Difference
@@ -84,7 +84,7 @@ def vacuum(neutron_flux, neutron_flux_old, medium_map, xs_total, xs_scatter, \
             edge_one = (xs_scatter[material] * neutron_flux_old[cell] \
                 + external_source[ex_group_idx+ex_angle_idx*params[3]::params[4]*params[3]][cell] \
                 + edge_two * (abs(spatial_coef) + xs1_const * xs_total[material])) \
-                /(abs(spatial_coef) + xs2_const * xs_total[material])
+                *1/(abs(spatial_coef) + xs2_const * xs_total[material])
             if params[1] == 1: # Step Method
                 neutron_flux[cell] += angle_weight * edge_one
             elif params[1] == 2: # Diamond Difference
@@ -143,7 +143,7 @@ def x_angular_sweep(neutron_flux_old, medium_map, xs_total, xs_scatter, \
         neutron_flux *= 0
         scalar_flux = angular_to_scalar(neutron_flux_old, angle_weight)
         for angle in range(angles):
-            ex_angle_idx == 0 if params[4] == 1 else angle
+            ex_angle_idx = 0 if params[4] == 1 else angle
             if params[2] == 0:
                 vacuum(neutron_flux[:,angle], scalar_flux, medium_map, \
                       xs_total, xs_scatter, external_source, \
@@ -155,7 +155,7 @@ def x_angular_sweep(neutron_flux_old, medium_map, xs_total, xs_scatter, \
                       xs_total, xs_scatter, external_source, \
                       point_source[angle], spatial_coef[angle], \
                       dummy_angle_weight[angle], params, ex_group_idx, \
-                      ex_angle_idx)                
+                      ex_angle_idx)
         change = angular_convergence(neutron_flux, neutron_flux_old, angle_weight)
         converged = (change < INNER_TOLERANCE) or (count >= MAX_ITERATIONS)
         count += 1

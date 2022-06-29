@@ -169,20 +169,20 @@ class PointSource:
                            "mms-left", "mms-right", "mms-two-material", \
                            "mms-two-material-angle", None)
 
-    def __init__(self, name, angles, energy_groups, energy_bounds, \
+    def __init__(self, name, mu, energy_groups, energy_bounds, \
                  energy_idx):
         assert (name in self.__class__.__available_sources), \
         "Source not recognized, use:\n{}".format(\
             self.__class__.__available_sources)
         self.name = name
-        self.angles = angles
+        self.mu = mu
         self.energy_groups = energy_groups
         self.energy_bounds = energy_bounds
         self.energy_idx = energy_idx
 
     def _generate_source(self):
         if self.name is None:
-            return np.zeros((self.angles))
+            return np.zeros((len(self.mu)))
         elif self.name in ["14.1-mev"]:
             source = self._mev14_source()
         elif self.name in ["ambe"]:
@@ -222,41 +222,41 @@ class PointSource:
         return source
 
     def _single_source_left(self):
-        source = np.ones((len(self.angles), self.energy_groups))
-        source[self.angles < 0] = 0
+        source = np.ones((len(self.mu), self.energy_groups))
+        source[self.mu < 0] = 0
         return source
 
     def _mms_boundary_left(self):
         # at x = 0
         psi_constant_01 = 0.5
         psi_constant_02 = 0.25
-        source = np.zeros((len(self.angles), self.energy_groups))
-        source[self.angles > 0] = psi_constant_01
+        source = np.zeros((len(self.mu), self.energy_groups))
+        source[self.mu > 0] = psi_constant_01
         return source
 
     def _mms_boundary_right(self):
         # at x = X = 1
         psi_constant_01 = 0.5
         psi_constant_02 = 0.25
-        source = np.zeros((len(self.angles), self.energy_groups))
-        source[self.angles < 0] = psi_constant_01 + psi_constant_02 \
-                          * np.exp(self.angles[self.angles < 0])[:,None]
+        source = np.zeros((len(self.mu), self.energy_groups))
+        source[self.mu < 0] = psi_constant_01 + psi_constant_02 \
+                          * np.exp(self.mu[self.mu < 0])[:,None]
         return source
 
     def _mms_two_material_right(self):
         # at x = X = 2
         X = 2
-        source = np.zeros((len(self.angles), self.energy_groups))
-        source[self.angles < 0] = 0.5 * X**2 + 0.125 * X
+        source = np.zeros((len(self.mu), self.energy_groups))
+        source[self.mu < 0] = 0.5 * X**2 + 0.125 * X
         return source
     
     def _mms_two_material_angle_right(self):
         # at x = X = 2
         X = 2
-        source = np.zeros((len(self.angles), self.energy_groups))
-        source[self.angles < 0] = X**3
-        # source[self.angles < 0] = 0.25 * X * np.exp(self.angles[self.angles < 0])[:,None] \
-        #     + X**2 - 0.125 * np.exp(self.angles[self.angles < 0])[:,None] * X *(4*X + 1)
+        source = np.zeros((len(self.mu), self.energy_groups))
+        source[self.mu < 0] = X**3
+        # source[self.mu < 0] = 0.25 * X * np.exp(self.mu[self.mu < 0])[:,None] \
+        #     + X**2 - 0.125 * np.exp(self.mu[self.mu < 0])[:,None] * X *(4*X + 1)
         return source
 
 
@@ -314,6 +314,9 @@ class ExternalSource:
         self.cell_width = cell_width
         self.mu = mu
         self.medium_radius = int(cells * cell_width)
+        # print("\n\n")
+        # print(self.medium_radius)
+        # print("\n\n")
 
     def _generate_source(self):
         if self.name is None:

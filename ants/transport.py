@@ -159,7 +159,7 @@ class Transport:
             medium_width = float(self.info.get("SPATIAL X LENGTH"))
             self.cell_width = medium_width / self.cells
         else:
-            self.cell_width = float(self.info.get("CELL WIDTH X"))
+            self.cell_width = float(self.info.get("SPATIAL X CELL WIDTH"))
         self.angles = int(self.info.get("ANGLES"))
         self.groups = int(self.info.get("ENERGY GROUPS"))
         
@@ -232,7 +232,7 @@ class Transport:
         if self.point_source_loc == "right-edge":
             self.point_source_loc = int(self.info.get("SPATIAL X CELLS"))
         creator = problem_setup.PointSource( \
-            self.info.get("POINT SOURCE NAME", None), self.angles, \
+            self.info.get("POINT SOURCE NAME", None), self.mu, \
             self.groups, self.info.get("ENERGY BOUNDS", None), \
             self.info.get("ENERGY INDEX", None))
         self.point_source = creator._generate_source()
