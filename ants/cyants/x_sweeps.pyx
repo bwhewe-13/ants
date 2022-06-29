@@ -20,7 +20,7 @@ from cython.view cimport array as cvarray
 # import numpy as np
 
 
-cdef double[:] x_scalar_sweep(double[:] scalar_flux_old, int[:]& medium_map, \
+cdef double[:] scalar_x_sweep(double[:] scalar_flux_old, int[:]& medium_map, \
                             double[:]& xs_total, double[:]& xs_scatter, \
                             double[:]& external_source, \
                             double[:]& point_source, double[:]& spatial_coef, \
@@ -65,7 +65,7 @@ cdef double[:] x_scalar_sweep(double[:] scalar_flux_old, int[:]& medium_map, \
     return scalar_flux[:]
 
 
-cdef double[:,:] x_angular_sweep(double[:,:] angular_flux_old, int[:]& medium_map, \
+cdef double[:,:] angular_x_sweep(double[:,:] angular_flux_old, int[:]& medium_map, \
                                 double[:]& xs_total, double[:]& xs_scatter, \
                                 double[:]& external_source, \
                                 double[:]& point_source, double[:]& spatial_coef, \
@@ -118,7 +118,7 @@ cdef double[:,:] x_angular_sweep(double[:,:] angular_flux_old, int[:]& medium_ma
     return angular_flux[:,:]
 
 
-cdef double[:,:] x_time_sweep(double[:,:] angular_flux_old, int[:]& medium_map, \
+cdef double[:,:] time_x_sweep(double[:,:] angular_flux_old, int[:]& medium_map, \
                               double[:]& xs_total, double[:]& xs_matrix, \
                               double[:]& external_source, \
                               double[:]& point_source, double[:]& spatial_coef, \

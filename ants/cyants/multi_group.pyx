@@ -13,7 +13,7 @@
 # cython: cdivision=True
 
 import ants.constants as constants
-from ants.cyants.x_sweeps cimport x_scalar_sweep, x_angular_sweep, x_time_sweep
+from ants.cyants.x_sweeps cimport scalar_x_sweep, angular_x_sweep, time_x_sweep
 
 # from libcpp cimport float
 from libc.math cimport sqrt, pow
@@ -21,37 +21,120 @@ from cython.view cimport array as cvarray
 import numpy as np
 from tqdm import tqdm
 
+def criticality(int[:] medium_map, double[:,:] xs_total, \
+                double[:,:,:] xs_scatter, double[:,:,:] xs_fission, \
+                double[:] spatial_coef, double[:] angle_weight, \
+                int[:] params):
+    cdef size_t cells = medium_map.shape[0]
+    cdef size_t groups = xs_total.shape[1]
+    cdef size_t angles = spatial_coef.shape[0]
+    scalar_flux_old = np.random.rand(cells, groups)
+    keff = normalize_flux(scalar_flux_old)
+    divide_by_keff(scalar_flux_old, keff)
+
+    power_source = memoryview(np.zeros((cells * groups)))
+    scalar_flux = scalar_flux_old.copy()
+    point_source = memoryview(np.zeros((angles)))
+
+    cdef bint converged = False
+    cdef size_t count = 1
+    cdef double change = 0.0
+    while not (converged):
+        power_iteration_source(power_source, scalar_flux_old, \
+                               medium_map, xs_fission)
+        scalar_flux = scalar_multi_group(scalar_flux, medium_map, \
+                    xs_total, xs_scatter, power_source, point_source, \
+                    spatial_coef, angle_weight, params)
+        keff = normalize_flux(scalar_flux)
+        divide_by_keff(scalar_flux, keff)
+        change = scalar_convergence(scalar_flux, scalar_flux_old)
+        print('Power Iteration {}\n{}\nChange {} Keff {}'.format(count, \
+                 '='*35, change, keff))
+        converged = (change < constants.OUTER_TOLERANCE) \
+                    or (count >= constants.MAX_ITERATIONS)
+        count += 1
+        scalar_flux_old = scalar_flux.copy()
+    return np.asarray(scalar_flux), keff
+
+
+cdef void power_iteration_source(double[:] power_source, double[:,:] flux, \
+                                 int[:] medium_map, double[:,:,:] xs_fission):
+    power_source[:] = 0
+    cdef size_t cells = medium_map.shape[0]
+    cdef size_t groups = flux.shape[1]
+    cdef size_t material
+    for cell in range(cells):
+        material = medium_map[cell]
+        for ingroup in range(groups):
+            for outgroup in range(groups):
+                power_source[ingroup::groups][cell] += flux[cell][outgroup] \
+                                * xs_fission[material][ingroup][outgroup]
+                # power_source[cell, ingroup]
+
+
+cdef double normalize_flux(double[:,:] scalar_flux):
+    cdef double keff = 0
+    cdef size_t cells = scalar_flux.shape[0]
+    cdef size_t groups = scalar_flux.shape[1]
+    for group in range(groups):
+        for cell in range(cells):
+            keff += pow(scalar_flux[cell][group], 2)
+    keff = sqrt(keff)
+    return keff
+
+cdef void divide_by_keff(double[:,:] scalar_flux, double keff):
+    cdef size_t cells = scalar_flux.shape[0]
+    cdef size_t groups = scalar_flux.shape[1]
+    for group in range(groups):
+        for cell in range(cells):
+            scalar_flux[cell][group] /= keff
+
+    
+
 def source_iteration(int[:] medium_map, double[:,:] xs_total, \
                     double[:,:,:] xs_scatter, double[:,:,:] xs_fission, \
                     double[:] external_source, double [:] point_source,
                     double[:] spatial_coef, double[:] angle_weight, \
                     int[:] params, bint angular=False):
+    cells = medium_map.shape[0]
+    groups = xs_total.shape[1]
+    angles = spatial_coef.shape[0]
+    materials = xs_total.shape[0]
+    xs_matrix = memoryview(np.zeros((materials, groups, groups)))
+    combine_self_scattering(xs_matrix, xs_scatter, xs_fission)
     if angular == True:
-        return mg_angular_flux(medium_map, xs_total, \
-                xs_scatter, xs_fission, external_source, \
-                point_source, spatial_coef, angle_weight, params)
+        angular_flux_old = memoryview(np.zeros((cells, angles, groups)))
+        return angular_multi_group(angular_flux_old, medium_map, xs_total, \
+                                xs_matrix, external_source, point_source, \
+                                spatial_coef, angle_weight, params)
     else:
-        return mg_scalar_flux(medium_map, xs_total, \
-                xs_scatter, xs_fission, external_source, \
-                point_source, spatial_coef, angle_weight, params)
+        scalar_flux_old = memoryview(np.zeros((cells, groups)))
+        return scalar_multi_group(scalar_flux_old, medium_map, xs_total, \
+                                xs_matrix, external_source, point_source, \
+                                spatial_coef, angle_weight, params)
 
 
-cdef double[:,:] mg_scalar_flux(int[:] medium_map, double[:,:] xs_total, \
-                    double[:,:,:] xs_scatter, double[:,:,:] xs_fission, \
-                    double[:] external_source, double[:] point_source, \
-                    double[:] spatial_coef, double[:] angle_weight, \
-                    int[:] params):
+cdef void combine_self_scattering(double[:,:,:] xs_matrix, \
+                double[:,:,:] xs_scatter, double[:,:,:] xs_fission):
+    cdef size_t materials = xs_matrix.shape[0]
+    cdef size_t groups = xs_matrix.shape[1]
+    for mat in range(materials):
+        for ing in range(groups):
+            for outg in range(groups):
+                xs_matrix[mat][ing][outg] = xs_scatter[mat][ing][outg] \
+                                            + xs_fission[mat][ing][outg]
+
+cdef double[:,:] scalar_multi_group(double[:,:] scalar_flux_old, \
+                    int[:] medium_map, double[:,:] xs_total, \
+                    double[:,:,:] xs_matrix, double[:] external_source, \
+                    double[:] point_source, double[:] spatial_coef, \
+                    double[:] angle_weight, int[:] params):
     cdef size_t cells = medium_map.shape[0]
     cdef size_t groups = xs_total.shape[1]
-    cdef size_t cell, group
     cdef size_t ex_group_idx, ps_group_idx
 
-    arr2d_1 = cvarray((cells, groups), itemsize=sizeof(double), format="d")
-    cdef double[:,:] scalar_flux_old = arr2d_1
-    scalar_flux_old[:,:] = 0
-
-    arr2d_2 = cvarray((cells, groups), itemsize=sizeof(double), format="d")
-    cdef double[:,:] scalar_flux = arr2d_2
+    arr2d = cvarray((cells, groups), itemsize=sizeof(double), format="d")
+    cdef double[:,:] scalar_flux = arr2d
 
     arr1d = cvarray((cells,), itemsize=sizeof(double), format="d")    
     cdef double[:] one_group_flux_old = arr1d
@@ -64,11 +147,11 @@ cdef double[:,:] mg_scalar_flux(int[:] medium_map, double[:,:] xs_total, \
         scalar_flux[:, :] = 0
         for group in range(groups):
             ex_group_idx = 0 if params[3] == 1 else group
-            ps_group_idx = 0 if params[5] == 1 else group
+            ps_group_idx = 0 if params[6] == 1 else group
             one_group_flux_old[:] = scalar_flux_old[:,group]
-            scalar_flux[:,group] = x_scalar_sweep(one_group_flux_old, \
+            scalar_flux[:,group] = scalar_x_sweep(one_group_flux_old, \
                             medium_map, xs_total[:,group], \
-                            xs_scatter[:,group,group], \
+                            xs_matrix[:,group,group], \
                             external_source, \
                             point_source[ps_group_idx::params[6]], \
                             spatial_coef, angle_weight, params, \
@@ -81,23 +164,18 @@ cdef double[:,:] mg_scalar_flux(int[:] medium_map, double[:,:] xs_total, \
     return np.asarray(scalar_flux)
 
  
-cdef double[:,:,:] mg_angular_flux(int[:] medium_map, double[:,:] xs_total, \
-                    double[:,:,:] xs_scatter, double[:,:,:] xs_fission, \
-                    double[:] external_source, double[:] point_source, \
-                    double[:] spatial_coef, double[:] angle_weight, \
-                    int[:] params):
+cdef double[:,:,:] angular_multi_group(double[:,:,:] angular_flux_old, \
+                    int[:] medium_map, double[:,:] xs_total, \
+                    double[:,:,:] xs_matrix, double[:] external_source, \
+                    double[:] point_source, double[:] spatial_coef, \
+                    double[:] angle_weight, int[:] params):
     cdef size_t cells = medium_map.shape[0]
     cdef size_t groups = xs_total.shape[1]
     cdef size_t angles = spatial_coef.shape[0]
-    cdef size_t cell, group, angle
     cdef size_t ex_group_idx, ps_group_idx
 
-    arr3d_1 = cvarray((cells, angles, groups), itemsize=sizeof(double), format="d")
-    cdef double[:,:,:] angular_flux_old = arr3d_1
-    angular_flux_old[:,:,:] = 0
-
-    arr3d_2 = cvarray((cells, angles, groups), itemsize=sizeof(double), format="d")
-    cdef double[:,:,:] angular_flux = arr3d_2
+    arr3d = cvarray((cells, angles, groups), itemsize=sizeof(double), format="d")
+    cdef double[:,:,:] angular_flux = arr3d
 
     arr2d = cvarray((cells, angles), itemsize=sizeof(double), format="d")    
     cdef double[:,:] one_group_flux_old = arr2d
@@ -111,10 +189,10 @@ cdef double[:,:,:] mg_angular_flux(int[:] medium_map, double[:,:] xs_total, \
         for group in range(groups):
             one_group_flux_old[:,:] = angular_flux_old[:,:,group]
             ex_group_idx = 0 if params[3] == 1 else group
-            ps_group_idx = 0 if params[5] == 1 else group            
-            angular_flux[:,:,group] = x_angular_sweep(one_group_flux_old, \
+            ps_group_idx = 0 if params[6] == 1 else group            
+            angular_flux[:,:,group] = angular_x_sweep(one_group_flux_old, \
                             medium_map, xs_total[:,group], \
-                            xs_scatter[:,group,group], \
+                            xs_matrix[:,group,group], \
                             external_source, \
                             point_source[ps_group_idx::params[6]], \
                             spatial_coef, angle_weight, params, \
@@ -240,7 +318,7 @@ cdef double[:,:,:] time_source_iteration(double[:,:,:]& angular_flux_last, \
             one_group_flux[:,:] = angular_flux_last[:,:,group]
             ex_group_idx = 0 if params[3] == 1 else group
             ps_group_idx = 0 if params[5] == 1 else group
-            angular_flux_next[:,:,group] = x_time_sweep(one_group_flux, \
+            angular_flux_next[:,:,group] = time_x_sweep(one_group_flux, \
                             medium_map, xs_total[:,group], \
                             xs_matrix[:,group,group], \
                             external_source, \
@@ -259,7 +337,7 @@ cdef double[:,:,:] time_source_iteration(double[:,:,:]& angular_flux_last, \
 cdef void angular_to_scalar(double[:,:,:]& time_step_flux, \
             double[:,:,:]& angular_flux, double[:]& angle_weight, \
             size_t time_step):
-    cdef size_t cell, angle, group
+    # cdef size_t cell, angle, group
     cdef size_t cells = angular_flux.shape[0]
     cdef size_t angles = angular_flux.shape[1]
     cdef size_t groups = angular_flux.shape[2]

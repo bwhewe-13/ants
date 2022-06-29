@@ -9,19 +9,19 @@
 #
 ########################################################################
 
-cdef double[:] x_scalar_sweep(double[:] scalar_flux_old, int[:]& medium_map, \
+cdef double[:] scalar_x_sweep(double[:] scalar_flux_old, int[:]& medium_map, \
             double[:]& xs_total, double[:]& xs_scatter, \
             double[:]& external_source, double[:]& point_source, \
             double[:]& spatial_coef, double[:]& angle_weight, \
             int[:]& params, size_t ex_group_idx) #, size_t ps_group_idx)
 
-cdef double[:,:] x_angular_sweep(double[:,:] angular_flux_old, int[:]& medium_map, \
+cdef double[:,:] angular_x_sweep(double[:,:] angular_flux_old, int[:]& medium_map, \
             double[:]& xs_total, double[:]& xs_scatter, \
             double[:]& external_source, double[:]& point_source, \
             double[:]& spatial_coef, double[:]& angle_weight, \
             int[:]& params, size_t ex_group_idx) #, size_t ps_group_idx)
 
-cdef double[:,:] x_time_sweep(double[:,:] angular_flux_old, int[:]& medium_map, \
+cdef double[:,:] time_x_sweep(double[:,:] angular_flux_old, int[:]& medium_map, \
             double[:]& xs_total, double[:]& xs_matrix, \
             double[:]& external_source, \
             double[:]& point_source, double[:]& spatial_coef, 
