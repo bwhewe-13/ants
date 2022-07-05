@@ -31,23 +31,26 @@ class Transport:
         "POINT SOURCE NAME", "BOUNDARY X", "BOUNDARY Y", "SVD", "DJINN", \
         "AUTOENCODER", "DJINN-AUTOENCODER", "HYBRID", "MMS", "MNB", "NOTE")
 
-    def __init__(self, input_file, solve_type="numba"):
+    def __init__(self, input_file):
         self.input_file = input_file
         self._read_input()
         self.create_problem()
 
     def __str__(self):
         string = ""
-        space = int(0.1 * len(max(self.info.keys(), key=len)) +\
-                          len(max(self.info.values(), key=len)))
+        space = 33
         for kk, vv in self.info.items():
             if kk == "NOTE":
                 continue
-            if kk =="MATERIAL" and "\n" in vv:
-                vv = ", ".join(vv.split("\n"))
-            temp = "{: <{}} {: >{}}\n".format(kk, space, vv, space)
-            temp = temp.replace("  ", "..")
-            string += temp
+            if kk == "MATERIAL" and "\n" in vv:
+                for ele in vv.split("\n"):
+                    temp = "{: <{}}{: >{}}\n".format(kk, space, ele, space)
+                    temp = temp.replace("  ", "..")
+                    string += temp
+            else:
+                temp = "{: <{}}{: >{}}\n".format(kk, space, vv, space)
+                temp = temp.replace("  ", "..")
+                string += temp
         return string
 
     def create_problem(self):
@@ -73,14 +76,19 @@ class Transport:
     def save_input_file(self, file_name=None):
         PATH = pkg_resources.resource_filename("ants","../examples/")
         if file_name is None:
-            file_name = self.input_file
+            response = input("Overwrite current file (Y/N): ")
+            if response.lower() == "n":
+                file_name = input("Type Save File Name: ")
+            elif response.lower() == "y":
+                file_name = self.input_file
+            else:
+                print("Invalid Input")
         shutil.copyfile(PATH + "template.inp", file_name)
         with open(file_name) as fp:
             text = [x for x in fp.read().splitlines()]
         for kk, vv in self.info.items():
             kk += ": "
             if kk not in text:
-                # print(kk)
                 continue
             ii = text.index(kk)
             if "\n" in vv:
@@ -95,43 +103,38 @@ class Transport:
             for line in text:
                 fp.write("{}\n".format(line))
         
-    def save_data(self, file_name=None):
-        dictionary = {}
-        if file_name is None:
-            file_name = self._generate_file_name()
-        # Neutron fluxes
-        dictionary["flux-scalar"] = self.scalar
-        try:
-            dictionary["flux-angular"] = self.angular
-        except NameError:
-            dictionary["k-effective"] = self.keff
+    def save_data(self, file_name):
+        file = {}
         # Medium data
-        dictionary["medium-map"] = self.medium_map
-        dictionary["medium-key"] = self.map_obj.map_key
+        file["geometry"] = self.info.get("GEOMETRY")
+        file["medium-map"] = self.medium_map
+        file["material-key"] = self.material_key
         # Cross sections
-        dictionary["groups"] = int(self.info.get("ENERGY GROUPS"))
-        dictionary["xs-total"] = self.xs_total
-        dictionary["xs-scatter"] = self.xs_scatter
-        dictionary["xs-fission"] = self.xs_fission
+        file["groups"] = self.groups
+        file["xs-total"] = self.xs_total
+        file["xs-scatter"] = self.xs_scatter
+        file["xs-fission"] = self.xs_fission
         # Spatial Info
-        dictionary["cells-x"] = int(self.info.get("SPATIAL X CELLS"))
-        dictionary["cell-width-x"] = self.cell_width
-        dictionary["spatial-disc"] = self.info.get("SPATIAL DISCRETE")
+        file["cells"] = self.cells
+        file["cell-width"] = self.cell_width
+        file["spatial"] = self.info.get("SPATIAL DISCRETE")
         # Angular Info
-        dictionary["angles"] = int(self.info.get("ANGLES"))
+        file["angles"] = self.angles
+        file["mu"] = self.mu
+        file["angle-weight"] = self.angle_weight
         if self.info.get("GEOMETRY") == "slab":
             lhs_x = "vacuum"
         elif self.info.get("GEOMETRY") == "sphere":
             lhs_x = "reflected"
-        dictionary["boundary-x"] = [lhs_x, self.info.get("BOUNDARY X")]
+        file["boundary"] = [lhs_x, self.info.get("BOUNDARY X")]
         # Time Info
-        dictionary["time-steps"] = int(self.info.get("TIME STEPS"))
-        dictionary["time-step-size"] \
-                             = float(self.info.get("TIME STEP SIZE"))
-        dictionary["time-disc"] = self.info.get("TIME DISCRETE")
+        if self.info.get("TIME STEPS", None) is not None:        
+            file["time-steps"] = int(self.info.get("TIME STEPS"))
+            file["time-step-size"] = float(self.info.get("TIME STEP SIZE"))
+            file["temporal"] = self.info.get("TIME DISCRETE")
         # Extra
-        dictionary["notes"] = self.info.get("NOTE")
-        np.savez(file_name, **dictionary)
+        file["notes"] = self.info.get("NOTE")
+        np.savez(file_name, **file)
 
     def _read_input(self):
         self.info = {}
