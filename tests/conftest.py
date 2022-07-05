@@ -16,8 +16,3 @@ def g361r(request):
 @pytest.fixture(params=[600, 500, 400, 300, 200, 100])
 def g618r(request):
     return request.param
-
-#@pytest.fixture(scope='session')
-#def reeds_problem():
-#    ...
-#

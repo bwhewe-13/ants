@@ -52,8 +52,8 @@ def criticality(int[:] medium_map, double[:,:] xs_total, \
         keff = normalize_flux(scalar_flux)
         divide_by_keff(scalar_flux, keff)
         change = scalar_convergence(scalar_flux, scalar_flux_old)
-        print('Power Iteration {}\n{}\nChange {} Keff {}'.format(count, \
-                 '='*35, change, keff))
+#        print('Power Iteration {}\n{}\nChange {} Keff {}'.format(count, \
+#                 '='*35, change, keff))
         converged = (change < OUTER_TOLERANCE) or (count >= MAX_ITERATIONS)
         count += 1
         scalar_flux_old = scalar_flux.copy()
