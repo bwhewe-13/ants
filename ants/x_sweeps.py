@@ -15,7 +15,7 @@ import numpy as np
 import numba
 
 # @numba.jit(nopython=True, cache=True)
-def x_scalar_sweep(neutron_flux_old, medium_map, xs_total, xs_scatter, \
+def scalar_x_sweep(neutron_flux_old, medium_map, xs_total, xs_scatter, \
                     external_source, point_source, spatial_coef, \
                     angle_weight, params, ex_group_idx):
     cells = medium_map.shape[0]
@@ -129,7 +129,7 @@ def reflected(neutron_flux, neutron_flux_old, medium_map, xs_total, \
 
 
 # @numba.jit(nopython=True, cache=True)
-def x_angular_sweep(neutron_flux_old, medium_map, xs_total, xs_scatter, \
+def angular_x_sweep(neutron_flux_old, medium_map, xs_total, xs_scatter, \
                     external_source, point_source, spatial_coef, \
                     angle_weight, params, ex_group_idx):
     cells = medium_map.shape[0]
@@ -167,7 +167,7 @@ def angular_to_scalar(angular_flux, angle_weight):
     return np.sum(angular_flux * angle_weight, axis=1)
 
 # @numba.jit(nopython=True, cache=True)
-def x_time_sweep(neutron_flux_old, medium_map, xs_total, xs_matrix, \
+def time_x_sweep(neutron_flux_old, medium_map, xs_total, xs_matrix, \
                  external_source, point_source, spatial_coef, angle_weight, \
                  params, temporal_coef, time_const, ex_group_idx):
     cells = medium_map.shape[0]

@@ -8,11 +8,65 @@
 ########################################################################
 
 from ants.constants import MAX_ITERATIONS, OUTER_TOLERANCE
-from ants.x_sweeps import x_scalar_sweep, x_angular_sweep, x_time_sweep
+from ants.x_sweeps import scalar_x_sweep, angular_x_sweep, time_x_sweep
 
 import numpy as np
 import numba
 from tqdm import tqdm
+
+# @numba.jit(nopython=True, cache=True)
+def criticality(medium_map, xs_total, xs_scatter, xs_fission, \
+                spatial_coef, angle_weight, params):
+    cells = medium_map.shape[0]
+    groups = xs_total.shape[1]
+    scalar_flux_old = np.random.rand(cells, groups)
+    scalar_flux_old /= np.linalg.norm(scalar_flux_old)
+    power_source = np.zeros((cells * groups))
+
+    point_source = np.zeros((angle_weight.shape[0]))
+    converged = 0
+    count = 1
+    while not (converged):
+        power_iteration_source(power_source, scalar_flux_old, \
+                               medium_map, xs_fission)
+        scalar_flux = source_iteration(medium_map, xs_total, xs_scatter, \
+                        xs_fission, power_source, point_source, \
+                        spatial_coef, angle_weight, params, angular=False)
+        keff = np.linalg.norm(scalar_flux)
+        scalar_flux /= keff
+        change = convergence(scalar_flux, scalar_flux_old, \
+                            angle_weight, angular=False)
+        converged = (change < OUTER_TOLERANCE) or (count >= MAX_ITERATIONS)
+        count += 1
+        scalar_flux_old = scalar_flux.copy()
+    return scalar_flux
+
+# @numba.jit(nopython=True, cache=True)
+def power_iteration_source(power_source, flux, medium_map, xs_fission):
+    groups = flux.shape[1]
+    power_source *= 0
+    for cell, mat in enumerate(medium_map):
+        for group in range(groups):
+            power_source[group::groups][cell] = np.sum(flux[cell] \
+                                                * xs_fission[mat][group])
+
+# # @numba.jit(nopython=True, cache=True)
+# def scalar_multi_group():
+#     ...
+
+# # @numba.jit(nopython=True, cache=True)
+# def angular_multi_group():
+#     ...
+
+# # @numba.jit(nopython=True, cache=True)
+# def source_iteration(medium_map, xs_total, xs_scatter, xs_fission, \
+#                     external_source, point_source, spatial_coef, \
+#                     angle_weight, params, angular=False):
+#     cells = medium_map.shape[0]
+#     groups = 
+#     xs_matrix = xs_scatter + xs_fission
+#     if angular == True:
+#         angular_flux = 
 
 # @numba.jit(nopython=True, cache=True)
 def source_iteration(medium_map, xs_total, xs_scatter, xs_fission, \
@@ -21,11 +75,11 @@ def source_iteration(medium_map, xs_total, xs_scatter, xs_fission, \
     cells = medium_map.shape[0]
     groups = xs_total.shape[1]
     if angular:
-        sweep = x_angular_sweep
+        sweep = angular_x_sweep
         angles = spatial_coef.shape[0]
         neutron_flux_old = np.zeros((cells, angles, groups), dtype=np.float64)
     else:
-        sweep = x_scalar_sweep
+        sweep = scalar_x_sweep
         neutron_flux_old = np.zeros((cells, groups), dtype=np.float64)
     neutron_flux = np.zeros(neutron_flux_old.shape, dtype=np.float64)
     converged = 0
@@ -45,6 +99,8 @@ def source_iteration(medium_map, xs_total, xs_scatter, xs_fission, \
         count += 1
         neutron_flux_old = neutron_flux.copy()
     return neutron_flux
+
+
 
 # @numba.jit(nopython=True, cache=True)
 def convergence(flux, flux_old, angle_weight, angular=False):
@@ -100,7 +156,7 @@ def time_source_iteration(neutron_flux_last, medium_map, xs_total, \
         for group in range(groups):
             ex_group_idx = 0 if params[3] == 1 else group
             ps_group_idx = 0 if params[5] == 1 else group
-            neutron_flux_next[:,:,group] = x_time_sweep(neutron_flux_last[:,:,group], \
+            neutron_flux_next[:,:,group] = time_x_sweep(neutron_flux_last[:,:,group], \
                     medium_map, xs_total[:,group], xs_matrix[:,group,group], \
                     external_source, point_source[ps_group_idx::params[6]], \
                     spatial_coef, angle_weight, params, temporal_coef[group], \
