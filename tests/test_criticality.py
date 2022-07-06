@@ -89,3 +89,17 @@ def test_one_group_uranium_reactor_01a(geometry, boundary):
                     problem.xs_scatter, problem.xs_fission, mu, angle_weight, \
                     problem.params, problem.cell_width)
     assert abs(keff - problem.k_infinite) < 2e-3
+
+
+@pytest.mark.smoke
+@pytest.mark.crit_keff
+@pytest.mark.parametrize(("geometry", "boundary"), [("slab", "vacuum"), \
+                            ("slab", "reflected"), ("sphere", "vacuum")])
+def test_two_group_plutonium_01a(geometry, boundary):
+    mu, angle_weight = benchmarks.angles(boundary)
+    problem = benchmarks.TwoGroup(geometry, boundary)
+    problem.plutonium_01a()
+    phi, keff = multi_group.criticality(problem.medium_map, problem.xs_total, \
+                    problem.xs_scatter, problem.xs_fission, mu, angle_weight, \
+                    problem.params, problem.cell_width)
+    assert abs(keff - 1) < 2e-3

@@ -14,7 +14,7 @@ import numpy as np
 
 
 def angles(boundary):
-    angles = 16
+    angles = 20
     mu, angle_weight = np.polynomial.legendre.leggauss(angles)
     angle_weight /= np.sum(angle_weight)
     if boundary == "reflected":
@@ -48,14 +48,14 @@ def normalize_phi(phi, geometry, boundary):
             normalize_phi.append(phi[0])
     return np.array(normalize_phi)
 
-def create_param(geometry, boundary):
+def create_param(geometry, boundary, groups):
     if geometry == "sphere":
-        return np.array([2, 2, 0, 1, 1, 0, 1, 1, 1], dtype=np.int32)
+        return np.array([2, 2, 0, groups, 1, 0, 1, 1, 1], dtype=np.int32)
     elif geometry == "slab":
         if boundary == "reflected":
-            return np.array([1, 2, 1, 1, 1, 0, 1, 1, 1], dtype=np.int32)
+            return np.array([1, 2, 1, groups, 1, 0, 1, 1, 1], dtype=np.int32)
         elif boundary == "vacuum":
-            return np.array([1, 2, 0, 1, 1, 0, 1, 1, 1], dtype=np.int32)
+            return np.array([1, 2, 0, groups, 1, 0, 1, 1, 1], dtype=np.int32)
 
 class OneGroup:
     
@@ -63,12 +63,13 @@ class OneGroup:
         self.geometry = geometry.lower()
         self.boundary = boundary.lower()
         self.cells = cells
+        self.groups = 1
 
     def plutonium_01a(self):
         self.xs_total = np.array([[0.32640]])
         self.xs_scatter = np.array([[[0.225216]]])
         self.xs_fission = np.array([[[3.24*0.0816]]])
-        self.params = create_param(self.geometry, self.boundary)
+        self.params = create_param(self.geometry, self.boundary, self.groups)
         if (self.geometry == "slab") and (self.boundary == "reflected"):
             medium_width = 1.853722
         elif (self.geometry == "slab") and (self.boundary == "vacuum"):
@@ -81,7 +82,7 @@ class OneGroup:
         self.xs_total = np.array([[0.32640]])
         self.xs_scatter = np.array([[[0.225216]]])
         self.xs_fission = np.array([[[2.84*0.0816]]])
-        self.params = create_param(self.geometry, self.boundary)
+        self.params = create_param(self.geometry, self.boundary, self.groups)
         if self.geometry == "sphere":
             medium_width = 6.082547
             self.flux_scale = np.array([0.93538006, 0.75575352, 0.49884364, 0.19222603])
@@ -99,7 +100,7 @@ class OneGroup:
         self.xs_total = np.array([[0.32640]])
         self.xs_scatter = np.array([[[0.248064]]])
         self.xs_fission = np.array([[[2.70*0.065280]]])
-        self.params = create_param(self.geometry, self.boundary)
+        self.params = create_param(self.geometry, self.boundary, self.groups)
         if self.geometry == "sphere":
             medium_width = 7.428998
             self.flux_scale = np.array([0.93244907, 0.74553332, 0.48095413, 0.17177706])
@@ -118,7 +119,7 @@ class OneGroup:
         self.xs_total = np.array([[0.54628]])
         self.xs_scatter = np.array([[[0.464338]]])
         self.xs_fission = np.array([[[1.70*0.054628]]])
-        self.params = create_param(self.geometry, self.boundary)
+        self.params = create_param(self.geometry, self.boundary, self.groups)
         if self.geometry == "sphere":
             medium_width = 22.017156
             self.flux_scale = np.array([0.91063756, 0.67099621, 0.35561622, 0.04678614])
@@ -136,8 +137,38 @@ class OneGroup:
         self.xs_total = np.array([[0.407407]])
         self.xs_scatter = np.array([[[0.328042]]])
         self.xs_fission = np.array([[[2.50*0.06922744]]])
-        self.params = create_param(self.geometry, self.boundary)
+        self.params = create_param(self.geometry, self.boundary, self.groups)
         self.medium_map = np.zeros((self.cells), dtype=np.int32)
         medium_width = 250
         self.cell_width = medium_width / self.cells
         self.k_infinite = 2.1806667
+
+class TwoGroup:
+    
+    def __init__(self, geometry, boundary, cells=200):
+        self.geometry = geometry.lower()
+        self.boundary = boundary.lower()
+        self.cells = cells
+        self.groups = 2
+
+    def plutonium_01a(self):
+        chi = np.array([[0.425], [0.575]])
+        nu = np.array([[2.93, 3.10]])
+        sigmaf = np.array([[0.08544, 0.0936]])
+        fission = chi @ (nu * sigmaf)
+        total = np.array([0.3360,0.2208])
+        scatter = np.array([[0.23616, 0.0],[0.0432, 0.0792]])
+        self.xs_total = np.array([total])
+        self.xs_scatter = np.array([scatter.T])
+        self.xs_fission = np.array([fission])
+        self.params = create_param(self.geometry, self.boundary, self.groups)
+        if self.geometry == "sphere":
+            medium_width = 5.231567
+        elif self.geometry == "slab":
+            if self.boundary == "reflected":
+                medium_width = 1.795602
+            elif self.boundary == "vacuum":
+                medium_width = 1.795602 * 2
+                self.cells *= 2
+        self.medium_map = np.zeros((self.cells), dtype=np.int32)
+        self.cell_width = medium_width / self.cells        

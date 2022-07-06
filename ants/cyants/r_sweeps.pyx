@@ -21,20 +21,20 @@ import numpy as np
 
 
 cdef void half_angle_calc(double[:]& scalar_flux, double[:]& flux_half_angle, \
-        int[:]& medium_map, double[:]& xs_total, double[:]& xs_matrix, \
+        int[:]& medium_map, double[:]& xs_total, double[:]& xs_matrix, double[:]& off_scatter, \
         double[:]& external_source, double cell_width, double half_angle_plus):
     cdef int cells = medium_map.shape[0]
     for cell in range(cells-1, -1, -1):
         material = medium_map[cell]
         flux_half_angle[cell] = (2 * half_angle_plus + cell_width \
-                        * (external_source[cell] + xs_matrix[material] \
+                        * (external_source[cell] + off_scatter[cell] + xs_matrix[material] \
                         * scalar_flux[cell])) / (2 + xs_total[material] \
                         * cell_width)
         half_angle_plus = 2 * flux_half_angle[cell] - half_angle_plus
 
 
 cdef double[:] r_sweep(double[:] scalar_flux_old, int[:]& medium_map, \
-                    double[:]& xs_total, double[:]& xs_matrix, \
+                    double[:]& xs_total, double[:]& xs_matrix, double[:]& off_scatter, \
                     double[:]& external_source, double[:]& point_source, \
                     double[:]& mu, double[:]& angle_weight, int[:]& params, \
                     double cell_width, size_t ex_group_idx): 
@@ -62,7 +62,7 @@ cdef double[:] r_sweep(double[:] scalar_flux_old, int[:]& medium_map, \
         scalar_flux[:] = 0
         alpha_minus = 0
         half_angle_calc(scalar_flux_old, flux_half_angle, medium_map, \
-                xs_total, xs_matrix, external_source, cell_width, 0.0)
+                xs_total, xs_matrix, off_scatter, external_source, cell_width, 0.0)
         for angle in range(angles):
             ex_angle_idx = 0 if params[4] == 1 else angle
             mu_plus = mu_minus + 2 * angle_weight[angle]
@@ -72,7 +72,7 @@ cdef double[:] r_sweep(double[:] scalar_flux_old, int[:]& medium_map, \
             else:
                 alpha_plus = alpha_minus - mu[angle] * angle_weight[angle]
             sweep(scalar_flux, scalar_flux_old, medium_map,  xs_total, \
-                 xs_matrix,  external_source, params, point_source[angle], \
+                 xs_matrix, off_scatter, external_source, params, point_source[angle], \
                  flux_half_angle, mu[angle], angle_weight[angle], cell_width, \
                  tau, alpha_plus, alpha_minus,  ex_group_idx, ex_angle_idx)
             alpha_minus = alpha_plus
@@ -184,7 +184,7 @@ cdef double volume_calc(double rho_plus, double rho_minus):
 
 
 cdef void left_to_right(double[:]& scalar_flux, double[:]& scalar_flux_old, \
-            int[:]& medium_map, double[:]& xs_total, double[:]& xs_matrix, \
+            int[:]& medium_map, double[:]& xs_total, double[:]& xs_matrix, double[:]& off_scatter, \
             double[:]& external_source, int[:]& params, double point_source, \
             double[:]& flux_half_angle, double mu, double angle_weight, \
             double cell_width, double tau, double alpha_plus, double alpha_minus):
@@ -204,7 +204,7 @@ cdef void left_to_right(double[:]& scalar_flux, double[:]& scalar_flux_old, \
         flux_center = (mu * (surface_plus + surface_minus) * flux_half_cell \
             + 1 / angle_weight * (surface_plus - surface_minus) \
             * (alpha_plus + alpha_minus) * (flux_half_angle[cell]) \
-            + volume * (external_source[cell] + scalar_flux_old[cell] * xs_matrix[material])) \
+            + volume * (external_source[cell] + off_scatter[cell] + scalar_flux_old[cell] * xs_matrix[material])) \
             / (2 * mu * surface_plus + 2 / angle_weight * (surface_plus - surface_minus) \
                 * alpha_plus + xs_total[material] * volume)
         scalar_flux[cell] += angle_weight * flux_center
@@ -218,7 +218,7 @@ cdef void left_to_right(double[:]& scalar_flux, double[:]& scalar_flux_old, \
 
 cdef void right_to_left(double[:]& scalar_flux, double[:]& scalar_flux_old, \
             int[:]& medium_map, double[:]& xs_total, double[:]& xs_matrix, \
-            double[:]& external_source, int[:]& params, double point_source, \
+            double[:]& off_scatter, double[:]& external_source, int[:]& params, double point_source, \
             double[:]& flux_half_angle, double mu, double angle_weight, \
             double cell_width, double tau, double alpha_plus, double alpha_minus):
     # I --> 0
@@ -236,7 +236,7 @@ cdef void right_to_left(double[:]& scalar_flux, double[:]& scalar_flux_old, \
         flux_center = (-mu * (surface_plus + surface_minus) * flux_half_cell \
             + 1 / angle_weight * (surface_plus - surface_minus) \
             * (alpha_plus + alpha_minus) * (flux_half_angle[cell]) \
-            + volume * (external_source[cell] + scalar_flux_old[cell] * xs_matrix[material])) \
+            + volume * (external_source[cell] + off_scatter[cell] + scalar_flux_old[cell] * xs_matrix[material])) \
             / (-2 * mu * surface_minus + 2 / angle_weight * (surface_plus - surface_minus) \
                 * alpha_plus + xs_total[material] * volume)
         scalar_flux[cell] += angle_weight * flux_center
@@ -250,18 +250,18 @@ cdef void right_to_left(double[:]& scalar_flux, double[:]& scalar_flux_old, \
 
 cdef void sweep(double[:]& scalar_flux, double[:]& scalar_flux_old, \
                 int[:]& medium_map, double[:]& xs_total, \
-                double[:]& xs_matrix, double[:]& external_source, \
+                double[:]& xs_matrix, double[:]& off_scatter, double[:]& external_source, \
                 int[:]& params, double point_source, double[:]& flux_half_angle, \
                 double mu, double angle_weight, double cell_width, double tau, \
                 double alpha_plus, double alpha_minus, size_t gg_idx, \
                 size_t nn_idx):
     if mu > 0:
-        left_to_right(scalar_flux, scalar_flux_old, medium_map, xs_total, xs_matrix, \
+        left_to_right(scalar_flux, scalar_flux_old, medium_map, xs_total, xs_matrix, off_scatter, \
                 external_source[gg_idx+nn_idx*params[3]::params[4]*params[3]], \
                 params, point_source, flux_half_angle, mu, angle_weight, \
                 cell_width, tau, alpha_plus, alpha_minus)
     elif mu < 0:
-        right_to_left(scalar_flux, scalar_flux_old, medium_map, xs_total, xs_matrix, \
+        right_to_left(scalar_flux, scalar_flux_old, medium_map, xs_total, xs_matrix, off_scatter, \
             external_source[gg_idx+nn_idx*params[3]::params[4]*params[3]], \
             params, point_source, flux_half_angle, mu, angle_weight, \
             cell_width, tau, alpha_plus, alpha_minus)
