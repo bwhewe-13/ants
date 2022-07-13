@@ -51,12 +51,20 @@ where the basis functions are
 
 .. math::
 
-   \begin{equation} \begin{split}
-       & \phi_0(x) = 2 t^3 - 3 t^2 + 1 \\
-       & \phi_1(x) = -2 t^3 + 3 t^2 \\
-       & \psi_0(x) = \Delta_k \left( t^3 - 2 t^2 + t \right) \\
-       & \psi_1(x) = \Delta_k \left( t^3 - t^2 \right)
-   \end{split} \end{equation}
+    \begin{equation} \begin{split}
+       \phi_0(x) &= 2 t^3 - 3 t^2 + 1 \\
+       \phi_1(x) &= -2 t^3 + 3 t^2 \\
+       \psi_0(x) &= \Delta_k \left( t^3 - 2 t^2 + t \right) \\
+       \psi_1(x) &= \Delta_k \left( t^3 - t^2 \right) 
+    \end{split} 
+    \quad \rightarrow \quad
+    \begin{split}
+        \phi'_0(x) &= 6 / \Delta_k (t^2 - t) \\
+        \phi'_1(x) &= 6 / \Delta_k (t - t^2) \\
+        \psi'_0(x) &= 1 - 4t + 3t^2 \\
+        \psi'_1(x) &= 3 t^2 - 2t
+    \end{split}
+    \end{equation}
 
 and
 
@@ -139,14 +147,23 @@ where the basis functions are
 
 .. math::
 
-   \begin{equation} \begin{split}
-       & \phi_0(x) = -6 t^5 + 15 t^4 - 10 t^3 + 1 \\
-       & \phi_1(x) = 6 t^5 - 15 t^4 + 10 t^3 \\
-       & \psi_0(x) = \Delta_k \left( -3 t^5 + 8 t^4 - 6 t^3 + t \right) \\
-       & \psi_1(x) = \Delta_k \left( -3 t^5 + 7 t^4 - 4 t^3 \right) \\
-       & \theta_0(x) = \Delta_k^2 \left( -\frac{1}{2} t^5 + \frac{3}{2} t^4 - \frac{3}{2} t^3 + \frac{1}{2} t^2 \right) \\
-       & \theta_1(x) = \Delta_k^2 \left( \frac{1}{2} t^5 - t^4 + \frac{1}{2} t^3 \right), 
-   \end{split} \end{equation}
+    \begin{equation} \begin{split}
+        \phi_0(x) &= -6 t^5 + 15 t^4 - 10 t^3 + 1 \\
+        \phi_1(x) &= 6 t^5 - 15 t^4 + 10 t^3 \\
+        \psi_0(x) &= \Delta_k \left( -3 t^5 + 8 t^4 - 6 t^3 + t \right) \\
+        \psi_1(x) &= \Delta_k \left( -3 t^5 + 7 t^4 - 4 t^3 \right) \\
+        \theta_0(x) &= \Delta_k^2 \left( -\frac{1}{2} t^5 + \frac{3}{2} t^4 - \frac{3}{2} t^3 + \frac{1}{2} t^2 \right) \\
+        \theta_1(x) &= \Delta_k^2 \left( \frac{1}{2} t^5 - t^4 + \frac{1}{2} t^3 \right) 
+    \end{split} 
+    \quad \rightarrow \quad
+    \begin{split}
+        \phi'_0(x) &= 30 / \Delta_k (-t^2 + 2t^3 - t^4) \\
+        \phi'_1(x) &= 30 / \Delta_k (t^2 - 2t^3 + t^4) \\
+        \psi'_0(x) &= 1 - 18 t^2 + 32 t^3 - 15 t^4 \\
+        \psi'_1(x) &= 12 t^2 + 28 t^3 - 15 t^4 \\
+        \theta'_0(x) &= \Delta_k \left( t -\frac{9}{2} t^2 + 6 t^3 - \frac{5}{2} t^4 \right) \\
+        \theta'_1(x) &= \Delta_k \left( \frac{3}{2} t^2 - 4 t^3 + \frac{5}{2} t^4 \right)
+    \end{split}\end{equation}
 
 where :math:`t` and :math:`\Delta_k` have been explained in :eq:`sym-key`.
 The first derivative is calculated in :eq:`yp1` and :eq:`yp2` at the points :math:`t_{k}` and :math:`t_{k+1}`.

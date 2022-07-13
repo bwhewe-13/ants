@@ -61,6 +61,8 @@ def hermite(x, y, knots=None, stype="cubic"):
         warnings.warn(message)
         knots = index_generator(len(x)-1, len(x)-1)
     approx_y = []
+    approx_yp = []
+    # print("\n",knots,"\n")
     yp = first_derivative(x, y)
     if stype == "quintic":
         ypp = second_derivative(x, y)
@@ -70,21 +72,31 @@ def hermite(x, y, knots=None, stype="cubic"):
             temp_y = CubicHermite.cubic_spline(temp_x, y[knots[n]], \
                       y[knots[n+1]], yp[knots[n]], yp[knots[n+1]],\
                       x[knots[n]], x[knots[n+1]])
+            temp_yp = CubicHermite.cubic_derive(temp_x, y[knots[n]], \
+                      y[knots[n+1]], yp[knots[n]], yp[knots[n+1]],\
+                      x[knots[n]], x[knots[n+1]])
         elif stype == "quintic":
             temp_y = QuinticHermite.quintic_spline(temp_x, y[knots[n]], \
                         y[knots[n+1]], yp[knots[n]], yp[knots[n+1]], \
                         ypp[knots[n]], ypp[knots[n+1]], x[knots[n]], \
                         x[knots[n+1]])
+            temp_yp = QuinticHermite.quintic_derive(temp_x, y[knots[n]], \
+                        y[knots[n+1]], yp[knots[n]], yp[knots[n+1]], \
+                        ypp[knots[n]], ypp[knots[n+1]], x[knots[n]], \
+                        x[knots[n+1]])            
         approx_y.append(temp_y[:-1])
+        approx_yp.append(temp_yp[:-1])
         if n == len(knots) - 2:
             approx_y.append([temp_y[-1]])
+            approx_yp.append([temp_yp[-1]])
     approx_y = np.array([item for sublist in approx_y for item in sublist])
-    return approx_y, knots
+    approx_yp = np.array([item for sublist in approx_yp for item in sublist])
+    return approx_y, approx_yp
 
 def optimal_knots(x, y, atol=5e-5):
     # Taken from Ihtzaz Qamar's "Method to determine optimum number 
     # of knots for cubic splines." - Specific for cubic
-    knots = [0]
+    knots = [0]#, 1, 2, 3, len(y)-1, len(y)-2, len(y)-3, len(y)-4]
     for cell in range(len(x)-2):
         area_diff = abs((0.5 * y[cell] - y[cell+1] + 0.5 * y[cell+2]) \
                         * (x[cell+1] - x[cell]))
@@ -95,25 +107,23 @@ def optimal_knots(x, y, atol=5e-5):
     knots = np.sort(np.unique(np.concatenate((knots, additional))))
     return knots
 
+def _t(x, tk0, tk1):
+    return ((x - tk0) / (tk1 - tk0))
 
 class CubicHermite:
     # Basis Functions for Cubic Hermite Splines
     def _phi0(x, tk0, tk1):
-        return 2 * ((x - tk0) / (tk1 - tk0))**3 \
-                - 3 * ((x - tk0) / (tk1 - tk0))**2 + 1
+        return 2*_t(x, tk0, tk1)**3 - 3*_t(x, tk0, tk1)**2 + 1
 
     def _phi1(x, tk0, tk1):
-        return -2 * ((x - tk0) / (tk1 - tk0))**3 \
-                + 3 * ((x - tk0) / (tk1 - tk0))**2
+        return -2*_t(x, tk0, tk1)**3 + 3*_t(x, tk0, tk1)**2
 
     def _psi0(x, tk0, tk1):
-        return (tk1 - tk0) * (((x - tk0) / (tk1 - tk0))**3 \
-                - 2 * ((x - tk0) / (tk1 - tk0))**2 \
-                + ((x - tk0) / (tk1 - tk0)))
+        return (tk1 - tk0) * (_t(x, tk0, tk1)**3 \
+                - 2*_t(x, tk0, tk1)**2 + _t(x, tk0, tk1))
 
     def _psi1(x, tk0, tk1):
-        return (tk1 - tk0) * (((x - tk0) / (tk1 - tk0))**3 \
-                - ((x - tk0) / (tk1 - tk0))**2)
+        return (tk1 - tk0) * (_t(x, tk0, tk1)**3 - _t(x, tk0, tk1)**2)
 
     def cubic_spline(x, yk0, yk1, ykp0, ykp1, tk0, tk1):
         return yk0 * CubicHermite._phi0(x, tk0, tk1) \
@@ -121,40 +131,51 @@ class CubicHermite:
                 + ykp0 * CubicHermite._psi0(x, tk0, tk1) \
                 + ykp1 * CubicHermite._psi1(x, tk0, tk1)
 
+    def _phi0_p(x, tk0, tk1):
+        return 6 / (tk1 - tk0) * (_t(x, tk0, tk1)**2 - _t(x, tk0, tk1))
+
+    def _phi1_p(x, tk0, tk1):
+        return 6 / (tk1 - tk0) * (_t(x, tk0, tk1) - _t(x, tk0, tk1)**2)
+
+    def _psi0_p(x, tk0, tk1):
+        return 3*_t(x, tk0, tk1)**2 - 4*_t(x, tk0, tk1) + 1
+
+    def _psi1_p(x, tk0, tk1):
+        return 3*_t(x, tk0, tk1)**2 - 2*_t(x, tk0, tk1)
+
+    def cubic_derive(x, yk0, yk1, ykp0, ykp1, tk0, tk1):
+        return yk0 * CubicHermite._phi0_p(x, tk0, tk1) \
+                + yk1 * CubicHermite._phi1_p(x, tk0, tk1) \
+                + ykp0 * CubicHermite._psi0_p(x, tk0, tk1) \
+                + ykp1 * CubicHermite._psi1_p(x, tk0, tk1)
 
 class QuinticHermite:
     # Basis Functions for Quintic Hermite Splines
     def _phi0(x, tk0, tk1):
-        return -6 * ((x - tk0) / (tk1 - tk0))**5 \
-                + 15 * ((x - tk0) / (tk1 - tk0))**4 \
-                - 10 * ((x - tk0) / (tk1 - tk0))**3 + 1
+        return -6*_t(x, tk0, tk1)**5 + 15*_t(x, tk0, tk1)**4 \
+                - 10*_t(x, tk0, tk1)**3 + 1
 
     def _phi1(x, tk0, tk1):
-        return 6 * ((x - tk0) / (tk1 - tk0))**5 \
-                - 15 * ((x - tk0) / (tk1 - tk0))**4 \
-                + 10 * ((x - tk0) / (tk1 - tk0))**3
+        return 6*_t(x, tk0, tk1)**5 - 15*_t(x, tk0, tk1)**4 \
+                + 10*_t(x, tk0, tk1)**3
 
     def _psi0(x, tk0, tk1):
-        return (tk1 - tk0) * (-3 * ((x - tk0) / (tk1 - tk0))**5 \
-                + 8 * ((x - tk0) / (tk1 - tk0))**4 \
-                - 6 * ((x - tk0) / (tk1 - tk0))**3 \
-                + ((x - tk0) / (tk1 - tk0)))
+        return (tk1 - tk0) * (-3*_t(x, tk0, tk1)**5 \
+                + 8*_t(x, tk0, tk1)**4 - 6*_t(x, tk0, tk1)**3 \
+                + _t(x, tk0, tk1))
 
     def _psi1(x, tk0, tk1):
-        return (tk1 - tk0) * (-3 * ((x - tk0) / (tk1 - tk0))**5 \
-                + 7 * ((x - tk0) / (tk1 - tk0))**4 \
-                - 4 * ((x - tk0) / (tk1 - tk0))**3)
+        return (tk1 - tk0) * (-3*_t(x, tk0, tk1)**5 \
+                + 7*_t(x, tk0, tk1)**4 - 4*_t(x, tk0, tk1)**3)
 
     def _theta0(x, tk0, tk1):
-        return (tk1 - tk0)**2 * (-0.5 * ((x - tk0) / (tk1 - tk0))**5 \
-                + 1.5 * ((x - tk0) / (tk1 - tk0))**4 \
-                - 1.5 * ((x - tk0) / (tk1 - tk0))**3 \
-                + 0.5 * ((x - tk0) / (tk1 - tk0))**2)
+        return (tk1 - tk0)**2 * (-0.5*_t(x, tk0, tk1)**5 \
+                + 1.5*_t(x, tk0, tk1)**4 - 1.5*_t(x, tk0, tk1)**3 \
+                + 0.5*_t(x, tk0, tk1)**2)
 
     def _theta1(x, tk0, tk1):
-        return (tk1 - tk0)**2 * (0.5 * ((x - tk0) / (tk1 - tk0))**5 \
-                - ((x - tk0) / (tk1 - tk0))**4 \
-                + 0.5 * ((x - tk0) / (tk1 - tk0))**3)
+        return (tk1 - tk0)**2 * (0.5*_t(x, tk0, tk1)**5 \
+                - _t(x, tk0, tk1)**4 + 0.5*_t(x, tk0, tk1)**3)
 
     def quintic_spline(x, yk0, yk1, ykp0, ykp1, ykpp0, ykpp1, tk0, tk1):
         return yk0 * QuinticHermite._phi0(x, tk0, tk1) \
@@ -163,6 +184,38 @@ class QuinticHermite:
                 + ykp1 * QuinticHermite._psi1(x, tk0, tk1) \
                 + ykpp0 * QuinticHermite._theta0(x, tk0, tk1) \
                 + ykpp1 * QuinticHermite._theta1(x, tk0, tk1)
+
+    def _phi0_p(x, tk0, tk1):
+        return 30 / (tk1 - tk0) * (-_t(x, tk0, tk1)**4 \
+                + 2*_t(x, tk0, tk1)**3 - _t(x, tk0, tk1)**2)
+
+    def _phi1_p(x, tk0, tk1):
+        return 30 / (tk1 - tk0) * (_t(x, tk0, tk1)**4 \
+                - 2*_t(x, tk0, tk1)**3 + _t(x, tk0, tk1)**2)
+
+    def _psi0_p(x, tk0, tk1):
+        return 1 - 18*_t(x, tk0, tk1)**2 + 32*_t(x, tk0, tk1)**3 \
+                - 15*_t(x, tk0, tk1)**4
+
+    def _psi1_p(x, tk0, tk1):
+        return -12*_t(x, tk0, tk1)**2 + 28*_t(x, tk0, tk1)**3 \
+                - 15*_t(x, tk0, tk1)**4
+
+    def _theta0_p(x, tk0, tk1):
+        return (tk1 - tk0) * (_t(x, tk0, tk1) - 4.5*_t(x, tk0, tk1)**2 \
+                + 6*_t(x, tk0, tk1)**3 - 2.5*_t(x, tk0, tk1)**4) 
+
+    def _theta1_p(x, tk0, tk1):
+        return (tk1 - tk0) * (1.5*_t(x, tk0, tk1)**2 \
+                - 4*_t(x, tk0, tk1)**3 + 2.5*_t(x, tk0, tk1)**4)
+
+    def quintic_derive(x, yk0, yk1, ykp0, ykp1, ykpp0, ykpp1, tk0, tk1):
+        return yk0 * QuinticHermite._phi0_p(x, tk0, tk1) \
+                + yk1 * QuinticHermite._phi1_p(x, tk0, tk1) \
+                + ykp0 * QuinticHermite._psi0_p(x, tk0, tk1) \
+                + ykp1 * QuinticHermite._psi1_p(x, tk0, tk1) \
+                + ykpp0 * QuinticHermite._theta0_p(x, tk0, tk1) \
+                + ykpp1 * QuinticHermite._theta1_p(x, tk0, tk1)
 
 if __name__ == "__main__":
     print("Additional Work\n","="*25)
