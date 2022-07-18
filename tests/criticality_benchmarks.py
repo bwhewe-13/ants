@@ -96,6 +96,38 @@ class OneGroup:
         self.medium_map = np.zeros((self.cells), dtype=np.int32)
         self.cell_width = medium_width / self.cells
 
+    def plutonium_02a(self):
+        self.cells = 500
+        self.xs_total = np.array([[0.32640], [0.32640]])
+        self.xs_scatter = np.array([[[0.225216]], [[0.293760]]])
+        self.xs_fission = np.array([[[3.24*0.0816]], [[0.0]]])
+        self.params = create_param(self.geometry, self.boundary, self.groups)
+        distances = [1.478401*2, 3.063725]
+        self.cell_width = sum(distances) / self.cells
+        layers = [round(ii / self.cell_width) for ii in distances]
+        assert sum(layers) == self.cells
+        self.medium_map = np.zeros((self.cells), dtype=np.int32) * -1
+        self.medium_map[:layers[0]] = 0
+        self.medium_map[layers[0]:] = 1
+        assert np.any(self.medium_map != -1)
+
+    def plutonium_02b(self):
+        self.cells = 502
+        self.xs_total = np.array([[0.32640], [0.32640]])
+        self.xs_scatter = np.array([[[0.225216]], [[0.293760]]])
+        self.xs_fission = np.array([[[3.24*0.0816]], [[0.0]]])
+        self.params = create_param(self.geometry, self.boundary, self.groups)
+        distances = [1.531863, 1.317831*2, 1.531863]
+        self.cell_width = sum(distances) / self.cells
+        layers = [round(ii / self.cell_width) for ii in distances]
+        assert sum(layers) == self.cells
+        layers = np.cumsum(layers, dtype=np.int32)
+        self.medium_map = np.zeros((self.cells), dtype=np.int32) * -1
+        self.medium_map[:layers[0]] = 1
+        self.medium_map[layers[0]:layers[1]] = 0
+        self.medium_map[layers[1]:] = 1
+        assert np.any(self.medium_map != -1)
+
     def uranium_01a(self):
         self.xs_total = np.array([[0.32640]])
         self.xs_scatter = np.array([[[0.248064]]])
@@ -151,7 +183,7 @@ class TwoGroup:
         self.cells = cells
         self.groups = 2
 
-    def plutonium_01a(self):
+    def plutonium_01(self):
         chi = np.array([[0.425], [0.575]])
         nu = np.array([[2.93, 3.10]])
         sigmaf = np.array([[0.08544, 0.0936]])
@@ -171,4 +203,70 @@ class TwoGroup:
                 medium_width = 1.795602 * 2
                 self.cells *= 2
         self.medium_map = np.zeros((self.cells), dtype=np.int32)
-        self.cell_width = medium_width / self.cells        
+        self.cell_width = medium_width / self.cells
+
+    def uranium_01(self):
+        chi = np.array([[0.425], [0.575]])
+        nu = np.array([[2.50, 2.70]])
+        sigmaf = np.array([[0.06912, 0.06912]])
+        fission = chi @ (nu * sigmaf)
+        total = np.array([0.3456, 0.2160])
+        scatter = np.array([[0.26304, 0.0],[0.0720, 0.078240]])
+        self.xs_total = np.array([total])
+        self.xs_scatter = np.array([scatter.T])
+        self.xs_fission = np.array([fission])
+        self.params = create_param(self.geometry, self.boundary, self.groups)
+        if self.geometry == "sphere":
+            medium_width = 7.909444
+        elif self.geometry == "slab":
+            if self.boundary == "reflected":
+                medium_width = 3.006375
+            elif self.boundary == "vacuum":
+                medium_width = 3.006375 * 2
+                self.cells *= 2
+        self.medium_map = np.zeros((self.cells), dtype=np.int32)
+        self.cell_width = medium_width / self.cells
+
+    def uranium_aluminum(self):
+        chi = np.array([[0.0], [1.0]])
+        nu = np.array([[2.83, 0.0]])
+        sigmaf = np.array([[0.06070636042, 0.0]])
+        fission = chi @ (nu * sigmaf)
+        total = np.array([1.27698, 0.26817])
+        scatter = np.array([[1.21313, 0.0],[0.020432, 0.247516]])
+        self.xs_total = np.array([total])
+        self.xs_scatter = np.array([scatter.T])
+        self.xs_fission = np.array([fission])
+        self.params = create_param(self.geometry, self.boundary, self.groups)
+        if self.geometry == "sphere":
+            medium_width = 17.66738
+        elif self.geometry == "slab":
+            if self.boundary == "reflected":
+                medium_width = 7.830630
+            elif self.boundary == "vacuum":
+                medium_width = 7.830630 * 2
+                self.cells *= 2
+        self.medium_map = np.zeros((self.cells), dtype=np.int32)
+        self.cell_width = medium_width / self.cells
+
+    def uranium_reactor_01(self):
+        chi = np.array([[0.0], [1.0]])
+        nu = np.array([[2.5, 2.5]])
+        sigmaf = np.array([[0.050632, 0.0010484]])
+        fission = chi @ (nu * sigmaf)
+        total = np.array([2.52025, 0.65696])
+        scatter = np.array([[2.44383, 0.0],[0.029227, 0.62568]])
+        self.xs_total = np.array([total])
+        self.xs_scatter = np.array([scatter.T])
+        self.xs_fission = np.array([fission])
+        self.params = create_param(self.geometry, self.boundary, self.groups)
+        if self.geometry == "sphere":
+            medium_width = 16.049836
+        elif self.geometry == "slab":
+            if self.boundary == "reflected":
+                medium_width = 7.566853
+            elif self.boundary == "vacuum":
+                medium_width = 7.566853 * 2
+                self.cells *= 2
+        self.medium_map = np.zeros((self.cells), dtype=np.int32)
+        self.cell_width = medium_width / self.cells
