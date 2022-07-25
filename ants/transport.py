@@ -17,6 +17,7 @@ import numpy as np
 import os
 import shutil
 import pkg_resources
+import warnings
 
 class Transport:
     
@@ -158,11 +159,19 @@ class Transport:
 
     def _generate_parameters(self):
         self.cells = int(self.info.get("SPATIAL X CELLS"))
-        if "SPATIAL X LENGTH" in self.info.keys():
-            medium_width = float(self.info.get("SPATIAL X LENGTH"))
-            self.cell_width = medium_width / self.cells
+        medium_width = float(self.info.get("SPATIAL X LENGTH"))
+        if "SPATIAL X CELL WIDTH" in self.info.keys():
+            file_name = os.path.join(self.info.get("FILE LOCATION", "."), \
+                    self.info.get("SPATIAL X CELL WIDTH"))
+            self.cell_width = np.load(file_name)
+            if self.cell_width.shape[0] != self.cells:
+                message = ("Mismatch in cell widths and number of cells, "
+                "adjusting spatial cells to equal number of cell widths")
+                warnings.warn(message)
+                self.cells = self.cell_width.shape[0]
         else:
-            self.cell_width = float(self.info.get("SPATIAL X CELL WIDTH"))
+            self.cell_width = np.repeat(medium_width/self.cells, self.cells)
+        self.cell_edges = np.insert(np.round(np.cumsum(self.cell_width), 8), 0, 0)
         self.angles = int(self.info.get("ANGLES"))
         self.groups = int(self.info.get("ENERGY GROUPS"))
         
@@ -176,25 +185,31 @@ class Transport:
         elif self.info.get("GEOMETRY") == "sphere":
             self.mu = self.mu[int(0.5 * self.angles):]
             self.angle_weight = self.angle_weight[int(0.5 * self.angles):]
-        self.spatial_coef = self.mu / self.cell_width
 
     def _generate_medium_map(self):
-        mat_width = []
+        mat_widths = []
         mat_id = []
         mat_start = []
         self.material_key = {}
+        starting_cell = 0
+        idx = 0
         for material in self.materials:
             material = material.split("//")
             self.material_key[material[1].strip()] = int(material[0])
-            for ii in material[2].split(","):
-                mat_id.append(int(material[0].strip()))
-                mat_width.append(abs(eval(ii)) / self.cell_width)
-                mat_start.append(int(int(ii.split("-")[0]) / self.cell_width))
+            mat_id.append(int(material[0].strip()))
+            starting_loc = int(material[2].split("-")[0])
+            ending_loc = int(material[2].split("-")[1])
+            one_width = int(np.argwhere(self.cell_edges == ending_loc)) \
+                        - int(np.argwhere(self.cell_edges == starting_loc))
+            starting_cell += idx
+            mat_widths.append(one_width)
+            mat_start.append(starting_cell)
+            idx = one_width
         mat_id = np.array(mat_id)[np.argsort(mat_start)]
-        mat_width = np.array(mat_width, dtype=np.int32)[np.argsort(mat_start)]
+        mat_widths = np.array(mat_widths, dtype=np.int32)[np.argsort(mat_start)]
         mat_start = np.sort(mat_start)
         self.medium_map = np.ones((self.cells)) * -1
-        for idx, size, mat in zip(mat_start, mat_width, mat_id):
+        for idx, size, mat in zip(mat_start, mat_widths, mat_id):
             self.medium_map[idx:idx+size] = mat
         assert np.all(self.medium_map != -1)
         self.medium_map = self.medium_map.astype(np.int32)
@@ -218,6 +233,7 @@ class Transport:
         self.velocity = creator.velocity
 
     def _generate_external_source(self):
+        # delta = np.repeat(self.cell_width, self.cells)
         creator = problem_setup.ExternalSource( \
                                 self.info.get("EXTERNAL SOURCE", None), \
                                 self.cells, self.cell_width, self.mu)

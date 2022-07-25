@@ -25,7 +25,7 @@ from tqdm import tqdm
 def criticality(int[:] medium_map, double[:,:] xs_total, \
                 double[:,:,:] xs_scatter, double[:,:,:] xs_fission, \
                 double[:] mu, double[:] angle_weight, int[:] params, \
-                double cell_width):
+                double[:] cell_width):
 
     cdef size_t cells = medium_map.shape[0]
     cdef size_t groups = xs_total.shape[1]
@@ -38,8 +38,8 @@ def criticality(int[:] medium_map, double[:,:] xs_total, \
     flux = flux_old.copy()
     point_source = memoryview(np.zeros((angles)))
 
-    if params[0] == 1:
-        _spatial_coef(mu, mu, cell_width)
+    # if params[0] == 1:
+    #     _spatial_coef(mu, mu, cell_width)
 
     cdef bint converged = False
     cdef size_t count = 1
@@ -96,7 +96,7 @@ def source_iteration(int[:] medium_map, double[:,:] xs_total, \
                     double[:,:,:] xs_scatter, double[:,:,:] xs_fission, \
                     double[:] external_source, double [:] point_source, \
                     double[:] mu, double[:] angle_weight, int[:] params, \
-                    double cell_width, bint angular=False):
+                    double[:] cell_width, bint angular=False):
     cells = medium_map.shape[0]
     groups = xs_total.shape[1]
     angles = mu.shape[0]
@@ -104,22 +104,22 @@ def source_iteration(int[:] medium_map, double[:,:] xs_total, \
     xs_matrix = memoryview(np.zeros((materials, groups, groups)))
     combine_self_scattering(xs_matrix, xs_scatter, xs_fission)
 
-    spatial_coef = memoryview(np.zeros((angles)))
-    if params[0] == 1:
-        _spatial_coef(spatial_coef, mu, cell_width)
-    elif params[0] == 2:
-        spatial_coef[:] = mu[:]
+    # spatial_coef = memoryview(np.zeros((angles)))
+    # if params[0] == 1:
+    #     _spatial_coef(spatial_coef, mu, cell_width)
+    # elif params[0] == 2:
+    #     spatial_coef[:] = mu[:]
 
     if angular == True:
         flux_old = memoryview(np.zeros((cells, angles, groups)))
         return angular_multi_group(flux_old, medium_map, xs_total, \
                             xs_matrix, external_source, point_source, \
-                            spatial_coef, angle_weight, params, cell_width)
+                            mu, angle_weight, params, cell_width)
     else:
         flux_old = memoryview(np.zeros((cells, groups)))
         return scalar_multi_group(flux_old, medium_map, xs_total, \
                             xs_matrix, external_source, point_source, \
-                            spatial_coef, angle_weight, params, cell_width)
+                            mu, angle_weight, params, cell_width)
 
 
 cdef void combine_self_scattering(double[:,:,:] xs_matrix, \
@@ -133,11 +133,11 @@ cdef void combine_self_scattering(double[:,:,:] xs_matrix, \
                                             + xs_fission[mat][ing][outg]
 
 
-cdef void _spatial_coef(double[:]& spatial_coef, double[:]& mu, \
-                        double cell_width):
-    cdef size_t angles = mu.shape[0]
-    for angle in range(angles):
-        spatial_coef[angle] = mu[angle] / cell_width
+# cdef void _spatial_coef(double[:]& spatial_coef, double[:]& mu, \
+#                         double cell_width):
+#     cdef size_t angles = mu.shape[0]
+#     for angle in range(angles):
+#         spatial_coef[angle] = mu[angle] / cell_width
 
 
 cdef void off_scatter_source(double[:,:]& flux, double[:,:]& flux_old, \
@@ -170,7 +170,6 @@ cdef void off_scatter_source_angular(double[:,:,:]& flux, double[:,:,:]& flux_ol
                 source[cell] += xs_matrix[material, group, outgroup] \
                             * flux[cell, angle, outgroup] * weight[angle]
             for outgroup in range(group+1, groups):
-
                 source[cell] += xs_matrix[material, group, outgroup] \
                             * flux_old[cell, angle, outgroup] * weight[angle]
 
@@ -178,7 +177,7 @@ cdef void off_scatter_source_angular(double[:,:,:]& flux, double[:,:,:]& flux_ol
 cdef double[:,:] scalar_multi_group(double[:,:]& flux_old, int[:] medium_map, \
             double[:,:] xs_total, double[:,:,:] xs_matrix,\
             double[:] external_source, double[:] point_source, double[:] mu, \
-            double[:] angle_weight, int[:] params, double cell_width):
+            double[:] angle_weight, int[:] params, double[:] cell_width):
 
     cdef size_t cells = medium_map.shape[0]
     cdef size_t groups = xs_total.shape[1]
@@ -208,7 +207,7 @@ cdef double[:,:] scalar_multi_group(double[:,:]& flux_old, int[:] medium_map, \
                 flux[:,group] = scalar_x_sweep(one_group_flux_old, medium_map, \
                     xs_total[:,group], xs_matrix[:,group,group], off_scatter, \
                     external_source, point_source[ps_group_idx::params[6]], \
-                    mu, angle_weight, params, ex_group_idx)
+                    mu, angle_weight, params, cell_width, ex_group_idx)
             elif params[0] == 2:
                 flux[:,group] = r_sweep(one_group_flux_old, medium_map, \
                     xs_total[:,group], xs_matrix[:,group,group], off_scatter, \
@@ -224,7 +223,7 @@ cdef double[:,:] scalar_multi_group(double[:,:]& flux_old, int[:] medium_map, \
 cdef double[:,:,:] angular_multi_group(double[:,:,:] flux_old, \
             int[:] medium_map, double[:,:] xs_total, double[:,:,:] xs_matrix, \
             double[:] external_source, double[:] point_source, double[:] mu, \
-            double[:] angle_weight, int[:] params, double cell_width):
+            double[:] angle_weight, int[:] params, double[:] cell_width):
 
     cdef size_t cells = medium_map.shape[0]
     cdef size_t groups = xs_total.shape[1]
@@ -256,7 +255,7 @@ cdef double[:,:,:] angular_multi_group(double[:,:,:] flux_old, \
                     medium_map, xs_total[:,group], xs_matrix[:,group,group], \
                     off_scatter, external_source, \
                     point_source[ps_group_idx::params[6]], mu, angle_weight, \
-                    params, ex_group_idx)
+                    params, cell_width, ex_group_idx)
         change = angular_convergence(flux, flux_old, angle_weight)
         converged = (change < OUTER_TOLERANCE) or (count >= MAX_ITERATIONS)
         count += 1

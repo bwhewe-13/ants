@@ -22,14 +22,14 @@ import numpy as np
 
 cdef void half_angle_calc(double[:]& scalar_flux, double[:]& flux_half_angle, \
         int[:]& medium_map, double[:]& xs_total, double[:]& xs_matrix, double[:]& off_scatter, \
-        double[:]& external_source, double cell_width, double half_angle_plus):
+        double[:]& external_source, double[:]& cell_width, double half_angle_plus):
     cdef int cells = medium_map.shape[0]
     for cell in range(cells-1, -1, -1):
         material = medium_map[cell]
-        flux_half_angle[cell] = (2 * half_angle_plus + cell_width \
+        flux_half_angle[cell] = (2 * half_angle_plus + cell_width[cell] \
                         * (external_source[cell] + off_scatter[cell] + xs_matrix[material] \
                         * scalar_flux[cell])) / (2 + xs_total[material] \
-                        * cell_width)
+                        * cell_width[cell])
         half_angle_plus = 2 * flux_half_angle[cell] - half_angle_plus
 
 
@@ -37,7 +37,7 @@ cdef double[:] r_sweep(double[:] scalar_flux_old, int[:]& medium_map, \
                     double[:]& xs_total, double[:]& xs_matrix, double[:]& off_scatter, \
                     double[:]& external_source, double[:]& point_source, \
                     double[:]& mu, double[:]& angle_weight, int[:]& params, \
-                    double cell_width, size_t ex_group_idx): 
+                    double[:]& cell_width, size_t ex_group_idx): 
     cdef int cells = medium_map.shape[0]
     cdef int angles = angle_weight.shape[0]
     
@@ -187,7 +187,7 @@ cdef void left_to_right(double[:]& scalar_flux, double[:]& scalar_flux_old, \
             int[:]& medium_map, double[:]& xs_total, double[:]& xs_matrix, double[:]& off_scatter, \
             double[:]& external_source, int[:]& params, double point_source, \
             double[:]& flux_half_angle, double mu, double angle_weight, \
-            double cell_width, double tau, double alpha_plus, double alpha_minus):
+            double[:]& cell_width, double tau, double alpha_plus, double alpha_minus):
     # 0 --> I
     cdef int cells = medium_map.shape[0]
     # Morel and Montry Corrector
@@ -198,9 +198,9 @@ cdef void left_to_right(double[:]& scalar_flux, double[:]& scalar_flux_old, \
         material = medium_map[cell]
         if cell == params[5]:
             flux_half_cell += point_source
-        surface_plus = surface_area_calc((cell + 1) * cell_width)
-        surface_minus = surface_area_calc(cell * cell_width)
-        volume = volume_calc((cell + 1) * cell_width, cell * cell_width)
+        surface_plus = surface_area_calc((cell + 1) * cell_width[cell])
+        surface_minus = surface_area_calc(cell * cell_width[cell])
+        volume = volume_calc((cell + 1) * cell_width[cell], cell * cell_width[cell])
         flux_center = (mu * (surface_plus + surface_minus) * flux_half_cell \
             + 1 / angle_weight * (surface_plus - surface_minus) \
             * (alpha_plus + alpha_minus) * (flux_half_angle[cell]) \
@@ -220,7 +220,7 @@ cdef void right_to_left(double[:]& scalar_flux, double[:]& scalar_flux_old, \
             int[:]& medium_map, double[:]& xs_total, double[:]& xs_matrix, \
             double[:]& off_scatter, double[:]& external_source, int[:]& params, double point_source, \
             double[:]& flux_half_angle, double mu, double angle_weight, \
-            double cell_width, double tau, double alpha_plus, double alpha_minus):
+            double[:]& cell_width, double tau, double alpha_plus, double alpha_minus):
     # I --> 0
     cdef int cells = medium_map.shape[0]
     cdef double flux_half_cell = 0.0
@@ -230,9 +230,9 @@ cdef void right_to_left(double[:]& scalar_flux, double[:]& scalar_flux_old, \
         material = medium_map[cell]
         if (cell + 1) == params[5]:
             flux_half_cell += point_source
-        surface_plus = surface_area_calc((cell + 1) * cell_width)
-        surface_minus = surface_area_calc(cell * cell_width)
-        volume = volume_calc((cell + 1) * cell_width, cell * cell_width)
+        surface_plus = surface_area_calc((cell + 1) * cell_width[cell])
+        surface_minus = surface_area_calc(cell * cell_width[cell])
+        volume = volume_calc((cell + 1) * cell_width[cell], cell * cell_width[cell])
         flux_center = (-mu * (surface_plus + surface_minus) * flux_half_cell \
             + 1 / angle_weight * (surface_plus - surface_minus) \
             * (alpha_plus + alpha_minus) * (flux_half_angle[cell]) \
@@ -252,7 +252,7 @@ cdef void sweep(double[:]& scalar_flux, double[:]& scalar_flux_old, \
                 int[:]& medium_map, double[:]& xs_total, \
                 double[:]& xs_matrix, double[:]& off_scatter, double[:]& external_source, \
                 int[:]& params, double point_source, double[:]& flux_half_angle, \
-                double mu, double angle_weight, double cell_width, double tau, \
+                double mu, double angle_weight, double[:]& cell_width, double tau, \
                 double alpha_plus, double alpha_minus, size_t gg_idx, \
                 size_t nn_idx):
     if mu > 0:

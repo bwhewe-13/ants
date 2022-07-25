@@ -304,7 +304,7 @@ class ExternalSource:
         Args:
             name (string):
             cells (int): 
-            cell_width (float):
+            cell_width (list of float):
         """
         assert (name in self.__class__.__available_sources), \
         "Source not recognized, use:\n{}".format(\
@@ -313,10 +313,7 @@ class ExternalSource:
         self.cells = cells
         self.cell_width = cell_width
         self.mu = mu
-        self.medium_radius = int(cells * cell_width)
-        # print("\n\n")
-        # print(self.medium_radius)
-        # print("\n\n")
+        self.medium_radius = np.round(np.sum(cell_width), 8)
 
     def _generate_source(self):
         if self.name is None:
@@ -337,13 +334,11 @@ class ExternalSource:
 
     def _reed_source(self):
         source_values = [0, 1, 0, 50, 0, 1, 0]
-        boundaries = [slice(0, int(2/self.cell_width)),\
-                slice(int(2/self.cell_width), int(4/self.cell_width)), \
-                slice(int(4/self.cell_width), int(6/self.cell_width)), \
-                slice(int(6/self.cell_width), int(10/self.cell_width)), \
-                slice(int(10/self.cell_width), int(12/self.cell_width)), \
-                slice(int(12/self.cell_width), int(14/self.cell_width)), \
-                slice(int(14/self.cell_width), int(16/self.cell_width))]
+        lhs = [0., 2., 4., 6., 10., 12., 14.]
+        rhs = [2., 4., 6., 10., 12., 14., 16.]
+        cell_edges = np.insert(np.round(np.cumsum(self.cell_width), 8), 0, 0)
+        loc = lambda x: int(np.argwhere(cell_edges == x))
+        boundaries = [slice(loc(ii), loc(jj)) for ii, jj in zip(lhs, rhs)]
         source = np.zeros((self.cells, 1))
         for boundary in range(len(boundaries)):
             source[boundaries[boundary]] = source_values[boundary]
