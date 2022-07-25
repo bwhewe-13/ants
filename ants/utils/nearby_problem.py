@@ -25,7 +25,7 @@ class NearbyProblem:
     def adjust_parameters(self):
         cell_width = self.problem.cell_width
         cells = self.problem.cells
-        self.xspace = np.linspace(0, cells*cell_width, cells+1)
+        self.xspace = self.problem.cell_edges
         self.xspace = 0.5*(self.xspace[1:] + self.xspace[:-1])
         self.splits = dimensions.create_slices(self.problem.medium_map)        
 
