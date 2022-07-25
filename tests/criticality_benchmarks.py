@@ -76,7 +76,7 @@ class OneGroup:
             medium_width = 1.853722 * 2
             self.cells *= 2
         self.medium_map = np.zeros((self.cells), dtype=np.int32)
-        self.cell_width = medium_width / self.cells
+        self.cell_width = np.repeat(medium_width / self.cells, self.cells)
 
     def plutonium_01b(self):
         self.xs_total = np.array([[0.32640]])
@@ -94,7 +94,7 @@ class OneGroup:
                 medium_width = 2.256751 * 2
                 self.cells *= 2
         self.medium_map = np.zeros((self.cells), dtype=np.int32)
-        self.cell_width = medium_width / self.cells
+        self.cell_width = np.repeat(medium_width / self.cells, self.cells)
 
     def plutonium_02a(self):
         self.cells = 500
@@ -103,8 +103,8 @@ class OneGroup:
         self.xs_fission = np.array([[[3.24*0.0816]], [[0.0]]])
         self.params = create_param(self.geometry, self.boundary, self.groups)
         distances = [1.478401*2, 3.063725]
-        self.cell_width = sum(distances) / self.cells
-        layers = [round(ii / self.cell_width) for ii in distances]
+        self.cell_width = np.repeat(sum(distances) / self.cells, self.cells)
+        layers = [round(ii / self.cell_width[0]) for ii in distances]
         assert sum(layers) == self.cells
         self.medium_map = np.zeros((self.cells), dtype=np.int32) * -1
         self.medium_map[:layers[0]] = 0
@@ -118,8 +118,8 @@ class OneGroup:
         self.xs_fission = np.array([[[3.24*0.0816]], [[0.0]]])
         self.params = create_param(self.geometry, self.boundary, self.groups)
         distances = [1.531863, 1.317831*2, 1.531863]
-        self.cell_width = sum(distances) / self.cells
-        layers = [round(ii / self.cell_width) for ii in distances]
+        self.cell_width = np.repeat(sum(distances) / self.cells, self.cells)
+        layers = [round(ii / self.cell_width[0]) for ii in distances]
         assert sum(layers) == self.cells
         layers = np.cumsum(layers, dtype=np.int32)
         self.medium_map = np.zeros((self.cells), dtype=np.int32) * -1
@@ -144,7 +144,7 @@ class OneGroup:
                 medium_width = 2.872934 * 2
                 self.cells *= 2
         self.medium_map = np.zeros((self.cells), dtype=np.int32)
-        self.cell_width = medium_width / self.cells
+        self.cell_width = np.repeat(medium_width / self.cells, self.cells)
 
     def heavy_water_01a(self):
         self.cells = 300
@@ -163,7 +163,7 @@ class OneGroup:
                 medium_width = 10.371065 * 2
                 self.cells *= 2
         self.medium_map = np.zeros((self.cells), dtype=np.int32)
-        self.cell_width = medium_width / self.cells
+        self.cell_width = np.repeat(medium_width / self.cells, self.cells)
 
     def uranium_reactor_01a(self):
         self.xs_total = np.array([[0.407407]])
@@ -172,7 +172,7 @@ class OneGroup:
         self.params = create_param(self.geometry, self.boundary, self.groups)
         self.medium_map = np.zeros((self.cells), dtype=np.int32)
         medium_width = 250
-        self.cell_width = medium_width / self.cells
+        self.cell_width = np.repeat(medium_width / self.cells, self.cells)
         self.k_infinite = 2.1806667
 
 class TwoGroup:
@@ -203,7 +203,7 @@ class TwoGroup:
                 medium_width = 1.795602 * 2
                 self.cells *= 2
         self.medium_map = np.zeros((self.cells), dtype=np.int32)
-        self.cell_width = medium_width / self.cells
+        self.cell_width = np.repeat(medium_width / self.cells, self.cells)
 
     def uranium_01(self):
         chi = np.array([[0.425], [0.575]])
@@ -225,7 +225,7 @@ class TwoGroup:
                 medium_width = 3.006375 * 2
                 self.cells *= 2
         self.medium_map = np.zeros((self.cells), dtype=np.int32)
-        self.cell_width = medium_width / self.cells
+        self.cell_width = np.repeat(medium_width / self.cells, self.cells)
 
     def uranium_aluminum(self):
         chi = np.array([[0.0], [1.0]])
@@ -247,7 +247,7 @@ class TwoGroup:
                 medium_width = 7.830630 * 2
                 self.cells *= 2
         self.medium_map = np.zeros((self.cells), dtype=np.int32)
-        self.cell_width = medium_width / self.cells
+        self.cell_width = np.repeat(medium_width / self.cells, self.cells)
 
     def uranium_reactor_01(self):
         chi = np.array([[0.0], [1.0]])
@@ -269,4 +269,4 @@ class TwoGroup:
                 medium_width = 7.566853 * 2
                 self.cells *= 2
         self.medium_map = np.zeros((self.cells), dtype=np.int32)
-        self.cell_width = medium_width / self.cells
+        self.cell_width = np.repeat(medium_width / self.cells, self.cells)

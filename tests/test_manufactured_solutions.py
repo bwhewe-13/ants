@@ -29,7 +29,7 @@ def test_mms_one_material01(angular):
                             problem.external_source, problem.point_source, \
                             problem.mu, problem.angle_weight, problem.params, \
                             problem.cell_width, angular=angular)
-    xspace = np.linspace(0, problem.cell_width * problem.cells, problem.cells+1)
+    xspace = np.linspace(0, problem.cell_width[0] * problem.cells, problem.cells+1)
     xspace = 0.5 * (xspace[1:] + xspace[:-1])
     ref_flux = mms.solution_one_material_01(xspace, problem.mu)
     if angular:
@@ -51,7 +51,7 @@ def test_mms_one_material02(angular):
                             problem.external_source, problem.point_source, \
                             problem.mu, problem.angle_weight, problem.params, \
                             problem.cell_width, angular=angular)
-    xspace = np.linspace(0, problem.cell_width * problem.cells, problem.cells+1)
+    xspace = np.linspace(0, problem.cell_width[0] * problem.cells, problem.cells+1)
     xspace = 0.5 * (xspace[1:] + xspace[:-1])
     ref_flux = mms.solution_one_material_02(xspace, problem.mu)
     if angular:
@@ -73,7 +73,7 @@ def test_mms_two_material01(angular):
                             problem.external_source, problem.point_source, \
                             problem.mu, problem.angle_weight, problem.params, \
                             problem.cell_width, angular=angular)
-    xspace = np.linspace(0, problem.cell_width * problem.cells, problem.cells+1)
+    xspace = np.linspace(0, problem.cell_width[0] * problem.cells, problem.cells+1)
     xspace = 0.5 * (xspace[1:] + xspace[:-1])
     ref_flux = mms.solution_two_material_01(xspace, problem.mu)
     if angular:
@@ -95,7 +95,7 @@ def test_mms_two_material02(angular):
                             problem.external_source, problem.point_source, \
                             problem.mu, problem.angle_weight, problem.params, \
                             problem.cell_width, angular=angular)
-    xspace = np.linspace(0, problem.cell_width * problem.cells, problem.cells+1)
+    xspace = np.linspace(0, problem.cell_width[0] * problem.cells, problem.cells+1)
     xspace = 0.5 * (xspace[1:] + xspace[:-1])
     ref_flux = mms.solution_two_material_02(xspace, problem.mu)
     if angular:

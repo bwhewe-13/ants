@@ -1,0 +1,92 @@
+VI. One Energy Group Problems
+========================================================================
+A. One-Energy Group Isotropic Scattering
+    1. One-Group Pu-239
+        [ ] Material A - Infinite Medium
+        [ ] Material B - Infinite Medium
+        [X] Material A - One Medium Slab (Flux)
+        [X] Material B - One Medium Slab (Flux)
+        [X] Material B - One Medium Sphere (Flux)
+        [X] Material A - Two Medium Slab Non-Symmetric Reflector
+        [X] Material A - Two Medium Slab Symmetric Reflector
+    2. One-Group U-235
+        [X] Material A - One Medium Slab (Flux)
+        [X] Material A - One Medium Sphere (Flux)
+        [ ] Material B - Two Medium Sphere 
+        [ ] Material C - Two Medium Sphere 
+        [ ] Material D - Two Medium Sphere 
+    3. One-Group U-D2O Reactor
+        [ ] Material A - Infinite Medium
+        [X] Material A - One Medium Slab (Flux)
+        [X] Material A - One Medium Sphere (Flux)
+        [ ] Material A - Two Medium Slab
+    4. One-Group U-235 Reactor
+        [X] Material A - Infinite Medium
+        [ ] Material A - One Medium Slab (Flux)
+B. One-Group Anisotropic Scattering
+    1. One-Group Pu-239
+        [ ] Material A - Infinite Medium
+        [ ] Material B - Infinite Medium
+        [ ] Material A - One Medium Slab
+        [ ] Material B - One Medium Slab
+    2. One-Group U-235
+        [ ] Material A - Infinite Medium
+        [ ] Material B - Infinite Medium
+    3. One-Group U-D2O
+        [ ] Material A - Infinite Medium
+        [ ] Material B - Infinite Medium
+        [ ] Material C - Infinite Medium
+        [ ] Material A - One Medium Sphere
+        [ ] Material B - One Medium Sphere
+        [ ] Material C - One Medium Sphere
+
+VII. Two Energy Group Problems
+========================================================================
+A. Isotropic Scattering
+    1. Two-Group Pu-239
+        [ ] Material A - Infinite Medium
+        [X] Material A - One Medium Slab
+        [X] Material A - One Medium Sphere
+    2. Two-Group U-235
+        [ ] Material A - Infinite Medium
+        [?] Material A - One Medium Slab
+        [?] Material A - One Medium Sphere
+    3. Two-Group Uranium-Aluminum-Water Assembly
+        [ ] Material A - Infinite Medium
+        [X] Material A - One Medium Slab
+        [X] Material A - One Medium Sphere
+    4. Two-Group Uranium Research Reactor
+        [ ] Material A - Infinite Medium
+        [/] Material A - One Medium Slab (Flux)
+        [X] Material A - One Medium Sphere 
+        [ ] Material B - Infinite Medium
+        [ ] Material C - Infinite Medium
+        [ ] Material B - Two Medium Slab
+        [ ] Material B - Two Medium Slab Infinite Reflector
+        [ ] Material C - Two Medium Slab Infinite Reflector
+    5. Two-Group U-D2O Reactor
+        [ ] Material A - Infinite Medium
+        [ ] Material A - Slab Medium
+        [ ] Material A - Sphere Medium
+B. Linearly Anisotropic Scattering
+    1. Two-Group Uranium Research Reactor
+        [ ] Material A - Infinite Medium
+        [ ] Material A - Slab Medium (Flux)
+    2. Two-Group U-D2O Reactor
+        [ ] Material A - Infinite Medium
+        [ ] Material A - Slab Medium
+
+VIII. Three Energy Group Problems
+========================================================================
+[ ] Material A - Infinite Medium (Flux)
+
+IX. Six Energy Group Problems
+========================================================================
+[ ] Material A - Infinite Medium (Flux)
+
+
+========================================================================
+* Does not include lattice problems in VII.A.4
+X - Completed
+/ - Half Finished
+? - Issue with Answer
