@@ -36,22 +36,39 @@ def vector_reduction(vector, idx):
     return [sum(vector[idx[ii]:idx[ii+1]]) for ii in range(energy_groups)]
 
 def half_spatial_grid(medium_map, cell_widths, error, epsilon=0.1):
-    cells = medium_map.shape[0]
-    add_cells = cells + error[error > epsilon].shape[0]
-    add_medium_map = np.ones((add_cells)) * -1
-    add_cell_widths = np.ones((add_cells)) * -1
-    idx = 0
-    for cell in range(cells):
+    add_medium_map = []
+    add_cell_widths = []
+    for cell in range(medium_map.shape[0]):
         if error[cell] > epsilon:
-            add_medium_map[cell+idx] = medium_map[cell]
-            add_medium_map[cell+idx+1] = medium_map[cell]
-            add_cell_widths[cell+idx] = 0.5 * cell_widths[cell]
-            add_cell_widths[cell+idx+1] = 0.5 * cell_widths[cell]
-            idx += 1
+            # for _ in range(int(error[cell] / epsilon)):
+            #     add_medium_map.append(medium_map[cell])
+            #     add_cell_widths.append(epsilon / error[cell] * cell_widths[cell])
+            add_medium_map.append(medium_map[cell])
+            add_medium_map.append(medium_map[cell])
+            add_cell_widths.append(0.5 * cell_widths[cell])
+            add_cell_widths.append(0.5 * cell_widths[cell])
         else:
-            add_medium_map[cell+idx] = medium_map[cell]
-            add_cell_widths[cell+idx] = cell_widths[cell]
-    return add_medium_map, add_cell_widths
+            add_medium_map.append(medium_map[cell])
+            add_cell_widths.append(cell_widths[cell])
+        if (len(add_cell_widths) > 1) and \
+                ((add_cell_widths[-1] > 2 * add_cell_widths[-2]) or \
+                (add_cell_widths[-1] * 2 < add_cell_widths[-2])):
+            step_down = 0.5 * add_cell_widths[-1]
+            step_down_material = add_medium_map[-1]
+            add_cell_widths[-1] = step_down
+            add_medium_map[-1] = step_down_material
+            add_cell_widths.insert(-1, step_down)
+            add_medium_map.insert(-1, step_down_material)
+        elif (error[cell] > epsilon) and (len(add_cell_widths) > 2) and \
+                ((add_cell_widths[-2] > 2 * add_cell_widths[-3]) \
+                or (add_cell_widths[-2] * 2 < add_cell_widths[-3])):
+            step_down = 0.5 * add_cell_widths[-3]
+            step_down_material = add_medium_map[-3]
+            add_cell_widths[-3] = step_down
+            add_medium_map[-3] = step_down_material
+            add_cell_widths.insert(-3, step_down)
+            add_medium_map.insert(-3, step_down_material)
+    return np.array(add_medium_map), np.array(add_cell_widths)
 
 def coarsen_flux(fine_flux, fine_edges, coarse_edges):
     coarse_flux = np.zeros((coarse_edges.shape[0] - 1))

@@ -103,9 +103,13 @@ def optimal_knots(x, y, atol=5e-5):
         if area_diff > atol:
             knots.append(cell+1)
     knots = np.append(knots, len(x)-1)
-    additional = index_generator(len(x)-1, int(len(x)*0.2))
+    try:
+        additional = index_generator(len(x)-1, int(len(x)*0.2))
+    except ZeroDivisionError:
+        additional = np.array([])
     knots = np.sort(np.unique(np.concatenate((knots, additional))))
-    return knots
+    # print("\n\n", knots, "\n\n")
+    return knots.astype(np.int32)
 
 def _t(x, tk0, tk1):
     return ((x - tk0) / (tk1 - tk0))
