@@ -10,11 +10,9 @@
 from ants.transport import Transport
 from ants.cyants import multi_group
 from . import splines, dimensions
-# from .math import root_mean_squared_error as rmse
 
 import numpy as np
 import os
-
 
 class NearbyProblem:
 
@@ -47,13 +45,19 @@ class NearbyProblem:
         self.cf_deriv = np.zeros(self.numerical.shape)
         weight = self.problem.angle_weight
         for angle in range(self.problem.angles):
-            for split in self.splits:
-                yspline, deriv = splines.hermite(self.xspace[split], \
-                                    self.numerical[:,angle,0][split], \
-                                    knots=None, stype="quintic")
-                self.cf_angular[:,angle,0][split] = yspline.copy()
-                self.cf_deriv[:,angle,0][split] = deriv.copy()
-                self.cf_scalar[:,0][split] += weight[angle] * yspline
+            for region, split in enumerate(self.splits):
+                if len(self.xspace[split]) < 3:
+                    y_spline, y_deriv = splines.ghost_splines(self.xspace[split], \
+                        self.numerical[:,angle,0], self.problem.cell_width[split], \
+                        self.problem.mu[angle], split, knots=None, stype="quintic", \
+                        dtype=self.problem.info.get("SPATIAL DISCRETE"))
+                else:
+                    y_spline, y_deriv = splines.hermite(self.xspace[split], \
+                                        self.numerical[:,angle,0][split], \
+                                        knots=None, stype="quintic")
+                self.cf_angular[:,angle,0][split] = y_spline.copy()
+                self.cf_deriv[:,angle,0][split] = y_deriv.copy()
+                self.cf_scalar[:,0][split] += weight[angle] * y_spline
 
     def residual(self):
         # Used to calculate the analytical source
@@ -106,3 +110,38 @@ class NearbyProblem:
         mnb_data["analytical_source"] = self.cf_source.copy()
         np.savez(file_name, **mnb_data)
         print("Nearby Problem Saved!")
+
+    def spatial_regrid(self, file_name, epsilon=0.1):
+        # import matplotlib.pyplot as plt
+        count = 1
+        converged = 0
+        while not (converged):
+            if count != 1:
+                self.problem.change_param("external source file", "")
+                self.problem.change_param("spatial x cell width", regrid_file)
+            self.create_nearby()
+            self.create_errors()
+            _, regrid_widths = dimensions.half_spatial_grid(self.problem.medium_map, \
+                        self.problem.cell_width, self.errors, epsilon=epsilon)
+
+            regrid_file = "{}-{}.npy".format(file_name, str(count).zfill(3))
+            address = os.path.join(self.problem.info.get("FILE LOCATION", "."), regrid_file)
+            np.save(address, regrid_widths)
+            # print(count, self.problem.cell_width.shape, regrid_widths.shape, self.errors.shape)
+            # fig, ax = plt.subplots()
+            # ax.plot(np.cumsum(self.problem.cell_width), self.errors, c="r", alpha=0.6)
+            # ax.axhline(y=epsilon, xmin=0, xmax=16, c="k")
+            # ax.set_title("Iteration {}".format(count))
+            converged = (np.all(self.errors < epsilon)) or (count >= 5)
+            count += 1
+        # plt.show()
+        return regrid_widths
+
+    def create_errors(self):
+        self.errors = np.zeros((self.problem.cells))
+        for group in range(self.problem.groups):
+            for angle in range(self.problem.angles):
+                self.errors += abs(self.nearby[:,angle,group] \
+                                    - self.cf_angular[:,angle,group]) \
+                                    / self.cf_angular[:,angle,group]
+        

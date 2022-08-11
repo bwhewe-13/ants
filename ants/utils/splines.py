@@ -7,7 +7,7 @@
 #
 ########################################################################
 
-from .dimensions import index_generator
+from . import dimensions 
 
 import numpy as np
 import warnings
@@ -54,12 +54,12 @@ def hermite(x, y, knots=None, stype="cubic"):
     if knots is None:
         knots = optimal_knots(x, y)
     elif isinstance(knots, int):
-        knots = index_generator(len(x)-1, knots)
+        knots = dimensions.index_generator(len(x)-1, knots)
     if len(knots) > len(x):
         message = ("The number of knots cannot be more than the number of data"
             "points (knots < {}). Knots are reduced to {}".format(len(x), len(x)-1))
         warnings.warn(message)
-        knots = index_generator(len(x)-1, len(x)-1)
+        knots = dimensions.index_generator(len(x)-1, len(x)-1)
     approx_y = []
     approx_yp = []
     # print("\n",knots,"\n")
@@ -93,6 +93,20 @@ def hermite(x, y, knots=None, stype="cubic"):
     approx_yp = np.array([item for sublist in approx_yp for item in sublist])
     return approx_y, approx_yp
 
+def ghost_splines(x_centers, y_centers, x_cell_widths, direction, \
+                  split, knots=None, stype="quintic", dtype="diamond"):
+    # Adding points to short splines
+    # x_centers are the centers for the region
+    # y_centers are the centers for the entire medium
+    x_edges = dimensions.spatial_edges(x_centers, x_cell_widths)
+    y_edges = dimensions.flux_edges(y_centers, direction, \
+                    slice(split.start, split.stop + 1), dtype=dtype)
+    y_both = dimensions.mesh_centers_edges(y_centers[split], y_edges)
+    x_both = dimensions.mesh_centers_edges(x_centers, x_edges)
+    x_plus, y_plus = dimensions.mesh_refinement(x_both, y_both)
+    y_spline, y_deriv = hermite(x_plus, y_plus, knots=knots, stype=stype)
+    return y_spline[2::4], y_deriv[2::4]    
+
 def optimal_knots(x, y, atol=5e-5):
     # Taken from Ihtzaz Qamar's "Method to determine optimum number 
     # of knots for cubic splines." - Specific for cubic
@@ -104,7 +118,7 @@ def optimal_knots(x, y, atol=5e-5):
             knots.append(cell+1)
     knots = np.append(knots, len(x)-1)
     try:
-        additional = index_generator(len(x)-1, int(len(x)*0.2))
+        additional = dimensions.index_generator(len(x)-1, int(len(x)*0.2))
     except ZeroDivisionError:
         additional = np.array([])
     knots = np.sort(np.unique(np.concatenate((knots, additional))))

@@ -36,39 +36,32 @@ def vector_reduction(vector, idx):
     return [sum(vector[idx[ii]:idx[ii+1]]) for ii in range(energy_groups)]
 
 def half_spatial_grid(medium_map, cell_widths, error, epsilon=0.1):
-    add_medium_map = []
-    add_cell_widths = []
+    new_medium_map = []
+    new_cell_widths = []
     for cell in range(medium_map.shape[0]):
         if error[cell] > epsilon:
-            # for _ in range(int(error[cell] / epsilon)):
-            #     add_medium_map.append(medium_map[cell])
-            #     add_cell_widths.append(epsilon / error[cell] * cell_widths[cell])
-            add_medium_map.append(medium_map[cell])
-            add_medium_map.append(medium_map[cell])
-            add_cell_widths.append(0.5 * cell_widths[cell])
-            add_cell_widths.append(0.5 * cell_widths[cell])
+            new_medium_map.append(medium_map[cell])
+            new_medium_map.append(medium_map[cell])
+            new_cell_widths.append(0.5 * cell_widths[cell])
+            new_cell_widths.append(0.5 * cell_widths[cell])
         else:
-            add_medium_map.append(medium_map[cell])
-            add_cell_widths.append(cell_widths[cell])
-        if (len(add_cell_widths) > 1) and \
-                ((add_cell_widths[-1] > 2 * add_cell_widths[-2]) or \
-                (add_cell_widths[-1] * 2 < add_cell_widths[-2])):
-            step_down = 0.5 * add_cell_widths[-1]
-            step_down_material = add_medium_map[-1]
-            add_cell_widths[-1] = step_down
-            add_medium_map[-1] = step_down_material
-            add_cell_widths.insert(-1, step_down)
-            add_medium_map.insert(-1, step_down_material)
-        elif (error[cell] > epsilon) and (len(add_cell_widths) > 2) and \
-                ((add_cell_widths[-2] > 2 * add_cell_widths[-3]) \
-                or (add_cell_widths[-2] * 2 < add_cell_widths[-3])):
-            step_down = 0.5 * add_cell_widths[-3]
-            step_down_material = add_medium_map[-3]
-            add_cell_widths[-3] = step_down
-            add_medium_map[-3] = step_down_material
-            add_cell_widths.insert(-3, step_down)
-            add_medium_map.insert(-3, step_down_material)
-    return np.array(add_medium_map), np.array(add_cell_widths)
+            new_medium_map.append(medium_map[cell])
+            new_cell_widths.append(cell_widths[cell])
+    new_medium_map, new_cell_widths = smooth_spatial_grid( \
+                    np.array(new_medium_map), np.array(new_cell_widths))
+    return new_medium_map, new_cell_widths
+
+def smooth_spatial_grid(medium_map, widths):
+    idx = 0
+    for cell in range(len(widths)):
+        if (int(widths[cell+idx] / widths[cell-1+idx]) > 2 and cell > 0) \
+            or (cell < (len(widths)-idx-1) \
+                and int(widths[cell+idx] / widths[cell+1+idx]) > 2):
+            widths[cell+idx] = 0.5 * widths[cell+idx]
+            widths = np.insert(widths, cell+idx, widths[cell+idx])
+            medium_map = np.insert(medium_map, cell+idx, medium_map[cell+idx])
+            idx += 1
+    return medium_map, widths
 
 def coarsen_flux(fine_flux, fine_edges, coarse_edges):
     coarse_flux = np.zeros((coarse_edges.shape[0] - 1))
@@ -76,3 +69,47 @@ def coarsen_flux(fine_flux, fine_edges, coarse_edges):
         zone = fine_flux[np.logical_and(fine_edges >= low, fine_edges < high)[:-1]]
         coarse_flux[cell] = np.sum(zone) * 1 / zone.shape[0]
     return coarse_flux
+
+def flux_edges(centers, direction, split=None, dtype="diamond"):
+    # Calculate the flux edge from the center - full medium
+    edges = np.zeros((len(centers)+1))
+    if direction > 0: # Sweep from left to right
+        if dtype == "step":
+            edges[1:] = centers.copy()
+        elif dtype == "diamond":
+            for cell in range(1, len(centers) + 1):
+                edges[cell] = 2 * centers[cell-1] - edges[cell-1]
+    elif direction < 0: # Sweep from right to left
+        if dtype == "step":
+            edges[:-1] = centers.copy()
+        elif dtype == "diamond":
+            for cell in range(len(centers)-1, -1, -1):
+                edges[cell] = 2 * centers[cell] - edges[cell+1]
+    if split is None:
+        return edges
+    return edges[split]
+
+def spatial_edges(centers, widths):
+    # Calculate the spatial edge from the center
+    edges = [centers[0] - 0.5 * widths[0]]
+    for center, width in zip(centers, widths):
+        edges.append(center + 0.5 * width)
+    return np.array(edges)
+
+def mesh_centers_edges(centers, edges):
+    # Combine the cell edge and centers into an array
+    both = np.zeros((len(edges) + len(centers)))
+    both[::2] = edges.copy()
+    both[1::2] = centers.copy()
+    return both
+
+def mesh_refinement(x, y):
+    # Add points between each known value of x and y
+    x_plus = np.zeros((len(x) * 2 - 1))
+    x_plus[::2] = x.copy()
+    y_plus = np.zeros(x_plus.shape)
+    y_plus[::2] = y.copy()
+    for pt in range(len(x) - 1):
+        x_plus[2*pt+1] = 0.5 * (x[pt] + x[pt+1])
+        y_plus[2*pt+1] = 0.5 * (y[pt] + y[pt+1])
+    return x_plus, y_plus    
