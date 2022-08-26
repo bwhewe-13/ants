@@ -23,9 +23,9 @@ import numpy as np
 cdef double[:] scalar_x_sweep(double[:] scalar_flux_old, int[:]& medium_map, \
                             double[:]& xs_total, double[:]& xs_scatter, \
                             double[:]& off_scatter, double[:]& external_source, \
-                            double[:]& point_source, double[:]& mu, \
-                            double[:]& angle_weight, int[:]& params, double[:]& cell_width, \
-                            size_t ex_group_idx): 
+                            double[:]& boundary, double[:]& mu, \
+                            double[:]& angle_weight, int[:]& params, \
+                            double[:]& cell_width, size_t ex_group_idx): 
     cdef int cells = medium_map.shape[0]
     cdef int angles = angle_weight.shape[0]
     cdef int cell, angle
@@ -43,7 +43,7 @@ cdef double[:] scalar_x_sweep(double[:] scalar_flux_old, int[:]& medium_map, \
         for angle in range(angles):
             ex_angle_idx = 0 if params[4] == 1 else angle
             sweep(scalar_flux, scalar_flux_old, medium_map, xs_total, \
-                xs_scatter, off_scatter, external_source, point_source[angle], \
+                xs_scatter, off_scatter, external_source, boundary[angle], \
                 mu[angle], angle_weight[angle], params, cell_width, \
                 ex_group_idx, ex_angle_idx)
         change = scalar_convergence(scalar_flux, scalar_flux_old)
@@ -57,9 +57,9 @@ cdef double[:] scalar_x_sweep(double[:] scalar_flux_old, int[:]& medium_map, \
 cdef double[:,:] angular_x_sweep(double[:,:] angular_flux_old, int[:]& medium_map, \
                                 double[:]& xs_total, double[:]& xs_scatter, \
                                 double[:]& off_scatter, double[:]& external_source, \
-                                double[:]& point_source, double[:]& mu, \
-                                double[:]& angle_weight, int[:]& params, double[:]& cell_width, \
-                                size_t ex_group_idx): 
+                                double[:]& boundary, double[:]& mu, \
+                                double[:]& angle_weight, int[:]& params, \
+                                double[:]& cell_width, size_t ex_group_idx): 
     cdef int cells = medium_map.shape[0]
     cdef int angles = angle_weight.shape[0]
     cdef int cell, angle
@@ -86,7 +86,7 @@ cdef double[:,:] angular_x_sweep(double[:,:] angular_flux_old, int[:]& medium_ma
         for angle in range(angles):
             ex_angle_idx = 0 if params[4] == 1 else angle
             sweep(angular_flux[:,angle], scalar_flux, medium_map, xs_total, \
-                xs_scatter, off_scatter, external_source, point_source[angle], \
+                xs_scatter, off_scatter, external_source, boundary[angle], \
                 mu[angle], dummy_angle_weight[angle], params, cell_width, \
                 ex_group_idx, ex_angle_idx)
         change = angular_convergence(angular_flux, angular_flux_old, angle_weight)
@@ -97,12 +97,11 @@ cdef double[:,:] angular_x_sweep(double[:,:] angular_flux_old, int[:]& medium_ma
 
 
 cdef double[:,:] time_x_sweep(double[:,:] angular_flux_old, int[:]& medium_map, \
-                              double[:]& xs_total, double[:]& xs_matrix, \
-                              double[:]& external_source, \
-                              double[:]& point_source, double[:]& spatial_coef, \
-                              double[:]& angle_weight, int[:]& params, \
-                              double temporal_coef, double time_const, \
-                              size_t ex_group_idx):    
+                            double[:]& xs_total, double[:]& xs_matrix, \
+                            double[:]& external_source, double[:]& boundary, \
+                            double[:]& spatial_coef, double[:]& angle_weight, \
+                            int[:]& params, double temporal_coef, \
+                            double time_const, size_t ex_group_idx):
     cdef int cells = medium_map.shape[0]
     cdef int angles = angle_weight.shape[0]
     cdef size_t ex_angle_idx, cell, angle
@@ -133,7 +132,7 @@ cdef double[:,:] time_x_sweep(double[:,:] angular_flux_old, int[:]& medium_map, 
             ex_angle_idx = 0 if params[4] == 1 else angle
             time_vacuum(angular_flux[:,angle], scalar_flux, \
                     angular_flux_last[:,angle], medium_map, xs_total, \
-                    xs_matrix, external_source, point_source[angle], \
+                    xs_matrix, external_source, boundary[angle], \
                     spatial_coef[angle], dummy_angle_weight[angle], \
                     params, temporal_coef, time_const, ex_group_idx, ex_angle_idx)
         change = angular_convergence(angular_flux, angular_flux_old, angle_weight)
@@ -145,21 +144,22 @@ cdef double[:,:] time_x_sweep(double[:,:] angular_flux_old, int[:]& medium_map, 
 
 
 cdef double left_to_right(double[:]& scalar_flux, double[:]& scalar_flux_old, \
-            int[:]& medium_map, double[:]& xs_total, double[:]& xs_matrix, \
-            double[:]& off_scatter, double[:]& external_source, int[:]& params, double point_source, \
-            double mu, double angle_weight, double[:]& cell_width, double edge_one):
-    # 0 --> I
+                        int[:]& medium_map, double[:]& xs_total, \
+                        double[:]& xs_matrix, double[:]& off_scatter, \
+                        double[:]& external_source, int[:]& params, \
+                        double boundary, double mu, double angle_weight, \
+                        double[:]& cell_width, double edge_one):
+    # 0 --> I (positive mu)
     cdef double edge_two = 0
     cdef int cells = medium_map.shape[0]
     cdef float xs1_const = 0 if params[1] == 1 else -0.5
     cdef float xs2_const = 1 if params[1] == 1 else 0.5
+    edge_one += boundary
     for cell in range(cells):
         material = medium_map[cell]
-        if cell == params[5]:
-            edge_one += point_source
         edge_two = (xs_matrix[material] * scalar_flux_old[cell] \
-                + external_source[cell] + off_scatter[cell] + edge_one * (abs(mu / cell_width[cell]) \
-                + xs1_const * xs_total[material])) \
+                + external_source[cell] + off_scatter[cell] + edge_one \
+                * (abs(mu / cell_width[cell]) + xs1_const * xs_total[material])) \
                 * 1/(abs(mu / cell_width[cell]) + xs2_const * xs_total[material])
         if params[1] == 1:
             scalar_flux[cell] += angle_weight * edge_two
@@ -170,11 +170,12 @@ cdef double left_to_right(double[:]& scalar_flux, double[:]& scalar_flux_old, \
 
 
 cdef double right_to_left(double[:]& scalar_flux, double[:]& scalar_flux_old, \
-            int[:]& medium_map, double[:]& xs_total, double[:]& xs_matrix, \
-            double[:]& off_scatter, double[:]& external_source, int[:]& params, \
-            double point_source, \
-            double mu, double angle_weight, double[:]& cell_width, double edge_one):
-    # I --> 0
+                        int[:]& medium_map, double[:]& xs_total, \
+                        double[:]& xs_matrix, double[:]& off_scatter, \
+                        double[:]& external_source, int[:]& params, \
+                        double mu, double angle_weight, double[:]& cell_width, \
+                        double edge_one):
+    # I --> 0 (negative mu)
     cdef double edge_two = 0
     cdef int cells = medium_map.shape[0]
     cdef float xs1_const = 0 if params[1] == 1 else -0.5
@@ -182,11 +183,9 @@ cdef double right_to_left(double[:]& scalar_flux, double[:]& scalar_flux_old, \
     for cell in range(cells-1, -1, -1):
         edge_two = edge_one
         material = medium_map[cell]
-        if (cell + 1) == params[5]:
-            edge_two += point_source
         edge_one = (xs_matrix[material] * scalar_flux_old[cell] \
-                + external_source[cell] + off_scatter[cell] + edge_two * (abs(mu / cell_width[cell]) \
-                + xs1_const * xs_total[material])) \
+                + external_source[cell] + off_scatter[cell] + edge_two \
+                * (abs(mu / cell_width[cell]) + xs1_const * xs_total[material])) \
                 * 1/(abs(mu / cell_width[cell]) + xs2_const * xs_total[material])
         if params[1] == 1:
             scalar_flux[cell] += angle_weight * edge_one
@@ -199,7 +198,7 @@ cdef void sweep(double[:]& scalar_flux, double[:]& scalar_flux_old, \
                 int[:]& medium_map, double[:]& xs_total, \
                 double[:]& xs_matrix, double[:]& off_scatter, \
                 double[:]& external_source, \
-                double point_source, double mu, \
+                double boundary, double mu, \
                 double angle_weight, int[:]& params, double[:]& cell_width, size_t gg_idx, \
                 size_t nn_idx):
     cdef double edge = 0
@@ -208,21 +207,21 @@ cdef void sweep(double[:]& scalar_flux, double[:]& scalar_flux_old, \
         edge = left_to_right(scalar_flux, scalar_flux_old, \
                 medium_map, xs_total, xs_matrix, off_scatter, \
                 external_source[gg_idx+nn_idx*params[3]::params[4]*params[3]], \
-                params, point_source, mu, angle_weight, cell_width, 0.0)
+                params, boundary, mu, angle_weight, cell_width, 0.0)
         edge = right_to_left(scalar_flux, scalar_flux_old, \
                 medium_map, xs_total, xs_matrix, off_scatter, \
                 external_source[gg_idx+nn_idx*params[3]::params[4]*params[3]], \
-                params, point_source, mu, angle_weight, cell_width, edge)
+                params, mu, angle_weight, cell_width, edge)
     elif mu > 0:
         edge = left_to_right(scalar_flux, scalar_flux_old, \
                 medium_map, xs_total, xs_matrix, off_scatter, \
                 external_source[gg_idx+nn_idx*params[3]::params[4]*params[3]], \
-                params, point_source, mu, angle_weight, cell_width, 0.0)
+                params, boundary, mu, angle_weight, cell_width, 0.0)
     elif mu < 0:
         edge = right_to_left(scalar_flux, scalar_flux_old, \
                 medium_map, xs_total, xs_matrix, off_scatter, \
                 external_source[gg_idx+nn_idx*params[3]::params[4]*params[3]], \
-                params, point_source, mu, angle_weight, cell_width, 0.0)
+                params, mu, angle_weight, cell_width, 0.0)
     else:
         print("You are wrong")
 
@@ -230,7 +229,7 @@ cdef void sweep(double[:]& scalar_flux, double[:]& scalar_flux_old, \
 cdef void time_vacuum(double[:]& scalar_flux, double[:]& scalar_flux_old, \
                     double [:]& angular_flux_last, int[:]& medium_map, \
                     double[:]& xs_total, double[:]& xs_matrix, \
-                    double[:]& external_source, double point_source, \
+                    double[:]& external_source, double boundary, \
                     double spatial_coef, double angle_weight, int[:]& params, \
                     double temporal_coef, double time_const, \
                     size_t ex_group_idx, size_t ex_angle_idx):
@@ -245,7 +244,7 @@ cdef void time_vacuum(double[:]& scalar_flux, double[:]& scalar_flux_old, \
         for cell in range(cells):
             material = medium_map[cell]
             if cell == params[5]:
-                edge_one += point_source
+                edge_one += boundary
             edge_two = (xs_matrix[material] * scalar_flux_old[cell] \
                         + external_source[ex_group_idx + ex_angle_idx*params[3]::params[4]*params[3]][cell] \
                          + angular_flux_last[cell] * temporal_coef + edge_one * (abs(spatial_coef) \
@@ -260,7 +259,7 @@ cdef void time_vacuum(double[:]& scalar_flux, double[:]& scalar_flux_old, \
         for cell in range(cells-1, -1, -1):
             material = medium_map[cell]
             if (cell + 1) == params[5]:
-                edge_two += point_source
+                edge_two += boundary
             edge_one = (xs_matrix[material] * scalar_flux_old[cell] \
                         + external_source[ex_group_idx + ex_angle_idx*params[3]::params[4]*params[3]][cell] \
                          + angular_flux_last[cell] * temporal_coef + edge_two * (abs(spatial_coef) \
@@ -273,7 +272,7 @@ cdef void time_vacuum(double[:]& scalar_flux, double[:]& scalar_flux_old, \
             edge_two = edge_one
 
 
-cdef void angular_to_scalar(double[:]& scalar_flux, 
+cdef void angular_to_scalar(double[:]& scalar_flux, \
                     double[:,:]& angular_flux, double[:]& angle_weight):
     cdef size_t cells, angles, cell, angle
     cells = angular_flux.shape[0]
@@ -293,7 +292,7 @@ cdef double scalar_convergence(double [:]& arr1, double [:]& arr2):
     return change
 
 
-cdef double angular_convergence(double[:,:]& angular_flux, 
+cdef double angular_convergence(double[:,:]& angular_flux, \
                 double [:,:]& angular_flux_old, double [:]& angle_weight):
     cdef size_t cells, angles
     cells = angular_flux.shape[0]
