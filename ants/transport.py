@@ -56,7 +56,8 @@ class Transport:
 
     def create_problem(self):
         self._generate_parameters()
-        self._generate_angles()
+        self._generate_x_angles()
+        # self._generate_xy_angles()
         self._generate_medium_map()
         self._generate_cross_sections()
         self._generate_external_source()
@@ -175,16 +176,99 @@ class Transport:
         self.angles = int(self.info.get("ANGLES"))
         self.groups = int(self.info.get("ENERGY GROUPS"))
         
-    def _generate_angles(self):
+    def _generate_x_angles(self):
         self.mu, self.angle_weight = np.polynomial.legendre.leggauss(self.angles)
         self.angle_weight /= np.sum(self.angle_weight)
         # left hand boundary at cell_x = 0 is reflective - negative
         if self.info.get("BOUNDARY X") == "reflected":
-            self.mu = self.mu[:int(0.5 * self.angles)]
-            self.angle_weight = self.angle_weight[:int(0.5 * self.angles)]
+            self.angles = int(0.5 * self.angles)
+            self.mu = self.mu[self.mu > 0].copy()
+            self.angle_weight = self.angle_weight[self.mu > 0].copy()
         elif self.info.get("GEOMETRY") == "sphere":
-            self.mu = self.mu[int(0.5 * self.angles):]
-            self.angle_weight = self.angle_weight[int(0.5 * self.angles):]
+            self.angles = int(0.5 * self.angles)
+            self.mu = self.mu[self.mu < 0].copy()
+            self.angle_weight = self.angle_weight[self.mu < 0].copy()
+
+    @staticmethod
+    def _generate_angles(angles, dimension=1, geometry="slab", \
+                            boundary="reflected"):
+        if dimension == 1:
+            mu, angle_weight = np.polynomial.legendre.leggauss(angles)
+            angle_weight /= np.sum(angle_weight)
+            if boundary == "reflected":
+                angles = int(0.5 * angles)
+                mu = mu[mu > 0].copy()
+                angle_weight = angle_weight[mu > 0].copy()
+            elif geometry == "sphere":
+                angles = int(0.5 * angles)
+                mu = mu[mu < 0].copy()
+                angle_weight = angle_weight[mu < 0].copy()
+            return mu, angle_weight
+        elif dimension == 2:
+            mu, w1 = np.polynomial.legendre.leggauss(angles)
+            y, w2 = np.polynomial.chebyshev.chebgauss(angles)
+            # xi = (1 - mu**2)**(0.5) * np.sin(np.arcsin(y)) # 3D
+            eta = (1 - mu**2)**(0.5) * np.cos(np.arcsin(y))
+            angle_weight = w1 * w2
+            angle_weight /= np.sum(0.5 * w2)
+            angles = int(0.5 * angles)
+            # Only Use the Positive Angles
+            eta = eta[mu > 0].copy()
+            angle_weight = angle_weight[mu > 0].copy()
+            mu = mu[mu > 0].copy()
+        return mu, eta, angle_weight
+
+    def _generate_xy_angles(self):
+        self.mu, w1 = np.polynomial.legendre.leggauss(self.angles)
+        y, w2 = np.polynomial.chebyshev.chebgauss(self.angles)
+        # xi = (1 - self.mu**2)**(0.5) * np.sin(np.arcsin(y)) # 3D
+        self.eta = (1 - self.mu**2)**(0.5) * np.cos(np.arcsin(y))
+        self.angle_weight = w1 * w2
+        self.angle_weight /= np.sum(0.5 * w2)
+        self.angles = int(0.5 * self.angles)
+        # Only Use the Positive Angles
+        self.eta = self.eta[self.mu > 0].copy()
+        self.angle_weight = self.angle_weight[self.mu > 0].copy()
+        self.mu = mu[self.mu > 0].copy()
+        
+    def _product_quadrature(self):
+        """Compute ordinates and weights for product quadrature
+        Inputs:
+            N:               Order of Legendre or Chebyshev quad
+        Outputs:
+            w:               weights
+            eta,xi,mu:       direction cosines (x,y,z)
+        """
+        assert (self.angles % 2 == 0)
+        #get legendre quad
+        MUL, WL = np.polynomial.legendre.leggauss(self.angles)
+        #get chebyshev y's
+        Y, WC = np.polynomial.chebyshev.chebgauss(self.angles)
+        place = 0
+        self.eta = np.zeros(self.angles * self.angles * 2)
+        self.xi = np.zeros(self.angles * self.angles * 2)
+        self.mu = np.zeros(self.angles * self.angles * 2)
+        self.angle_weight = np.zeros(self.angles * self.angles * 2)
+        for ii in range(self.angles):
+            for jj in range(self.angles):
+                mul = MUL[ii]
+                y = Y[jj]
+                self.mu[place] = mul
+                self.mu[place+1] = mul
+                self.eta[place] = (1 - mul**2)**(0.5) * np.cos(np.arccos(y))
+                self.eta[place+1] = (1 - mul**2)**(0.5) * np.cos(-np.arccos(y))
+                self.xi[place] = (1 - mul**2)**(0.5) * np.sin(np.arccos(y))
+                self.xi[place+1] = (1 - mul**2)**(0.5) * np.sin(-np.arccos(y))
+                self.angle_weight[place] = WL[ii]*WC[jj]
+                self.angle_weight[place+1] = WL[ii]*WC[jj]
+                place += 2
+        self.angle_weight = self.angle_weight[self.mu > 0] \
+                            / np.sum(self.angle_weight[self.mu > 0])
+        self.eta = self.eta[self.mu > 0].copy()
+        self.xi = self.xi[self.mu > 0].copy()
+        # Convert to naming convention
+        self.mu = self.eta.copy()
+        self.eta = self.xi.copy()
 
     def _generate_medium_map(self):
         mat_widths = []
