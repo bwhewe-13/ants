@@ -13,6 +13,7 @@
 # cython: cdivision=True
 
 from ants.constants import MAX_ITERATIONS, INNER_TOLERANCE, PI
+from ants cimport cyutils
 
 from libcpp cimport float
 from libc.math cimport sqrt, pow
@@ -79,7 +80,7 @@ cdef double[:] r_sweep(double[:] scalar_flux_old, int[:]& medium_map, \
                  tau, alpha_plus, alpha_minus,  ex_group_idx, ex_angle_idx)
             alpha_minus = alpha_plus
             mu_minus = mu_plus
-        change = scalar_convergence(scalar_flux, scalar_flux_old)
+        change = cyutils.group_scalar_convergence(scalar_flux, scalar_flux_old)
         # print("In Count", count, "Change", change)
         converged = (change < INNER_TOLERANCE) or (count >= MAX_ITERATIONS)
         count += 1
@@ -178,40 +179,40 @@ cdef void sweep(double[:]& scalar_flux, double[:]& scalar_flux_old, \
                     tau, alpha_plus, alpha_minus)
 
 
-cdef void angular_to_scalar(double[:]& scalar_flux, 
-                    double[:,:]& angular_flux, double[:]& angle_weight):
-    cdef size_t cells, angles, cell, angle
-    cells = angular_flux.shape[0]
-    angles = angular_flux.shape[1]
-    scalar_flux[:] = 0
-    for angle in range(angles):
-        for cell in range(cells):
-            scalar_flux[cell] += angle_weight[angle] * angular_flux[cell][angle]
+# cdef void angular_to_scalar(double[:]& scalar_flux, 
+#                     double[:,:]& angular_flux, double[:]& angle_weight):
+#     cdef size_t cells, angles, cell, angle
+#     cells = angular_flux.shape[0]
+#     angles = angular_flux.shape[1]
+#     scalar_flux[:] = 0
+#     for angle in range(angles):
+#         for cell in range(cells):
+#             scalar_flux[cell] += angle_weight[angle] * angular_flux[cell][angle]
 
 
-cdef double scalar_convergence(double [:]& arr1, double [:]& arr2):
-    n = arr1.shape[0]
-    cdef double change = 0.0
-    for cell in range(<int> n):
-        change += pow((arr1[cell] - arr2[cell]) / arr1[cell] / n, 2)
-    change = sqrt(change)
-    return change
+# cdef double scalar_convergence(double [:]& arr1, double [:]& arr2):
+#     n = arr1.shape[0]
+#     cdef double change = 0.0
+#     for cell in range(<int> n):
+#         change += pow((arr1[cell] - arr2[cell]) / arr1[cell] / n, 2)
+#     change = sqrt(change)
+#     return change
 
 
-cdef double angular_convergence(double[:,:]& angular_flux, 
-                double [:,:]& angular_flux_old, double [:]& angle_weight):
-    cdef size_t cells, angles
-    cells = angular_flux.shape[0]
-    angles = angular_flux.shape[1]
-    cdef double change = 0.0
-    cdef double scalar_flux, scalar_flux_old
-    for cell in range(cells):
-        scalar_flux = 0
-        scalar_flux_old = 0
-        for angle in range(angles):
-            scalar_flux += angle_weight[angle] * angular_flux[cell][angle]
-            scalar_flux_old += angle_weight[angle] * angular_flux_old[cell][angle]
-        change += pow((scalar_flux - scalar_flux_old) / \
-                        scalar_flux / cells, 2)
-    change = sqrt(change)
-    return change
+# cdef double angular_convergence(double[:,:]& angular_flux, 
+#                 double [:,:]& angular_flux_old, double [:]& angle_weight):
+#     cdef size_t cells, angles
+#     cells = angular_flux.shape[0]
+#     angles = angular_flux.shape[1]
+#     cdef double change = 0.0
+#     cdef double scalar_flux, scalar_flux_old
+#     for cell in range(cells):
+#         scalar_flux = 0
+#         scalar_flux_old = 0
+#         for angle in range(angles):
+#             scalar_flux += angle_weight[angle] * angular_flux[cell][angle]
+#             scalar_flux_old += angle_weight[angle] * angular_flux_old[cell][angle]
+#         change += pow((scalar_flux - scalar_flux_old) / \
+#                         scalar_flux / cells, 2)
+#     change = sqrt(change)
+#     return change

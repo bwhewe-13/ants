@@ -11,7 +11,7 @@ from distutils.core import Extension, setup
 from Cython.Build import cythonize
 from setuptools import setup, find_packages
 
-ext = Extension("ants/cyants/*", sources=["ants/cyants/*.pyx"])
+ext = Extension("ants/*", sources=["ants/*.pyx"])
 # setup(ext_modules=cythonize(ext, language_level = "3"))
 
 setup(  

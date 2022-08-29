@@ -10,7 +10,7 @@
 ########################################################################
 
 from ants.transport import Transport
-from ants.cyants import multi_group
+from ants import x_multi_group
 from ants.utils import manufactured_solutions as mms
 
 import pytest
@@ -24,7 +24,7 @@ def test_mms_one_material01(angular):
     problem = Transport(file)
     problem.change_param("spatial x cells", 400)
     angular = True if angular == "True" else False
-    flux = multi_group.source_iteration(problem.medium_map, problem.xs_total, \
+    flux = x_multi_group.source_iteration(problem.medium_map, problem.xs_total, \
                             problem.xs_scatter, problem.xs_fission, \
                             problem.external_source, problem.point_source, \
                             problem.mu, problem.angle_weight, problem.params, \
@@ -46,7 +46,7 @@ def test_mms_one_material02(angular):
     problem = Transport(file)
     problem.change_param("spatial x cells", 400)
     angular = True if angular == "True" else False
-    flux = multi_group.source_iteration(problem.medium_map, problem.xs_total, \
+    flux = x_multi_group.source_iteration(problem.medium_map, problem.xs_total, \
                             problem.xs_scatter, problem.xs_fission, \
                             problem.external_source, problem.point_source, \
                             problem.mu, problem.angle_weight, problem.params, \
@@ -68,7 +68,7 @@ def test_mms_two_material01(angular):
     problem = Transport(file)
     problem.change_param("spatial x cells", 400)
     angular = True if angular == "True" else False
-    flux = multi_group.source_iteration(problem.medium_map, problem.xs_total, \
+    flux = x_multi_group.source_iteration(problem.medium_map, problem.xs_total, \
                             problem.xs_scatter, problem.xs_fission, \
                             problem.external_source, problem.point_source, \
                             problem.mu, problem.angle_weight, problem.params, \
@@ -90,7 +90,7 @@ def test_mms_two_material02(angular):
     problem = Transport(file)
     problem.change_param("spatial x cells", 400)
     angular = True if angular == "True" else False
-    flux = multi_group.source_iteration(problem.medium_map, problem.xs_total, \
+    flux = x_multi_group.source_iteration(problem.medium_map, problem.xs_total, \
                             problem.xs_scatter, problem.xs_fission, \
                             problem.external_source, problem.point_source, \
                             problem.mu, problem.angle_weight, problem.params, \
