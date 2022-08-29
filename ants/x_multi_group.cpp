@@ -21327,8 +21327,8 @@ if (!__Pyx_RefNanny) {
  * # cython: cdivision=True
  * 
  * from ants.constants import MAX_ITERATIONS, OUTER_TOLERANCE             # <<<<<<<<<<<<<<
- * from ants cimport x_sweeps
- * from ants cimport r_sweeps #, cyutils
+ * from ants cimport x_sweeps, r_sweeps, cyutils
+ * # from ants cimport r_sweeps #, cyutils
  */
   __pyx_t_1 = PyList_New(2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 15, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
