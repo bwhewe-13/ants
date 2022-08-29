@@ -48,8 +48,8 @@ BOUNDARY X: vacuum
 # SOURCES
 ########################
 EXTERNAL SOURCE: mms two material
-POINT SOURCE LOCATION: right edge
-POINT SOURCE NAME: mms two material
+BOUNDARY SOURCE LOCATION: right edge
+BOUNDARY SOURCE NAME: mms two material
 
 
 # NOTES

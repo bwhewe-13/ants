@@ -28,8 +28,8 @@ class Transport:
         "ANGLES COLLIDED", "TIME DISCRETE", "TIME STEPS", "TIME STEP SIZE", \
         "ENERGY GROUPS", "ENERGY GROUPS COLLIDED", "ENERGY BOUNDS", \
         "ENERGY INDEX", "MATERIAL", "MATERIAL", "MAP FILE", \
-        "EXTERNAL SOURCE", "EXTERNAL SOURCE FILE", "POINT SOURCE LOCATION", \
-        "POINT SOURCE NAME", "BOUNDARY X", "BOUNDARY Y", "SVD", "DJINN", \
+        "EXTERNAL SOURCE", "EXTERNAL SOURCE FILE", "BOUNDARY SOURCE LOCATION", \
+        "BOUNDARY SOURCE NAME", "BOUNDARY X", "BOUNDARY Y", "SVD", "DJINN", \
         "AUTOENCODER", "DJINN-AUTOENCODER", "HYBRID", "MMS", "MNB", "NOTE")
 
     def __init__(self, input_file):
@@ -60,11 +60,11 @@ class Transport:
         self._generate_medium_map()
         self._generate_cross_sections()
         self._generate_external_source()
-        self._generate_point_source()
+        self._generate_boundary()
         self._generate_parameter_list()
         # Move These To Run Function
         self.external_source = self.external_source.flatten()
-        self.point_source = self.point_source.flatten()
+        self.boundary = self.boundary.flatten()
 
     def change_param(self, name, value):
         if name.upper() in self.__class__.__parameters:
@@ -246,15 +246,15 @@ class Transport:
                 ("External source size will not match with problem")
             self.external_source += file_source
         
-    def _generate_point_source(self):
-        self.point_source_loc = self.info.get("POINT SOURCE LOCATION", 0)
-        if self.point_source_loc == "right-edge":
-            self.point_source_loc = int(self.info.get("SPATIAL X CELLS"))
-        creator = problem_setup.PointSource( \
-            self.info.get("POINT SOURCE NAME", None), self.mu, \
+    def _generate_boundary(self):
+        self.boundary_loc = self.info.get("BOUNDARY LOCATION", 0)
+        if self.boundary_loc == "right-edge":
+            self.boundary_loc = int(self.info.get("SPATIAL X CELLS"))
+        creator = problem_setup.BoundarySource( \
+            self.info.get("BOUNDARY NAME", None), self.mu, \
             self.groups, self.info.get("ENERGY BOUNDS", None), \
             self.info.get("ENERGY INDEX", None))
-        self.point_source = creator._generate_source()
+        self.boundary = creator._generate_source()
 
     def _generate_parameter_list(self):
         external_group_index = 1
@@ -264,17 +264,17 @@ class Transport:
         elif self.external_source.ndim == 3:
             external_group_index = int(self.info.get("ENERGY GROUPS"))
             external_angle_index = int(self.info.get("ANGLES"))
-        point_source_group_index = 1
-        if self.point_source.ndim == 2:
-            point_source_group_index = int(self.info.get("ENERGY GROUPS"))
+        boundary_group_index = 1
+        if self.boundary.ndim == 2:
+            boundary_group_index = int(self.info.get("ENERGY GROUPS"))
         self.params = np.array([
             PARAMS_DICT[self.info.get("GEOMETRY")],
             PARAMS_DICT[self.info.get("SPATIAL DISCRETE")],
             PARAMS_DICT[self.info.get("BOUNDARY X")],
             external_group_index,
             external_angle_index,
-            self.point_source_loc,
-            point_source_group_index,
+            self.boundary_loc,
+            boundary_group_index,
             PARAMS_DICT[self.info.get("TIME DISCRETE","None")],
             PARAMS_DICT[self.info.get("TIME STEPS","None")]
             ], dtype=np.int32)

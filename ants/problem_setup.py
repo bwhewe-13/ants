@@ -164,7 +164,7 @@ class Materials:
             self.velocity = np.array(velocity)
 
 
-class PointSource:
+class BoundarySource:
     __available_sources = ("14.1-mev", "ambe", "single-left", \
                            "mms-left", "mms-right", "mms-two-material", \
                            "mms-two-material-angle", None)
