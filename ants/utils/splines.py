@@ -46,20 +46,7 @@ def second_derivative(x, y):
                                 / ((x[n+1] - x[n]) * (x[n] - x[n-1])))
     return np.array(ypp)
 
-def auxiliary_function(stype, aux_func):
-    if stype == "cubic":
-        if aux_func == "derive":
-            aux_func = CubicHermite.cubic_derive
-        elif aux_func == "integrate":
-            aux_func = CubicHermite.cubic_integrate
-    elif stype == "quintic":
-        if aux_func == "derive":
-            aux_func = QuinticHermite.quintic_derive
-        elif aux_func == "integrate":
-            aux_func = QuinticHermite.quintic_integrate
-    return aux_func
-
-def hermite(x, y, knots=None, stype="cubic", aux_func="derive"):
+def hermite(x, y, x_width=None, knots=None, stype="cubic", aux_func="derive"):
     # knots are a list of the knot locations in relation to x
     # ie    x = [0, 0.05, ..., 0.995, 1] with len(x) = 100 and
     #       knots = [0, 20, ..., 80, 100]
@@ -73,30 +60,36 @@ def hermite(x, y, knots=None, stype="cubic", aux_func="derive"):
             "points (knots < {}). Knots are reduced to {}".format(len(x), len(x)-1))
         warnings.warn(message)
         knots = dimensions.index_generator(len(x)-1, len(x)-1)
-    aux_func = auxiliary_function(stype, aux_func)
     approx_y = []
     approx_yp = []
     yp = first_derivative(x, y)
     if stype == "quintic":
         ypp = second_derivative(x, y)
     for n in range(len(knots) - 1):
-        temp_x = x[knots[n]:knots[n+1]+1]
+        temp_x = x[knots[n]:knots[n+1]+1].copy()
+        if aux_func == "derive":
+            temp_x_edges = temp_x.copy()
+        elif aux_func == "integrate":
+            temp_x_edges = dimensions.spatial_edges(temp_x, \
+                                        x_width[knots[n]:knots[n+1]+1])
         if stype == "cubic":
             temp_y = CubicHermite.cubic_spline(temp_x, y[knots[n]], \
-                      y[knots[n+1]], yp[knots[n]], yp[knots[n+1]],\
-                      x[knots[n]], x[knots[n+1]])
-            temp_yp = aux_func(temp_x, y[knots[n]], \
-                      y[knots[n+1]], yp[knots[n]], yp[knots[n+1]],\
-                      x[knots[n]], x[knots[n+1]])
+                            y[knots[n+1]], yp[knots[n]], yp[knots[n+1]],\
+                            x[knots[n]], x[knots[n+1]])
+            temp_yp = CubicHermite.cubic_spline(temp_x_edges, y[knots[n]], \
+                            y[knots[n+1]], yp[knots[n]], yp[knots[n+1]],\
+                            temp_x_edges[0], temp_x_edges[-1], dtype=aux_func)
         elif stype == "quintic":
             temp_y = QuinticHermite.quintic_spline(temp_x, y[knots[n]], \
                         y[knots[n+1]], yp[knots[n]], yp[knots[n+1]], \
                         ypp[knots[n]], ypp[knots[n+1]], x[knots[n]], \
                         x[knots[n+1]])
-            temp_yp = aux_func(temp_x, y[knots[n]], \
-                        y[knots[n+1]], yp[knots[n]], yp[knots[n+1]], \
-                        ypp[knots[n]], ypp[knots[n+1]], x[knots[n]], \
-                        x[knots[n+1]])
+            temp_yp = QuinticHermite.quintic_spline(temp_x_edges, \
+                            y[knots[n]], y[knots[n+1]], yp[knots[n]], \
+                            yp[knots[n+1]], ypp[knots[n]], ypp[knots[n+1]], \
+                            temp_x_edges[0], temp_x_edges[-1], dtype=aux_func)
+        if aux_func == "integrate":
+            temp_yp = np.diff(temp_yp)
         approx_y.append(temp_y[:-1])
         approx_yp.append(temp_yp[:-1])
         if n == len(knots) - 2:
@@ -138,174 +131,126 @@ def optimal_knots(x, y, atol=5e-5):
     # print("\n\n", knots, "\n\n")
     return knots.astype(np.int32)
 
-def _t(x, tk0, tk1):
+def t(x, tk0, tk1):
     return ((x - tk0) / (tk1 - tk0))
 
 class CubicHermite:
     # Basis Functions for Cubic Hermite Splines
-    def _phi0(x, tk0, tk1):
-        return 2*_t(x, tk0, tk1)**3 - 3*_t(x, tk0, tk1)**2 + 1
+    def _phi0(x, tk0, tk1, dtype=None):
+        if dtype == "derive":
+            return 6 / (tk1 - tk0) * (t(x, tk0, tk1)**2 - t(x, tk0, tk1))
+        elif dtype == "integrate":
+            return 0.5*t(x, tk0, tk1)**3 * (x - tk0) - t(x, tk0, tk1)**2 \
+                    * (x - tk0) + x
+        return 2*t(x, tk0, tk1)**3 - 3*t(x, tk0, tk1)**2 + 1
 
-    def _phi1(x, tk0, tk1):
-        return -2*_t(x, tk0, tk1)**3 + 3*_t(x, tk0, tk1)**2
-
-    def _psi0(x, tk0, tk1):
-        return (tk1 - tk0) * (_t(x, tk0, tk1)**3 \
-                - 2*_t(x, tk0, tk1)**2 + _t(x, tk0, tk1))
-
-    def _psi1(x, tk0, tk1):
-        return (tk1 - tk0) * (_t(x, tk0, tk1)**3 - _t(x, tk0, tk1)**2)
-
-    def cubic_spline(x, yk0, yk1, ykp0, ykp1, tk0, tk1):
-        return yk0 * CubicHermite._phi0(x, tk0, tk1) \
-                + yk1 * CubicHermite._phi1(x, tk0, tk1) \
-                + ykp0 * CubicHermite._psi0(x, tk0, tk1) \
-                + ykp1 * CubicHermite._psi1(x, tk0, tk1)
-
-    def _phi0_der(x, tk0, tk1):
-        return 6 / (tk1 - tk0) * (_t(x, tk0, tk1)**2 - _t(x, tk0, tk1))
-
-    def _phi1_der(x, tk0, tk1):
-        return 6 / (tk1 - tk0) * (_t(x, tk0, tk1) - _t(x, tk0, tk1)**2)
-
-    def _psi0_der(x, tk0, tk1):
-        return 3*_t(x, tk0, tk1)**2 - 4*_t(x, tk0, tk1) + 1
-
-    def _psi1_der(x, tk0, tk1):
-        return 3*_t(x, tk0, tk1)**2 - 2*_t(x, tk0, tk1)
-
-    def cubic_derive(x, yk0, yk1, ykp0, ykp1, tk0, tk1):
-        return yk0 * CubicHermite._phi0_der(x, tk0, tk1) \
-                + yk1 * CubicHermite._phi1_der(x, tk0, tk1) \
-                + ykp0 * CubicHermite._psi0_der(x, tk0, tk1) \
-                + ykp1 * CubicHermite._psi1_der(x, tk0, tk1)
-
-    def _phi0_int(x, tk0, tk1):
-        return 0.5*_t(x, tk0, tk1)**3 * (x - tk0) - _t(x, tk0, tk1)**2 \
-                * (x - tk0) + x
-
-    def _phi1_int(x, tk0, tk1):
-        return -0.5*_t(x, tk0, tk1)**3 * (x - tk0) + _t(x, tk0, tk1)**2 \
+    def _phi1(x, tk0, tk1, dtype=None):
+        if dtype == "derive":
+            return 6 / (tk1 - tk0) * (t(x, tk0, tk1) - t(x, tk0, tk1)**2)
+        elif dtype == "integrate":
+            return -0.5*t(x, tk0, tk1)**3 * (x - tk0) + t(x, tk0, tk1)**2 \
                 * (x - tk0)
+        return -2*t(x, tk0, tk1)**3 + 3*t(x, tk0, tk1)**2
 
-    def _psi0_int(x, tk0, tk1):
-        return (tk1 - tk0) * (0.25*_t(x, tk0, tk1)**3 * (x - tk0) \
-                - 2/3*_t(x, tk0, tk1)**2 * (x - tk0) \
+    def _psi0(x, tk0, tk1, dtype=None):
+        if dtype == "derive":
+            return 3*t(x, tk0, tk1)**2 - 4*t(x, tk0, tk1) + 1
+        elif dtype == "integrate":
+            return (tk1 - tk0) * (0.25*t(x, tk0, tk1)**3 * (x - tk0) \
+                - 2/3*t(x, tk0, tk1)**2 * (x - tk0) \
                 + x**2 / (2 * (tk1 - tk0)) - (tk0 * x) / (tk1 - tk0))
+        return (tk1 - tk0) * (t(x, tk0, tk1)**3 \
+                - 2*t(x, tk0, tk1)**2 + t(x, tk0, tk1))
 
-    def _psi1_int(x, tk0, tk1):
-        return (tk1 - tk0) * (0.25*_t(x, tk0, tk1)**3 * (x - tk0) \
-                - 1/3*_t(x, tk0, tk1)**2 * (x - tk0))
+    def _psi1(x, tk0, tk1, dtype=None):
+        if dtype == "derive":
+            return 3*t(x, tk0, tk1)**2 - 2*t(x, tk0, tk1)
+        elif dtype == "integrate":
+            return (tk1 - tk0) * (0.25*t(x, tk0, tk1)**3 * (x - tk0) \
+                - 1/3*t(x, tk0, tk1)**2 * (x - tk0))
+        return (tk1 - tk0) * (t(x, tk0, tk1)**3 - t(x, tk0, tk1)**2)
 
-    def cubic_integrate(x, yk0, yk1, ykp0, ykp1, tk0, tk1):
-        return yk0 * CubicHermite._phi0_int(x, tk0, tk1) \
-                + yk1 * CubicHermite._phi1_int(x, tk0, tk1) \
-                + ykp0 * CubicHermite._psi0_int(x, tk0, tk1) \
-                + ykp1 * CubicHermite._psi1_int(x, tk0, tk1)                
+    def cubic_spline(x, yk0, yk1, ykp0, ykp1, tk0, tk1, dtype=None):
+        return yk0 * CubicHermite._phi0(x, tk0, tk1, dtype=dtype) \
+                + yk1 * CubicHermite._phi1(x, tk0, tk1, dtype=dtype) \
+                + ykp0 * CubicHermite._psi0(x, tk0, tk1, dtype=dtype) \
+                + ykp1 * CubicHermite._psi1(x, tk0, tk1, dtype=dtype)
 
 class QuinticHermite:
     # Basis Functions for Quintic Hermite Splines
-    def _phi0(x, tk0, tk1):
-        return -6*_t(x, tk0, tk1)**5 + 15*_t(x, tk0, tk1)**4 \
-                - 10*_t(x, tk0, tk1)**3 + 1
+    def _phi0(x, tk0, tk1, dtype=None):
+        if dtype == "derive":
+            return 30 / (tk1 - tk0) * (-t(x, tk0, tk1)**4 \
+                    + 2*t(x, tk0, tk1)**3 - t(x, tk0, tk1)**2)
+        elif dtype == "integrate":
+            return -1*t(x, tk0, tk1)**5 * (x - tk0) + 3*t(x, tk0, tk1)**4 \
+                    * (x - tk0) - 2.5*t(x, tk0, tk1)**3 * (x - tk0) + x
+        return -6*t(x, tk0, tk1)**5 + 15*t(x, tk0, tk1)**4 \
+                - 10*t(x, tk0, tk1)**3 + 1
 
-    def _phi1(x, tk0, tk1):
-        return 6*_t(x, tk0, tk1)**5 - 15*_t(x, tk0, tk1)**4 \
-                + 10*_t(x, tk0, tk1)**3
+    def _phi1(x, tk0, tk1, dtype=None):
+        if dtype == "derive":
+            return 30 / (tk1 - tk0) * (t(x, tk0, tk1)**4 \
+                - 2*t(x, tk0, tk1)**3 + t(x, tk0, tk1)**2)
+        elif dtype == "integrate":
+            return t(x, tk0, tk1)**5 * (x - tk0) - 3*t(x, tk0, tk1)**4 \
+                    * (x - tk0) + 2.5*t(x, tk0, tk1)**3 * (x - tk0)
+        return 6*t(x, tk0, tk1)**5 - 15*t(x, tk0, tk1)**4 \
+                + 10*t(x, tk0, tk1)**3
 
-    def _psi0(x, tk0, tk1):
-        return (tk1 - tk0) * (-3*_t(x, tk0, tk1)**5 \
-                + 8*_t(x, tk0, tk1)**4 - 6*_t(x, tk0, tk1)**3 \
-                + _t(x, tk0, tk1))
+    def _psi0(x, tk0, tk1, dtype=None):
+        if dtype == "derive":
+            return 1 - 18*t(x, tk0, tk1)**2 + 32*t(x, tk0, tk1)**3 \
+                - 15*t(x, tk0, tk1)**4
+        elif dtype == "integrate":
+            return (tk1 - tk0) * (-0.5*t(x, tk0, tk1)**5 * (x - tk0) \
+                    + 1.6*t(x, tk0, tk1)**4 * (x - tk0) - 1.5*t(x, tk0, tk1)**3 \
+                    * (x - tk0) + x**2 / (2 *(tk1 - tk0)) - (tk0 * x) / (tk1 - tk0))
+        return (tk1 - tk0) * (-3*t(x, tk0, tk1)**5 \
+                + 8*t(x, tk0, tk1)**4 - 6*t(x, tk0, tk1)**3 \
+                + t(x, tk0, tk1))
 
-    def _psi1(x, tk0, tk1):
-        return (tk1 - tk0) * (-3*_t(x, tk0, tk1)**5 \
-                + 7*_t(x, tk0, tk1)**4 - 4*_t(x, tk0, tk1)**3)
-
-    def _theta0(x, tk0, tk1):
-        return (tk1 - tk0)**2 * (-0.5*_t(x, tk0, tk1)**5 \
-                + 1.5*_t(x, tk0, tk1)**4 - 1.5*_t(x, tk0, tk1)**3 \
-                + 0.5*_t(x, tk0, tk1)**2)
-
-    def _theta1(x, tk0, tk1):
-        return (tk1 - tk0)**2 * (0.5*_t(x, tk0, tk1)**5 \
-                - _t(x, tk0, tk1)**4 + 0.5*_t(x, tk0, tk1)**3)
-
-    def quintic_spline(x, yk0, yk1, ykp0, ykp1, ykpp0, ykpp1, tk0, tk1):
-        return yk0 * QuinticHermite._phi0(x, tk0, tk1) \
-                + yk1 * QuinticHermite._phi1(x, tk0, tk1) \
-                + ykp0 * QuinticHermite._psi0(x, tk0, tk1) \
-                + ykp1 * QuinticHermite._psi1(x, tk0, tk1) \
-                + ykpp0 * QuinticHermite._theta0(x, tk0, tk1) \
-                + ykpp1 * QuinticHermite._theta1(x, tk0, tk1)
-
-    def _phi0_der(x, tk0, tk1):
-        return 30 / (tk1 - tk0) * (-_t(x, tk0, tk1)**4 \
-                + 2*_t(x, tk0, tk1)**3 - _t(x, tk0, tk1)**2)
-
-    def _phi1_der(x, tk0, tk1):
-        return 30 / (tk1 - tk0) * (_t(x, tk0, tk1)**4 \
-                - 2*_t(x, tk0, tk1)**3 + _t(x, tk0, tk1)**2)
-
-    def _psi0_der(x, tk0, tk1):
-        return 1 - 18*_t(x, tk0, tk1)**2 + 32*_t(x, tk0, tk1)**3 \
-                - 15*_t(x, tk0, tk1)**4
-
-    def _psi1_der(x, tk0, tk1):
-        return -12*_t(x, tk0, tk1)**2 + 28*_t(x, tk0, tk1)**3 \
-                - 15*_t(x, tk0, tk1)**4
-
-    def _theta0_der(x, tk0, tk1):
-        return (tk1 - tk0) * (_t(x, tk0, tk1) - 4.5*_t(x, tk0, tk1)**2 \
-                + 6*_t(x, tk0, tk1)**3 - 2.5*_t(x, tk0, tk1)**4) 
-
-    def _theta1_der(x, tk0, tk1):
-        return (tk1 - tk0) * (1.5*_t(x, tk0, tk1)**2 \
-                - 4*_t(x, tk0, tk1)**3 + 2.5*_t(x, tk0, tk1)**4)
-
-    def quintic_derive(x, yk0, yk1, ykp0, ykp1, ykpp0, ykpp1, tk0, tk1):
-        return yk0 * QuinticHermite._phi0_der(x, tk0, tk1) \
-                + yk1 * QuinticHermite._phi1_der(x, tk0, tk1) \
-                + ykp0 * QuinticHermite._psi0_der(x, tk0, tk1) \
-                + ykp1 * QuinticHermite._psi1_der(x, tk0, tk1) \
-                + ykpp0 * QuinticHermite._theta0_der(x, tk0, tk1) \
-                + ykpp1 * QuinticHermite._theta1_der(x, tk0, tk1)
-
-    def _phi0_int(x, tk0, tk1):
-        return -1*_t(x, tk0, tk1)**5 * (x - tk0) + 3*_t(x, tk0, tk1)**4 \
-                * (x - tk0) - 2.5*_t(x, tk0, tk1)**3 * (x - tk0) + x
-
-    def _phi1_int(x, tk0, tk1):
-        return _t(x, tk0, tk1)**5 * (x - tk0) - 3*_t(x, tk0, tk1)**4 \
-                * (x - tk0) + 2.5*_t(x, tk0, tk1)**3 * (x - tk0)
-
-    def _psi0_int(x, tk0, tk1):
-        return (tk1 - tk0) * (-0.5*_t(x, tk0, tk1)**5 * (x - tk0) \
-                + 1.6*_t(x, tk0, tk1)**4 * (x - tk0) - 1.5*_t(x, tk0, tk1)**3 \
-                * (x - tk0) + x**2 / (2 *(tk1 - tk0)) - (tk0 * x) / (tk1 - tk0))
-
-    def _psi1_int(x, tk0, tk1):
-        return (tk1 - tk0) * (-0.5*_t(x, tk0, tk1)**5 * (x - tk0) \
-                + 1.4*_t(x, tk0, tk1)**4 * (x - tk0) - _t(x, tk0, tk1)**3 \
+    def _psi1(x, tk0, tk1, dtype=None):
+        if dtype == "derive":
+            return -12*t(x, tk0, tk1)**2 + 28*t(x, tk0, tk1)**3 \
+                - 15*t(x, tk0, tk1)**4
+        elif dtype == "integrate":
+            return (tk1 - tk0) * (-0.5*t(x, tk0, tk1)**5 * (x - tk0) \
+                + 1.4*t(x, tk0, tk1)**4 * (x - tk0) - t(x, tk0, tk1)**3 \
                 * (x - tk0))
+        return (tk1 - tk0) * (-3*t(x, tk0, tk1)**5 \
+                + 7*t(x, tk0, tk1)**4 - 4*t(x, tk0, tk1)**3)
 
-    def _theta0_int(x, tk0, tk1):
-        return (tk1 - tk0)**2 * (-1/12*_t(x, tk0, tk1)**5 * (x - tk0) \
-                + 0.3*_t(x, tk0, tk1)**4 * (x - tk0) - 0.375*_t(x, tk0, tk1)**3 \
-                * (x - tk0) + 1/6*_t(x, tk0, tk1)**2 * (x - tk0))
+    def _theta0(x, tk0, tk1, dtype=None):
+        if dtype == "derive":
+            return (tk1 - tk0) * (t(x, tk0, tk1) - 4.5*t(x, tk0, tk1)**2 \
+                + 6*t(x, tk0, tk1)**3 - 2.5*t(x, tk0, tk1)**4)
+        elif dtype == "integrate":
+            return (tk1 - tk0)**2 * (-1/12*t(x, tk0, tk1)**5 * (x - tk0) \
+                    + 0.3*t(x, tk0, tk1)**4 * (x - tk0) - 0.375*t(x, tk0, tk1)**3 \
+                    * (x - tk0) + 1/6*t(x, tk0, tk1)**2 * (x - tk0))
+        return (tk1 - tk0)**2 * (-0.5*t(x, tk0, tk1)**5 \
+                + 1.5*t(x, tk0, tk1)**4 - 1.5*t(x, tk0, tk1)**3 \
+                + 0.5*t(x, tk0, tk1)**2)
 
-    def _theta1_int(x, tk0, tk1):
-        return (tk1 - tk0)**2 * (-1/12*_t(x, tk0, tk1)**5 * (x - tk0) \
-                - 0.2*_t(x, tk0, tk1)**4 * (x - tk0) + 0.125*_t(x, tk0, tk1)**3 \
-                * (x - tk0)) 
+    def _theta1(x, tk0, tk1, dtype=None):
+        if dtype == "derive":
+            return (tk1 - tk0) * (1.5*t(x, tk0, tk1)**2 \
+                - 4*t(x, tk0, tk1)**3 + 2.5*t(x, tk0, tk1)**4)
+        elif dtype == "integrate":
+            return (tk1 - tk0)**2 * (-1/12*t(x, tk0, tk1)**5 * (x - tk0) \
+                    - 0.2*t(x, tk0, tk1)**4 * (x - tk0) + 0.125*t(x, tk0, tk1)**3 \
+                    * (x - tk0))
+        return (tk1 - tk0)**2 * (0.5*t(x, tk0, tk1)**5 \
+                - t(x, tk0, tk1)**4 + 0.5*t(x, tk0, tk1)**3)
 
-    def quintic_integrate(x, yk0, yk1, ykp0, ykp1, ykpp0, ykpp1, tk0, tk1):
-        return yk0 * QuinticHermite._phi0_int(x, tk0, tk1) \
-                + yk1 * QuinticHermite._phi1_int(x, tk0, tk1) \
-                + ykp0 * QuinticHermite._psi0_int(x, tk0, tk1) \
-                + ykp1 * QuinticHermite._psi1_int(x, tk0, tk1) \
-                + ykpp0 * QuinticHermite._theta0_int(x, tk0, tk1) \
-                + ykpp1 * QuinticHermite._theta1_int(x, tk0, tk1)
+    def quintic_spline(x, yk0, yk1, ykp0, ykp1, ykpp0, ykpp1, tk0, tk1, dtype=None):
+        return yk0 * QuinticHermite._phi0(x, tk0, tk1, dtype=dtype) \
+                + yk1 * QuinticHermite._phi1(x, tk0, tk1, dtype=dtype) \
+                + ykp0 * QuinticHermite._psi0(x, tk0, tk1, dtype=dtype) \
+                + ykp1 * QuinticHermite._psi1(x, tk0, tk1, dtype=dtype) \
+                + ykpp0 * QuinticHermite._theta0(x, tk0, tk1, dtype=dtype) \
+                + ykpp1 * QuinticHermite._theta1(x, tk0, tk1, dtype=dtype)
 
 if __name__ == "__main__":
     print("Additional Work\n","="*25)
