@@ -5929,7 +5929,6 @@ __pyx_t_18 = __Pyx_PyIndex_AsSsize_t(__pyx_v_cell); if (unlikely((__pyx_t_18 == 
  *             elif params[1] == 2:
  *                 scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)             # <<<<<<<<<<<<<<
  *             edge_two = edge_one
- * 
  */
         __pyx_t_9 = __Pyx_PyIndex_AsSsize_t(__pyx_v_cell); if (unlikely((__pyx_t_9 == (Py_ssize_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 272, __pyx_L1_error)
         __pyx_t_2 = __pyx_t_9;
@@ -5958,8 +5957,6 @@ __pyx_t_18 = __Pyx_PyIndex_AsSsize_t(__pyx_v_cell); if (unlikely((__pyx_t_18 == 
  *             elif params[1] == 2:
  *                 scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two)
  *             edge_two = edge_one             # <<<<<<<<<<<<<<
- * 
- * 
  */
       __pyx_v_edge_two = __pyx_v_edge_one;
 

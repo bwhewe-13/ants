@@ -2247,7 +2247,7 @@ static void __pyx_f_4ants_7cyutils_power_iteration_source(__Pyx_memviewslice __p
  *                 power_source[ingroup::groups][cell] += flux[cell][outgroup] \
  *                                 * xs_fission[material][ingroup][outgroup]             # <<<<<<<<<<<<<<
  * 
- * cdef double normalize_flux(double[:,:] flux):
+ * cdef void mms_power_iteration_source(double[:] power_source, double[:,:] flux, \
  */
         __pyx_t_13 = __pyx_v_material;
         __pyx_t_14 = __pyx_v_ingroup;
@@ -2336,6 +2336,386 @@ __pyx_t_17 = __pyx_v_cell;
 /* "ants/cyutils.pyx":31
  *                                 * xs_fission[material][ingroup][outgroup]
  * 
+ * cdef void mms_power_iteration_source(double[:] power_source, double[:,:] flux, \             # <<<<<<<<<<<<<<
+ *                         int[:] medium_map, double[:,:,:] xs_fission, int angles):
+ *     power_source[:] = 0
+ */
+
+static void __pyx_f_4ants_7cyutils_mms_power_iteration_source(__Pyx_memviewslice __pyx_v_power_source, __Pyx_memviewslice __pyx_v_flux, __Pyx_memviewslice __pyx_v_medium_map, __Pyx_memviewslice __pyx_v_xs_fission, int __pyx_v_angles) {
+  int __pyx_v_cells;
+  int __pyx_v_groups;
+  int __pyx_v_material;
+  int __pyx_v_angle;
+  int __pyx_v_cell;
+  int __pyx_v_ig;
+  int __pyx_v_og;
+  __Pyx_RefNannyDeclarations
+  int __pyx_t_1;
+  int __pyx_t_2;
+  int __pyx_t_3;
+  Py_ssize_t __pyx_t_4;
+  int __pyx_t_5;
+  int __pyx_t_6;
+  int __pyx_t_7;
+  int __pyx_t_8;
+  int __pyx_t_9;
+  int __pyx_t_10;
+  int __pyx_t_11;
+  int __pyx_t_12;
+  int __pyx_t_13;
+  Py_ssize_t __pyx_t_14;
+  int __pyx_t_15;
+  Py_ssize_t __pyx_t_16;
+  Py_ssize_t __pyx_t_17;
+  Py_ssize_t __pyx_t_18;
+  __Pyx_memviewslice __pyx_t_19 = { 0, 0, { 0 }, { 0 }, { 0 } };
+  __Pyx_memviewslice __pyx_t_20 = { 0, 0, { 0 }, { 0 }, { 0 } };
+  Py_ssize_t __pyx_t_21;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("mms_power_iteration_source", 0);
+
+  /* "ants/cyutils.pyx":33
+ * cdef void mms_power_iteration_source(double[:] power_source, double[:,:] flux, \
+ *                         int[:] medium_map, double[:,:,:] xs_fission, int angles):
+ *     power_source[:] = 0             # <<<<<<<<<<<<<<
+ *     cdef int cells = medium_map.shape[0]
+ *     cdef int groups = flux.shape[1]
+ */
+  {
+      double __pyx_temp_scalar = 0.0;
+      {
+          Py_ssize_t __pyx_temp_extent_0 = __pyx_v_power_source.shape[0];
+          Py_ssize_t __pyx_temp_stride_0 = __pyx_v_power_source.strides[0];
+          char *__pyx_temp_pointer_0;
+          Py_ssize_t __pyx_temp_idx_0;
+          __pyx_temp_pointer_0 = __pyx_v_power_source.data;
+          for (__pyx_temp_idx_0 = 0; __pyx_temp_idx_0 < __pyx_temp_extent_0; __pyx_temp_idx_0++) {
+            *((double *) __pyx_temp_pointer_0) = __pyx_temp_scalar;
+            __pyx_temp_pointer_0 += __pyx_temp_stride_0;
+          }
+      }
+  }
+
+  /* "ants/cyutils.pyx":34
+ *                         int[:] medium_map, double[:,:,:] xs_fission, int angles):
+ *     power_source[:] = 0
+ *     cdef int cells = medium_map.shape[0]             # <<<<<<<<<<<<<<
+ *     cdef int groups = flux.shape[1]
+ *     cdef int material, angle
+ */
+  __pyx_v_cells = (__pyx_v_medium_map.shape[0]);
+
+  /* "ants/cyutils.pyx":35
+ *     power_source[:] = 0
+ *     cdef int cells = medium_map.shape[0]
+ *     cdef int groups = flux.shape[1]             # <<<<<<<<<<<<<<
+ *     cdef int material, angle
+ *     for cell in range(cells):
+ */
+  __pyx_v_groups = (__pyx_v_flux.shape[1]);
+
+  /* "ants/cyutils.pyx":37
+ *     cdef int groups = flux.shape[1]
+ *     cdef int material, angle
+ *     for cell in range(cells):             # <<<<<<<<<<<<<<
+ *         material = medium_map[cell]
+ *         for angle in range(angles):
+ */
+  __pyx_t_1 = __pyx_v_cells;
+  __pyx_t_2 = __pyx_t_1;
+  for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_2; __pyx_t_3+=1) {
+    __pyx_v_cell = __pyx_t_3;
+
+    /* "ants/cyutils.pyx":38
+ *     cdef int material, angle
+ *     for cell in range(cells):
+ *         material = medium_map[cell]             # <<<<<<<<<<<<<<
+ *         for angle in range(angles):
+ *             for ig in range(groups):
+ */
+    __pyx_t_4 = __pyx_v_cell;
+    __pyx_t_5 = -1;
+    if (__pyx_t_4 < 0) {
+      __pyx_t_4 += __pyx_v_medium_map.shape[0];
+      if (unlikely(__pyx_t_4 < 0)) __pyx_t_5 = 0;
+    } else if (unlikely(__pyx_t_4 >= __pyx_v_medium_map.shape[0])) __pyx_t_5 = 0;
+    if (unlikely(__pyx_t_5 != -1)) {
+      __Pyx_RaiseBufferIndexError(__pyx_t_5);
+      __PYX_ERR(0, 38, __pyx_L1_error)
+    }
+    __pyx_v_material = (*((int *) ( /* dim=0 */ (__pyx_v_medium_map.data + __pyx_t_4 * __pyx_v_medium_map.strides[0]) )));
+
+    /* "ants/cyutils.pyx":39
+ *     for cell in range(cells):
+ *         material = medium_map[cell]
+ *         for angle in range(angles):             # <<<<<<<<<<<<<<
+ *             for ig in range(groups):
+ *                 for og in range(groups):
+ */
+    __pyx_t_5 = __pyx_v_angles;
+    __pyx_t_6 = __pyx_t_5;
+    for (__pyx_t_7 = 0; __pyx_t_7 < __pyx_t_6; __pyx_t_7+=1) {
+      __pyx_v_angle = __pyx_t_7;
+
+      /* "ants/cyutils.pyx":40
+ *         material = medium_map[cell]
+ *         for angle in range(angles):
+ *             for ig in range(groups):             # <<<<<<<<<<<<<<
+ *                 for og in range(groups):
+ *                     power_source[ig::groups][angle::angles][cell] += flux[cell][og] \
+ */
+      __pyx_t_8 = __pyx_v_groups;
+      __pyx_t_9 = __pyx_t_8;
+      for (__pyx_t_10 = 0; __pyx_t_10 < __pyx_t_9; __pyx_t_10+=1) {
+        __pyx_v_ig = __pyx_t_10;
+
+        /* "ants/cyutils.pyx":41
+ *         for angle in range(angles):
+ *             for ig in range(groups):
+ *                 for og in range(groups):             # <<<<<<<<<<<<<<
+ *                     power_source[ig::groups][angle::angles][cell] += flux[cell][og] \
+ *                                     * xs_fission[material][ig][og]
+ */
+        __pyx_t_11 = __pyx_v_groups;
+        __pyx_t_12 = __pyx_t_11;
+        for (__pyx_t_13 = 0; __pyx_t_13 < __pyx_t_12; __pyx_t_13+=1) {
+          __pyx_v_og = __pyx_t_13;
+
+          /* "ants/cyutils.pyx":42
+ *             for ig in range(groups):
+ *                 for og in range(groups):
+ *                     power_source[ig::groups][angle::angles][cell] += flux[cell][og] \             # <<<<<<<<<<<<<<
+ *                                     * xs_fission[material][ig][og]
+ * 
+ */
+          __pyx_t_4 = __pyx_v_cell;
+          __pyx_t_14 = __pyx_v_og;
+          __pyx_t_15 = -1;
+          if (__pyx_t_4 < 0) {
+            __pyx_t_4 += __pyx_v_flux.shape[0];
+            if (unlikely(__pyx_t_4 < 0)) __pyx_t_15 = 0;
+          } else if (unlikely(__pyx_t_4 >= __pyx_v_flux.shape[0])) __pyx_t_15 = 0;
+          if (__pyx_t_14 < 0) {
+            __pyx_t_14 += __pyx_v_flux.shape[1];
+            if (unlikely(__pyx_t_14 < 0)) __pyx_t_15 = 1;
+          } else if (unlikely(__pyx_t_14 >= __pyx_v_flux.shape[1])) __pyx_t_15 = 1;
+          if (unlikely(__pyx_t_15 != -1)) {
+            __Pyx_RaiseBufferIndexError(__pyx_t_15);
+            __PYX_ERR(0, 42, __pyx_L1_error)
+          }
+
+          /* "ants/cyutils.pyx":43
+ *                 for og in range(groups):
+ *                     power_source[ig::groups][angle::angles][cell] += flux[cell][og] \
+ *                                     * xs_fission[material][ig][og]             # <<<<<<<<<<<<<<
+ * 
+ * cdef void add_manufactured_source(double[:] power_source, double[:] mms_source):
+ */
+          __pyx_t_16 = __pyx_v_material;
+          __pyx_t_17 = __pyx_v_ig;
+          __pyx_t_18 = __pyx_v_og;
+          __pyx_t_15 = -1;
+          if (__pyx_t_16 < 0) {
+            __pyx_t_16 += __pyx_v_xs_fission.shape[0];
+            if (unlikely(__pyx_t_16 < 0)) __pyx_t_15 = 0;
+          } else if (unlikely(__pyx_t_16 >= __pyx_v_xs_fission.shape[0])) __pyx_t_15 = 0;
+          if (__pyx_t_17 < 0) {
+            __pyx_t_17 += __pyx_v_xs_fission.shape[1];
+            if (unlikely(__pyx_t_17 < 0)) __pyx_t_15 = 1;
+          } else if (unlikely(__pyx_t_17 >= __pyx_v_xs_fission.shape[1])) __pyx_t_15 = 1;
+          if (__pyx_t_18 < 0) {
+            __pyx_t_18 += __pyx_v_xs_fission.shape[2];
+            if (unlikely(__pyx_t_18 < 0)) __pyx_t_15 = 2;
+          } else if (unlikely(__pyx_t_18 >= __pyx_v_xs_fission.shape[2])) __pyx_t_15 = 2;
+          if (unlikely(__pyx_t_15 != -1)) {
+            __Pyx_RaiseBufferIndexError(__pyx_t_15);
+            __PYX_ERR(0, 43, __pyx_L1_error)
+          }
+
+          /* "ants/cyutils.pyx":42
+ *             for ig in range(groups):
+ *                 for og in range(groups):
+ *                     power_source[ig::groups][angle::angles][cell] += flux[cell][og] \             # <<<<<<<<<<<<<<
+ *                                     * xs_fission[material][ig][og]
+ * 
+ */
+          __pyx_t_19.data = __pyx_v_power_source.data;
+          __pyx_t_19.memview = __pyx_v_power_source.memview;
+          __PYX_INC_MEMVIEW(&__pyx_t_19, 0);
+          __pyx_t_15 = -1;
+          if (unlikely(__pyx_memoryview_slice_memviewslice(
+    &__pyx_t_19,
+    __pyx_v_power_source.shape[0], __pyx_v_power_source.strides[0], __pyx_v_power_source.suboffsets[0],
+    0,
+    0,
+    &__pyx_t_15,
+    __pyx_v_ig,
+    0,
+    __pyx_v_groups,
+    1,
+    0,
+    1,
+    1) < 0))
+{
+    __PYX_ERR(0, 42, __pyx_L1_error)
+}
+
+__pyx_t_20.data = __pyx_t_19.data;
+          __pyx_t_20.memview = __pyx_t_19.memview;
+          __PYX_INC_MEMVIEW(&__pyx_t_20, 0);
+          __pyx_t_15 = -1;
+          if (unlikely(__pyx_memoryview_slice_memviewslice(
+    &__pyx_t_20,
+    __pyx_t_19.shape[0], __pyx_t_19.strides[0], __pyx_t_19.suboffsets[0],
+    0,
+    0,
+    &__pyx_t_15,
+    __pyx_v_angle,
+    0,
+    __pyx_v_angles,
+    1,
+    0,
+    1,
+    1) < 0))
+{
+    __PYX_ERR(0, 42, __pyx_L1_error)
+}
+
+__PYX_XDEC_MEMVIEW(&__pyx_t_19, 1);
+          __pyx_t_19.memview = NULL;
+          __pyx_t_19.data = NULL;
+          __pyx_t_21 = __pyx_v_cell;
+          __pyx_t_15 = -1;
+          if (__pyx_t_21 < 0) {
+            __pyx_t_21 += __pyx_t_20.shape[0];
+            if (unlikely(__pyx_t_21 < 0)) __pyx_t_15 = 0;
+          } else if (unlikely(__pyx_t_21 >= __pyx_t_20.shape[0])) __pyx_t_15 = 0;
+          if (unlikely(__pyx_t_15 != -1)) {
+            __Pyx_RaiseBufferIndexError(__pyx_t_15);
+            __PYX_ERR(0, 42, __pyx_L1_error)
+          }
+          *((double *) ( /* dim=0 */ (__pyx_t_20.data + __pyx_t_21 * __pyx_t_20.strides[0]) )) += ((*((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_flux.data + __pyx_t_4 * __pyx_v_flux.strides[0]) ) + __pyx_t_14 * __pyx_v_flux.strides[1]) ))) * (*((double *) ( /* dim=2 */ (( /* dim=1 */ (( /* dim=0 */ (__pyx_v_xs_fission.data + __pyx_t_16 * __pyx_v_xs_fission.strides[0]) ) + __pyx_t_17 * __pyx_v_xs_fission.strides[1]) ) + __pyx_t_18 * __pyx_v_xs_fission.strides[2]) ))));
+          __PYX_XDEC_MEMVIEW(&__pyx_t_20, 1);
+          __pyx_t_20.memview = NULL;
+          __pyx_t_20.data = NULL;
+        }
+      }
+    }
+  }
+
+  /* "ants/cyutils.pyx":31
+ *                                 * xs_fission[material][ingroup][outgroup]
+ * 
+ * cdef void mms_power_iteration_source(double[:] power_source, double[:,:] flux, \             # <<<<<<<<<<<<<<
+ *                         int[:] medium_map, double[:,:,:] xs_fission, int angles):
+ *     power_source[:] = 0
+ */
+
+  /* function exit code */
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __PYX_XDEC_MEMVIEW(&__pyx_t_19, 1);
+  __PYX_XDEC_MEMVIEW(&__pyx_t_20, 1);
+  __Pyx_WriteUnraisable("ants.cyutils.mms_power_iteration_source", __pyx_clineno, __pyx_lineno, __pyx_filename, 1, 0);
+  __pyx_L0:;
+  __Pyx_RefNannyFinishContext();
+}
+
+/* "ants/cyutils.pyx":45
+ *                                     * xs_fission[material][ig][og]
+ * 
+ * cdef void add_manufactured_source(double[:] power_source, double[:] mms_source):             # <<<<<<<<<<<<<<
+ *     cdef int cells = power_source.shape[0]
+ *     cdef int cell
+ */
+
+static void __pyx_f_4ants_7cyutils_add_manufactured_source(__Pyx_memviewslice __pyx_v_power_source, __Pyx_memviewslice __pyx_v_mms_source) {
+  int __pyx_v_cells;
+  int __pyx_v_cell;
+  __Pyx_RefNannyDeclarations
+  int __pyx_t_1;
+  int __pyx_t_2;
+  int __pyx_t_3;
+  Py_ssize_t __pyx_t_4;
+  int __pyx_t_5;
+  Py_ssize_t __pyx_t_6;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("add_manufactured_source", 0);
+
+  /* "ants/cyutils.pyx":46
+ * 
+ * cdef void add_manufactured_source(double[:] power_source, double[:] mms_source):
+ *     cdef int cells = power_source.shape[0]             # <<<<<<<<<<<<<<
+ *     cdef int cell
+ *     for cell in range(cells):
+ */
+  __pyx_v_cells = (__pyx_v_power_source.shape[0]);
+
+  /* "ants/cyutils.pyx":48
+ *     cdef int cells = power_source.shape[0]
+ *     cdef int cell
+ *     for cell in range(cells):             # <<<<<<<<<<<<<<
+ *         power_source[cell] += mms_source[cell]
+ * 
+ */
+  __pyx_t_1 = __pyx_v_cells;
+  __pyx_t_2 = __pyx_t_1;
+  for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_2; __pyx_t_3+=1) {
+    __pyx_v_cell = __pyx_t_3;
+
+    /* "ants/cyutils.pyx":49
+ *     cdef int cell
+ *     for cell in range(cells):
+ *         power_source[cell] += mms_source[cell]             # <<<<<<<<<<<<<<
+ * 
+ * cdef double normalize_flux(double[:,:] flux):
+ */
+    __pyx_t_4 = __pyx_v_cell;
+    __pyx_t_5 = -1;
+    if (__pyx_t_4 < 0) {
+      __pyx_t_4 += __pyx_v_mms_source.shape[0];
+      if (unlikely(__pyx_t_4 < 0)) __pyx_t_5 = 0;
+    } else if (unlikely(__pyx_t_4 >= __pyx_v_mms_source.shape[0])) __pyx_t_5 = 0;
+    if (unlikely(__pyx_t_5 != -1)) {
+      __Pyx_RaiseBufferIndexError(__pyx_t_5);
+      __PYX_ERR(0, 49, __pyx_L1_error)
+    }
+    __pyx_t_6 = __pyx_v_cell;
+    __pyx_t_5 = -1;
+    if (__pyx_t_6 < 0) {
+      __pyx_t_6 += __pyx_v_power_source.shape[0];
+      if (unlikely(__pyx_t_6 < 0)) __pyx_t_5 = 0;
+    } else if (unlikely(__pyx_t_6 >= __pyx_v_power_source.shape[0])) __pyx_t_5 = 0;
+    if (unlikely(__pyx_t_5 != -1)) {
+      __Pyx_RaiseBufferIndexError(__pyx_t_5);
+      __PYX_ERR(0, 49, __pyx_L1_error)
+    }
+    *((double *) ( /* dim=0 */ (__pyx_v_power_source.data + __pyx_t_6 * __pyx_v_power_source.strides[0]) )) += (*((double *) ( /* dim=0 */ (__pyx_v_mms_source.data + __pyx_t_4 * __pyx_v_mms_source.strides[0]) )));
+  }
+
+  /* "ants/cyutils.pyx":45
+ *                                     * xs_fission[material][ig][og]
+ * 
+ * cdef void add_manufactured_source(double[:] power_source, double[:] mms_source):             # <<<<<<<<<<<<<<
+ *     cdef int cells = power_source.shape[0]
+ *     cdef int cell
+ */
+
+  /* function exit code */
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __Pyx_WriteUnraisable("ants.cyutils.add_manufactured_source", __pyx_clineno, __pyx_lineno, __pyx_filename, 1, 0);
+  __pyx_L0:;
+  __Pyx_RefNannyFinishContext();
+}
+
+/* "ants/cyutils.pyx":51
+ *         power_source[cell] += mms_source[cell]
+ * 
  * cdef double normalize_flux(double[:,:] flux):             # <<<<<<<<<<<<<<
  *     cdef double keff = 0
  *     cdef int cells = flux.shape[0]
@@ -2363,7 +2743,7 @@ static double __pyx_f_4ants_7cyutils_normalize_flux(__Pyx_memviewslice __pyx_v_f
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("normalize_flux", 0);
 
-  /* "ants/cyutils.pyx":32
+  /* "ants/cyutils.pyx":52
  * 
  * cdef double normalize_flux(double[:,:] flux):
  *     cdef double keff = 0             # <<<<<<<<<<<<<<
@@ -2372,7 +2752,7 @@ static double __pyx_f_4ants_7cyutils_normalize_flux(__Pyx_memviewslice __pyx_v_f
  */
   __pyx_v_keff = 0.0;
 
-  /* "ants/cyutils.pyx":33
+  /* "ants/cyutils.pyx":53
  * cdef double normalize_flux(double[:,:] flux):
  *     cdef double keff = 0
  *     cdef int cells = flux.shape[0]             # <<<<<<<<<<<<<<
@@ -2381,7 +2761,7 @@ static double __pyx_f_4ants_7cyutils_normalize_flux(__Pyx_memviewslice __pyx_v_f
  */
   __pyx_v_cells = (__pyx_v_flux.shape[0]);
 
-  /* "ants/cyutils.pyx":34
+  /* "ants/cyutils.pyx":54
  *     cdef double keff = 0
  *     cdef int cells = flux.shape[0]
  *     cdef int groups = flux.shape[1]             # <<<<<<<<<<<<<<
@@ -2390,7 +2770,7 @@ static double __pyx_f_4ants_7cyutils_normalize_flux(__Pyx_memviewslice __pyx_v_f
  */
   __pyx_v_groups = (__pyx_v_flux.shape[1]);
 
-  /* "ants/cyutils.pyx":35
+  /* "ants/cyutils.pyx":55
  *     cdef int cells = flux.shape[0]
  *     cdef int groups = flux.shape[1]
  *     for group in range(groups):             # <<<<<<<<<<<<<<
@@ -2402,7 +2782,7 @@ static double __pyx_f_4ants_7cyutils_normalize_flux(__Pyx_memviewslice __pyx_v_f
   for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_2; __pyx_t_3+=1) {
     __pyx_v_group = __pyx_t_3;
 
-    /* "ants/cyutils.pyx":36
+    /* "ants/cyutils.pyx":56
  *     cdef int groups = flux.shape[1]
  *     for group in range(groups):
  *         for cell in range(cells):             # <<<<<<<<<<<<<<
@@ -2414,7 +2794,7 @@ static double __pyx_f_4ants_7cyutils_normalize_flux(__Pyx_memviewslice __pyx_v_f
     for (__pyx_t_6 = 0; __pyx_t_6 < __pyx_t_5; __pyx_t_6+=1) {
       __pyx_v_cell = __pyx_t_6;
 
-      /* "ants/cyutils.pyx":37
+      /* "ants/cyutils.pyx":57
  *     for group in range(groups):
  *         for cell in range(cells):
  *             keff += pow(flux[cell][group], 2)             # <<<<<<<<<<<<<<
@@ -2434,13 +2814,13 @@ static double __pyx_f_4ants_7cyutils_normalize_flux(__Pyx_memviewslice __pyx_v_f
       } else if (unlikely(__pyx_t_8 >= __pyx_v_flux.shape[1])) __pyx_t_9 = 1;
       if (unlikely(__pyx_t_9 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_9);
-        __PYX_ERR(0, 37, __pyx_L1_error)
+        __PYX_ERR(0, 57, __pyx_L1_error)
       }
       __pyx_v_keff = (__pyx_v_keff + pow((*((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_flux.data + __pyx_t_7 * __pyx_v_flux.strides[0]) ) + __pyx_t_8 * __pyx_v_flux.strides[1]) ))), 2.0));
     }
   }
 
-  /* "ants/cyutils.pyx":38
+  /* "ants/cyutils.pyx":58
  *         for cell in range(cells):
  *             keff += pow(flux[cell][group], 2)
  *     keff = sqrt(keff)             # <<<<<<<<<<<<<<
@@ -2449,7 +2829,7 @@ static double __pyx_f_4ants_7cyutils_normalize_flux(__Pyx_memviewslice __pyx_v_f
  */
   __pyx_v_keff = sqrt(__pyx_v_keff);
 
-  /* "ants/cyutils.pyx":39
+  /* "ants/cyutils.pyx":59
  *             keff += pow(flux[cell][group], 2)
  *     keff = sqrt(keff)
  *     return keff             # <<<<<<<<<<<<<<
@@ -2459,8 +2839,8 @@ static double __pyx_f_4ants_7cyutils_normalize_flux(__Pyx_memviewslice __pyx_v_f
   __pyx_r = __pyx_v_keff;
   goto __pyx_L0;
 
-  /* "ants/cyutils.pyx":31
- *                                 * xs_fission[material][ingroup][outgroup]
+  /* "ants/cyutils.pyx":51
+ *         power_source[cell] += mms_source[cell]
  * 
  * cdef double normalize_flux(double[:,:] flux):             # <<<<<<<<<<<<<<
  *     cdef double keff = 0
@@ -2476,7 +2856,7 @@ static double __pyx_f_4ants_7cyutils_normalize_flux(__Pyx_memviewslice __pyx_v_f
   return __pyx_r;
 }
 
-/* "ants/cyutils.pyx":41
+/* "ants/cyutils.pyx":61
  *     return keff
  * 
  * cdef void divide_by_keff(double[:,:] flux, double keff):             # <<<<<<<<<<<<<<
@@ -2504,7 +2884,7 @@ static void __pyx_f_4ants_7cyutils_divide_by_keff(__Pyx_memviewslice __pyx_v_flu
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("divide_by_keff", 0);
 
-  /* "ants/cyutils.pyx":42
+  /* "ants/cyutils.pyx":62
  * 
  * cdef void divide_by_keff(double[:,:] flux, double keff):
  *     cdef int cells = flux.shape[0]             # <<<<<<<<<<<<<<
@@ -2513,7 +2893,7 @@ static void __pyx_f_4ants_7cyutils_divide_by_keff(__Pyx_memviewslice __pyx_v_flu
  */
   __pyx_v_cells = (__pyx_v_flux.shape[0]);
 
-  /* "ants/cyutils.pyx":43
+  /* "ants/cyutils.pyx":63
  * cdef void divide_by_keff(double[:,:] flux, double keff):
  *     cdef int cells = flux.shape[0]
  *     cdef int groups = flux.shape[1]             # <<<<<<<<<<<<<<
@@ -2522,7 +2902,7 @@ static void __pyx_f_4ants_7cyutils_divide_by_keff(__Pyx_memviewslice __pyx_v_flu
  */
   __pyx_v_groups = (__pyx_v_flux.shape[1]);
 
-  /* "ants/cyutils.pyx":44
+  /* "ants/cyutils.pyx":64
  *     cdef int cells = flux.shape[0]
  *     cdef int groups = flux.shape[1]
  *     for group in range(groups):             # <<<<<<<<<<<<<<
@@ -2534,7 +2914,7 @@ static void __pyx_f_4ants_7cyutils_divide_by_keff(__Pyx_memviewslice __pyx_v_flu
   for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_2; __pyx_t_3+=1) {
     __pyx_v_group = __pyx_t_3;
 
-    /* "ants/cyutils.pyx":45
+    /* "ants/cyutils.pyx":65
  *     cdef int groups = flux.shape[1]
  *     for group in range(groups):
  *         for cell in range(cells):             # <<<<<<<<<<<<<<
@@ -2546,7 +2926,7 @@ static void __pyx_f_4ants_7cyutils_divide_by_keff(__Pyx_memviewslice __pyx_v_flu
     for (__pyx_t_6 = 0; __pyx_t_6 < __pyx_t_5; __pyx_t_6+=1) {
       __pyx_v_cell = __pyx_t_6;
 
-      /* "ants/cyutils.pyx":46
+      /* "ants/cyutils.pyx":66
  *     for group in range(groups):
  *         for cell in range(cells):
  *             flux[cell][group] /= keff             # <<<<<<<<<<<<<<
@@ -2566,13 +2946,13 @@ static void __pyx_f_4ants_7cyutils_divide_by_keff(__Pyx_memviewslice __pyx_v_flu
       } else if (unlikely(__pyx_t_8 >= __pyx_v_flux.shape[1])) __pyx_t_9 = 1;
       if (unlikely(__pyx_t_9 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_9);
-        __PYX_ERR(0, 46, __pyx_L1_error)
+        __PYX_ERR(0, 66, __pyx_L1_error)
       }
       *((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_flux.data + __pyx_t_7 * __pyx_v_flux.strides[0]) ) + __pyx_t_8 * __pyx_v_flux.strides[1]) )) /= __pyx_v_keff;
     }
   }
 
-  /* "ants/cyutils.pyx":41
+  /* "ants/cyutils.pyx":61
  *     return keff
  * 
  * cdef void divide_by_keff(double[:,:] flux, double keff):             # <<<<<<<<<<<<<<
@@ -2588,7 +2968,7 @@ static void __pyx_f_4ants_7cyutils_divide_by_keff(__Pyx_memviewslice __pyx_v_flu
   __Pyx_RefNannyFinishContext();
 }
 
-/* "ants/cyutils.pyx":48
+/* "ants/cyutils.pyx":68
  *             flux[cell][group] /= keff
  * 
  * cdef void combine_self_scattering(double[:,:,:] xs_matrix, \             # <<<<<<<<<<<<<<
@@ -2627,7 +3007,7 @@ static void __pyx_f_4ants_7cyutils_combine_self_scattering(__Pyx_memviewslice __
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("combine_self_scattering", 0);
 
-  /* "ants/cyutils.pyx":50
+  /* "ants/cyutils.pyx":70
  * cdef void combine_self_scattering(double[:,:,:] xs_matrix, \
  *                 double[:,:,:] xs_scatter, double[:,:,:] xs_fission):
  *     cdef size_t materials = xs_matrix.shape[0]             # <<<<<<<<<<<<<<
@@ -2636,7 +3016,7 @@ static void __pyx_f_4ants_7cyutils_combine_self_scattering(__Pyx_memviewslice __
  */
   __pyx_v_materials = (__pyx_v_xs_matrix.shape[0]);
 
-  /* "ants/cyutils.pyx":51
+  /* "ants/cyutils.pyx":71
  *                 double[:,:,:] xs_scatter, double[:,:,:] xs_fission):
  *     cdef size_t materials = xs_matrix.shape[0]
  *     cdef size_t groups = xs_matrix.shape[1]             # <<<<<<<<<<<<<<
@@ -2645,7 +3025,7 @@ static void __pyx_f_4ants_7cyutils_combine_self_scattering(__Pyx_memviewslice __
  */
   __pyx_v_groups = (__pyx_v_xs_matrix.shape[1]);
 
-  /* "ants/cyutils.pyx":52
+  /* "ants/cyutils.pyx":72
  *     cdef size_t materials = xs_matrix.shape[0]
  *     cdef size_t groups = xs_matrix.shape[1]
  *     for mat in range(materials):             # <<<<<<<<<<<<<<
@@ -2657,7 +3037,7 @@ static void __pyx_f_4ants_7cyutils_combine_self_scattering(__Pyx_memviewslice __
   for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_2; __pyx_t_3+=1) {
     __pyx_v_mat = __pyx_t_3;
 
-    /* "ants/cyutils.pyx":53
+    /* "ants/cyutils.pyx":73
  *     cdef size_t groups = xs_matrix.shape[1]
  *     for mat in range(materials):
  *         for ing in range(groups):             # <<<<<<<<<<<<<<
@@ -2669,7 +3049,7 @@ static void __pyx_f_4ants_7cyutils_combine_self_scattering(__Pyx_memviewslice __
     for (__pyx_t_6 = 0; __pyx_t_6 < __pyx_t_5; __pyx_t_6+=1) {
       __pyx_v_ing = __pyx_t_6;
 
-      /* "ants/cyutils.pyx":54
+      /* "ants/cyutils.pyx":74
  *     for mat in range(materials):
  *         for ing in range(groups):
  *             for outg in range(groups):             # <<<<<<<<<<<<<<
@@ -2681,7 +3061,7 @@ static void __pyx_f_4ants_7cyutils_combine_self_scattering(__Pyx_memviewslice __
       for (__pyx_t_9 = 0; __pyx_t_9 < __pyx_t_8; __pyx_t_9+=1) {
         __pyx_v_outg = __pyx_t_9;
 
-        /* "ants/cyutils.pyx":55
+        /* "ants/cyutils.pyx":75
  *         for ing in range(groups):
  *             for outg in range(groups):
  *                 xs_matrix[mat][ing][outg] = xs_scatter[mat][ing][outg] \             # <<<<<<<<<<<<<<
@@ -2697,10 +3077,10 @@ static void __pyx_f_4ants_7cyutils_combine_self_scattering(__Pyx_memviewslice __
         if (unlikely(__pyx_t_12 >= (size_t)__pyx_v_xs_scatter.shape[2])) __pyx_t_13 = 2;
         if (unlikely(__pyx_t_13 != -1)) {
           __Pyx_RaiseBufferIndexError(__pyx_t_13);
-          __PYX_ERR(0, 55, __pyx_L1_error)
+          __PYX_ERR(0, 75, __pyx_L1_error)
         }
 
-        /* "ants/cyutils.pyx":56
+        /* "ants/cyutils.pyx":76
  *             for outg in range(groups):
  *                 xs_matrix[mat][ing][outg] = xs_scatter[mat][ing][outg] \
  *                                             + xs_fission[mat][ing][outg]             # <<<<<<<<<<<<<<
@@ -2716,10 +3096,10 @@ static void __pyx_f_4ants_7cyutils_combine_self_scattering(__Pyx_memviewslice __
         if (unlikely(__pyx_t_16 >= (size_t)__pyx_v_xs_fission.shape[2])) __pyx_t_13 = 2;
         if (unlikely(__pyx_t_13 != -1)) {
           __Pyx_RaiseBufferIndexError(__pyx_t_13);
-          __PYX_ERR(0, 56, __pyx_L1_error)
+          __PYX_ERR(0, 76, __pyx_L1_error)
         }
 
-        /* "ants/cyutils.pyx":55
+        /* "ants/cyutils.pyx":75
  *         for ing in range(groups):
  *             for outg in range(groups):
  *                 xs_matrix[mat][ing][outg] = xs_scatter[mat][ing][outg] \             # <<<<<<<<<<<<<<
@@ -2735,14 +3115,14 @@ static void __pyx_f_4ants_7cyutils_combine_self_scattering(__Pyx_memviewslice __
         if (unlikely(__pyx_t_19 >= (size_t)__pyx_v_xs_matrix.shape[2])) __pyx_t_13 = 2;
         if (unlikely(__pyx_t_13 != -1)) {
           __Pyx_RaiseBufferIndexError(__pyx_t_13);
-          __PYX_ERR(0, 55, __pyx_L1_error)
+          __PYX_ERR(0, 75, __pyx_L1_error)
         }
         *((double *) ( /* dim=2 */ (( /* dim=1 */ (( /* dim=0 */ (__pyx_v_xs_matrix.data + __pyx_t_17 * __pyx_v_xs_matrix.strides[0]) ) + __pyx_t_18 * __pyx_v_xs_matrix.strides[1]) ) + __pyx_t_19 * __pyx_v_xs_matrix.strides[2]) )) = ((*((double *) ( /* dim=2 */ (( /* dim=1 */ (( /* dim=0 */ (__pyx_v_xs_scatter.data + __pyx_t_10 * __pyx_v_xs_scatter.strides[0]) ) + __pyx_t_11 * __pyx_v_xs_scatter.strides[1]) ) + __pyx_t_12 * __pyx_v_xs_scatter.strides[2]) ))) + (*((double *) ( /* dim=2 */ (( /* dim=1 */ (( /* dim=0 */ (__pyx_v_xs_fission.data + __pyx_t_14 * __pyx_v_xs_fission.strides[0]) ) + __pyx_t_15 * __pyx_v_xs_fission.strides[1]) ) + __pyx_t_16 * __pyx_v_xs_fission.strides[2]) ))));
       }
     }
   }
 
-  /* "ants/cyutils.pyx":48
+  /* "ants/cyutils.pyx":68
  *             flux[cell][group] /= keff
  * 
  * cdef void combine_self_scattering(double[:,:,:] xs_matrix, \             # <<<<<<<<<<<<<<
@@ -2758,7 +3138,7 @@ static void __pyx_f_4ants_7cyutils_combine_self_scattering(__Pyx_memviewslice __
   __Pyx_RefNannyFinishContext();
 }
 
-/* "ants/cyutils.pyx":58
+/* "ants/cyutils.pyx":78
  *                                             + xs_fission[mat][ing][outg]
  * 
  * cdef void off_scatter_source(double[:,:]& flux, double[:,:]& flux_old, \             # <<<<<<<<<<<<<<
@@ -2793,7 +3173,7 @@ static void __pyx_f_4ants_7cyutils_off_scatter_source(__Pyx_memviewslice &__pyx_
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("off_scatter_source", 0);
 
-  /* "ants/cyutils.pyx":61
+  /* "ants/cyutils.pyx":81
  *                              int[:]& medium_map, double[:,:,:]& xs_matrix, \
  *                              double[:]& source, int group):
  *     cdef int groups = flux.shape[1]             # <<<<<<<<<<<<<<
@@ -2802,7 +3182,7 @@ static void __pyx_f_4ants_7cyutils_off_scatter_source(__Pyx_memviewslice &__pyx_
  */
   __pyx_v_groups = (__pyx_v_flux.shape[1]);
 
-  /* "ants/cyutils.pyx":62
+  /* "ants/cyutils.pyx":82
  *                              double[:]& source, int group):
  *     cdef int groups = flux.shape[1]
  *     cdef int cells = medium_map.shape[0]             # <<<<<<<<<<<<<<
@@ -2811,7 +3191,7 @@ static void __pyx_f_4ants_7cyutils_off_scatter_source(__Pyx_memviewslice &__pyx_
  */
   __pyx_v_cells = (__pyx_v_medium_map.shape[0]);
 
-  /* "ants/cyutils.pyx":63
+  /* "ants/cyutils.pyx":83
  *     cdef int groups = flux.shape[1]
  *     cdef int cells = medium_map.shape[0]
  *     source[:] = 0             # <<<<<<<<<<<<<<
@@ -2833,7 +3213,7 @@ static void __pyx_f_4ants_7cyutils_off_scatter_source(__Pyx_memviewslice &__pyx_
       }
   }
 
-  /* "ants/cyutils.pyx":64
+  /* "ants/cyutils.pyx":84
  *     cdef int cells = medium_map.shape[0]
  *     source[:] = 0
  *     for cell in range(cells):             # <<<<<<<<<<<<<<
@@ -2845,7 +3225,7 @@ static void __pyx_f_4ants_7cyutils_off_scatter_source(__Pyx_memviewslice &__pyx_
   for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_2; __pyx_t_3+=1) {
     __pyx_v_cell = __pyx_t_3;
 
-    /* "ants/cyutils.pyx":65
+    /* "ants/cyutils.pyx":85
  *     source[:] = 0
  *     for cell in range(cells):
  *         material = medium_map[cell]             # <<<<<<<<<<<<<<
@@ -2860,14 +3240,14 @@ static void __pyx_f_4ants_7cyutils_off_scatter_source(__Pyx_memviewslice &__pyx_
     } else if (unlikely(__pyx_t_4 >= __pyx_v_medium_map.shape[0])) __pyx_t_5 = 0;
     if (unlikely(__pyx_t_5 != -1)) {
       __Pyx_RaiseBufferIndexError(__pyx_t_5);
-      __PYX_ERR(0, 65, __pyx_L1_error)
+      __PYX_ERR(0, 85, __pyx_L1_error)
     }
-    __pyx_t_6 = __Pyx_PyInt_From_int((*((int *) ( /* dim=0 */ (__pyx_v_medium_map.data + __pyx_t_4 * __pyx_v_medium_map.strides[0]) )))); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 65, __pyx_L1_error)
+    __pyx_t_6 = __Pyx_PyInt_From_int((*((int *) ( /* dim=0 */ (__pyx_v_medium_map.data + __pyx_t_4 * __pyx_v_medium_map.strides[0]) )))); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 85, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_6);
     __Pyx_XDECREF_SET(__pyx_v_material, __pyx_t_6);
     __pyx_t_6 = 0;
 
-    /* "ants/cyutils.pyx":66
+    /* "ants/cyutils.pyx":86
  *     for cell in range(cells):
  *         material = medium_map[cell]
  *         for outgroup in range(0, group):             # <<<<<<<<<<<<<<
@@ -2879,14 +3259,14 @@ static void __pyx_f_4ants_7cyutils_off_scatter_source(__Pyx_memviewslice &__pyx_
     for (__pyx_t_8 = 0; __pyx_t_8 < __pyx_t_7; __pyx_t_8+=1) {
       __pyx_v_outgroup = __pyx_t_8;
 
-      /* "ants/cyutils.pyx":67
+      /* "ants/cyutils.pyx":87
  *         material = medium_map[cell]
  *         for outgroup in range(0, group):
  *             source[cell] += xs_matrix[material, group, outgroup] \             # <<<<<<<<<<<<<<
  *                             * flux[cell, outgroup]
  *         for outgroup in range(group+1, groups):
  */
-      __pyx_t_9 = __Pyx_PyIndex_AsSsize_t(__pyx_v_material); if (unlikely((__pyx_t_9 == (Py_ssize_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 67, __pyx_L1_error)
+      __pyx_t_9 = __Pyx_PyIndex_AsSsize_t(__pyx_v_material); if (unlikely((__pyx_t_9 == (Py_ssize_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 87, __pyx_L1_error)
       __pyx_t_4 = __pyx_t_9;
       __pyx_t_10 = __pyx_v_group;
       __pyx_t_11 = __pyx_v_outgroup;
@@ -2905,10 +3285,10 @@ static void __pyx_f_4ants_7cyutils_off_scatter_source(__Pyx_memviewslice &__pyx_
       } else if (unlikely(__pyx_t_11 >= __pyx_v_xs_matrix.shape[2])) __pyx_t_12 = 2;
       if (unlikely(__pyx_t_12 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_12);
-        __PYX_ERR(0, 67, __pyx_L1_error)
+        __PYX_ERR(0, 87, __pyx_L1_error)
       }
 
-      /* "ants/cyutils.pyx":68
+      /* "ants/cyutils.pyx":88
  *         for outgroup in range(0, group):
  *             source[cell] += xs_matrix[material, group, outgroup] \
  *                             * flux[cell, outgroup]             # <<<<<<<<<<<<<<
@@ -2928,10 +3308,10 @@ static void __pyx_f_4ants_7cyutils_off_scatter_source(__Pyx_memviewslice &__pyx_
       } else if (unlikely(__pyx_t_14 >= __pyx_v_flux.shape[1])) __pyx_t_12 = 1;
       if (unlikely(__pyx_t_12 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_12);
-        __PYX_ERR(0, 68, __pyx_L1_error)
+        __PYX_ERR(0, 88, __pyx_L1_error)
       }
 
-      /* "ants/cyutils.pyx":67
+      /* "ants/cyutils.pyx":87
  *         material = medium_map[cell]
  *         for outgroup in range(0, group):
  *             source[cell] += xs_matrix[material, group, outgroup] \             # <<<<<<<<<<<<<<
@@ -2946,12 +3326,12 @@ static void __pyx_f_4ants_7cyutils_off_scatter_source(__Pyx_memviewslice &__pyx_
       } else if (unlikely(__pyx_t_15 >= __pyx_v_source.shape[0])) __pyx_t_12 = 0;
       if (unlikely(__pyx_t_12 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_12);
-        __PYX_ERR(0, 67, __pyx_L1_error)
+        __PYX_ERR(0, 87, __pyx_L1_error)
       }
       *((double *) ( /* dim=0 */ (__pyx_v_source.data + __pyx_t_15 * __pyx_v_source.strides[0]) )) += ((*((double *) ( /* dim=2 */ (( /* dim=1 */ (( /* dim=0 */ (__pyx_v_xs_matrix.data + __pyx_t_4 * __pyx_v_xs_matrix.strides[0]) ) + __pyx_t_10 * __pyx_v_xs_matrix.strides[1]) ) + __pyx_t_11 * __pyx_v_xs_matrix.strides[2]) ))) * (*((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_flux.data + __pyx_t_13 * __pyx_v_flux.strides[0]) ) + __pyx_t_14 * __pyx_v_flux.strides[1]) ))));
     }
 
-    /* "ants/cyutils.pyx":69
+    /* "ants/cyutils.pyx":89
  *             source[cell] += xs_matrix[material, group, outgroup] \
  *                             * flux[cell, outgroup]
  *         for outgroup in range(group+1, groups):             # <<<<<<<<<<<<<<
@@ -2963,14 +3343,14 @@ static void __pyx_f_4ants_7cyutils_off_scatter_source(__Pyx_memviewslice &__pyx_
     for (__pyx_t_8 = (__pyx_v_group + 1); __pyx_t_8 < __pyx_t_7; __pyx_t_8+=1) {
       __pyx_v_outgroup = __pyx_t_8;
 
-      /* "ants/cyutils.pyx":70
+      /* "ants/cyutils.pyx":90
  *                             * flux[cell, outgroup]
  *         for outgroup in range(group+1, groups):
  *             source[cell] += xs_matrix[material, group, outgroup] \             # <<<<<<<<<<<<<<
  *                             * flux_old[cell, outgroup]
  * 
  */
-      __pyx_t_9 = __Pyx_PyIndex_AsSsize_t(__pyx_v_material); if (unlikely((__pyx_t_9 == (Py_ssize_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 70, __pyx_L1_error)
+      __pyx_t_9 = __Pyx_PyIndex_AsSsize_t(__pyx_v_material); if (unlikely((__pyx_t_9 == (Py_ssize_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 90, __pyx_L1_error)
       __pyx_t_14 = __pyx_t_9;
       __pyx_t_13 = __pyx_v_group;
       __pyx_t_11 = __pyx_v_outgroup;
@@ -2989,10 +3369,10 @@ static void __pyx_f_4ants_7cyutils_off_scatter_source(__Pyx_memviewslice &__pyx_
       } else if (unlikely(__pyx_t_11 >= __pyx_v_xs_matrix.shape[2])) __pyx_t_12 = 2;
       if (unlikely(__pyx_t_12 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_12);
-        __PYX_ERR(0, 70, __pyx_L1_error)
+        __PYX_ERR(0, 90, __pyx_L1_error)
       }
 
-      /* "ants/cyutils.pyx":71
+      /* "ants/cyutils.pyx":91
  *         for outgroup in range(group+1, groups):
  *             source[cell] += xs_matrix[material, group, outgroup] \
  *                             * flux_old[cell, outgroup]             # <<<<<<<<<<<<<<
@@ -3012,10 +3392,10 @@ static void __pyx_f_4ants_7cyutils_off_scatter_source(__Pyx_memviewslice &__pyx_
       } else if (unlikely(__pyx_t_4 >= __pyx_v_flux_old.shape[1])) __pyx_t_12 = 1;
       if (unlikely(__pyx_t_12 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_12);
-        __PYX_ERR(0, 71, __pyx_L1_error)
+        __PYX_ERR(0, 91, __pyx_L1_error)
       }
 
-      /* "ants/cyutils.pyx":70
+      /* "ants/cyutils.pyx":90
  *                             * flux[cell, outgroup]
  *         for outgroup in range(group+1, groups):
  *             source[cell] += xs_matrix[material, group, outgroup] \             # <<<<<<<<<<<<<<
@@ -3030,13 +3410,13 @@ static void __pyx_f_4ants_7cyutils_off_scatter_source(__Pyx_memviewslice &__pyx_
       } else if (unlikely(__pyx_t_15 >= __pyx_v_source.shape[0])) __pyx_t_12 = 0;
       if (unlikely(__pyx_t_12 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_12);
-        __PYX_ERR(0, 70, __pyx_L1_error)
+        __PYX_ERR(0, 90, __pyx_L1_error)
       }
       *((double *) ( /* dim=0 */ (__pyx_v_source.data + __pyx_t_15 * __pyx_v_source.strides[0]) )) += ((*((double *) ( /* dim=2 */ (( /* dim=1 */ (( /* dim=0 */ (__pyx_v_xs_matrix.data + __pyx_t_14 * __pyx_v_xs_matrix.strides[0]) ) + __pyx_t_13 * __pyx_v_xs_matrix.strides[1]) ) + __pyx_t_11 * __pyx_v_xs_matrix.strides[2]) ))) * (*((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_flux_old.data + __pyx_t_10 * __pyx_v_flux_old.strides[0]) ) + __pyx_t_4 * __pyx_v_flux_old.strides[1]) ))));
     }
   }
 
-  /* "ants/cyutils.pyx":58
+  /* "ants/cyutils.pyx":78
  *                                             + xs_fission[mat][ing][outg]
  * 
  * cdef void off_scatter_source(double[:,:]& flux, double[:,:]& flux_old, \             # <<<<<<<<<<<<<<
@@ -3054,7 +3434,7 @@ static void __pyx_f_4ants_7cyutils_off_scatter_source(__Pyx_memviewslice &__pyx_
   __Pyx_RefNannyFinishContext();
 }
 
-/* "ants/cyutils.pyx":73
+/* "ants/cyutils.pyx":93
  *                             * flux_old[cell, outgroup]
  * 
  * cdef void off_scatter_source_angular(double[:,:,:]& flux, double[:,:,:]& flux_old, \             # <<<<<<<<<<<<<<
@@ -3096,7 +3476,7 @@ static void __pyx_f_4ants_7cyutils_off_scatter_source_angular(__Pyx_memviewslice
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("off_scatter_source_angular", 0);
 
-  /* "ants/cyutils.pyx":76
+  /* "ants/cyutils.pyx":96
  *                         int[:]& medium_map, double[:,:,:]& xs_matrix, \
  *                         double[:]& source, size_t group, double[:]& weight):
  *     cdef size_t groups = flux.shape[2]             # <<<<<<<<<<<<<<
@@ -3105,7 +3485,7 @@ static void __pyx_f_4ants_7cyutils_off_scatter_source_angular(__Pyx_memviewslice
  */
   __pyx_v_groups = (__pyx_v_flux.shape[2]);
 
-  /* "ants/cyutils.pyx":77
+  /* "ants/cyutils.pyx":97
  *                         double[:]& source, size_t group, double[:]& weight):
  *     cdef size_t groups = flux.shape[2]
  *     cdef size_t cells = medium_map.shape[0]             # <<<<<<<<<<<<<<
@@ -3114,7 +3494,7 @@ static void __pyx_f_4ants_7cyutils_off_scatter_source_angular(__Pyx_memviewslice
  */
   __pyx_v_cells = (__pyx_v_medium_map.shape[0]);
 
-  /* "ants/cyutils.pyx":78
+  /* "ants/cyutils.pyx":98
  *     cdef size_t groups = flux.shape[2]
  *     cdef size_t cells = medium_map.shape[0]
  *     cdef size_t angles = weight.shape[0]             # <<<<<<<<<<<<<<
@@ -3123,7 +3503,7 @@ static void __pyx_f_4ants_7cyutils_off_scatter_source_angular(__Pyx_memviewslice
  */
   __pyx_v_angles = (__pyx_v_weight.shape[0]);
 
-  /* "ants/cyutils.pyx":79
+  /* "ants/cyutils.pyx":99
  *     cdef size_t cells = medium_map.shape[0]
  *     cdef size_t angles = weight.shape[0]
  *     source[:] = 0             # <<<<<<<<<<<<<<
@@ -3145,7 +3525,7 @@ static void __pyx_f_4ants_7cyutils_off_scatter_source_angular(__Pyx_memviewslice
       }
   }
 
-  /* "ants/cyutils.pyx":80
+  /* "ants/cyutils.pyx":100
  *     cdef size_t angles = weight.shape[0]
  *     source[:] = 0
  *     for cell in range(cells):             # <<<<<<<<<<<<<<
@@ -3157,7 +3537,7 @@ static void __pyx_f_4ants_7cyutils_off_scatter_source_angular(__Pyx_memviewslice
   for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_2; __pyx_t_3+=1) {
     __pyx_v_cell = __pyx_t_3;
 
-    /* "ants/cyutils.pyx":81
+    /* "ants/cyutils.pyx":101
  *     source[:] = 0
  *     for cell in range(cells):
  *         material = medium_map[cell]             # <<<<<<<<<<<<<<
@@ -3169,14 +3549,14 @@ static void __pyx_f_4ants_7cyutils_off_scatter_source_angular(__Pyx_memviewslice
     if (unlikely(__pyx_t_4 >= (size_t)__pyx_v_medium_map.shape[0])) __pyx_t_5 = 0;
     if (unlikely(__pyx_t_5 != -1)) {
       __Pyx_RaiseBufferIndexError(__pyx_t_5);
-      __PYX_ERR(0, 81, __pyx_L1_error)
+      __PYX_ERR(0, 101, __pyx_L1_error)
     }
-    __pyx_t_6 = __Pyx_PyInt_From_int((*((int *) ( /* dim=0 */ (__pyx_v_medium_map.data + __pyx_t_4 * __pyx_v_medium_map.strides[0]) )))); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 81, __pyx_L1_error)
+    __pyx_t_6 = __Pyx_PyInt_From_int((*((int *) ( /* dim=0 */ (__pyx_v_medium_map.data + __pyx_t_4 * __pyx_v_medium_map.strides[0]) )))); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 101, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_6);
     __Pyx_XDECREF_SET(__pyx_v_material, __pyx_t_6);
     __pyx_t_6 = 0;
 
-    /* "ants/cyutils.pyx":82
+    /* "ants/cyutils.pyx":102
  *     for cell in range(cells):
  *         material = medium_map[cell]
  *         for angle in range(angles):             # <<<<<<<<<<<<<<
@@ -3188,7 +3568,7 @@ static void __pyx_f_4ants_7cyutils_off_scatter_source_angular(__Pyx_memviewslice
     for (__pyx_t_8 = 0; __pyx_t_8 < __pyx_t_7; __pyx_t_8+=1) {
       __pyx_v_angle = __pyx_t_8;
 
-      /* "ants/cyutils.pyx":83
+      /* "ants/cyutils.pyx":103
  *         material = medium_map[cell]
  *         for angle in range(angles):
  *             for outgroup in range(0, group):             # <<<<<<<<<<<<<<
@@ -3200,14 +3580,14 @@ static void __pyx_f_4ants_7cyutils_off_scatter_source_angular(__Pyx_memviewslice
       for (__pyx_t_11 = 0; __pyx_t_11 < __pyx_t_10; __pyx_t_11+=1) {
         __pyx_v_outgroup = __pyx_t_11;
 
-        /* "ants/cyutils.pyx":84
+        /* "ants/cyutils.pyx":104
  *         for angle in range(angles):
  *             for outgroup in range(0, group):
  *                 source[cell] += xs_matrix[material, group, outgroup] \             # <<<<<<<<<<<<<<
  *                             * flux[cell, angle, outgroup] * weight[angle]
  *             for outgroup in range(group+1, groups):
  */
-        __pyx_t_12 = __Pyx_PyIndex_AsSsize_t(__pyx_v_material); if (unlikely((__pyx_t_12 == (Py_ssize_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 84, __pyx_L1_error)
+        __pyx_t_12 = __Pyx_PyIndex_AsSsize_t(__pyx_v_material); if (unlikely((__pyx_t_12 == (Py_ssize_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 104, __pyx_L1_error)
         __pyx_t_13 = __pyx_t_12;
         __pyx_t_14 = __pyx_v_group;
         __pyx_t_15 = __pyx_v_outgroup;
@@ -3220,10 +3600,10 @@ static void __pyx_f_4ants_7cyutils_off_scatter_source_angular(__Pyx_memviewslice
         if (unlikely(__pyx_t_15 >= (size_t)__pyx_v_xs_matrix.shape[2])) __pyx_t_5 = 2;
         if (unlikely(__pyx_t_5 != -1)) {
           __Pyx_RaiseBufferIndexError(__pyx_t_5);
-          __PYX_ERR(0, 84, __pyx_L1_error)
+          __PYX_ERR(0, 104, __pyx_L1_error)
         }
 
-        /* "ants/cyutils.pyx":85
+        /* "ants/cyutils.pyx":105
  *             for outgroup in range(0, group):
  *                 source[cell] += xs_matrix[material, group, outgroup] \
  *                             * flux[cell, angle, outgroup] * weight[angle]             # <<<<<<<<<<<<<<
@@ -3239,17 +3619,17 @@ static void __pyx_f_4ants_7cyutils_off_scatter_source_angular(__Pyx_memviewslice
         if (unlikely(__pyx_t_18 >= (size_t)__pyx_v_flux.shape[2])) __pyx_t_5 = 2;
         if (unlikely(__pyx_t_5 != -1)) {
           __Pyx_RaiseBufferIndexError(__pyx_t_5);
-          __PYX_ERR(0, 85, __pyx_L1_error)
+          __PYX_ERR(0, 105, __pyx_L1_error)
         }
         __pyx_t_19 = __pyx_v_angle;
         __pyx_t_5 = -1;
         if (unlikely(__pyx_t_19 >= (size_t)__pyx_v_weight.shape[0])) __pyx_t_5 = 0;
         if (unlikely(__pyx_t_5 != -1)) {
           __Pyx_RaiseBufferIndexError(__pyx_t_5);
-          __PYX_ERR(0, 85, __pyx_L1_error)
+          __PYX_ERR(0, 105, __pyx_L1_error)
         }
 
-        /* "ants/cyutils.pyx":84
+        /* "ants/cyutils.pyx":104
  *         for angle in range(angles):
  *             for outgroup in range(0, group):
  *                 source[cell] += xs_matrix[material, group, outgroup] \             # <<<<<<<<<<<<<<
@@ -3261,12 +3641,12 @@ static void __pyx_f_4ants_7cyutils_off_scatter_source_angular(__Pyx_memviewslice
         if (unlikely(__pyx_t_20 >= (size_t)__pyx_v_source.shape[0])) __pyx_t_5 = 0;
         if (unlikely(__pyx_t_5 != -1)) {
           __Pyx_RaiseBufferIndexError(__pyx_t_5);
-          __PYX_ERR(0, 84, __pyx_L1_error)
+          __PYX_ERR(0, 104, __pyx_L1_error)
         }
         *((double *) ( /* dim=0 */ (__pyx_v_source.data + __pyx_t_20 * __pyx_v_source.strides[0]) )) += (((*((double *) ( /* dim=2 */ (( /* dim=1 */ (( /* dim=0 */ (__pyx_v_xs_matrix.data + __pyx_t_13 * __pyx_v_xs_matrix.strides[0]) ) + __pyx_t_14 * __pyx_v_xs_matrix.strides[1]) ) + __pyx_t_15 * __pyx_v_xs_matrix.strides[2]) ))) * (*((double *) ( /* dim=2 */ (( /* dim=1 */ (( /* dim=0 */ (__pyx_v_flux.data + __pyx_t_16 * __pyx_v_flux.strides[0]) ) + __pyx_t_17 * __pyx_v_flux.strides[1]) ) + __pyx_t_18 * __pyx_v_flux.strides[2]) )))) * (*((double *) ( /* dim=0 */ (__pyx_v_weight.data + __pyx_t_19 * __pyx_v_weight.strides[0]) ))));
       }
 
-      /* "ants/cyutils.pyx":86
+      /* "ants/cyutils.pyx":106
  *                 source[cell] += xs_matrix[material, group, outgroup] \
  *                             * flux[cell, angle, outgroup] * weight[angle]
  *             for outgroup in range(group+1, groups):             # <<<<<<<<<<<<<<
@@ -3278,14 +3658,14 @@ static void __pyx_f_4ants_7cyutils_off_scatter_source_angular(__Pyx_memviewslice
       for (__pyx_t_11 = (__pyx_v_group + 1); __pyx_t_11 < __pyx_t_10; __pyx_t_11+=1) {
         __pyx_v_outgroup = __pyx_t_11;
 
-        /* "ants/cyutils.pyx":87
+        /* "ants/cyutils.pyx":107
  *                             * flux[cell, angle, outgroup] * weight[angle]
  *             for outgroup in range(group+1, groups):
  *                 source[cell] += xs_matrix[material, group, outgroup] \             # <<<<<<<<<<<<<<
  *                             * flux_old[cell, angle, outgroup] * weight[angle]
  * 
  */
-        __pyx_t_12 = __Pyx_PyIndex_AsSsize_t(__pyx_v_material); if (unlikely((__pyx_t_12 == (Py_ssize_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 87, __pyx_L1_error)
+        __pyx_t_12 = __Pyx_PyIndex_AsSsize_t(__pyx_v_material); if (unlikely((__pyx_t_12 == (Py_ssize_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 107, __pyx_L1_error)
         __pyx_t_13 = __pyx_t_12;
         __pyx_t_19 = __pyx_v_group;
         __pyx_t_18 = __pyx_v_outgroup;
@@ -3298,10 +3678,10 @@ static void __pyx_f_4ants_7cyutils_off_scatter_source_angular(__Pyx_memviewslice
         if (unlikely(__pyx_t_18 >= (size_t)__pyx_v_xs_matrix.shape[2])) __pyx_t_5 = 2;
         if (unlikely(__pyx_t_5 != -1)) {
           __Pyx_RaiseBufferIndexError(__pyx_t_5);
-          __PYX_ERR(0, 87, __pyx_L1_error)
+          __PYX_ERR(0, 107, __pyx_L1_error)
         }
 
-        /* "ants/cyutils.pyx":88
+        /* "ants/cyutils.pyx":108
  *             for outgroup in range(group+1, groups):
  *                 source[cell] += xs_matrix[material, group, outgroup] \
  *                             * flux_old[cell, angle, outgroup] * weight[angle]             # <<<<<<<<<<<<<<
@@ -3317,17 +3697,17 @@ static void __pyx_f_4ants_7cyutils_off_scatter_source_angular(__Pyx_memviewslice
         if (unlikely(__pyx_t_15 >= (size_t)__pyx_v_flux_old.shape[2])) __pyx_t_5 = 2;
         if (unlikely(__pyx_t_5 != -1)) {
           __Pyx_RaiseBufferIndexError(__pyx_t_5);
-          __PYX_ERR(0, 88, __pyx_L1_error)
+          __PYX_ERR(0, 108, __pyx_L1_error)
         }
         __pyx_t_14 = __pyx_v_angle;
         __pyx_t_5 = -1;
         if (unlikely(__pyx_t_14 >= (size_t)__pyx_v_weight.shape[0])) __pyx_t_5 = 0;
         if (unlikely(__pyx_t_5 != -1)) {
           __Pyx_RaiseBufferIndexError(__pyx_t_5);
-          __PYX_ERR(0, 88, __pyx_L1_error)
+          __PYX_ERR(0, 108, __pyx_L1_error)
         }
 
-        /* "ants/cyutils.pyx":87
+        /* "ants/cyutils.pyx":107
  *                             * flux[cell, angle, outgroup] * weight[angle]
  *             for outgroup in range(group+1, groups):
  *                 source[cell] += xs_matrix[material, group, outgroup] \             # <<<<<<<<<<<<<<
@@ -3339,14 +3719,14 @@ static void __pyx_f_4ants_7cyutils_off_scatter_source_angular(__Pyx_memviewslice
         if (unlikely(__pyx_t_20 >= (size_t)__pyx_v_source.shape[0])) __pyx_t_5 = 0;
         if (unlikely(__pyx_t_5 != -1)) {
           __Pyx_RaiseBufferIndexError(__pyx_t_5);
-          __PYX_ERR(0, 87, __pyx_L1_error)
+          __PYX_ERR(0, 107, __pyx_L1_error)
         }
         *((double *) ( /* dim=0 */ (__pyx_v_source.data + __pyx_t_20 * __pyx_v_source.strides[0]) )) += (((*((double *) ( /* dim=2 */ (( /* dim=1 */ (( /* dim=0 */ (__pyx_v_xs_matrix.data + __pyx_t_13 * __pyx_v_xs_matrix.strides[0]) ) + __pyx_t_19 * __pyx_v_xs_matrix.strides[1]) ) + __pyx_t_18 * __pyx_v_xs_matrix.strides[2]) ))) * (*((double *) ( /* dim=2 */ (( /* dim=1 */ (( /* dim=0 */ (__pyx_v_flux_old.data + __pyx_t_17 * __pyx_v_flux_old.strides[0]) ) + __pyx_t_16 * __pyx_v_flux_old.strides[1]) ) + __pyx_t_15 * __pyx_v_flux_old.strides[2]) )))) * (*((double *) ( /* dim=0 */ (__pyx_v_weight.data + __pyx_t_14 * __pyx_v_weight.strides[0]) ))));
       }
     }
   }
 
-  /* "ants/cyutils.pyx":73
+  /* "ants/cyutils.pyx":93
  *                             * flux_old[cell, outgroup]
  * 
  * cdef void off_scatter_source_angular(double[:,:,:]& flux, double[:,:,:]& flux_old, \             # <<<<<<<<<<<<<<
@@ -3364,7 +3744,7 @@ static void __pyx_f_4ants_7cyutils_off_scatter_source_angular(__Pyx_memviewslice
   __Pyx_RefNannyFinishContext();
 }
 
-/* "ants/cyutils.pyx":90
+/* "ants/cyutils.pyx":110
  *                             * flux_old[cell, angle, outgroup] * weight[angle]
  * 
  * cdef double scalar_convergence(double [:,:]& arr1, double [:,:]& arr2):             # <<<<<<<<<<<<<<
@@ -3398,7 +3778,7 @@ static double __pyx_f_4ants_7cyutils_scalar_convergence(__Pyx_memviewslice &__py
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("scalar_convergence", 0);
 
-  /* "ants/cyutils.pyx":92
+  /* "ants/cyutils.pyx":112
  * cdef double scalar_convergence(double [:,:]& arr1, double [:,:]& arr2):
  *     cdef size_t cells, groups
  *     cells = arr1.shape[0]             # <<<<<<<<<<<<<<
@@ -3407,7 +3787,7 @@ static double __pyx_f_4ants_7cyutils_scalar_convergence(__Pyx_memviewslice &__py
  */
   __pyx_v_cells = (__pyx_v_arr1.shape[0]);
 
-  /* "ants/cyutils.pyx":93
+  /* "ants/cyutils.pyx":113
  *     cdef size_t cells, groups
  *     cells = arr1.shape[0]
  *     groups = arr1.shape[1]             # <<<<<<<<<<<<<<
@@ -3416,7 +3796,7 @@ static double __pyx_f_4ants_7cyutils_scalar_convergence(__Pyx_memviewslice &__py
  */
   __pyx_v_groups = (__pyx_v_arr1.shape[1]);
 
-  /* "ants/cyutils.pyx":94
+  /* "ants/cyutils.pyx":114
  *     cells = arr1.shape[0]
  *     groups = arr1.shape[1]
  *     cdef double change = 0.0             # <<<<<<<<<<<<<<
@@ -3425,7 +3805,7 @@ static double __pyx_f_4ants_7cyutils_scalar_convergence(__Pyx_memviewslice &__py
  */
   __pyx_v_change = 0.0;
 
-  /* "ants/cyutils.pyx":95
+  /* "ants/cyutils.pyx":115
  *     groups = arr1.shape[1]
  *     cdef double change = 0.0
  *     for group in range(groups):             # <<<<<<<<<<<<<<
@@ -3437,7 +3817,7 @@ static double __pyx_f_4ants_7cyutils_scalar_convergence(__Pyx_memviewslice &__py
   for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_2; __pyx_t_3+=1) {
     __pyx_v_group = __pyx_t_3;
 
-    /* "ants/cyutils.pyx":96
+    /* "ants/cyutils.pyx":116
  *     cdef double change = 0.0
  *     for group in range(groups):
  *         for cell_x in range(cells):             # <<<<<<<<<<<<<<
@@ -3449,7 +3829,7 @@ static double __pyx_f_4ants_7cyutils_scalar_convergence(__Pyx_memviewslice &__py
     for (__pyx_t_6 = 0; __pyx_t_6 < __pyx_t_5; __pyx_t_6+=1) {
       __pyx_v_cell_x = __pyx_t_6;
 
-      /* "ants/cyutils.pyx":97
+      /* "ants/cyutils.pyx":117
  *     for group in range(groups):
  *         for cell_x in range(cells):
  *             change += pow((arr1[cell_x][group] - arr2[cell_x][group]) \             # <<<<<<<<<<<<<<
@@ -3463,7 +3843,7 @@ static double __pyx_f_4ants_7cyutils_scalar_convergence(__Pyx_memviewslice &__py
       if (unlikely(__pyx_t_8 >= (size_t)__pyx_v_arr1.shape[1])) __pyx_t_9 = 1;
       if (unlikely(__pyx_t_9 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_9);
-        __PYX_ERR(0, 97, __pyx_L1_error)
+        __PYX_ERR(0, 117, __pyx_L1_error)
       }
       __pyx_t_10 = __pyx_v_cell_x;
       __pyx_t_11 = __pyx_v_group;
@@ -3472,10 +3852,10 @@ static double __pyx_f_4ants_7cyutils_scalar_convergence(__Pyx_memviewslice &__py
       if (unlikely(__pyx_t_11 >= (size_t)__pyx_v_arr2.shape[1])) __pyx_t_9 = 1;
       if (unlikely(__pyx_t_9 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_9);
-        __PYX_ERR(0, 97, __pyx_L1_error)
+        __PYX_ERR(0, 117, __pyx_L1_error)
       }
 
-      /* "ants/cyutils.pyx":98
+      /* "ants/cyutils.pyx":118
  *         for cell_x in range(cells):
  *             change += pow((arr1[cell_x][group] - arr2[cell_x][group]) \
  *                         / arr1[cell_x][group] / cells, 2)             # <<<<<<<<<<<<<<
@@ -3489,10 +3869,10 @@ static double __pyx_f_4ants_7cyutils_scalar_convergence(__Pyx_memviewslice &__py
       if (unlikely(__pyx_t_13 >= (size_t)__pyx_v_arr1.shape[1])) __pyx_t_9 = 1;
       if (unlikely(__pyx_t_9 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_9);
-        __PYX_ERR(0, 98, __pyx_L1_error)
+        __PYX_ERR(0, 118, __pyx_L1_error)
       }
 
-      /* "ants/cyutils.pyx":97
+      /* "ants/cyutils.pyx":117
  *     for group in range(groups):
  *         for cell_x in range(cells):
  *             change += pow((arr1[cell_x][group] - arr2[cell_x][group]) \             # <<<<<<<<<<<<<<
@@ -3503,7 +3883,7 @@ static double __pyx_f_4ants_7cyutils_scalar_convergence(__Pyx_memviewslice &__py
     }
   }
 
-  /* "ants/cyutils.pyx":99
+  /* "ants/cyutils.pyx":119
  *             change += pow((arr1[cell_x][group] - arr2[cell_x][group]) \
  *                         / arr1[cell_x][group] / cells, 2)
  *     change = sqrt(change)             # <<<<<<<<<<<<<<
@@ -3512,7 +3892,7 @@ static double __pyx_f_4ants_7cyutils_scalar_convergence(__Pyx_memviewslice &__py
  */
   __pyx_v_change = sqrt(__pyx_v_change);
 
-  /* "ants/cyutils.pyx":100
+  /* "ants/cyutils.pyx":120
  *                         / arr1[cell_x][group] / cells, 2)
  *     change = sqrt(change)
  *     return change             # <<<<<<<<<<<<<<
@@ -3522,7 +3902,7 @@ static double __pyx_f_4ants_7cyutils_scalar_convergence(__Pyx_memviewslice &__py
   __pyx_r = __pyx_v_change;
   goto __pyx_L0;
 
-  /* "ants/cyutils.pyx":90
+  /* "ants/cyutils.pyx":110
  *                             * flux_old[cell, angle, outgroup] * weight[angle]
  * 
  * cdef double scalar_convergence(double [:,:]& arr1, double [:,:]& arr2):             # <<<<<<<<<<<<<<
@@ -3539,7 +3919,7 @@ static double __pyx_f_4ants_7cyutils_scalar_convergence(__Pyx_memviewslice &__py
   return __pyx_r;
 }
 
-/* "ants/cyutils.pyx":102
+/* "ants/cyutils.pyx":122
  *     return change
  * 
  * cdef double group_scalar_convergence(double [:]& arr1, double [:]& arr2):             # <<<<<<<<<<<<<<
@@ -3565,7 +3945,7 @@ static double __pyx_f_4ants_7cyutils_group_scalar_convergence(__Pyx_memviewslice
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("group_scalar_convergence", 0);
 
-  /* "ants/cyutils.pyx":103
+  /* "ants/cyutils.pyx":123
  * 
  * cdef double group_scalar_convergence(double [:]& arr1, double [:]& arr2):
  *     cdef int cells = arr1.shape[0]             # <<<<<<<<<<<<<<
@@ -3574,7 +3954,7 @@ static double __pyx_f_4ants_7cyutils_group_scalar_convergence(__Pyx_memviewslice
  */
   __pyx_v_cells = (__pyx_v_arr1.shape[0]);
 
-  /* "ants/cyutils.pyx":104
+  /* "ants/cyutils.pyx":124
  * cdef double group_scalar_convergence(double [:]& arr1, double [:]& arr2):
  *     cdef int cells = arr1.shape[0]
  *     cdef double change = 0.0             # <<<<<<<<<<<<<<
@@ -3583,7 +3963,7 @@ static double __pyx_f_4ants_7cyutils_group_scalar_convergence(__Pyx_memviewslice
  */
   __pyx_v_change = 0.0;
 
-  /* "ants/cyutils.pyx":105
+  /* "ants/cyutils.pyx":125
  *     cdef int cells = arr1.shape[0]
  *     cdef double change = 0.0
  *     for cell in range(cells):             # <<<<<<<<<<<<<<
@@ -3595,7 +3975,7 @@ static double __pyx_f_4ants_7cyutils_group_scalar_convergence(__Pyx_memviewslice
   for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_2; __pyx_t_3+=1) {
     __pyx_v_cell = __pyx_t_3;
 
-    /* "ants/cyutils.pyx":106
+    /* "ants/cyutils.pyx":126
  *     cdef double change = 0.0
  *     for cell in range(cells):
  *         change += pow((arr1[cell] - arr2[cell]) / arr1[cell] / cells, 2)             # <<<<<<<<<<<<<<
@@ -3610,7 +3990,7 @@ static double __pyx_f_4ants_7cyutils_group_scalar_convergence(__Pyx_memviewslice
     } else if (unlikely(__pyx_t_4 >= __pyx_v_arr1.shape[0])) __pyx_t_5 = 0;
     if (unlikely(__pyx_t_5 != -1)) {
       __Pyx_RaiseBufferIndexError(__pyx_t_5);
-      __PYX_ERR(0, 106, __pyx_L1_error)
+      __PYX_ERR(0, 126, __pyx_L1_error)
     }
     __pyx_t_6 = __pyx_v_cell;
     __pyx_t_5 = -1;
@@ -3620,7 +4000,7 @@ static double __pyx_f_4ants_7cyutils_group_scalar_convergence(__Pyx_memviewslice
     } else if (unlikely(__pyx_t_6 >= __pyx_v_arr2.shape[0])) __pyx_t_5 = 0;
     if (unlikely(__pyx_t_5 != -1)) {
       __Pyx_RaiseBufferIndexError(__pyx_t_5);
-      __PYX_ERR(0, 106, __pyx_L1_error)
+      __PYX_ERR(0, 126, __pyx_L1_error)
     }
     __pyx_t_7 = __pyx_v_cell;
     __pyx_t_5 = -1;
@@ -3630,12 +4010,12 @@ static double __pyx_f_4ants_7cyutils_group_scalar_convergence(__Pyx_memviewslice
     } else if (unlikely(__pyx_t_7 >= __pyx_v_arr1.shape[0])) __pyx_t_5 = 0;
     if (unlikely(__pyx_t_5 != -1)) {
       __Pyx_RaiseBufferIndexError(__pyx_t_5);
-      __PYX_ERR(0, 106, __pyx_L1_error)
+      __PYX_ERR(0, 126, __pyx_L1_error)
     }
     __pyx_v_change = (__pyx_v_change + pow(((((*((double *) ( /* dim=0 */ (__pyx_v_arr1.data + __pyx_t_4 * __pyx_v_arr1.strides[0]) ))) - (*((double *) ( /* dim=0 */ (__pyx_v_arr2.data + __pyx_t_6 * __pyx_v_arr2.strides[0]) )))) / (*((double *) ( /* dim=0 */ (__pyx_v_arr1.data + __pyx_t_7 * __pyx_v_arr1.strides[0]) )))) / ((double)__pyx_v_cells)), 2.0));
   }
 
-  /* "ants/cyutils.pyx":107
+  /* "ants/cyutils.pyx":127
  *     for cell in range(cells):
  *         change += pow((arr1[cell] - arr2[cell]) / arr1[cell] / cells, 2)
  *     change = sqrt(change)             # <<<<<<<<<<<<<<
@@ -3644,7 +4024,7 @@ static double __pyx_f_4ants_7cyutils_group_scalar_convergence(__Pyx_memviewslice
  */
   __pyx_v_change = sqrt(__pyx_v_change);
 
-  /* "ants/cyutils.pyx":108
+  /* "ants/cyutils.pyx":128
  *         change += pow((arr1[cell] - arr2[cell]) / arr1[cell] / cells, 2)
  *     change = sqrt(change)
  *     return change             # <<<<<<<<<<<<<<
@@ -3654,7 +4034,7 @@ static double __pyx_f_4ants_7cyutils_group_scalar_convergence(__Pyx_memviewslice
   __pyx_r = __pyx_v_change;
   goto __pyx_L0;
 
-  /* "ants/cyutils.pyx":102
+  /* "ants/cyutils.pyx":122
  *     return change
  * 
  * cdef double group_scalar_convergence(double [:]& arr1, double [:]& arr2):             # <<<<<<<<<<<<<<
@@ -3671,7 +4051,7 @@ static double __pyx_f_4ants_7cyutils_group_scalar_convergence(__Pyx_memviewslice
   return __pyx_r;
 }
 
-/* "ants/cyutils.pyx":110
+/* "ants/cyutils.pyx":130
  *     return change
  * 
  * cdef double angular_convergence(double [:,:,:]& arr1, double [:,:,:]& arr2, \             # <<<<<<<<<<<<<<
@@ -3710,7 +4090,7 @@ static double __pyx_f_4ants_7cyutils_angular_convergence(__Pyx_memviewslice &__p
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("angular_convergence", 0);
 
-  /* "ants/cyutils.pyx":113
+  /* "ants/cyutils.pyx":133
  *                                 double[:]& weight):
  *     cdef size_t cells, angles, groups
  *     cells = arr1.shape[0]             # <<<<<<<<<<<<<<
@@ -3719,7 +4099,7 @@ static double __pyx_f_4ants_7cyutils_angular_convergence(__Pyx_memviewslice &__p
  */
   __pyx_v_cells = (__pyx_v_arr1.shape[0]);
 
-  /* "ants/cyutils.pyx":114
+  /* "ants/cyutils.pyx":134
  *     cdef size_t cells, angles, groups
  *     cells = arr1.shape[0]
  *     angles = arr1.shape[1]             # <<<<<<<<<<<<<<
@@ -3728,7 +4108,7 @@ static double __pyx_f_4ants_7cyutils_angular_convergence(__Pyx_memviewslice &__p
  */
   __pyx_v_angles = (__pyx_v_arr1.shape[1]);
 
-  /* "ants/cyutils.pyx":115
+  /* "ants/cyutils.pyx":135
  *     cells = arr1.shape[0]
  *     angles = arr1.shape[1]
  *     groups = arr1.shape[2]             # <<<<<<<<<<<<<<
@@ -3737,7 +4117,7 @@ static double __pyx_f_4ants_7cyutils_angular_convergence(__Pyx_memviewslice &__p
  */
   __pyx_v_groups = (__pyx_v_arr1.shape[2]);
 
-  /* "ants/cyutils.pyx":116
+  /* "ants/cyutils.pyx":136
  *     angles = arr1.shape[1]
  *     groups = arr1.shape[2]
  *     cdef double change = 0.0             # <<<<<<<<<<<<<<
@@ -3746,7 +4126,7 @@ static double __pyx_f_4ants_7cyutils_angular_convergence(__Pyx_memviewslice &__p
  */
   __pyx_v_change = 0.0;
 
-  /* "ants/cyutils.pyx":118
+  /* "ants/cyutils.pyx":138
  *     cdef double change = 0.0
  *     cdef double scalar_flux, scalar_flux_old
  *     for group in range(groups):             # <<<<<<<<<<<<<<
@@ -3758,7 +4138,7 @@ static double __pyx_f_4ants_7cyutils_angular_convergence(__Pyx_memviewslice &__p
   for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_2; __pyx_t_3+=1) {
     __pyx_v_group = __pyx_t_3;
 
-    /* "ants/cyutils.pyx":119
+    /* "ants/cyutils.pyx":139
  *     cdef double scalar_flux, scalar_flux_old
  *     for group in range(groups):
  *         for cell in range(cells):             # <<<<<<<<<<<<<<
@@ -3770,7 +4150,7 @@ static double __pyx_f_4ants_7cyutils_angular_convergence(__Pyx_memviewslice &__p
     for (__pyx_t_6 = 0; __pyx_t_6 < __pyx_t_5; __pyx_t_6+=1) {
       __pyx_v_cell = __pyx_t_6;
 
-      /* "ants/cyutils.pyx":120
+      /* "ants/cyutils.pyx":140
  *     for group in range(groups):
  *         for cell in range(cells):
  *             scalar_flux = 0             # <<<<<<<<<<<<<<
@@ -3779,7 +4159,7 @@ static double __pyx_f_4ants_7cyutils_angular_convergence(__Pyx_memviewslice &__p
  */
       __pyx_v_scalar_flux = 0.0;
 
-      /* "ants/cyutils.pyx":121
+      /* "ants/cyutils.pyx":141
  *         for cell in range(cells):
  *             scalar_flux = 0
  *             scalar_flux_old = 0             # <<<<<<<<<<<<<<
@@ -3788,7 +4168,7 @@ static double __pyx_f_4ants_7cyutils_angular_convergence(__Pyx_memviewslice &__p
  */
       __pyx_v_scalar_flux_old = 0.0;
 
-      /* "ants/cyutils.pyx":122
+      /* "ants/cyutils.pyx":142
  *             scalar_flux = 0
  *             scalar_flux_old = 0
  *             for angle in range(angles):             # <<<<<<<<<<<<<<
@@ -3800,7 +4180,7 @@ static double __pyx_f_4ants_7cyutils_angular_convergence(__Pyx_memviewslice &__p
       for (__pyx_t_9 = 0; __pyx_t_9 < __pyx_t_8; __pyx_t_9+=1) {
         __pyx_v_angle = __pyx_t_9;
 
-        /* "ants/cyutils.pyx":123
+        /* "ants/cyutils.pyx":143
  *             scalar_flux_old = 0
  *             for angle in range(angles):
  *                 scalar_flux += weight[angle] * arr1[cell][angle][group]             # <<<<<<<<<<<<<<
@@ -3812,7 +4192,7 @@ static double __pyx_f_4ants_7cyutils_angular_convergence(__Pyx_memviewslice &__p
         if (unlikely(__pyx_t_10 >= (size_t)__pyx_v_weight.shape[0])) __pyx_t_11 = 0;
         if (unlikely(__pyx_t_11 != -1)) {
           __Pyx_RaiseBufferIndexError(__pyx_t_11);
-          __PYX_ERR(0, 123, __pyx_L1_error)
+          __PYX_ERR(0, 143, __pyx_L1_error)
         }
         __pyx_t_12 = __pyx_v_cell;
         __pyx_t_13 = __pyx_v_angle;
@@ -3823,11 +4203,11 @@ static double __pyx_f_4ants_7cyutils_angular_convergence(__Pyx_memviewslice &__p
         if (unlikely(__pyx_t_14 >= (size_t)__pyx_v_arr1.shape[2])) __pyx_t_11 = 2;
         if (unlikely(__pyx_t_11 != -1)) {
           __Pyx_RaiseBufferIndexError(__pyx_t_11);
-          __PYX_ERR(0, 123, __pyx_L1_error)
+          __PYX_ERR(0, 143, __pyx_L1_error)
         }
         __pyx_v_scalar_flux = (__pyx_v_scalar_flux + ((*((double *) ( /* dim=0 */ (__pyx_v_weight.data + __pyx_t_10 * __pyx_v_weight.strides[0]) ))) * (*((double *) ( /* dim=2 */ (( /* dim=1 */ (( /* dim=0 */ (__pyx_v_arr1.data + __pyx_t_12 * __pyx_v_arr1.strides[0]) ) + __pyx_t_13 * __pyx_v_arr1.strides[1]) ) + __pyx_t_14 * __pyx_v_arr1.strides[2]) )))));
 
-        /* "ants/cyutils.pyx":124
+        /* "ants/cyutils.pyx":144
  *             for angle in range(angles):
  *                 scalar_flux += weight[angle] * arr1[cell][angle][group]
  *                 scalar_flux_old += weight[angle] * arr2[cell][angle][group]             # <<<<<<<<<<<<<<
@@ -3839,7 +4219,7 @@ static double __pyx_f_4ants_7cyutils_angular_convergence(__Pyx_memviewslice &__p
         if (unlikely(__pyx_t_14 >= (size_t)__pyx_v_weight.shape[0])) __pyx_t_11 = 0;
         if (unlikely(__pyx_t_11 != -1)) {
           __Pyx_RaiseBufferIndexError(__pyx_t_11);
-          __PYX_ERR(0, 124, __pyx_L1_error)
+          __PYX_ERR(0, 144, __pyx_L1_error)
         }
         __pyx_t_13 = __pyx_v_cell;
         __pyx_t_12 = __pyx_v_angle;
@@ -3850,12 +4230,12 @@ static double __pyx_f_4ants_7cyutils_angular_convergence(__Pyx_memviewslice &__p
         if (unlikely(__pyx_t_10 >= (size_t)__pyx_v_arr2.shape[2])) __pyx_t_11 = 2;
         if (unlikely(__pyx_t_11 != -1)) {
           __Pyx_RaiseBufferIndexError(__pyx_t_11);
-          __PYX_ERR(0, 124, __pyx_L1_error)
+          __PYX_ERR(0, 144, __pyx_L1_error)
         }
         __pyx_v_scalar_flux_old = (__pyx_v_scalar_flux_old + ((*((double *) ( /* dim=0 */ (__pyx_v_weight.data + __pyx_t_14 * __pyx_v_weight.strides[0]) ))) * (*((double *) ( /* dim=2 */ (( /* dim=1 */ (( /* dim=0 */ (__pyx_v_arr2.data + __pyx_t_13 * __pyx_v_arr2.strides[0]) ) + __pyx_t_12 * __pyx_v_arr2.strides[1]) ) + __pyx_t_10 * __pyx_v_arr2.strides[2]) )))));
       }
 
-      /* "ants/cyutils.pyx":125
+      /* "ants/cyutils.pyx":145
  *                 scalar_flux += weight[angle] * arr1[cell][angle][group]
  *                 scalar_flux_old += weight[angle] * arr2[cell][angle][group]
  *             change += pow((scalar_flux - scalar_flux_old) / \             # <<<<<<<<<<<<<<
@@ -3866,7 +4246,7 @@ static double __pyx_f_4ants_7cyutils_angular_convergence(__Pyx_memviewslice &__p
     }
   }
 
-  /* "ants/cyutils.pyx":127
+  /* "ants/cyutils.pyx":147
  *             change += pow((scalar_flux - scalar_flux_old) / \
  *                             scalar_flux / cells, 2)
  *     change = sqrt(change)             # <<<<<<<<<<<<<<
@@ -3875,7 +4255,7 @@ static double __pyx_f_4ants_7cyutils_angular_convergence(__Pyx_memviewslice &__p
  */
   __pyx_v_change = sqrt(__pyx_v_change);
 
-  /* "ants/cyutils.pyx":128
+  /* "ants/cyutils.pyx":148
  *                             scalar_flux / cells, 2)
  *     change = sqrt(change)
  *     return change             # <<<<<<<<<<<<<<
@@ -3885,7 +4265,7 @@ static double __pyx_f_4ants_7cyutils_angular_convergence(__Pyx_memviewslice &__p
   __pyx_r = __pyx_v_change;
   goto __pyx_L0;
 
-  /* "ants/cyutils.pyx":110
+  /* "ants/cyutils.pyx":130
  *     return change
  * 
  * cdef double angular_convergence(double [:,:,:]& arr1, double [:,:,:]& arr2, \             # <<<<<<<<<<<<<<
@@ -3902,7 +4282,7 @@ static double __pyx_f_4ants_7cyutils_angular_convergence(__Pyx_memviewslice &__p
   return __pyx_r;
 }
 
-/* "ants/cyutils.pyx":130
+/* "ants/cyutils.pyx":150
  *     return change
  * 
  * cdef double group_angular_convergence(double[:,:]& arr1, double [:,:]& arr2, \             # <<<<<<<<<<<<<<
@@ -3935,7 +4315,7 @@ static double __pyx_f_4ants_7cyutils_group_angular_convergence(__Pyx_memviewslic
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("group_angular_convergence", 0);
 
-  /* "ants/cyutils.pyx":133
+  /* "ants/cyutils.pyx":153
  *                                       double [:]& weight):
  *     cdef size_t cells, angles
  *     cells = arr1.shape[0]             # <<<<<<<<<<<<<<
@@ -3944,7 +4324,7 @@ static double __pyx_f_4ants_7cyutils_group_angular_convergence(__Pyx_memviewslic
  */
   __pyx_v_cells = (__pyx_v_arr1.shape[0]);
 
-  /* "ants/cyutils.pyx":134
+  /* "ants/cyutils.pyx":154
  *     cdef size_t cells, angles
  *     cells = arr1.shape[0]
  *     angles = arr1.shape[1]             # <<<<<<<<<<<<<<
@@ -3953,7 +4333,7 @@ static double __pyx_f_4ants_7cyutils_group_angular_convergence(__Pyx_memviewslic
  */
   __pyx_v_angles = (__pyx_v_arr1.shape[1]);
 
-  /* "ants/cyutils.pyx":135
+  /* "ants/cyutils.pyx":155
  *     cells = arr1.shape[0]
  *     angles = arr1.shape[1]
  *     cdef double change = 0.0             # <<<<<<<<<<<<<<
@@ -3962,7 +4342,7 @@ static double __pyx_f_4ants_7cyutils_group_angular_convergence(__Pyx_memviewslic
  */
   __pyx_v_change = 0.0;
 
-  /* "ants/cyutils.pyx":137
+  /* "ants/cyutils.pyx":157
  *     cdef double change = 0.0
  *     cdef double scalar_flux, scalar_flux_old
  *     for cell in range(cells):             # <<<<<<<<<<<<<<
@@ -3974,7 +4354,7 @@ static double __pyx_f_4ants_7cyutils_group_angular_convergence(__Pyx_memviewslic
   for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_2; __pyx_t_3+=1) {
     __pyx_v_cell = __pyx_t_3;
 
-    /* "ants/cyutils.pyx":138
+    /* "ants/cyutils.pyx":158
  *     cdef double scalar_flux, scalar_flux_old
  *     for cell in range(cells):
  *         scalar_flux = 0             # <<<<<<<<<<<<<<
@@ -3983,7 +4363,7 @@ static double __pyx_f_4ants_7cyutils_group_angular_convergence(__Pyx_memviewslic
  */
     __pyx_v_scalar_flux = 0.0;
 
-    /* "ants/cyutils.pyx":139
+    /* "ants/cyutils.pyx":159
  *     for cell in range(cells):
  *         scalar_flux = 0
  *         scalar_flux_old = 0             # <<<<<<<<<<<<<<
@@ -3992,7 +4372,7 @@ static double __pyx_f_4ants_7cyutils_group_angular_convergence(__Pyx_memviewslic
  */
     __pyx_v_scalar_flux_old = 0.0;
 
-    /* "ants/cyutils.pyx":140
+    /* "ants/cyutils.pyx":160
  *         scalar_flux = 0
  *         scalar_flux_old = 0
  *         for angle in range(angles):             # <<<<<<<<<<<<<<
@@ -4004,7 +4384,7 @@ static double __pyx_f_4ants_7cyutils_group_angular_convergence(__Pyx_memviewslic
     for (__pyx_t_6 = 0; __pyx_t_6 < __pyx_t_5; __pyx_t_6+=1) {
       __pyx_v_angle = __pyx_t_6;
 
-      /* "ants/cyutils.pyx":141
+      /* "ants/cyutils.pyx":161
  *         scalar_flux_old = 0
  *         for angle in range(angles):
  *             scalar_flux += weight[angle] * arr1[cell][angle]             # <<<<<<<<<<<<<<
@@ -4016,7 +4396,7 @@ static double __pyx_f_4ants_7cyutils_group_angular_convergence(__Pyx_memviewslic
       if (unlikely(__pyx_t_7 >= (size_t)__pyx_v_weight.shape[0])) __pyx_t_8 = 0;
       if (unlikely(__pyx_t_8 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_8);
-        __PYX_ERR(0, 141, __pyx_L1_error)
+        __PYX_ERR(0, 161, __pyx_L1_error)
       }
       __pyx_t_9 = __pyx_v_cell;
       __pyx_t_10 = __pyx_v_angle;
@@ -4025,11 +4405,11 @@ static double __pyx_f_4ants_7cyutils_group_angular_convergence(__Pyx_memviewslic
       if (unlikely(__pyx_t_10 >= (size_t)__pyx_v_arr1.shape[1])) __pyx_t_8 = 1;
       if (unlikely(__pyx_t_8 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_8);
-        __PYX_ERR(0, 141, __pyx_L1_error)
+        __PYX_ERR(0, 161, __pyx_L1_error)
       }
       __pyx_v_scalar_flux = (__pyx_v_scalar_flux + ((*((double *) ( /* dim=0 */ (__pyx_v_weight.data + __pyx_t_7 * __pyx_v_weight.strides[0]) ))) * (*((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_arr1.data + __pyx_t_9 * __pyx_v_arr1.strides[0]) ) + __pyx_t_10 * __pyx_v_arr1.strides[1]) )))));
 
-      /* "ants/cyutils.pyx":142
+      /* "ants/cyutils.pyx":162
  *         for angle in range(angles):
  *             scalar_flux += weight[angle] * arr1[cell][angle]
  *             scalar_flux_old += weight[angle] * arr2[cell][angle]             # <<<<<<<<<<<<<<
@@ -4041,7 +4421,7 @@ static double __pyx_f_4ants_7cyutils_group_angular_convergence(__Pyx_memviewslic
       if (unlikely(__pyx_t_10 >= (size_t)__pyx_v_weight.shape[0])) __pyx_t_8 = 0;
       if (unlikely(__pyx_t_8 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_8);
-        __PYX_ERR(0, 142, __pyx_L1_error)
+        __PYX_ERR(0, 162, __pyx_L1_error)
       }
       __pyx_t_9 = __pyx_v_cell;
       __pyx_t_7 = __pyx_v_angle;
@@ -4050,12 +4430,12 @@ static double __pyx_f_4ants_7cyutils_group_angular_convergence(__Pyx_memviewslic
       if (unlikely(__pyx_t_7 >= (size_t)__pyx_v_arr2.shape[1])) __pyx_t_8 = 1;
       if (unlikely(__pyx_t_8 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_8);
-        __PYX_ERR(0, 142, __pyx_L1_error)
+        __PYX_ERR(0, 162, __pyx_L1_error)
       }
       __pyx_v_scalar_flux_old = (__pyx_v_scalar_flux_old + ((*((double *) ( /* dim=0 */ (__pyx_v_weight.data + __pyx_t_10 * __pyx_v_weight.strides[0]) ))) * (*((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_arr2.data + __pyx_t_9 * __pyx_v_arr2.strides[0]) ) + __pyx_t_7 * __pyx_v_arr2.strides[1]) )))));
     }
 
-    /* "ants/cyutils.pyx":143
+    /* "ants/cyutils.pyx":163
  *             scalar_flux += weight[angle] * arr1[cell][angle]
  *             scalar_flux_old += weight[angle] * arr2[cell][angle]
  *         change += pow((scalar_flux - scalar_flux_old) / \             # <<<<<<<<<<<<<<
@@ -4065,7 +4445,7 @@ static double __pyx_f_4ants_7cyutils_group_angular_convergence(__Pyx_memviewslic
     __pyx_v_change = (__pyx_v_change + pow((((__pyx_v_scalar_flux - __pyx_v_scalar_flux_old) / __pyx_v_scalar_flux) / ((double)__pyx_v_cells)), 2.0));
   }
 
-  /* "ants/cyutils.pyx":145
+  /* "ants/cyutils.pyx":165
  *         change += pow((scalar_flux - scalar_flux_old) / \
  *                         scalar_flux / cells, 2)
  *     change = sqrt(change)             # <<<<<<<<<<<<<<
@@ -4074,7 +4454,7 @@ static double __pyx_f_4ants_7cyutils_group_angular_convergence(__Pyx_memviewslic
  */
   __pyx_v_change = sqrt(__pyx_v_change);
 
-  /* "ants/cyutils.pyx":146
+  /* "ants/cyutils.pyx":166
  *                         scalar_flux / cells, 2)
  *     change = sqrt(change)
  *     return change             # <<<<<<<<<<<<<<
@@ -4084,7 +4464,7 @@ static double __pyx_f_4ants_7cyutils_group_angular_convergence(__Pyx_memviewslic
   __pyx_r = __pyx_v_change;
   goto __pyx_L0;
 
-  /* "ants/cyutils.pyx":130
+  /* "ants/cyutils.pyx":150
  *     return change
  * 
  * cdef double group_angular_convergence(double[:,:]& arr1, double [:,:]& arr2, \             # <<<<<<<<<<<<<<
@@ -4101,7 +4481,7 @@ static double __pyx_f_4ants_7cyutils_group_angular_convergence(__Pyx_memviewslic
   return __pyx_r;
 }
 
-/* "ants/cyutils.pyx":148
+/* "ants/cyutils.pyx":168
  *     return change
  * 
  * cdef void angular_to_scalar(double[:,:]& scalar_flux, \             # <<<<<<<<<<<<<<
@@ -4138,7 +4518,7 @@ static void __pyx_f_4ants_7cyutils_angular_to_scalar(__Pyx_memviewslice &__pyx_v
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("angular_to_scalar", 0);
 
-  /* "ants/cyutils.pyx":150
+  /* "ants/cyutils.pyx":170
  * cdef void angular_to_scalar(double[:,:]& scalar_flux, \
  *                         double[:,:,:]& angular_flux, double[:]& weight):
  *     cdef size_t cells = angular_flux.shape[0]             # <<<<<<<<<<<<<<
@@ -4147,7 +4527,7 @@ static void __pyx_f_4ants_7cyutils_angular_to_scalar(__Pyx_memviewslice &__pyx_v
  */
   __pyx_v_cells = (__pyx_v_angular_flux.shape[0]);
 
-  /* "ants/cyutils.pyx":151
+  /* "ants/cyutils.pyx":171
  *                         double[:,:,:]& angular_flux, double[:]& weight):
  *     cdef size_t cells = angular_flux.shape[0]
  *     cdef size_t angles = angular_flux.shape[1]             # <<<<<<<<<<<<<<
@@ -4156,7 +4536,7 @@ static void __pyx_f_4ants_7cyutils_angular_to_scalar(__Pyx_memviewslice &__pyx_v
  */
   __pyx_v_angles = (__pyx_v_angular_flux.shape[1]);
 
-  /* "ants/cyutils.pyx":152
+  /* "ants/cyutils.pyx":172
  *     cdef size_t cells = angular_flux.shape[0]
  *     cdef size_t angles = angular_flux.shape[1]
  *     cdef size_t groups = angular_flux.shape[2]             # <<<<<<<<<<<<<<
@@ -4165,7 +4545,7 @@ static void __pyx_f_4ants_7cyutils_angular_to_scalar(__Pyx_memviewslice &__pyx_v
  */
   __pyx_v_groups = (__pyx_v_angular_flux.shape[2]);
 
-  /* "ants/cyutils.pyx":153
+  /* "ants/cyutils.pyx":173
  *     cdef size_t angles = angular_flux.shape[1]
  *     cdef size_t groups = angular_flux.shape[2]
  *     for group in range(groups):             # <<<<<<<<<<<<<<
@@ -4177,7 +4557,7 @@ static void __pyx_f_4ants_7cyutils_angular_to_scalar(__Pyx_memviewslice &__pyx_v
   for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_2; __pyx_t_3+=1) {
     __pyx_v_group = __pyx_t_3;
 
-    /* "ants/cyutils.pyx":154
+    /* "ants/cyutils.pyx":174
  *     cdef size_t groups = angular_flux.shape[2]
  *     for group in range(groups):
  *         for angle in range(angles):             # <<<<<<<<<<<<<<
@@ -4189,7 +4569,7 @@ static void __pyx_f_4ants_7cyutils_angular_to_scalar(__Pyx_memviewslice &__pyx_v
     for (__pyx_t_6 = 0; __pyx_t_6 < __pyx_t_5; __pyx_t_6+=1) {
       __pyx_v_angle = __pyx_t_6;
 
-      /* "ants/cyutils.pyx":155
+      /* "ants/cyutils.pyx":175
  *     for group in range(groups):
  *         for angle in range(angles):
  *             for cell in range(cells):             # <<<<<<<<<<<<<<
@@ -4201,7 +4581,7 @@ static void __pyx_f_4ants_7cyutils_angular_to_scalar(__Pyx_memviewslice &__pyx_v
       for (__pyx_t_9 = 0; __pyx_t_9 < __pyx_t_8; __pyx_t_9+=1) {
         __pyx_v_cell = __pyx_t_9;
 
-        /* "ants/cyutils.pyx":157
+        /* "ants/cyutils.pyx":177
  *             for cell in range(cells):
  *                 scalar_flux[cell][group] += \
  *                         weight[angle] * angular_flux[cell][angle][group]             # <<<<<<<<<<<<<<
@@ -4213,7 +4593,7 @@ static void __pyx_f_4ants_7cyutils_angular_to_scalar(__Pyx_memviewslice &__pyx_v
         if (unlikely(__pyx_t_10 >= (size_t)__pyx_v_weight.shape[0])) __pyx_t_11 = 0;
         if (unlikely(__pyx_t_11 != -1)) {
           __Pyx_RaiseBufferIndexError(__pyx_t_11);
-          __PYX_ERR(0, 157, __pyx_L1_error)
+          __PYX_ERR(0, 177, __pyx_L1_error)
         }
         __pyx_t_12 = __pyx_v_cell;
         __pyx_t_13 = __pyx_v_angle;
@@ -4224,10 +4604,10 @@ static void __pyx_f_4ants_7cyutils_angular_to_scalar(__Pyx_memviewslice &__pyx_v
         if (unlikely(__pyx_t_14 >= (size_t)__pyx_v_angular_flux.shape[2])) __pyx_t_11 = 2;
         if (unlikely(__pyx_t_11 != -1)) {
           __Pyx_RaiseBufferIndexError(__pyx_t_11);
-          __PYX_ERR(0, 157, __pyx_L1_error)
+          __PYX_ERR(0, 177, __pyx_L1_error)
         }
 
-        /* "ants/cyutils.pyx":156
+        /* "ants/cyutils.pyx":176
  *         for angle in range(angles):
  *             for cell in range(cells):
  *                 scalar_flux[cell][group] += \             # <<<<<<<<<<<<<<
@@ -4241,14 +4621,14 @@ static void __pyx_f_4ants_7cyutils_angular_to_scalar(__Pyx_memviewslice &__pyx_v
         if (unlikely(__pyx_t_16 >= (size_t)__pyx_v_scalar_flux.shape[1])) __pyx_t_11 = 1;
         if (unlikely(__pyx_t_11 != -1)) {
           __Pyx_RaiseBufferIndexError(__pyx_t_11);
-          __PYX_ERR(0, 156, __pyx_L1_error)
+          __PYX_ERR(0, 176, __pyx_L1_error)
         }
         *((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_scalar_flux.data + __pyx_t_15 * __pyx_v_scalar_flux.strides[0]) ) + __pyx_t_16 * __pyx_v_scalar_flux.strides[1]) )) += ((*((double *) ( /* dim=0 */ (__pyx_v_weight.data + __pyx_t_10 * __pyx_v_weight.strides[0]) ))) * (*((double *) ( /* dim=2 */ (( /* dim=1 */ (( /* dim=0 */ (__pyx_v_angular_flux.data + __pyx_t_12 * __pyx_v_angular_flux.strides[0]) ) + __pyx_t_13 * __pyx_v_angular_flux.strides[1]) ) + __pyx_t_14 * __pyx_v_angular_flux.strides[2]) ))));
       }
     }
   }
 
-  /* "ants/cyutils.pyx":148
+  /* "ants/cyutils.pyx":168
  *     return change
  * 
  * cdef void angular_to_scalar(double[:,:]& scalar_flux, \             # <<<<<<<<<<<<<<
@@ -4264,7 +4644,7 @@ static void __pyx_f_4ants_7cyutils_angular_to_scalar(__Pyx_memviewslice &__pyx_v
   __Pyx_RefNannyFinishContext();
 }
 
-/* "ants/cyutils.pyx":159
+/* "ants/cyutils.pyx":179
  *                         weight[angle] * angular_flux[cell][angle][group]
  * 
  * cdef void group_angular_to_scalar(double[:]& scalar_flux, \             # <<<<<<<<<<<<<<
@@ -4294,7 +4674,7 @@ static void __pyx_f_4ants_7cyutils_group_angular_to_scalar(__Pyx_memviewslice &_
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("group_angular_to_scalar", 0);
 
-  /* "ants/cyutils.pyx":162
+  /* "ants/cyutils.pyx":182
  *                     double[:,:]& angular_flux, double[:]& angle_weight):
  *     cdef size_t cells, angles, cell, angle
  *     cells = angular_flux.shape[0]             # <<<<<<<<<<<<<<
@@ -4303,7 +4683,7 @@ static void __pyx_f_4ants_7cyutils_group_angular_to_scalar(__Pyx_memviewslice &_
  */
   __pyx_v_cells = (__pyx_v_angular_flux.shape[0]);
 
-  /* "ants/cyutils.pyx":163
+  /* "ants/cyutils.pyx":183
  *     cdef size_t cells, angles, cell, angle
  *     cells = angular_flux.shape[0]
  *     angles = angular_flux.shape[1]             # <<<<<<<<<<<<<<
@@ -4312,7 +4692,7 @@ static void __pyx_f_4ants_7cyutils_group_angular_to_scalar(__Pyx_memviewslice &_
  */
   __pyx_v_angles = (__pyx_v_angular_flux.shape[1]);
 
-  /* "ants/cyutils.pyx":164
+  /* "ants/cyutils.pyx":184
  *     cells = angular_flux.shape[0]
  *     angles = angular_flux.shape[1]
  *     scalar_flux[:] = 0             # <<<<<<<<<<<<<<
@@ -4334,7 +4714,7 @@ static void __pyx_f_4ants_7cyutils_group_angular_to_scalar(__Pyx_memviewslice &_
       }
   }
 
-  /* "ants/cyutils.pyx":165
+  /* "ants/cyutils.pyx":185
  *     angles = angular_flux.shape[1]
  *     scalar_flux[:] = 0
  *     for angle in range(angles):             # <<<<<<<<<<<<<<
@@ -4346,7 +4726,7 @@ static void __pyx_f_4ants_7cyutils_group_angular_to_scalar(__Pyx_memviewslice &_
   for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_2; __pyx_t_3+=1) {
     __pyx_v_angle = __pyx_t_3;
 
-    /* "ants/cyutils.pyx":166
+    /* "ants/cyutils.pyx":186
  *     scalar_flux[:] = 0
  *     for angle in range(angles):
  *         for cell in range(cells):             # <<<<<<<<<<<<<<
@@ -4358,7 +4738,7 @@ static void __pyx_f_4ants_7cyutils_group_angular_to_scalar(__Pyx_memviewslice &_
     for (__pyx_t_6 = 0; __pyx_t_6 < __pyx_t_5; __pyx_t_6+=1) {
       __pyx_v_cell = __pyx_t_6;
 
-      /* "ants/cyutils.pyx":167
+      /* "ants/cyutils.pyx":187
  *     for angle in range(angles):
  *         for cell in range(cells):
  *             scalar_flux[cell] += angle_weight[angle] * angular_flux[cell][angle]             # <<<<<<<<<<<<<<
@@ -4370,7 +4750,7 @@ static void __pyx_f_4ants_7cyutils_group_angular_to_scalar(__Pyx_memviewslice &_
       if (unlikely(__pyx_t_7 >= (size_t)__pyx_v_angle_weight.shape[0])) __pyx_t_8 = 0;
       if (unlikely(__pyx_t_8 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_8);
-        __PYX_ERR(0, 167, __pyx_L1_error)
+        __PYX_ERR(0, 187, __pyx_L1_error)
       }
       __pyx_t_9 = __pyx_v_cell;
       __pyx_t_10 = __pyx_v_angle;
@@ -4379,20 +4759,20 @@ static void __pyx_f_4ants_7cyutils_group_angular_to_scalar(__Pyx_memviewslice &_
       if (unlikely(__pyx_t_10 >= (size_t)__pyx_v_angular_flux.shape[1])) __pyx_t_8 = 1;
       if (unlikely(__pyx_t_8 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_8);
-        __PYX_ERR(0, 167, __pyx_L1_error)
+        __PYX_ERR(0, 187, __pyx_L1_error)
       }
       __pyx_t_11 = __pyx_v_cell;
       __pyx_t_8 = -1;
       if (unlikely(__pyx_t_11 >= (size_t)__pyx_v_scalar_flux.shape[0])) __pyx_t_8 = 0;
       if (unlikely(__pyx_t_8 != -1)) {
         __Pyx_RaiseBufferIndexError(__pyx_t_8);
-        __PYX_ERR(0, 167, __pyx_L1_error)
+        __PYX_ERR(0, 187, __pyx_L1_error)
       }
       *((double *) ( /* dim=0 */ (__pyx_v_scalar_flux.data + __pyx_t_11 * __pyx_v_scalar_flux.strides[0]) )) += ((*((double *) ( /* dim=0 */ (__pyx_v_angle_weight.data + __pyx_t_7 * __pyx_v_angle_weight.strides[0]) ))) * (*((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_angular_flux.data + __pyx_t_9 * __pyx_v_angular_flux.strides[0]) ) + __pyx_t_10 * __pyx_v_angular_flux.strides[1]) ))));
     }
   }
 
-  /* "ants/cyutils.pyx":159
+  /* "ants/cyutils.pyx":179
  *                         weight[angle] * angular_flux[cell][angle][group]
  * 
  * cdef void group_angular_to_scalar(double[:]& scalar_flux, \             # <<<<<<<<<<<<<<
@@ -4408,7 +4788,7 @@ static void __pyx_f_4ants_7cyutils_group_angular_to_scalar(__Pyx_memviewslice &_
   __Pyx_RefNannyFinishContext();
 }
 
-/* "ants/cyutils.pyx":169
+/* "ants/cyutils.pyx":189
  *             scalar_flux[cell] += angle_weight[angle] * angular_flux[cell][angle]
  * 
  * cdef void time_coef(double[:]& temporal_coef, double[:]& velocity, \             # <<<<<<<<<<<<<<
@@ -4431,7 +4811,7 @@ static void __pyx_f_4ants_7cyutils_time_coef(__Pyx_memviewslice &__pyx_v_tempora
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("time_coef", 0);
 
-  /* "ants/cyutils.pyx":171
+  /* "ants/cyutils.pyx":191
  * cdef void time_coef(double[:]& temporal_coef, double[:]& velocity, \
  *                      double time_step_size):
  *     cdef size_t groups = velocity.shape[0]             # <<<<<<<<<<<<<<
@@ -4440,7 +4820,7 @@ static void __pyx_f_4ants_7cyutils_time_coef(__Pyx_memviewslice &__pyx_v_tempora
  */
   __pyx_v_groups = (__pyx_v_velocity.shape[0]);
 
-  /* "ants/cyutils.pyx":172
+  /* "ants/cyutils.pyx":192
  *                      double time_step_size):
  *     cdef size_t groups = velocity.shape[0]
  *     for group in range(groups):             # <<<<<<<<<<<<<<
@@ -4451,7 +4831,7 @@ static void __pyx_f_4ants_7cyutils_time_coef(__Pyx_memviewslice &__pyx_v_tempora
   for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_2; __pyx_t_3+=1) {
     __pyx_v_group = __pyx_t_3;
 
-    /* "ants/cyutils.pyx":173
+    /* "ants/cyutils.pyx":193
  *     cdef size_t groups = velocity.shape[0]
  *     for group in range(groups):
  *         temporal_coef[group] = 1 / (velocity[group] * time_step_size)             # <<<<<<<<<<<<<<
@@ -4461,19 +4841,19 @@ static void __pyx_f_4ants_7cyutils_time_coef(__Pyx_memviewslice &__pyx_v_tempora
     if (unlikely(__pyx_t_4 >= (size_t)__pyx_v_velocity.shape[0])) __pyx_t_5 = 0;
     if (unlikely(__pyx_t_5 != -1)) {
       __Pyx_RaiseBufferIndexError(__pyx_t_5);
-      __PYX_ERR(0, 173, __pyx_L1_error)
+      __PYX_ERR(0, 193, __pyx_L1_error)
     }
     __pyx_t_6 = __pyx_v_group;
     __pyx_t_5 = -1;
     if (unlikely(__pyx_t_6 >= (size_t)__pyx_v_temporal_coef.shape[0])) __pyx_t_5 = 0;
     if (unlikely(__pyx_t_5 != -1)) {
       __Pyx_RaiseBufferIndexError(__pyx_t_5);
-      __PYX_ERR(0, 173, __pyx_L1_error)
+      __PYX_ERR(0, 193, __pyx_L1_error)
     }
     *((double *) ( /* dim=0 */ (__pyx_v_temporal_coef.data + __pyx_t_6 * __pyx_v_temporal_coef.strides[0]) )) = (1.0 / ((*((double *) ( /* dim=0 */ (__pyx_v_velocity.data + __pyx_t_4 * __pyx_v_velocity.strides[0]) ))) * __pyx_v_time_step_size));
   }
 
-  /* "ants/cyutils.pyx":169
+  /* "ants/cyutils.pyx":189
  *             scalar_flux[cell] += angle_weight[angle] * angular_flux[cell][angle]
  * 
  * cdef void time_coef(double[:]& temporal_coef, double[:]& velocity, \             # <<<<<<<<<<<<<<
@@ -18699,6 +19079,8 @@ static int __Pyx_modinit_function_export_code(void) {
   __Pyx_RefNannySetupContext("__Pyx_modinit_function_export_code", 0);
   /*--- Function export code ---*/
   if (__Pyx_ExportFunction("power_iteration_source", (void (*)(void))__pyx_f_4ants_7cyutils_power_iteration_source, "void (__Pyx_memviewslice, __Pyx_memviewslice, __Pyx_memviewslice, __Pyx_memviewslice)") < 0) __PYX_ERR(0, 1, __pyx_L1_error)
+  if (__Pyx_ExportFunction("mms_power_iteration_source", (void (*)(void))__pyx_f_4ants_7cyutils_mms_power_iteration_source, "void (__Pyx_memviewslice, __Pyx_memviewslice, __Pyx_memviewslice, __Pyx_memviewslice, int)") < 0) __PYX_ERR(0, 1, __pyx_L1_error)
+  if (__Pyx_ExportFunction("add_manufactured_source", (void (*)(void))__pyx_f_4ants_7cyutils_add_manufactured_source, "void (__Pyx_memviewslice, __Pyx_memviewslice)") < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   if (__Pyx_ExportFunction("normalize_flux", (void (*)(void))__pyx_f_4ants_7cyutils_normalize_flux, "double (__Pyx_memviewslice)") < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   if (__Pyx_ExportFunction("divide_by_keff", (void (*)(void))__pyx_f_4ants_7cyutils_divide_by_keff, "void (__Pyx_memviewslice, double)") < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   if (__Pyx_ExportFunction("combine_self_scattering", (void (*)(void))__pyx_f_4ants_7cyutils_combine_self_scattering, "void (__Pyx_memviewslice, __Pyx_memviewslice, __Pyx_memviewslice)") < 0) __PYX_ERR(0, 1, __pyx_L1_error)

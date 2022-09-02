@@ -11,6 +11,11 @@
 cdef void power_iteration_source(double[:] power_source, double[:,:] flux, \
                                 int[:] medium_map, double[:,:,:] xs_fission)
 
+cdef void mms_power_iteration_source(double[:] power_source, double[:,:] flux, \
+                        int[:] medium_map, double[:,:,:] xs_fission, int angles)
+
+cdef void add_manufactured_source(double[:] power_source, double[:] mms_source)
+
 cdef double normalize_flux(double[:,:] flux)
 
 cdef void divide_by_keff(double[:,:] flux, double keff)

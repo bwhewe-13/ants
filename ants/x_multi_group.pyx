@@ -53,6 +53,42 @@ def criticality(int[:] medium_map, double[:,:] xs_total, \
         flux_old = flux.copy()
     return np.asarray(flux), keff
 
+def mms_criticality(int[:] medium_map, double[:,:] xs_total, \
+                double[:,:,:] xs_scatter, double[:,:,:] xs_fission, \
+                double[:] mu, double[:] angle_weight, int[:] params, \
+                double[:] cell_width, double[:] mms_source):
+    # Initialize components
+    cdef size_t cells = medium_map.shape[0]
+    cdef size_t groups = xs_total.shape[1]
+    cdef size_t angles = mu.shape[0]
+    flux_old = np.random.rand(cells, groups)
+    keff = cyutils.normalize_flux(flux_old)
+    cyutils.divide_by_keff(flux_old, keff)
+
+    # power_source = memoryview(np.zeros((cells * groups)))
+    power_source = memoryview(np.zeros((cells * angles * groups)))
+    flux = flux_old.copy()
+    boundary = memoryview(np.zeros((angles)))
+    # Set convergence limits
+    cdef bint converged = False
+    cdef size_t count = 1
+    cdef double change = 0.0
+    while not (converged):
+        # cyutils.power_iteration_source(power_source, flux_old, medium_map, xs_fission)
+        cyutils.mms_power_iteration_source(power_source, flux_old, medium_map, \
+                                            xs_fission, angles)
+        cyutils.add_manufactured_source(power_source, mms_source)
+        flux = scalar_multi_group(flux, medium_map, xs_total, xs_scatter, \
+                power_source, boundary, mu, angle_weight, params, cell_width)
+        keff = cyutils.normalize_flux(flux)
+        cyutils.divide_by_keff(flux, keff)
+        change = cyutils.scalar_convergence(flux, flux_old)
+        # print('Power Iteration {}\n{}\nChange {} Keff {}'.format(count, \
+        #         '='*35, change, keff))
+        converged = (change < OUTER_TOLERANCE) or (count >= MAX_ITERATIONS)
+        count += 1
+        flux_old = flux.copy()
+    return np.asarray(flux), keff
 
 def source_iteration(int[:] medium_map, double[:,:] xs_total, \
                     double[:,:,:] xs_scatter, double[:,:,:] xs_fission, \

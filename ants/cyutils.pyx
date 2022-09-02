@@ -28,6 +28,26 @@ cdef void power_iteration_source(double[:] power_source, double[:,:] flux, \
                 power_source[ingroup::groups][cell] += flux[cell][outgroup] \
                                 * xs_fission[material][ingroup][outgroup]
 
+cdef void mms_power_iteration_source(double[:] power_source, double[:,:] flux, \
+                        int[:] medium_map, double[:,:,:] xs_fission, int angles):
+    power_source[:] = 0
+    cdef int cells = medium_map.shape[0]
+    cdef int groups = flux.shape[1]
+    cdef int material, angle
+    for cell in range(cells):
+        material = medium_map[cell]
+        for angle in range(angles):
+            for ig in range(groups):
+                for og in range(groups):
+                    power_source[ig::groups][angle::angles][cell] += flux[cell][og] \
+                                    * xs_fission[material][ig][og]
+
+cdef void add_manufactured_source(double[:] power_source, double[:] mms_source):
+    cdef int cells = power_source.shape[0]
+    cdef int cell
+    for cell in range(cells):
+        power_source[cell] += mms_source[cell]
+
 cdef double normalize_flux(double[:,:] flux):
     cdef double keff = 0
     cdef int cells = flux.shape[0]
