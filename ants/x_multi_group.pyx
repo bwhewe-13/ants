@@ -29,6 +29,7 @@ def criticality(int[:] medium_map, double[:,:] xs_total, \
     cdef size_t groups = xs_total.shape[1]
     cdef size_t angles = mu.shape[0]
     flux_old = np.random.rand(cells, groups)
+    cdef double keff
     keff = cyutils.normalize_flux(flux_old)
     cyutils.divide_by_keff(flux_old, keff)
 
@@ -40,11 +41,12 @@ def criticality(int[:] medium_map, double[:,:] xs_total, \
     cdef size_t count = 1
     cdef double change = 0.0
     while not (converged):
-        cyutils.power_iteration_source(power_source, flux_old, medium_map, xs_fission)
+        cyutils.power_iteration_source(power_source, flux_old, medium_map, xs_fission, 1)
         flux = scalar_multi_group(flux, medium_map, xs_total, xs_scatter, \
                 power_source, boundary, mu, angle_weight, params, cell_width)
         keff = cyutils.normalize_flux(flux)
         cyutils.divide_by_keff(flux, keff)
+        # keff = cyutils.update_keffective(flux, flux_old, medium_map, xs_fission, keff)
         change = cyutils.scalar_convergence(flux, flux_old)
         # print('Power Iteration {}\n{}\nChange {} Keff {}'.format(count, \
         #         '='*35, change, keff))
@@ -53,19 +55,20 @@ def criticality(int[:] medium_map, double[:,:] xs_total, \
         flux_old = flux.copy()
     return np.asarray(flux), keff
 
-def mms_criticality(int[:] medium_map, double[:,:] xs_total, \
+def mnp_criticality(int[:] medium_map, double[:,:] xs_total, \
                 double[:,:,:] xs_scatter, double[:,:,:] xs_fission, \
                 double[:] mu, double[:] angle_weight, int[:] params, \
-                double[:] cell_width, double[:] mms_source):
+                double[:] cell_width, double[:] mnp_source, double mnp_keff):
+    # mnp_keff is the keff / Sum (sigmaf * phi)
     # Initialize components
     cdef size_t cells = medium_map.shape[0]
     cdef size_t groups = xs_total.shape[1]
     cdef size_t angles = mu.shape[0]
     flux_old = np.random.rand(cells, groups)
-    keff = cyutils.normalize_flux(flux_old)
-    cyutils.divide_by_keff(flux_old, keff)
+    cdef double keff = cyutils.multiply_manufactured_flux(flux_old, mnp_keff)
+    # keff = cyutils.normalize_flux(flux_old)
+    # cyutils.divide_by_keff(flux_old, keff)
 
-    # power_source = memoryview(np.zeros((cells * groups)))
     power_source = memoryview(np.zeros((cells * angles * groups)))
     flux = flux_old.copy()
     boundary = memoryview(np.zeros((angles)))
@@ -74,14 +77,16 @@ def mms_criticality(int[:] medium_map, double[:,:] xs_total, \
     cdef size_t count = 1
     cdef double change = 0.0
     while not (converged):
-        # cyutils.power_iteration_source(power_source, flux_old, medium_map, xs_fission)
-        cyutils.mms_power_iteration_source(power_source, flux_old, medium_map, \
-                                            xs_fission, angles)
-        cyutils.add_manufactured_source(power_source, mms_source)
+        # cyutils.power_iteration_source(power_source, flux_old, medium_map, \
+        #                                 xs_fission, keff)
+        cyutils.mnp_power_iteration_source(power_source, flux_old, medium_map, \
+                                            xs_fission, angles, keff)
+        cyutils.add_manufactured_source(power_source, mnp_source)
         flux = scalar_multi_group(flux, medium_map, xs_total, xs_scatter, \
                 power_source, boundary, mu, angle_weight, params, cell_width)
-        keff = cyutils.normalize_flux(flux)
-        cyutils.divide_by_keff(flux, keff)
+        keff = cyutils.update_keffective(flux, flux_old, medium_map, xs_fission, keff)
+        # keff = cyutils.normalize_flux(flux)
+        # cyutils.divide_by_keff(flux, keff)
         change = cyutils.scalar_convergence(flux, flux_old)
         # print('Power Iteration {}\n{}\nChange {} Keff {}'.format(count, \
         #         '='*35, change, keff))
@@ -101,7 +106,6 @@ def source_iteration(int[:] medium_map, double[:,:] xs_total, \
     materials = xs_total.shape[0]
     xs_matrix = memoryview(np.zeros((materials, groups, groups)))
     cyutils.combine_self_scattering(xs_matrix, xs_scatter, xs_fission)
-
     if angular == True:
         flux_old = memoryview(np.zeros((cells, angles, groups)))
         return angular_multi_group(flux_old, medium_map, xs_total, \

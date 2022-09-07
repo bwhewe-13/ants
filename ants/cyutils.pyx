@@ -16,7 +16,8 @@ from cython.view cimport array as cvarray
 import numpy as np
 
 cdef void power_iteration_source(double[:] power_source, double[:,:] flux, \
-                                 int[:] medium_map, double[:,:,:] xs_fission):
+                                 int[:] medium_map, double[:,:,:] xs_fission, 
+                                 double keff):
     power_source[:] = 0
     cdef int cells = medium_map.shape[0]
     cdef int groups = flux.shape[1]
@@ -26,10 +27,11 @@ cdef void power_iteration_source(double[:] power_source, double[:,:] flux, \
         for ingroup in range(groups):
             for outgroup in range(groups):
                 power_source[ingroup::groups][cell] += flux[cell][outgroup] \
-                                * xs_fission[material][ingroup][outgroup]
+                                * xs_fission[material][ingroup][outgroup] 
 
-cdef void mms_power_iteration_source(double[:] power_source, double[:,:] flux, \
-                        int[:] medium_map, double[:,:,:] xs_fission, int angles):
+cdef void mnp_power_iteration_source(double[:] power_source, double[:,:] flux, \
+                                    int[:] medium_map, double[:,:,:] xs_fission, \
+                                    int angles, double keff):
     power_source[:] = 0
     cdef int cells = medium_map.shape[0]
     cdef int groups = flux.shape[1]
@@ -40,13 +42,22 @@ cdef void mms_power_iteration_source(double[:] power_source, double[:,:] flux, \
             for ig in range(groups):
                 for og in range(groups):
                     power_source[ig::groups][angle::angles][cell] += flux[cell][og] \
-                                    * xs_fission[material][ig][og]
+                                    * xs_fission[material][ig][og] / keff
 
-cdef void add_manufactured_source(double[:] power_source, double[:] mms_source):
+cdef void add_manufactured_source(double[:] power_source, double[:] mnp_source):
     cdef int cells = power_source.shape[0]
     cdef int cell
     for cell in range(cells):
-        power_source[cell] += mms_source[cell]
+        power_source[cell] += mnp_source[cell]
+
+cdef double multiply_manufactured_flux(double[:,:] flux, double keff):
+    cdef int cells = flux.shape[0]
+    cdef int groups = flux.shape[1]
+    cdef double half_keff = 0.0
+    for cell in range(cells):
+        for group in range(groups):
+            half_keff += keff * flux[cell][group]
+    return half_keff
 
 cdef double normalize_flux(double[:,:] flux):
     cdef double keff = 0
@@ -57,6 +68,36 @@ cdef double normalize_flux(double[:,:] flux):
             keff += pow(flux[cell][group], 2)
     keff = sqrt(keff)
     return keff
+
+cdef double update_keffective(double[:,:] flux, double[:,:] flux_old, \
+                            int[:] medium_map, double[:,:,:] xs_fission, \
+                            double keff_old):
+    cdef double fission_rate = 0.0
+    cdef double fission_rate_old = 0.0
+    cdef int cells = flux.shape[0]
+    cdef int groups = flux.shape[1]
+    cdef int cell, material, ig, og
+    for cell in range(cells):
+        material = medium_map[cell]
+        for ig in range(groups):
+            for og in range(groups):
+                fission_rate += flux[cell][og] * xs_fission[material][ig][og]
+                fission_rate_old += flux_old[cell][og] * xs_fission[material][ig][og] / keff_old
+    # print(fission_rate, fission_rate_old)
+    return fission_rate / fission_rate_old
+
+# cdef double fission_rate(double[:,:] flux, int[:] medium_map, \
+#                                 double[:,:,:] xs_fission):
+#     cdef double fission_rate = 0.0
+#     cdef int cells = flux.shape[0]
+#     cdef int groups = flux.shape[1]
+#     cdef int cell, material, ig, og
+#     for cell in range(cells):
+#         material = medium_map[cell]
+#         for ig in range(groups):
+#             for og in range(groups):
+#                 fission_rate += flux[cell][og] * xs_fission[material][ig][og]
+#     return fission_rate
 
 cdef void divide_by_keff(double[:,:] flux, double keff):
     cdef int cells = flux.shape[0]

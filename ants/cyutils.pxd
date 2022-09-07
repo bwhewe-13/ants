@@ -9,14 +9,25 @@
 ########################################################################
 
 cdef void power_iteration_source(double[:] power_source, double[:,:] flux, \
-                                int[:] medium_map, double[:,:,:] xs_fission)
+                                int[:] medium_map, double[:,:,:] xs_fission, \
+                                double keff)
 
-cdef void mms_power_iteration_source(double[:] power_source, double[:,:] flux, \
-                        int[:] medium_map, double[:,:,:] xs_fission, int angles)
+cdef void mnp_power_iteration_source(double[:] power_source, double[:,:] flux, \
+                                    int[:] medium_map, double[:,:,:] xs_fission, \
+                                    int angles, double keff)
 
-cdef void add_manufactured_source(double[:] power_source, double[:] mms_source)
+cdef void add_manufactured_source(double[:] power_source, double[:] mnp_source)
+
+cdef double multiply_manufactured_flux(double[:,:] flux, double keff)
 
 cdef double normalize_flux(double[:,:] flux)
+
+cdef double update_keffective(double[:,:] flux, double[:,:] flux_old, \
+                            int[:] medium_map, double[:,:,:] xs_fission, \
+                            double keff_old)
+
+# cdef double fission_rate(double[:,:] flux, int[:] medium_map, \
+#                                 double[:,:,:] xs_fission)
 
 cdef void divide_by_keff(double[:,:] flux, double keff)
 
