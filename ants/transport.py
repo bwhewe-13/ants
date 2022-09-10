@@ -196,13 +196,9 @@ class Transport:
             mu, angle_weight = np.polynomial.legendre.leggauss(angles)
             angle_weight /= np.sum(angle_weight)
             if boundary == "reflected":
-                angles = int(0.5 * angles)
-                mu = mu[mu > 0].copy()
-                angle_weight = angle_weight[mu > 0].copy()
+                return mu[mu > 0], angle_weight[mu > 0]
             elif geometry == "sphere":
-                angles = int(0.5 * angles)
-                mu = mu[mu < 0].copy()
-                angle_weight = angle_weight[mu < 0].copy()
+                return mu[mu < 0], angle_weight[mu < 0]
             return mu, angle_weight
         elif dimension == 2:
             mu, w1 = np.polynomial.legendre.leggauss(angles)

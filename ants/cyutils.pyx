@@ -27,7 +27,7 @@ cdef void power_iteration_source(double[:] power_source, double[:,:] flux, \
         for ingroup in range(groups):
             for outgroup in range(groups):
                 power_source[ingroup::groups][cell] += flux[cell][outgroup] \
-                                * xs_fission[material][ingroup][outgroup] 
+                                * xs_fission[material][ingroup][outgroup] / keff
 
 cdef void mnp_power_iteration_source(double[:] power_source, double[:,:] flux, \
                                     int[:] medium_map, double[:,:,:] xs_fission, \
