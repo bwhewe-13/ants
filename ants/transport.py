@@ -28,8 +28,8 @@ class Transport:
         "ANGLES COLLIDED", "TIME DISCRETE", "TIME STEPS", "TIME STEP SIZE", \
         "ENERGY GROUPS", "ENERGY GROUPS COLLIDED", "ENERGY BOUNDS", \
         "ENERGY INDEX", "MATERIAL", "MATERIAL", "MAP FILE", \
-        "EXTERNAL SOURCE", "EXTERNAL SOURCE FILE", "BOUNDARY SOURCE LOCATION", \
-        "BOUNDARY SOURCE NAME", "BOUNDARY X", "BOUNDARY Y", "SVD", "DJINN", \
+        "EXTERNAL SOURCE", "EXTERNAL SOURCE FILE", "BOUNDARY LOCATION", \
+        "BOUNDARY NAME", "BOUNDARY X", "BOUNDARY Y", "SVD", "DJINN", \
         "AUTOENCODER", "DJINN-AUTOENCODER", "HYBRID", "MMS", "MNB", "NOTE")
 
     def __init__(self, input_file):
@@ -161,7 +161,9 @@ class Transport:
     def _generate_parameters(self):
         self.cells = int(self.info.get("SPATIAL X CELLS"))
         medium_width = float(self.info.get("SPATIAL X LENGTH"))
-        if "SPATIAL X CELL WIDTH" in self.info.keys():
+        if "SPATIAL X CELL WIDTH" in self.info.keys() \
+            and len(self.info.get("SPATIAL X CELL WIDTH", "")) > 0:
+
             file_name = os.path.join(self.info.get("FILE LOCATION", "."), \
                     self.info.get("SPATIAL X CELL WIDTH"))
             self.cell_width = np.load(file_name)
@@ -277,8 +279,8 @@ class Transport:
             material = material.split("//")
             self.material_key[material[1].strip()] = int(material[0])
             mat_id.append(int(material[0].strip()))
-            starting_loc = int(material[2].split("-")[0])
-            ending_loc = int(material[2].split("-")[1])
+            starting_loc = np.round(float(material[2].split("-")[0]), 5)
+            ending_loc = np.round(float(material[2].split("-")[1]), 5)
             one_width = int(np.argwhere(self.cell_edges == ending_loc)) \
                         - int(np.argwhere(self.cell_edges == starting_loc))
             starting_cell += idx

@@ -156,6 +156,7 @@ cdef double left_to_right(double[:]& scalar_flux, double[:]& scalar_flux_old, \
     cdef float xs1_const = 0 if params[1] == 1 else -0.5
     cdef float xs2_const = 1 if params[1] == 1 else 0.5
     edge_one += boundary
+    # print(edge_one)
     for cell in range(cells):
         material = medium_map[cell]
         edge_two = (xs_matrix[material] * scalar_flux_old[cell] \
@@ -175,14 +176,13 @@ cdef double right_to_left(double[:]& scalar_flux, double[:]& scalar_flux_old, \
                         double[:]& xs_matrix, double[:]& off_scatter, \
                         double[:]& external_source, int[:]& params, \
                         double mu, double angle_weight, double[:]& cell_width, \
-                        double edge_one):
+                        double edge_two):
     # I --> 0 (negative mu)
-    cdef double edge_two = 0
+    cdef double edge_one
     cdef int cells = medium_map.shape[0]
     cdef float xs1_const = 0 if params[1] == 1 else -0.5
     cdef float xs2_const = 1 if params[1] == 1 else 0.5
     for cell in range(cells-1, -1, -1):
-        edge_two = edge_one
         material = medium_map[cell]
         edge_one = (xs_matrix[material] * scalar_flux_old[cell] \
                 + external_source[cell] + off_scatter[cell] + edge_two \
@@ -192,36 +192,37 @@ cdef double right_to_left(double[:]& scalar_flux, double[:]& scalar_flux_old, \
             scalar_flux[cell] += angle_weight * edge_one
         elif params[1] == 2:
             scalar_flux[cell] += angle_weight * 0.5 * (edge_one + edge_two) 
+        edge_two = edge_one
     return edge_one
 
 
 cdef void sweep(double[:]& scalar_flux, double[:]& scalar_flux_old, \
                 int[:]& medium_map, double[:]& xs_total, \
                 double[:]& xs_matrix, double[:]& off_scatter, \
-                double[:]& external_source, \
-                double boundary, double mu, \
-                double angle_weight, int[:]& params, double[:]& cell_width, size_t gg_idx, \
-                size_t nn_idx):
+                double[:]& external_source, double boundary, double mu, \
+                double angle_weight, int[:]& params, double[:]& cell_width, \
+                size_t gg, size_t nn):
     cdef double edge = 0
-    # [gg_idx+nn_idx*params[3]::params[4]*params[3]]
+    # [gg+nn*params[3]::params[4]*params[3]]
+    #
     if params[2] == 1 and params[0] == 1:
         edge = left_to_right(scalar_flux, scalar_flux_old, \
                 medium_map, xs_total, xs_matrix, off_scatter, \
-                external_source[gg_idx+nn_idx*params[3]::params[4]*params[3]], \
+                external_source[gg+nn*params[3]::params[4]*params[3]], \
                 params, boundary, mu, angle_weight, cell_width, 0.0)
         edge = right_to_left(scalar_flux, scalar_flux_old, \
                 medium_map, xs_total, xs_matrix, off_scatter, \
-                external_source[gg_idx+nn_idx*params[3]::params[4]*params[3]], \
+                external_source[gg+nn*params[3]::params[4]*params[3]], \
                 params, mu, angle_weight, cell_width, edge)
     elif mu > 0:
         edge = left_to_right(scalar_flux, scalar_flux_old, \
                 medium_map, xs_total, xs_matrix, off_scatter, \
-                external_source[gg_idx+nn_idx*params[3]::params[4]*params[3]], \
+                external_source[gg+nn*params[3]::params[4]*params[3]], \
                 params, boundary, mu, angle_weight, cell_width, 0.0)
     elif mu < 0:
         edge = right_to_left(scalar_flux, scalar_flux_old, \
                 medium_map, xs_total, xs_matrix, off_scatter, \
-                external_source[gg_idx+nn_idx*params[3]::params[4]*params[3]], \
+                external_source[gg+nn*params[3]::params[4]*params[3]], \
                 params, mu, angle_weight, cell_width, 0.0)
     else:
         print("You are wrong")

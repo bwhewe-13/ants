@@ -8,7 +8,7 @@
 ########################################################################
 
 from ants.transport import Transport
-from ants.cyants import multi_group
+from ants import x_multi_group
 from . import splines, dimensions
 
 import numpy as np
@@ -90,7 +90,7 @@ class NearbyProblem:
         self.nearby = self.run_problem()
 
     def run_problem(self):
-        angular = multi_group.source_iteration(self.problem.medium_map, \
+        angular = x_multi_group.source_iteration(self.problem.medium_map, \
                         self.problem.xs_total, self.problem.xs_scatter, \
                         self.problem.xs_fission, self.problem.external_source, \
                         self.problem.point_source, self.problem.mu, \

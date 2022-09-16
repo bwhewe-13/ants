@@ -31,7 +31,8 @@ class Materials:
 
     __nonphysical_materials = ("reed-scatter", "reed-absorber", \
                                "reed-vacuum", "reed-strong-source", \
-                               "mms-absorber", "mms-scatter", "mms-quasi")
+                               "mms-absorber", "mms-scatter", "mms-quasi", \
+                               "diffusion-01", "diffusion-02")
 
     __materials = __enrichment_materials + __nonenrichment_materials \
                     + __nonphysical_materials
@@ -165,7 +166,7 @@ class Materials:
 
 
 class BoundarySource:
-    __available_sources = ("14.1-mev", "ambe", "single-left", \
+    __available_sources = ("14.1-mev", "ambe", "single-left", "single-right", \
                            "mms-left", "mms-right", "mms-two-material", \
                            "mms-two-material-angle", None)
 
@@ -189,6 +190,8 @@ class BoundarySource:
             source = self._ambe_source()
         elif self.name in ["single-left"]:
             source = self._single_source_left()
+        elif self.name in ["single-right"]:
+            source = self._single_source_right()
         elif self.name in ["mms-left"]:
             source = self._mms_boundary_left()
         elif self.name in ["mms-right"]:
@@ -224,6 +227,11 @@ class BoundarySource:
     def _single_source_left(self):
         source = np.ones((len(self.mu), self.energy_groups))
         source[self.mu < 0] = 0
+        return source
+
+    def _single_source_right(self):
+        source = np.ones((len(self.mu), self.energy_groups))
+        # source[self.mu > 0] = 0
         return source
 
     def _mms_boundary_left(self):
@@ -292,11 +300,18 @@ class NonPhysical:
             return [np.array([1.]), np.array([[0.3]]), np.array([[0.]])]
             # return [np.array([1.]), np.array([[0.0]]), np.array([[0.]])]
 
+    def diffusion_01(energy_groups):
+        if energy_groups == 1:
+            return [np.array([100.]), np.array([[100.]]), np.array([[0.]])]
+
+    def diffusion_02(energy_groups):
+        if energy_groups == 1:
+            return [np.array([2.]), np.array([[0.]]), np.array([[0.]])]
 
 class ExternalSource:
     __available_sources = ("unity", "half-unity", "reed", "mms-source", \
                            "mms-two-material", "mms-two-material-angle", \
-                           None)
+                           None, "diffusion-01")
 
     def __init__(self, name, cells, cell_width, mu):
         """ Constructing external sources - for
@@ -317,11 +332,13 @@ class ExternalSource:
 
     def _generate_source(self):
         if self.name is None:
-            source = np.zeros((self.cells))
+            source = np.zeros((self.cells, len(self.mu), 1))
         if self.name in ["unity"]:
             source = np.ones((self.cells, len(self.mu), 1)) 
         elif self.name in ["half-unity"]:
             source = 0.5 * np.ones((self.cells, len(self.mu), 1))
+        elif self.name in ["diffusion-01"]:
+            source = 0.01 * np.ones((self.cells, len(self.mu), 1))
         elif self.name in ["reed"]:
             return self._reed_source()
         elif self.name in ["mms-source"]:
@@ -398,3 +415,4 @@ class ExternalSource:
         source = np.array([angle_dependent(angle, xspace) for angle \
                                                         in self.mu]).T
         return source[:,:,None]
+
