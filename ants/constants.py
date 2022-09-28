@@ -9,8 +9,14 @@
 
 # Loop Exit Conditions
 INNER_TOLERANCE = 1E-08
-OUTER_TOLERANCE = 1E-12
-MAX_ITERATIONS = 100
+
+# OUTER_TOLERANCE = 1E-12
+# MAX_ITERATIONS = 100
+
+# For Diffusive Problems
+OUTER_TOLERANCE = 1E-10
+MAX_ITERATIONS = 1000000
+
 # Transport Parameters Dictionary
 PARAMS_DICT = {"slab": 1, "sphere": 2,          # Geometry
           "step": 1, "diamond": 2,              # Spatial Discretization

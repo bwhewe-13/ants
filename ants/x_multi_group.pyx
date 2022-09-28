@@ -159,6 +159,7 @@ cdef double[:,:] scalar_multi_group(double[:,:]& flux_old, int[:] medium_map, \
         converged = (change < OUTER_TOLERANCE) or (count >= MAX_ITERATIONS)
         count += 1
         flux_old[:,:] = flux[:,:]
+    print(count, change)
     return np.asarray(flux)
 
  
@@ -202,6 +203,7 @@ cdef double[:,:,:] angular_multi_group(double[:,:,:] flux_old, \
         converged = (change < OUTER_TOLERANCE) or (count >= MAX_ITERATIONS)
         count += 1
         flux_old[:,:,:] = flux[:,:,:]
+    print(count, change)        
     return np.asarray(flux)
 
 
