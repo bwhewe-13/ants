@@ -67,6 +67,7 @@ def hermite(x, y, x_width=None, knots=None, stype="cubic", aux_func="derive"):
         ypp = second_derivative(x, y)
     for n in range(len(knots) - 1):
         temp_x = x[knots[n]:knots[n+1]+1].copy()
+        # print(temp_x)
         if aux_func == "derive":
             temp_x_edges = temp_x.copy()
         elif aux_func == "integrate":
@@ -150,15 +151,18 @@ class CubicHermite:
         elif dtype == "integrate":
             return -0.5*t(x, tk0, tk1)**3 * (x - tk0) + t(x, tk0, tk1)**2 \
                 * (x - tk0)
+            # return 0
         return -2*t(x, tk0, tk1)**3 + 3*t(x, tk0, tk1)**2
 
     def _psi0(x, tk0, tk1, dtype=None):
+        # print("in func", tk1, tk0, t(x, tk0, tk1))
         if dtype == "derive":
             return 3*t(x, tk0, tk1)**2 - 4*t(x, tk0, tk1) + 1
         elif dtype == "integrate":
             return (tk1 - tk0) * (0.25*t(x, tk0, tk1)**3 * (x - tk0) \
                 - 2/3*t(x, tk0, tk1)**2 * (x - tk0) \
                 + x**2 / (2 * (tk1 - tk0)) - (tk0 * x) / (tk1 - tk0))
+            # return (x**2 / (2 * (tk1 - tk0)) - (tk0 * x) / (tk1 - tk0))
         return (tk1 - tk0) * (t(x, tk0, tk1)**3 \
                 - 2*t(x, tk0, tk1)**2 + t(x, tk0, tk1))
 
@@ -168,6 +172,7 @@ class CubicHermite:
         elif dtype == "integrate":
             return (tk1 - tk0) * (0.25*t(x, tk0, tk1)**3 * (x - tk0) \
                 - 1/3*t(x, tk0, tk1)**2 * (x - tk0))
+            # return 0
         return (tk1 - tk0) * (t(x, tk0, tk1)**3 - t(x, tk0, tk1)**2)
 
     def cubic_spline(x, yk0, yk1, ykp0, ykp1, tk0, tk1, dtype=None):

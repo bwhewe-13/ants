@@ -10,8 +10,6 @@
 from . import dimensions 
 
 import numpy as np
-import warnings
-
 
 def first_derivative(x, y):
     # Added second order at endpoints
@@ -64,8 +62,8 @@ class CubicHermite:
         idx = np.digitize(n, bins=self.x) - 1
         idx[idx == len(self.x) - 1] = len(self.x) - 2
         idx[idx == -1] = 0
-        return CubicHermite._one_spline(n, self.x[idx], \
-                            np.diff(self.x)[idx], self.coefs[:,idx])
+        return CubicHermite._one_spline(n, self.x[idx], self.x[idx+1],\
+                             self.coefs[:,idx])
 
     @classmethod
     def _generate_new(cls, x, coefs):
@@ -86,9 +84,9 @@ class CubicHermite:
             self.coefs[2, ii] = self.dydx[ii] * (self.x[ii+1] - self.x[ii])
             self.coefs[3, ii] = self.y[ii] 
 
-    def _one_spline(x, t, dt, coef):
-        return ((x-t) / dt)**3 * coef[0] + ((x-t) / dt)**2 * coef[1] \
-                                    + ((x-t) / dt) * coef[2] + coef[3]
+    def _one_spline(x, tk0, tk1, coef):
+        t = (x - tk0) / (tk1 - tk0)
+        return t**3 * coef[0] + t**2 * coef[1] + t * coef[2] + coef[3]
 
     def derivative(self):
         coefs_d = np.zeros((4, len(self.x)-1))
@@ -102,6 +100,29 @@ class CubicHermite:
             coefs_d[3, ii] = self.dydx[ii] 
         return self._generate_new(self.x, coefs_d)
 
+    def basis_functions(x):
+        tk0 = x[0]
+        tk1 = x[-1]
+        t = ((x - tk0) / (tk1 - tk0))
+        phi0 = (x - tk0) * (0.5 * t**3 - t**2) + x
+        phi1 = (x - tk0) * (-0.5 * t**3 + t**2)
+        psi0 = (tk1 - tk0) * ((x - tk0) * (0.25 * t**3 - 2/3 * t**2) \
+                + x * (x - 2 * tk0) / (2 * (tk1 - tk0)))
+        psi1 = (tk1 - tk0) * (x - tk0) * (0.25 * t**3 - 1/3 * t**2)
+        return np.array([phi0, phi1, psi0, psi1])
+
+    def integrate(self, cell_edges):
+        integral = []
+        knots = np.array([self.y[:-1], self.y[1:], self.dydx[:-1], self.dydx[1:]])
+        for ii in range(len(self.x)-1):
+            n = np.linspace(cell_edges[ii], cell_edges[ii+2], 3)
+            temp_int = np.sum(knots[:,ii,None] * CubicHermite.basis_functions(n), axis=0)
+            integral.append(np.diff(temp_int)[:-1])
+            if ii == len(self.x) - 2:
+                integral.append([np.diff(temp_int)[-1]])
+        integral = np.array([item for sublist in integral for item in sublist])
+        return integral
+        
 
 class QuinticHermite:
 
@@ -174,3 +195,31 @@ class QuinticHermite:
             coefs_d[4, ii] = self.d2ydx2[ii] * (self.x[ii+1] - self.x[ii])
             coefs_d[5, ii] = self.dydx[ii]
         return self._generate_new(self.x, coefs_d)
+    
+    def basis_functions(x):
+        tk0 = x[0]
+        tk1 = x[-1]
+        t = ((x - tk0) / (tk1 - tk0))
+        phi0 = (x - tk0) * (-t**5 + 3 * t**4 - 2.5 * t**3) + x
+        phi1 = (x - tk0) * (t**5 - 3 * t**4 + 2.5 * t**3)
+        psi0 = (tk1 - tk0) * ((x - tk0) * (-0.5 * t**5 + 1.6 * t**4 \
+                - 1.5 * t**3) + x * (x - 2 * tk0) / (2 * (tk1 - tk0)))
+        psi1 = (tk1 - tk0) * (x - tk0) * (-0.5 * t**5 + 1.4 * t**4 - t**3)
+        theta0 = (tk1 - tk0)**2 * (x - tk0) * (-1/12 * t**5 \
+                    + 0.3 * t**4 - 0.375 * t**3 + 1/6 * t**2)
+        theta1 = (tk1 - tk0)**2 * (x - tk0) * (-1/12 * t**5 \
+                    - 0.2 * t**4 + 0.125 * t**3)
+        return np.array([phi0, phi1, psi0, psi1, theta0, theta1])
+
+    def integrate(self, cell_edges):
+        integral = []
+        knots = np.array([self.y[:-1], self.y[1:], self.dydx[:-1], \
+                        self.dydx[1:], self.d2ydx2[:-1], self.d2ydx2[1:]])
+        for ii in range(len(self.x)-1):
+            n = np.linspace(cell_edges[ii], cell_edges[ii+2], 3)
+            temp_int = np.sum(knots[:,ii,None] * QuinticHermite.basis_functions(n), axis=0)
+            integral.append(np.diff(temp_int)[:-1])
+            if ii == len(self.x) - 2:
+                integral.append([np.diff(temp_int)[-1]])
+        integral = np.array([item for sublist in integral for item in sublist])
+        return integral
