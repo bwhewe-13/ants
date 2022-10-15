@@ -30,9 +30,6 @@ def criticality(int[:] medium_map, double[:,:] xs_total, \
     cdef size_t angles = mu.shape[0]
     flux_old = np.random.rand(cells, groups)
     cdef double keff = 0.95
-    # keff = cyutils.normalize_flux(flux_old)
-    # cyutils.divide_by_keff(flux_old, keff)
-
     power_source = memoryview(np.zeros((cells * groups)))
     flux = flux_old.copy()
     boundary = memoryview(np.zeros((angles)))
@@ -45,8 +42,6 @@ def criticality(int[:] medium_map, double[:,:] xs_total, \
                                         xs_fission, keff)
         flux = scalar_multi_group(flux, medium_map, xs_total, xs_scatter, \
                 power_source, boundary, mu, angle_weight, params, cell_width)
-        # keff = cyutils.normalize_flux(flux)
-        # cyutils.divide_by_keff(flux, keff)
         keff = cyutils.update_keffective(flux, flux_old, medium_map, xs_fission, keff)
         change = cyutils.scalar_convergence(flux, flux_old)
         # print('Power Iteration {}\n{}\nChange {} Keff {}'.format(count, \
@@ -67,8 +62,6 @@ def mnp_criticality(int[:] medium_map, double[:,:] xs_total, \
     cdef size_t angles = mu.shape[0]
     flux_old = np.random.rand(cells, groups)
     cdef double keff = cyutils.multiply_manufactured_flux(flux_old, mnp_keff)
-    # keff = cyutils.normalize_flux(flux_old)
-    # cyutils.divide_by_keff(flux_old, keff)
     power_source = memoryview(np.zeros((cells * angles * groups)))
     flux = flux_old.copy()
     boundary = memoryview(np.zeros((angles)))
@@ -83,8 +76,6 @@ def mnp_criticality(int[:] medium_map, double[:,:] xs_total, \
         flux = scalar_multi_group(flux, medium_map, xs_total, xs_scatter, \
                 power_source, boundary, mu, angle_weight, params, cell_width)
         keff = cyutils.update_keffective(flux, flux_old, medium_map, xs_fission, keff)
-        # keff = cyutils.normalize_flux(flux)
-        # cyutils.divide_by_keff(flux, keff)
         change = cyutils.scalar_convergence(flux, flux_old)
         # print('Power Iteration {}\n{}\nChange {} Keff {}'.format(count, \
         #         '='*35, change, keff))
@@ -159,7 +150,7 @@ cdef double[:,:] scalar_multi_group(double[:,:]& flux_old, int[:] medium_map, \
         converged = (change < OUTER_TOLERANCE) or (count >= MAX_ITERATIONS)
         count += 1
         flux_old[:,:] = flux[:,:]
-    print(count, change)
+    # print(count, change)
     return np.asarray(flux)
 
  
@@ -203,7 +194,7 @@ cdef double[:,:,:] angular_multi_group(double[:,:,:] flux_old, \
         converged = (change < OUTER_TOLERANCE) or (count >= MAX_ITERATIONS)
         count += 1
         flux_old[:,:,:] = flux[:,:,:]
-    print(count, change)        
+    # print(count, change)        
     return np.asarray(flux)
 
 

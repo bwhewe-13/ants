@@ -237,70 +237,39 @@ cdef double[:] scalar_single_sweep(double[:] scalar_flux_old, int[:]& medium_map
                             external_source[ex1::ex2][cell_y::cells_y], \
                             params, boundary[angle], mu[angle], spatial_y, \
                             0.25*angle_weight[angle], delta_x, cell_y, 0.0)
-                if params[2] == 1 and params[3] == 1: # reflecting x and y
-                    for cell_y in range(cells_y-1, -1, -1):
-                        spatial_y = 2 * eta[angle] / delta_y[cell_y]
-                        boundary_x[cell_y] = left_to_right(scalar_flux[cell_y::cells_y], \
-                                scalar_flux_old[cell_y::cells_y], boundary_y, \
-                                medium_map[cell_y::cells_y], xs_total, xs_matrix, \
-                                off_scatter[cell_y::cells_y], \
-                                external_source[ex1::ex2][cell_y::cells_y], \
-                                params, boundary[angle], mu[angle], spatial_y, \
-                                0.25*angle_weight[angle], delta_x, cell_y, boundary_x[cell_y])
-                elif params[2] == 1: # reflecting x boundary, not reflecting y
-                    boundary_y[:] = 0
-                    for cell_y in range(cells_y-1, -1, -1):
-                        spatial_y = 2 * eta[angle] / delta_y[cell_y]
-                        boundary_x[cell_y] = left_to_right(scalar_flux[cell_y::cells_y], \
-                                scalar_flux_old[cell_y::cells_y], boundary_y, \
-                                medium_map[cell_y::cells_y], xs_total, xs_matrix, \
-                                off_scatter[cell_y::cells_y], \
-                                external_source[ex1::ex2][cell_y::cells_y], \
-                                params, boundary[angle], mu[angle], spatial_y, \
-                                0.25*angle_weight[angle], delta_x, cell_y, boundary_x[cell_y])
-                elif params[3] == 1: # reflecting y boundary, not reflecting x
-                    for cell_y in range(cells_y-1, -1, -1):
-                        spatial_y = 2 * eta[angle] / delta_y[cell_y]
-                        boundary_x[cell_y] = left_to_right(scalar_flux[cell_y::cells_y], \
-                                scalar_flux_old[cell_y::cells_y], boundary_y, \
-                                medium_map[cell_y::cells_y], xs_total, xs_matrix, \
-                                off_scatter[cell_y::cells_y], \
-                                external_source[ex1::ex2][cell_y::cells_y], \
-                                params, boundary[angle], mu[angle], spatial_y, \
-                                0.25*angle_weight[angle], delta_x, cell_y, 0.0)
-            # elif mu[angle] < 0 and eta[angle] > 0:
-            #     # I --> 0, 0 --> J
-            #     for cell_y in range(cells_y):
-            #         spatial_y = 2 * eta[angle] / delta_y[cell_y]
-            #         boundary_x[cell_y] = right_to_left(scalar_flux[cell_y::cells_y], \
-            #                 scalar_flux_old[cell_y::cells_y], boundary_y, \
-            #                 medium_map[cell_y::cells_y], xs_total, xs_matrix, \
-            #                 off_scatter[cell_y::cells_y], \
-            #                 external_source[ex1::ex2][cell_y::cells_y], \
-            #                 params, boundary[angle], abs(mu[angle]), spatial_y, \
-            #                 0.25*angle_weight[angle], delta_x, cell_y, 0.0)
-            # elif mu[angle] > 0 and eta[angle] < 0:
-            #     # 0 --> I, J --> 0
-            #     for cell_y in range(cells_y-1, -1, -1):
-            #         spatial_y = abs(2 * eta[angle]) / delta_y[cell_y]
-            #         boundary_x[cell_y] = left_to_right(scalar_flux[cell_y::cells_y], \
-            #                 scalar_flux_old[cell_y::cells_y], boundary_y, \
-            #                 medium_map[cell_y::cells_y], xs_total, xs_matrix, \
-            #                 off_scatter[cell_y::cells_y], \
-            #                 external_source[ex1::ex2][cell_y::cells_y], \
-            #                 params, boundary[angle], mu[angle], spatial_y, \
-            #                 0.25*angle_weight[angle], delta_x, cell_y, 0.0)
-            # elif mu[angle] < 0 and eta[angle] < 0:
-            #     # I --> 0, J --> 0
-            #     for cell_y in range(cells_y-1, -1, -1):
-            #         spatial_y = abs(2 * eta[angle]) / delta_y[cell_y]
-            #         boundary_x[cell_y] = right_to_left(scalar_flux[cell_y::cells_y], \
-            #                 scalar_flux_old[cell_y::cells_y], boundary_y, \
-            #                 medium_map[cell_y::cells_y], xs_total, xs_matrix, \
-            #                 off_scatter[cell_y::cells_y], \
-            #                 external_source[ex1::ex2][cell_y::cells_y], \
-            #                 params, boundary[angle], abs(mu[angle]), spatial_y, \
-            #                 0.25*angle_weight[angle], delta_x, cell_y, 0.0)
+            elif mu[angle] < 0 and eta[angle] > 0:
+                # I --> 0, 0 --> J
+                for cell_y in range(cells_y):
+                    spatial_y = 2 * eta[angle] / delta_y[cell_y]
+                    boundary_x[cell_y] = right_to_left(scalar_flux[cell_y::cells_y], \
+                            scalar_flux_old[cell_y::cells_y], boundary_y, \
+                            medium_map[cell_y::cells_y], xs_total, xs_matrix, \
+                            off_scatter[cell_y::cells_y], \
+                            external_source[ex1::ex2][cell_y::cells_y], \
+                            params, boundary[angle], abs(mu[angle]), spatial_y, \
+                            0.25*angle_weight[angle], delta_x, cell_y, 0.0)
+            elif mu[angle] > 0 and eta[angle] < 0:
+                # 0 --> I, J --> 0
+                for cell_y in range(cells_y-1, -1, -1):
+                    spatial_y = abs(2 * eta[angle]) / delta_y[cell_y]
+                    boundary_x[cell_y] = left_to_right(scalar_flux[cell_y::cells_y], \
+                            scalar_flux_old[cell_y::cells_y], boundary_y, \
+                            medium_map[cell_y::cells_y], xs_total, xs_matrix, \
+                            off_scatter[cell_y::cells_y], \
+                            external_source[ex1::ex2][cell_y::cells_y], \
+                            params, boundary[angle], mu[angle], spatial_y, \
+                            0.25*angle_weight[angle], delta_x, cell_y, 0.0)
+            elif mu[angle] < 0 and eta[angle] < 0:
+                # I --> 0, J --> 0
+                for cell_y in range(cells_y-1, -1, -1):
+                    spatial_y = abs(2 * eta[angle]) / delta_y[cell_y]
+                    boundary_x[cell_y] = right_to_left(scalar_flux[cell_y::cells_y], \
+                            scalar_flux_old[cell_y::cells_y], boundary_y, \
+                            medium_map[cell_y::cells_y], xs_total, xs_matrix, \
+                            off_scatter[cell_y::cells_y], \
+                            external_source[ex1::ex2][cell_y::cells_y], \
+                            params, boundary[angle], abs(mu[angle]), spatial_y, \
+                            0.25*angle_weight[angle], delta_x, cell_y, 0.0)
         change = cyutils.group_scalar_convergence(scalar_flux, scalar_flux_old)
         converged = (change < INNER_TOLERANCE) or (count >= MAX_ITERATIONS)
         # print("Source Iteration {}\n{}\nChange {} Sum {}".format(count, \
@@ -310,3 +279,34 @@ cdef double[:] scalar_single_sweep(double[:] scalar_flux_old, int[:]& medium_map
     return scalar_flux[:]
 
 
+# if params[2] == 1 and params[3] == 1: # reflecting x and y
+#     for cell_y in range(cells_y-1, -1, -1):
+#         spatial_y = 2 * eta[angle] / delta_y[cell_y]
+#         boundary_x[cell_y] = left_to_right(scalar_flux[cell_y::cells_y], \
+#                 scalar_flux_old[cell_y::cells_y], boundary_y, \
+#                 medium_map[cell_y::cells_y], xs_total, xs_matrix, \
+#                 off_scatter[cell_y::cells_y], \
+#                 external_source[ex1::ex2][cell_y::cells_y], \
+#                 params, boundary[angle], mu[angle], spatial_y, \
+#                 0.25*angle_weight[angle], delta_x, cell_y, boundary_x[cell_y])
+# elif params[2] == 1: # reflecting x boundary, not reflecting y
+#     boundary_y[:] = 0
+#     for cell_y in range(cells_y-1, -1, -1):
+#         spatial_y = 2 * eta[angle] / delta_y[cell_y]
+#         boundary_x[cell_y] = left_to_right(scalar_flux[cell_y::cells_y], \
+#                 scalar_flux_old[cell_y::cells_y], boundary_y, \
+#                 medium_map[cell_y::cells_y], xs_total, xs_matrix, \
+#                 off_scatter[cell_y::cells_y], \
+#                 external_source[ex1::ex2][cell_y::cells_y], \
+#                 params, boundary[angle], mu[angle], spatial_y, \
+#                 0.25*angle_weight[angle], delta_x, cell_y, boundary_x[cell_y])
+# elif params[3] == 1: # reflecting y boundary, not reflecting x
+#     for cell_y in range(cells_y-1, -1, -1):
+#         spatial_y = 2 * eta[angle] / delta_y[cell_y]
+#         boundary_x[cell_y] = left_to_right(scalar_flux[cell_y::cells_y], \
+#                 scalar_flux_old[cell_y::cells_y], boundary_y, \
+#                 medium_map[cell_y::cells_y], xs_total, xs_matrix, \
+#                 off_scatter[cell_y::cells_y], \
+#                 external_source[ex1::ex2][cell_y::cells_y], \
+#                 params, boundary[angle], mu[angle], spatial_y, \
+#                 0.25*angle_weight[angle], delta_x, cell_y, 0.0)

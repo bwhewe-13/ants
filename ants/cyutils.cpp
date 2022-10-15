@@ -2094,7 +2094,7 @@ static PyObject *__pyx_codeobj__25;
  *                                  double keff):
  */
 
-static void __pyx_f_4ants_7cyutils_power_iteration_source(__Pyx_memviewslice __pyx_v_power_source, __Pyx_memviewslice __pyx_v_flux, __Pyx_memviewslice __pyx_v_medium_map, __Pyx_memviewslice __pyx_v_xs_fission, CYTHON_UNUSED double __pyx_v_keff) {
+static void __pyx_f_4ants_7cyutils_power_iteration_source(__Pyx_memviewslice __pyx_v_power_source, __Pyx_memviewslice __pyx_v_flux, __Pyx_memviewslice __pyx_v_medium_map, __Pyx_memviewslice __pyx_v_xs_fission, double __pyx_v_keff) {
   int __pyx_v_cells;
   int __pyx_v_groups;
   int __pyx_v_material;
@@ -2212,7 +2212,7 @@ static void __pyx_f_4ants_7cyutils_power_iteration_source(__Pyx_memviewslice __p
  *         for ingroup in range(groups):
  *             for outgroup in range(groups):             # <<<<<<<<<<<<<<
  *                 power_source[ingroup::groups][cell] += flux[cell][outgroup] \
- *                                 * xs_fission[material][ingroup][outgroup]
+ *                                 * xs_fission[material][ingroup][outgroup] / keff
  */
       __pyx_t_8 = __pyx_v_groups;
       __pyx_t_9 = __pyx_t_8;
@@ -2223,7 +2223,7 @@ static void __pyx_f_4ants_7cyutils_power_iteration_source(__Pyx_memviewslice __p
  *         for ingroup in range(groups):
  *             for outgroup in range(groups):
  *                 power_source[ingroup::groups][cell] += flux[cell][outgroup] \             # <<<<<<<<<<<<<<
- *                                 * xs_fission[material][ingroup][outgroup]
+ *                                 * xs_fission[material][ingroup][outgroup] / keff
  * 
  */
         __pyx_t_4 = __pyx_v_cell;
@@ -2245,7 +2245,7 @@ static void __pyx_f_4ants_7cyutils_power_iteration_source(__Pyx_memviewslice __p
         /* "ants/cyutils.pyx":30
  *             for outgroup in range(groups):
  *                 power_source[ingroup::groups][cell] += flux[cell][outgroup] \
- *                                 * xs_fission[material][ingroup][outgroup]             # <<<<<<<<<<<<<<
+ *                                 * xs_fission[material][ingroup][outgroup] / keff             # <<<<<<<<<<<<<<
  * 
  * cdef void mnp_power_iteration_source(double[:] power_source, double[:,:] flux, \
  */
@@ -2274,7 +2274,7 @@ static void __pyx_f_4ants_7cyutils_power_iteration_source(__Pyx_memviewslice __p
  *         for ingroup in range(groups):
  *             for outgroup in range(groups):
  *                 power_source[ingroup::groups][cell] += flux[cell][outgroup] \             # <<<<<<<<<<<<<<
- *                                 * xs_fission[material][ingroup][outgroup]
+ *                                 * xs_fission[material][ingroup][outgroup] / keff
  * 
  */
         __pyx_t_16.data = __pyx_v_power_source.data;
@@ -2308,7 +2308,7 @@ __pyx_t_17 = __pyx_v_cell;
           __Pyx_RaiseBufferIndexError(__pyx_t_12);
           __PYX_ERR(0, 29, __pyx_L1_error)
         }
-        *((double *) ( /* dim=0 */ (__pyx_t_16.data + __pyx_t_17 * __pyx_t_16.strides[0]) )) += ((*((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_flux.data + __pyx_t_4 * __pyx_v_flux.strides[0]) ) + __pyx_t_11 * __pyx_v_flux.strides[1]) ))) * (*((double *) ( /* dim=2 */ (( /* dim=1 */ (( /* dim=0 */ (__pyx_v_xs_fission.data + __pyx_t_13 * __pyx_v_xs_fission.strides[0]) ) + __pyx_t_14 * __pyx_v_xs_fission.strides[1]) ) + __pyx_t_15 * __pyx_v_xs_fission.strides[2]) ))));
+        *((double *) ( /* dim=0 */ (__pyx_t_16.data + __pyx_t_17 * __pyx_t_16.strides[0]) )) += (((*((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_flux.data + __pyx_t_4 * __pyx_v_flux.strides[0]) ) + __pyx_t_11 * __pyx_v_flux.strides[1]) ))) * (*((double *) ( /* dim=2 */ (( /* dim=1 */ (( /* dim=0 */ (__pyx_v_xs_fission.data + __pyx_t_13 * __pyx_v_xs_fission.strides[0]) ) + __pyx_t_14 * __pyx_v_xs_fission.strides[1]) ) + __pyx_t_15 * __pyx_v_xs_fission.strides[2]) )))) / __pyx_v_keff);
         __PYX_XDEC_MEMVIEW(&__pyx_t_16, 1);
         __pyx_t_16.memview = NULL;
         __pyx_t_16.data = NULL;
@@ -2334,7 +2334,7 @@ __pyx_t_17 = __pyx_v_cell;
 }
 
 /* "ants/cyutils.pyx":32
- *                                 * xs_fission[material][ingroup][outgroup]
+ *                                 * xs_fission[material][ingroup][outgroup] / keff
  * 
  * cdef void mnp_power_iteration_source(double[:] power_source, double[:,:] flux, \             # <<<<<<<<<<<<<<
  *                                     int[:] medium_map, double[:,:,:] xs_fission, \
@@ -2606,7 +2606,7 @@ __PYX_XDEC_MEMVIEW(&__pyx_t_19, 1);
   }
 
   /* "ants/cyutils.pyx":32
- *                                 * xs_fission[material][ingroup][outgroup]
+ *                                 * xs_fission[material][ingroup][outgroup] / keff
  * 
  * cdef void mnp_power_iteration_source(double[:] power_source, double[:,:] flux, \             # <<<<<<<<<<<<<<
  *                                     int[:] medium_map, double[:,:,:] xs_fission, \

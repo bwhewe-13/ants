@@ -3,8 +3,10 @@ __pycache__/
 *.py[cod]
 *.ipynb
 
-# C Extensions
+# Cython Extensions
 *.so
+*.cpp
+*.c
 
 # Data files
 data/
@@ -18,3 +20,6 @@ build/
 
 # Sphinx documentation
 docs/_build/
+
+#IDEA config files
+.idea/
