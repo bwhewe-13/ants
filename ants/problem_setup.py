@@ -18,6 +18,7 @@ import pkg_resources
 
 MAT_PATH = pkg_resources.resource_filename("ants","data/materials/")
 SOR_PATH = pkg_resources.resource_filename("ants","data/sources/")
+ENR_PATH = pkg_resources.resource_filename("ants","data/energy/")
 
 class Materials:
     __enrichment_materials = ("uranium", "uranium-hydride", "plutonium")
@@ -146,22 +147,27 @@ class Materials:
         return total, scatter, fission
 
     def compile_velocity(self):
+        # print("pre", self.energy_bounds)
+        # print("idx", self.energy_idx, self.energy_idx == None)
         if self.materials[0] in self.__class__.__nonphysical_materials:
             self.velocity = np.ones((self.energy_groups))
         elif self.energy_bounds is None:
             self.velocity = np.zeros((self.energy_groups))
-        else:            
+        else:
+            self.energy_bounds = np.load(ENR_PATH + "energy_bounds.npz")
+            self.energy_bounds = self.energy_bounds[str(self.energy_groups)]
+            # print(self.energy_bounds)
             energy_centers = 0.5 * (self.energy_bounds[1:] + \
                                     self.energy_bounds[:-1])
             gamma = (const.EV_TO_JOULES * energy_centers) \
                     / (const.MASS_NEUTRON * const.LIGHT_SPEED**2) + 1
             velocity = const.LIGHT_SPEED / gamma \
                         * np.sqrt(gamma**2 - 1) * 100
-            if self.energy_idx is None:
-                self.energy_idx = dimensions.index_generator(len(self.energy_bounds)-1, self.energy_groups)
-            velocity = [np.mean(velocity[self.energy_idx[group]: \
-                        self.energy_idx[group+1]]) for group \
-                        in range(self.energy_groups)]
+            # if self.energy_idx is None:
+            #     self.energy_idx = dimensions.index_generator(len(self.energy_bounds)-1, self.energy_groups)
+            # velocity = [np.mean(velocity[self.energy_idx[group]: \
+            #             self.energy_idx[group+1]]) for group \
+            #             in range(self.energy_groups)]
             self.velocity = np.array(velocity)
 
 
@@ -178,14 +184,18 @@ class BoundarySource:
         self.name = name
         self.mu = mu
         self.energy_groups = energy_groups
-        self.energy_bounds = energy_bounds
-        self.energy_idx = energy_idx
+        # self.energy_bounds = energy_bounds
+        # self.energy_idx = energy_idx
+        self.energy_bounds = np.load(ENR_PATH + "energy_bounds.npz")
+        self.energy_bounds = self.energy_bounds[str(self.energy_groups)]
 
     def _generate_source(self):
         if self.name is None:
             return np.zeros((len(self.mu)))
         elif self.name in ["14.1-mev"]:
+            # print("I am here")
             source = self._mev14_source()
+            # print(source.shape, self.energy_groups)
         elif self.name in ["ambe"]:
             source = self._ambe_source()
         elif self.name in ["single-left"]:
@@ -208,7 +218,7 @@ class BoundarySource:
         source = np.zeros((len(self.energy_bounds) - 1))
         group = np.argmin(abs(self.energy_bounds - 14.1E6))
         source[group] = 1
-        return source
+        return np.tile(source, (len(self.mu), 1))
 
     def _ambe_source(self):
         AmBe = np.load(SOR_PATH + "AmBe_source_050G.npz")
@@ -332,7 +342,7 @@ class ExternalSource:
 
     def _generate_source(self):
         if self.name is None:
-            source = np.zeros((self.cells, len(self.mu), 1))
+            source = np.zeros((self.cells, len(self.mu), 87))
         if self.name in ["unity"]:
             source = np.ones((self.cells, len(self.mu), 1)) 
         elif self.name in ["half-unity"]:
