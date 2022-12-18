@@ -20,7 +20,7 @@ cdef void add_manufactured_source(double[:] power_source, double[:] mnp_source)
 
 cdef double multiply_manufactured_flux(double[:,:] flux, double keff)
 
-cdef double normalize_flux(double[:,:] flux)
+cdef void normalize_flux(double[:,:] flux)
 
 cdef double update_keffective(double[:,:] flux, double[:,:] flux_old, \
                             int[:] medium_map, double[:,:,:] xs_fission, \

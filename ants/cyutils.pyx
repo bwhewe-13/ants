@@ -59,15 +59,18 @@ cdef double multiply_manufactured_flux(double[:,:] flux, double keff):
             half_keff += keff * flux[cell][group]
     return half_keff
 
-cdef double normalize_flux(double[:,:] flux):
-    cdef double keff = 0
+cdef void normalize_flux(double[:,:] flux):
+    cdef double keff = 0.0
     cdef int cells = flux.shape[0]
     cdef int groups = flux.shape[1]
     for group in range(groups):
         for cell in range(cells):
             keff += pow(flux[cell][group], 2)
     keff = sqrt(keff)
-    return keff
+    for group in range(groups):
+        for cell in range(cells):
+            flux[cell][group] /= keff
+    # return keff
 
 cdef double update_keffective(double[:,:] flux, double[:,:] flux_old, \
                             int[:] medium_map, double[:,:,:] xs_fission, \

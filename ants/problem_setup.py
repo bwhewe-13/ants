@@ -186,8 +186,9 @@ class BoundarySource:
         self.energy_groups = energy_groups
         # self.energy_bounds = energy_bounds
         # self.energy_idx = energy_idx
-        self.energy_bounds = np.load(ENR_PATH + "energy_bounds.npz")
-        self.energy_bounds = self.energy_bounds[str(self.energy_groups)]
+        if self.energy_groups > 1:
+            self.energy_bounds = np.load(ENR_PATH + "energy_bounds.npz")
+            self.energy_bounds = self.energy_bounds[str(self.energy_groups)]
 
     def _generate_source(self):
         if self.name is None:

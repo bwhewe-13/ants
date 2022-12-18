@@ -7,47 +7,111 @@
 #
 ########################################################################
 
-from . import dimensions 
-
 import numpy as np
 
 def first_derivative(x, y):
-    # Added second order at endpoints
-    yp = []
     assert len(x) == len(y), "Need to be same length"
-    if len(x) < 3:
-        return np.repeat(np.diff(y) / np.diff(x), len(x))
+    assert len(x) > 2, "Need to be at least three points"
+    yp = []
     for n in range(len(x)):
         if n == 0:
+            # First Order Accurate
             # yp.append((y[1] - y[0]) / (x[1] - x[0]))
-            yp.append((-3 * y[0] + 4 * y[1] - y[2]) / (x[2] - x[0]))
+            # Second Order Accurate
+            # yp.append((-3 * y[0] + 4 * y[1] - y[2]) / (x[2] - x[0]))
+            # one = (y[0] - y[1]) / (x[0] - x[1])
+            # two = (y[0] - y[2]) / (x[0] - x[2])
+            # three = (y[2] - y[1]) / (x[1] - x[2])
+            yp.append((y[0] - y[1]) / (x[0] - x[1]) \
+                    + (y[0] - y[2]) / (x[0] - x[2]) \
+                    + (y[2] - y[1]) / (x[1] - x[2]))
         elif n == (len(x) - 1):
+            # First Order Accurate
             # yp.append((y[n] - y[n-1]) / (x[n] - x[n-1]))
-            yp.append((3 * y[n] - 4 * y[n-1] + y[n-2]) / (x[n] - x[n-2]))
+            # Second Order Accurate
+            # yp.append((3 * y[n] - 4 * y[n-1] + y[n-2]) / (x[n] - x[n-2]))
+            # one = (y[n] - y[n-1]) / (x[n] - x[n-1])
+            # two = (y[n] - y[n-2]) / (x[n] - x[n-2])
+            # three = (-y[n-1] + y[n-2]) / (x[n-1] - x[n-2])
+            yp.append((y[n] - y[n-1]) / (x[n] - x[n-1]) \
+                     + (y[n] - y[n-2]) / (x[n] - x[n-2]) \
+                     + (-y[n-1] + y[n-2]) / (x[n-1] - x[n-2]))
         else:
-            yp.append((y[n+1] - y[n-1]) / (x[n+1] - x[n-1]))
+            # yp.append((y[n+1] - y[n-1]) / (x[n+1] - x[n-1]))
+            half1 = (y[n+1] - y[n]) / (x[n+1] - x[n])
+            half2 = (y[n] - y[n-1]) / (x[n] - x[n-1])
+            yp.append(0.5 * (half1 + half2))
     return np.array(yp)
 
 def second_derivative(x, y):
-    ypp = []
     assert len(x) == len(y), "Need to be same length"
-    if len(x) < 3:
-        return np.repeat(np.diff(y) / np.diff(x), len(x))
+    assert len(x) > 2, "Need to be at least three points"
+    ypp = []
     for n in range(len(x)):
         if n == 0:
+            # First Order Accurate
             ypp.append((y[n] - 2 * y[n+1] + y[n+2]) \
                                 / ((x[n+2] - x[n+1]) * (x[n+1] - x[n])))
+            # Second Order Accurate
             # ypp.append((2 * y[n] - 5 * y[n+1] + 4 * y[n+2] - y[n+3]) / \
             #             ((x[n+3] - x[n+2]) * (x[n+2] - x[n+1]) * (x[n+1] - x[n])))
         elif n == (len(x) - 1):
+            # First Order Accurate
             ypp.append((y[n] - 2 * y[n-1] + y[n-2]) \
                                 / ((x[n] - x[n-1]) * (x[n-1] - x[n-2])))
+            # Second Order Accurate
             # ypp.append((2 * y[n] - 5 * y[n-1] + 4 * y[n-2] - y[n-3]) / \
             #             ((x[n] - x[n-1]) * (x[n-1] - x[n-2]) * (x[n-2] - x[n-3])))
         else:
-            ypp.append((y[n+1] - 2 * y[n] + y[n-1]) \
-                                / ((x[n+1] - x[n]) * (x[n] - x[n-1])))
+            # ypp.append((y[n+1] - 2 * y[n] + y[n-1]) \
+            #                     / ((x[n+1] - x[n]) * (x[n] - x[n-1])))
+            half1 = (y[n+1] - y[n]) / (x[n+1] - x[n])
+            half2 = (y[n] - y[n-1]) / (x[n] - x[n-1])
+            ypp.append((half1 - half2) / (0.5 * (x[n+1] - x[n-1])))
     return np.array(ypp)
+
+class CubicNatural:
+
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self._generate_coefs()
+
+    def __call__(self, n):
+        idx = np.digitize(n, bins=self.x) - 1
+        return np.array([CubicNatural._one_spline(self, nn, ii) \
+                                        for nn, ii in zip(n, idx)])
+
+    def _generate_coefs(self):
+        self.h = self.x[1:] - self.x[:-1]
+        b = (self.y[1:] - self.y[:-1]) / self.h
+        v = 2 * (self.h[1:] + self.h[:-1])
+        u = 6 * (b[1:] - b[:-1])
+        length = len(self.x)
+        A = np.zeros((length-2, length-2))
+        A[np.arange(length-2), np.arange(length-2)] = v.copy()
+        A[np.arange(length-3)+1, np.arange(length-3)] = self.h[1:-1]
+        A[np.arange(length-3), np.arange(length-3)+1] = self.h[1:-1]
+        self.z = np.linalg.solve(A, u)
+        self.z = np.concatenate(([[0.], self.z, [0.]]))
+
+    def _one_spline(self, n, idx):
+        if idx >= 0 and idx <= len(self.x) - 2:
+            return self.z[idx+1] / (6*self.h[idx]) * (n - self.x[idx])**3 \
+                + self.z[idx] / (6*self.h[idx]) * (self.x[idx+1] - n)**3 \
+                + (self.y[idx+1] / self.h[idx] - self.z[idx+1] * self.h[idx] / 6) \
+                * (n - self.x[idx]) + (self.y[idx] / self.h[idx] - self.z[idx] \
+                * self.h[idx] / 6) * (self.x[idx+1] - n)
+        elif idx < 0:
+            temp = self.z[0] / (2 * self.h[0]) * (self.x[1] - n)**2 \
+                    + (self.y[1] / self.h[0] - self.z[1] * self.h[0] / 6) \
+                    - (self.y[0] / self.h[0] - self.z[0] * self.h[0] / 6)
+            return self.y[0] + temp * (n - self.x[0])
+        elif idx >= len(self.x) - 2:
+            temp = self.z[-1] / (2 * self.h[-2]) * (n - self.x[-2])**2 \
+                    + (self.y[-1] / self.h[-2] - self.z[-1] * self.h[-1] / 6) \
+                    - (self.y[-2] / self.h[-2] - self.z[-2] * self.h[-1] / 6)
+            return self.y[-1] + temp * (n - self.x[-1])
 
 
 class CubicHermite:

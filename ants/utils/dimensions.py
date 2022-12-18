@@ -24,7 +24,7 @@ def create_slices(array):
     for ii in idx:
         splits.append(slice(start, ii+1))
         start = ii + 1
-    return splits
+    return np.array(splits)
 
 def matrix_reduction(matrix, idx):
     energy_groups = len(idx) - 1
@@ -64,12 +64,14 @@ def smooth_spatial_grid(medium_map, widths):
     return medium_map, widths
 
 def coarsen_flux(fine_flux, fine_edges, coarse_edges):
-    coarse_flux = np.zeros((coarse_edges.shape[0] - 1))
+    cells = coarse_edges.shape[0] - 1
+    coarse_flux = np.zeros((tuple([cells]) + fine_flux.shape[1:]))
     count = 0
-    for ii in range(len(coarse_edges) - 1):
-        idx = np.argwhere((fine_edges < coarse_edges[ii+1]) & (fine_edges >= coarse_edges[ii]))
+    for ii in range(cells):
+        idx = np.argwhere((fine_edges < coarse_edges[ii+1]) \
+                        & (fine_edges >= coarse_edges[ii]))
         count += len(idx)
-        coarse_flux[ii] = np.sum(fine_flux[idx]) / len(idx)
+        coarse_flux[ii] = np.sum(fine_flux[idx.flatten()], axis=0) / len(idx)
     assert count == len(fine_flux), "Not including all cells"
     return coarse_flux
 

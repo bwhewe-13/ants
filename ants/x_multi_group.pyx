@@ -43,6 +43,7 @@ def criticality(int[:] medium_map, double[:,:] xs_total, \
         flux = scalar_multi_group(flux, medium_map, xs_total, xs_scatter, \
                 power_source, boundary, mu, angle_weight, params, cell_width)
         keff = cyutils.update_keffective(flux, flux_old, medium_map, xs_fission, keff)
+        cyutils.normalize_flux(flux)
         change = cyutils.scalar_convergence(flux, flux_old)
         # print('Power Iteration {}\n{}\nChange {} Keff {}'.format(count, \
         #         '='*35, change, keff))
@@ -76,6 +77,7 @@ def mnp_criticality(int[:] medium_map, double[:,:] xs_total, \
         flux = scalar_multi_group(flux, medium_map, xs_total, xs_scatter, \
                 power_source, boundary, mu, angle_weight, params, cell_width)
         keff = cyutils.update_keffective(flux, flux_old, medium_map, xs_fission, keff)
+        cyutils.normalize_flux(flux)
         change = cyutils.scalar_convergence(flux, flux_old)
         # print('Power Iteration {}\n{}\nChange {} Keff {}'.format(count, \
         #         '='*35, change, keff))
