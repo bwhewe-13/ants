@@ -63,13 +63,16 @@ def smooth_spatial_grid(medium_map, widths):
             idx += 1
     return medium_map, widths
 
-def coarsen_flux(fine_flux, fine_edges, coarse_edges):
+def coarsen_flux(fine_flux, fine_edges, coarse_edges, summation=False):
     coarse_flux = np.zeros((coarse_edges.shape[0] - 1))
     count = 0
     for ii in range(len(coarse_edges) - 1):
         idx = np.argwhere((fine_edges < coarse_edges[ii+1]) & (fine_edges >= coarse_edges[ii]))
         count += len(idx)
-        coarse_flux[ii] = np.sum(fine_flux[idx]) / len(idx)
+        if summation:
+            coarse_flux[ii] = np.sum(fine_flux[idx]) #/ len(idx)
+        else:
+            coarse_flux[ii] = np.sum(fine_flux[idx]) / len(idx)
     assert count == len(fine_flux), "Not including all cells"
     return coarse_flux
 

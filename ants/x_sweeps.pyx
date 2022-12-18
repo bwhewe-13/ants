@@ -91,6 +91,7 @@ cdef double[:,:] angular_sweep(double[:,:] angular_flux_old, int[:]& medium_map,
                 mu[angle], dummy_angle_weight[angle], params, cell_width, \
                 ex_group_idx, ex_angle_idx)
         change = cyutils.group_angular_convergence(angular_flux, angular_flux_old, angle_weight)
+        # print("Angular", count, change, np.sum(np.asarray(angular_flux)))
         converged = (change < INNER_TOLERANCE) or (count >= MAX_ITERATIONS)
         count += 1
         angular_flux_old[:,:] = angular_flux[:,:]

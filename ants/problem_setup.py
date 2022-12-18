@@ -38,15 +38,14 @@ class Materials:
     __materials = __enrichment_materials + __nonenrichment_materials \
                     + __nonphysical_materials
 
-    def __init__(self, materials, energy_groups, energy_bounds, \
-                 energy_idx=None):
+    def __init__(self, materials, groups, energy_grid, grid_index):
         """ Creating cross sections for different materials
 
         Args:
             materials (list): [material1, ..., materialN]
-            energy_groups (int):
-            energy_bounds (list):
-            energy_idx (list):
+            groups (int):
+            energy_grid (list):
+            grid_index (list):
 
         """
         assert (isinstance(materials, list)), "Materials must be list"
@@ -55,15 +54,15 @@ class Materials:
                     "Material not recognized, use:\n{}".format(\
                         self.__class__.__materials)
         self.materials = materials
-        self.energy_groups = energy_groups
-        self.energy_bounds = energy_bounds
-        self.energy_idx = energy_idx
+        self.groups = groups
+        self.energy_grid = energy_grid
+        self.grid_index = grid_index
         self.material_key = {}
         self.compile_cross_sections()
         self.compile_velocity()
 
     def __str__(self):
-        msg = "Energy Groups: {}\nMaterial: ".format(self.energy_groups)
+        msg = "Energy Groups: {}\nMaterial: ".format(self.groups)
         msg += "\nMaterial: ".join(self.materials)
         return msg
 
@@ -78,7 +77,7 @@ class Materials:
         for material in self.materials:
             # material_name = "material-" + material
             xs = Materials._generate_cross_section(self, material)
-            if len(xs[0]) != self.energy_groups:
+            if len(xs[0]) != self.groups:
                 xs = Materials._generate_reduced_cross_section(self, xs)
             self.material_key[material] = xs
 
@@ -100,7 +99,7 @@ class Materials:
             return Materials._generate_uranium_hydride(enrichment)
         elif material in self.__class__.__nonphysical_materials:
             func = getattr(NonPhysical, material.replace("-", "_"))
-            return func(self.energy_groups)
+            return func(self.groups)
         return [data["total"], data["scatter"], data["fission"]]
 
     def _generate_enrich(material):
@@ -110,18 +109,18 @@ class Materials:
 
     def _generate_reduced_cross_section(self, cross_sections):
         total, scatter, fission = cross_sections
-        if self.energy_idx is None:
-            self.energy_idx = dimensions.index_generator(len(self.energy_bounds)-1, self.energy_groups)
-        bin_width = np.diff(self.energy_bounds)
-        coarse_bin_width = np.array([self.energy_bounds[self.energy_idx[ii+1]] \
-                            -self.energy_bounds[self.energy_idx[ii]] \
-                            for ii in range(self.energy_groups)])
+        if self.grid_index is None:
+            self.grid_index = dimensions.index_generator(len(self.energy_grid)-1, self.groups)
+        bin_width = np.diff(self.energy_grid)
+        coarse_bin_width = np.array([self.energy_grid[self.grid_index[ii+1]] \
+                            -self.energy_grid[self.grid_index[ii]] \
+                            for ii in range(self.groups)])
         total = (dimensions.vector_reduction(total * bin_width, \
-                 self.energy_idx)) / coarse_bin_width
+                 self.grid_index)) / coarse_bin_width
         scatter = (dimensions.matrix_reduction(scatter * bin_width, \
-                 self.energy_idx)) / coarse_bin_width
+                 self.grid_index)) / coarse_bin_width
         fission = (dimensions.matrix_reduction(fission * bin_width, \
-                 self.energy_idx)) / coarse_bin_width
+                 self.grid_index)) / coarse_bin_width
         return [total, scatter, fission]
 
     def _generate_uranium_hydride(enrichment):
@@ -147,282 +146,348 @@ class Materials:
         return total, scatter, fission
 
     def compile_velocity(self):
-        # print("pre", self.energy_bounds)
-        # print("idx", self.energy_idx, self.energy_idx == None)
         if self.materials[0] in self.__class__.__nonphysical_materials:
-            self.velocity = np.ones((self.energy_groups))
-        elif self.energy_bounds is None:
-            self.velocity = np.zeros((self.energy_groups))
-        else:
-            self.energy_bounds = np.load(ENR_PATH + "energy_bounds.npz")
-            self.energy_bounds = self.energy_bounds[str(self.energy_groups)]
-            # print(self.energy_bounds)
-            energy_centers = 0.5 * (self.energy_bounds[1:] + \
-                                    self.energy_bounds[:-1])
+            self.velocity = np.ones((self.groups))
+        else:            
+            centers = 0.5 * (self.energy_grid[1:] + self.energy_grid[:-1])
             gamma = (const.EV_TO_JOULES * energy_centers) \
                     / (const.MASS_NEUTRON * const.LIGHT_SPEED**2) + 1
-            velocity = const.LIGHT_SPEED / gamma \
-                        * np.sqrt(gamma**2 - 1) * 100
-            # if self.energy_idx is None:
-            #     self.energy_idx = dimensions.index_generator(len(self.energy_bounds)-1, self.energy_groups)
-            # velocity = [np.mean(velocity[self.energy_idx[group]: \
-            #             self.energy_idx[group+1]]) for group \
-            #             in range(self.energy_groups)]
-            self.velocity = np.array(velocity)
+            velocity = [const.LIGHT_SPEED / gamma * np.sqrt(gamma**2 - 1) * 100]
+            self.velocity = np.array([np.mean(velocity[self.grid_index[gg]: \
+                        self.grid_index[gg+1]]) for gg in range(self.groups)])
 
 
-class BoundarySource:
-    __available_sources = ("14.1-mev", "ambe", "single-left", "single-right", \
-                           "mms-left", "mms-right", "mms-two-material", \
-                           "mms-two-material-angle", None)
+class BoundaryCondition:
+    __available_sources = ("14.1-mev", "zero", "unit", "mms-01", \
+                            "mms-02", "mms-03", "mms-04")
 
-    def __init__(self, name, mu, energy_groups, energy_bounds, \
-                 energy_idx):
+    def __init__(self, name, location, angle_x, groups, energy_grid, \
+                    grid_index, dimension):
         assert (name in self.__class__.__available_sources), \
-        "Source not recognized, use:\n{}".format(\
-            self.__class__.__available_sources)
+                "Boundary name not recognized, use:\n{}".format( \
+                self.__class__.__available_sources)
         self.name = name
-        self.mu = mu
-        self.energy_groups = energy_groups
-        # self.energy_bounds = energy_bounds
-        # self.energy_idx = energy_idx
-        self.energy_bounds = np.load(ENR_PATH + "energy_bounds.npz")
-        self.energy_bounds = self.energy_bounds[str(self.energy_groups)]
+        self.location = location
+        self.angles = len(angle_x)
+        self.angle_x = angle_x
+        self.groups = groups
+        self.energy_grid = energy_grid
+        self.grid_index = grid_index
+        if dimension == 1:
+            self.boundary = np.zeros((2, self.groups))
+        elif dimension == 2:
+            self.boundary = np.zeros((2, self.angles, self.groups))
+        # self.energy_grid = energy_grid
+        # self.grid_index = grid_index
+        # self.energy_grid = np.load(ENR_PATH + "energy_grid.npz")
+        # self.energy_grid = self.energy_grid[str(self.groups)]
 
-    def _generate_source(self):
-        if self.name is None:
-            return np.zeros((len(self.mu)))
-        elif self.name in ["14.1-mev"]:
-            # print("I am here")
-            source = self._mev14_source()
-            # print(source.shape, self.energy_groups)
-        elif self.name in ["ambe"]:
-            source = self._ambe_source()
-        elif self.name in ["single-left"]:
-            source = self._single_source_left()
-        elif self.name in ["single-right"]:
-            source = self._single_source_right()
-        elif self.name in ["mms-left"]:
-            source = self._mms_boundary_left()
-        elif self.name in ["mms-right"]:
-            source = self._mms_boundary_right()
-        elif self.name in ["mms-two-material"]:
-            source = self._mms_two_material_right()
-        elif self.name in ["mms-two-material-angle"]:
-            source = self._mms_two_material_angle_right()
-        if source.shape[1] != self.energy_groups:
-            return dimensions.vector_reduction(source, self.energy_idx) 
-        return source
+    def _boundary(self):
+        if self.name == "unit":
+            self._unit()
+        elif self.name == "14.1-mev":
+            self._mev14()
+        elif self.name == "ambe":
+            self._ambe()
+        elif self.name in ["mms-01", "mms-02", "mms-03", "mms-04"]:
+            self._mms()
+        # elif self.name in ["mms-left"]:
+        #     source = self._mms_boundary_left()
+        # elif self.name in ["mms-right"]:
+        #     source = self._mms_boundary_right()
+        # elif self.name in ["mms-two-material"]:
+        #     source = self._mms_two_material_right()
+        # elif self.name in ["mms-two-material-angle"]:
+        #     source = self._mms_two_material_angle_right()
+        if self.boundary.shape[-1] != self.groups:
+            return dimensions.vector_reduction(self.boundary, self.grid_index)
+        return self.boundary
 
-    def _mev14_source(self):
-        source = np.zeros((len(self.energy_bounds) - 1))
-        group = np.argmin(abs(self.energy_bounds - 14.1E6))
-        source[group] = 1
-        return np.tile(source, (len(self.mu), 1))
+    def _mev14(self):
+        group = np.argmin(abs(self.energy_grid - 14.1E6))
+        self.boundary[(self.location, ..., group)] = 1.0
 
-    def _ambe_source(self):
-        AmBe = np.load(SOR_PATH + "AmBe_source_050G.npz")
-        if np.max(self.energy_bounds) > 20:
-            self.energy_bounds *= 1E-6
-        energy_centers = 0.5 * (self.energy_bounds[1:] + \
-                                self.energy_bounds[:-1])
-        locs = lambda xmin, xmax: np.argwhere((energy_centers > xmin) & \
-                            (energy_centers <= xmax)).flatten()
-        source = np.zeros((len(self.energy_bounds) - 1))
-        for center in range(len(AmBe["magnitude"])):
-            idx = locs(AmBe["edges"][center], AmBe["edges"][center+1])
-            source[idx] = AmBe["magnitude"][center]
-        return source
+    def _unit(self):
+        self.boundary[self.location] = 1.0
 
-    def _single_source_left(self):
-        source = np.ones((len(self.mu), self.energy_groups))
-        source[self.mu < 0] = 0
-        return source
+    def _mms(self):
+        psi_c1 = 0.5
+        psi_c2 = 0.25
+        XX = 2
+        if self.name == "mms-01":
+            self.boundary[0] = psi_c1
+        elif self.name == "mms-02":
+            self.boundary[1] = psi_c1 + psi_c2 * np.exp(self.angle_x)
+        elif self.name == "mms-03":
+            self.boundary[1] = 0.5 * XX**2 + 0.125 * XX
+        elif self.name == "mms-04":
+            self.boundary[1] = XX**3
 
-    def _single_source_right(self):
-        source = np.ones((len(self.mu), self.energy_groups))
-        # source[self.mu > 0] = 0
-        return source
+    # def _mms_boundary_left(self):
+    #     # at x = 0
+    #     psi_constant_01 = 0.5
+    #     psi_constant_02 = 0.25
+    #     source = np.zeros((len(self.mu), self.groups))
+    #     source[self.mu > 0] = psi_constant_01
+    #     return source
 
-    def _mms_boundary_left(self):
-        # at x = 0
-        psi_constant_01 = 0.5
-        psi_constant_02 = 0.25
-        source = np.zeros((len(self.mu), self.energy_groups))
-        source[self.mu > 0] = psi_constant_01
-        return source
+    # def _mms_boundary_right(self):
+    #     # at x = X = 1
+    #     psi_constant_01 = 0.5
+    #     psi_constant_02 = 0.25
+    #     source = np.zeros((len(self.mu), self.groups))
+    #     source[self.mu < 0] = psi_constant_01 + psi_constant_02 \
+    #                       * np.exp(self.mu[self.mu < 0])[:,None]
+    #     return source
 
-    def _mms_boundary_right(self):
-        # at x = X = 1
-        psi_constant_01 = 0.5
-        psi_constant_02 = 0.25
-        source = np.zeros((len(self.mu), self.energy_groups))
-        source[self.mu < 0] = psi_constant_01 + psi_constant_02 \
-                          * np.exp(self.mu[self.mu < 0])[:,None]
-        return source
-
-    def _mms_two_material_right(self):
-        # at x = X = 2
-        X = 2
-        source = np.zeros((len(self.mu), self.energy_groups))
-        source[self.mu < 0] = 0.5 * X**2 + 0.125 * X
-        return source
+    # def _mms_two_material_right(self):
+    #     # at x = X = 2
+    #     X = 2
+    #     source = np.zeros((len(self.mu), self.groups))
+    #     source[self.mu < 0] = 0.5 * X**2 + 0.125 * X
+    #     return source
     
-    def _mms_two_material_angle_right(self):
-        # at x = X = 2
-        X = 2
-        source = np.zeros((len(self.mu), self.energy_groups))
-        source[self.mu < 0] = X**3
-        # source[self.mu < 0] = 0.25 * X * np.exp(self.mu[self.mu < 0])[:,None] \
-        #     + X**2 - 0.125 * np.exp(self.mu[self.mu < 0])[:,None] * X *(4*X + 1)
-        return source
+    # def _mms_two_material_angle_right(self):
+    #     # at x = X = 2
+    #     X = 2
+    #     source = np.zeros((len(self.mu), self.groups))
+    #     source[self.mu < 0] = X**3
+    #     # source[self.mu < 0] = 0.25 * X * np.exp(self.mu[self.mu < 0])[:,None] \
+    #     #     + X**2 - 0.125 * np.exp(self.mu[self.mu < 0])[:,None] * X *(4*X + 1)
+    #     return source
 
 
 class NonPhysical:
-    def reed_scatter(energy_groups):
-        if energy_groups == 1:
+    def reed_scatter(groups):
+        if groups == 1:
             # return [np.array([10.]), np.array([[9.9]]), np.array([[0.]])]
             return [np.array([1.]), np.array([[0.9]]), np.array([[0.]])]
 
-    def reed_absorber(energy_groups):
-        if energy_groups == 1:
+    def reed_absorber(groups):
+        if groups == 1:
             return [np.array([5.]), np.array([[0.]]), np.array([[0.]])]
 
-    def reed_vacuum(energy_groups):
-        if energy_groups == 1:
+    def reed_vacuum(groups):
+        if groups == 1:
             return [np.array([0.]), np.array([[0.]]), np.array([[0.]])]
 
-    def reed_strong_source(energy_groups):
-        if energy_groups == 1:
+    def reed_strong_source(groups):
+        if groups == 1:
             return [np.array([50.]), np.array([[0.]]), np.array([[0.]])]
 
-    def mms_absorber(energy_groups):
-        if energy_groups == 1:
+    def mms_absorber(groups):
+        if groups == 1:
             return [np.array([1.]), np.array([[0.]]), np.array([[0.]])]
 
-    def mms_scatter(energy_groups):
-        if energy_groups == 1:
+    def mms_scatter(groups):
+        if groups == 1:
             return [np.array([1.]), np.array([[0.9]]), np.array([[0.]])]
             # return [np.array([1.]), np.array([[0.0]]), np.array([[0.]])]
 
-    def mms_quasi(energy_groups):
-        if energy_groups == 1:
+    def mms_quasi(groups):
+        if groups == 1:
             return [np.array([1.]), np.array([[0.3]]), np.array([[0.]])]
             # return [np.array([1.]), np.array([[0.0]]), np.array([[0.]])]
 
-    def diffusion_01(energy_groups):
-        if energy_groups == 1:
+    def diffusion_01(groups):
+        if groups == 1:
             return [np.array([100.]), np.array([[100.]]), np.array([[0.]])]
 
-    def diffusion_02(energy_groups):
-        if energy_groups == 1:
+    def diffusion_02(groups):
+        if groups == 1:
             return [np.array([2.]), np.array([[0.]]), np.array([[0.]])]
 
+
 class ExternalSource:
-    __available_sources = ("unity", "half-unity", "reed", "mms-source", \
+    __available_sources = ("none", "unity", "half-unity", "reed", "mms-source", \
                            "mms-two-material", "mms-two-material-angle", \
-                           None, "diffusion-01")
+                           "diffusion-01", "ambe")
 
-    def __init__(self, name, cells, cell_width, mu):
-        """ Constructing external sources - for
+    def __init__(self, name, cells, cell_edges, angle_x, groups, \
+                        energy_grid, dimension):
 
-        Args:
-            name (string):
-            cells (int): 
-            cell_width (list of float):
-        """
         assert (name in self.__class__.__available_sources), \
-        "Source not recognized, use:\n{}".format(\
+            "External Source name not recognized, use:\n{}".format(\
             self.__class__.__available_sources)
         self.name = name
         self.cells = cells
-        self.cell_width = cell_width
-        self.mu = mu
-        self.medium_radius = np.round(np.sum(cell_width), 8)
+        self.cell_edges = cell_edges
+        self.cell_width = np.diff(cell_edges)
+        self.angles = len(angle_x)
+        self.angle_x = angle_x
+        self.groups = groups
+        self.energy_grid = energy_grid
+        if dimension == 1:
+            self.source = np.zeros((self.cells))
+        elif dimension == 2:
+            self.source = np.zeros((self.cells, self.groups))
+        elif dimension == 3:
+            self.source = np.zeros((self.cells, self.angles, self.groups))
 
-    def _generate_source(self):
-        if self.name is None:
-            source = np.zeros((self.cells, len(self.mu), 87))
-        if self.name in ["unity"]:
-            source = np.ones((self.cells, len(self.mu), 1)) 
-        elif self.name in ["half-unity"]:
-            source = 0.5 * np.ones((self.cells, len(self.mu), 1))
-        elif self.name in ["diffusion-01"]:
-            source = 0.01 * np.ones((self.cells, len(self.mu), 1))
-        elif self.name in ["reed"]:
-            return self._reed_source()
-        elif self.name in ["mms-source"]:
-            return self._mms_source()
-        elif self.name in ["mms-two-material"]:
-            return self._mms_two_material()
-        elif self.name in ["mms-two-material-angle"]:
-            return self._mms_two_material_angle()
-        return source
+        # self.medium_radius = np.round(np.sum(cell_width), 8)
 
-    def _reed_source(self):
+    def _source(self):
+        if self.name in ["none", "unity", "half-unity", "small"]:
+            self._uniform()
+        elif self.name == "reed":
+            self._reed()
+        elif self.name in ["mms-01", "mms-02", "mms-03"]:
+            # self._mms()
+            ...
+        elif self.name == "ambe":
+            self._ambe()
+
+        # elif self.name in ["mms-source"]:
+        #     return self._mms_source()
+        # elif self.name in ["mms-two-material"]:
+        #     return self._mms_two_material()
+        # elif self.name in ["mms-two-material-angle"]:
+        #     return self._mms_two_material_angle()
+        return self.source
+
+    def _uniform(self):
+        self.source = 1.0
+        if self.name == "none":
+            self.source *= 0.0
+        elif self.name == "half-unity":
+            self.source *= 0.5
+        elif self.name == "small":
+            self.source *= 0.01
+
+    def _reed(self):
         source_values = [0, 1, 0, 50, 0, 1, 0]
         lhs = [0., 2., 4., 6., 10., 12., 14.]
         rhs = [2., 4., 6., 10., 12., 14., 16.]
         cell_edges = np.insert(np.round(np.cumsum(self.cell_width), 8), 0, 0)
         loc = lambda x: int(np.argwhere(cell_edges == x))
-        boundaries = [slice(loc(ii), loc(jj)) for ii, jj in zip(lhs, rhs)]
-        source = np.zeros((self.cells, 1))
-        for boundary in range(len(boundaries)):
-            source[boundaries[boundary]] = source_values[boundary]
-        source = np.tile(source, (1, len(self.mu)))[:,:,None]
-        return source
-        
-    def _mms_source(self):
-        psi_constant_01 = 0.5
-        psi_constant_02 = 0.25
-        xspace = np.linspace(0, self.medium_radius, self.cells+1)
-        xspace = 0.5 * (xspace[1:] + xspace[:-1])
-        def angle_dependent(angle):
-            return psi_constant_02 * angle * np.exp(angle) * 2 * xspace \
-                    + psi_constant_01 + psi_constant_02 * xspace**2 \
-                    * np.exp(angle) - 0.9 / 2 * (2 * psi_constant_01 \
-                    + psi_constant_02 * xspace**2 * (np.exp(1) - np.exp(-1)))
-        source = np.array([angle_dependent(angle) for angle in self.mu]).T
-        return source[:,:,None]
+        bounds = [slice(loc(ii), loc(jj)) for ii, jj in zip(lhs, rhs)]
+        for ii in range(len(bounds)):
+            self.source[bounds[ii]] = source_values[ii]
 
-    def _mms_two_material(self):
-        X = self.medium_radius
-        xspace = np.linspace(0, self.medium_radius, self.cells+1)
-        xspace = 0.5 * (xspace[1:] + xspace[:-1])
-        def angle_dependent(angle, x):
-            def quasi(x):
-                c = 0.3
-                return 2 * X * angle - 4 * x * angle - 2 * x**2 \
-                       + 2 * X * x - c * (-2 * x**2 + 2 * X * x)
-            def scatter(x):
-                c = 0.9
-                const = -0.125 * X + 0.5 * X**2
-                return 0.25 * angle + 0.25 * x + const \
-                       - c * ((0.25 * x + const))
-            return np.concatenate([quasi(xspace[xspace < 0.5 * X]), \
-                                   scatter(xspace[xspace > 0.5 * X])])
-        source = np.array([angle_dependent(angle, xspace) for angle \
-                                                        in self.mu]).T
-        return source[:,:,None]
+    # def _mms_source(self):
+    #     psi_c1 = 0.5
+    #     psi_c2 = 0.25
+    #     xspace = 0.5 * (self.cell_edges[1:] + self.cell_edges[:-1])
+    #     def angle_dependent(angle):
+    #         return psi_c2 * angle * np.exp(angle) * 2 * xspace \
+    #                 + psi_c1 + psi_c2 * xspace**2 \
+    #                 * np.exp(angle) - 0.9 / 2 * (2 * psi_c1 \
+    #                 + psi_c2 * xspace**2 * (np.exp(1) - np.exp(-1)))
+    #     source = np.array([angle_dependent(angle) for angle in self.mu]).T
+    #     return source[:,:,None]
 
-    def _mms_two_material_angle(self):
-        X = self.medium_radius
-        xspace = np.linspace(0, self.medium_radius, self.cells+1)
-        xspace = 0.5 * (xspace[1:] + xspace[:-1])
-        def angle_dependent(angle, x):
-            def quasi(x, angle):
-                c = 0.3
-                return angle * (2 * X**2 - 4 * np.exp(angle) * x) - 2 \
-                        * np.exp(angle) * x**2 + 2 * X**2 * x - c / 2 \
-                        * (-2 * x**2 * (np.exp(1) - np.exp(-1)) + 4 * X**2 * x)
-            def scatter(x, angle):
-                c = 0.9
-                const = X**3 - X**2 * np.exp(angle)
-                return X * angle * np.exp(angle) + X * x * np.exp(angle) + const \
-                       - c/2 * (2 * X**3 + (np.exp(1) - np.exp(-1)) * (x * X - X**2))
-            return np.concatenate([quasi(xspace[xspace < 0.5 * X], angle), \
-                                   scatter(xspace[xspace > 0.5 * X], angle)])
-        source = np.array([angle_dependent(angle, xspace) for angle \
-                                                        in self.mu]).T
-        return source[:,:,None]
+    # def _mms_two_material(self):
+    #     X = max(self.cell_edges)
+    #     xspace = 0.5 * (self.cell_edges[1:] + self.cell_edges[:-1])
+    #     def angle_dependent(angle, x):
+    #         def quasi(x):
+    #             c = 0.3
+    #             return 2 * X * angle - 4 * x * angle - 2 * x**2 \
+    #                    + 2 * X * x - c * (-2 * x**2 + 2 * X * x)
+    #         def scatter(x):
+    #             c = 0.9
+    #             const = -0.125 * X + 0.5 * X**2
+    #             return 0.25 * angle + 0.25 * x + const \
+    #                    - c * ((0.25 * x + const))
+    #         return np.concatenate([quasi(xspace[xspace < 0.5 * X]), \
+    #                                scatter(xspace[xspace > 0.5 * X])])
+    #     source = np.array([angle_dependent(angle, xspace) for angle \
+    #                                                     in self.angle_x]).T
+    #     return source[:,:,None]
+
+    # def _mms_two_material_angle(self):
+    #     X = max(self.cell_edges)
+    #     xspace = 0.5 * (self.cell_edges[1:] + self.cell_edges[:-1])
+    #     def angle_dependent(angle, x):
+    #         def quasi(x, angle):
+    #             c = 0.3
+    #             return angle * (2 * X**2 - 4 * np.exp(angle) * x) - 2 \
+    #                     * np.exp(angle) * x**2 + 2 * X**2 * x - c / 2 \
+    #                     * (-2 * x**2 * (np.exp(1) - np.exp(-1)) + 4 * X**2 * x)
+    #         def scatter(x, angle):
+    #             c = 0.9
+    #             const = X**3 - X**2 * np.exp(angle)
+    #             return X * angle * np.exp(angle) + X * x * np.exp(angle) + const \
+    #                    - c/2 * (2 * X**3 + (np.exp(1) - np.exp(-1)) * (x * X - X**2))
+    #         return np.concatenate([quasi(xspace[xspace < 0.5 * X], angle), \
+    #                                scatter(xspace[xspace > 0.5 * X], angle)])
+    #     source = np.array([angle_dependent(angle, xspace) for angle \
+    #                                                     in self.mu]).T
+    #     return source[:,:,None]
+    
+
+    # def quasi(x, angle=None):
+    #     c = 0.3
+    #     return angle * (2 * X**2 - 4 * np.exp(angle) * x) - 2 \
+    #             * np.exp(angle) * x**2 + 2 * X**2 * x - c / 2 \
+    #             * (-2 * x**2 * (np.exp(1) - np.exp(-1)) + 4 * X**2 * x)
+
+
+    def _ambe(self):
+        AmBe = np.load(SOR_PATH + "AmBe_source_050G.npz")
+        if np.max(self.energy_grid) > 20:
+            self.energy_grid *= 1E-6
+        g_centers = 0.5 * (self.energy_grid[1:] + self.energy_grid[:-1])
+        locs = lambda x1, x2: np.argwhere((g_centers > x1) & (g_centers <= x2)).flatten()
+        medium_center = 0.5 * max(self.cell_edges)
+        center_idx = np.where(abs(self.cell_edges - medium_center) == \
+                                abs(self.cell_edges - medium_center).min())[0]
+        for ii in range(len(AmBe["magnitude"])):
+            idx = locs(AmBe["edges"][ii], AmBe["edges"][ii+1])
+            for jj in center_idx:
+                self.source[(jj, ..., idx)] = AmBe["magnitude"][ii]
+
+    # def _mms_source(self):
+    #     psi_constant_01 = 0.5
+    #     psi_constant_02 = 0.25
+    #     xspace = np.linspace(0, self.medium_radius, self.cells+1)
+    #     xspace = 0.5 * (xspace[1:] + xspace[:-1])
+    #     def angle_dependent(angle):
+    #         return psi_constant_02 * angle * np.exp(angle) * 2 * xspace \
+    #                 + psi_constant_01 + psi_constant_02 * xspace**2 \
+    #                 * np.exp(angle) - 0.9 / 2 * (2 * psi_constant_01 \
+    #                 + psi_constant_02 * xspace**2 * (np.exp(1) - np.exp(-1)))
+    #     source = np.array([angle_dependent(angle) for angle in self.mu]).T
+    #     return source[:,:,None]
+
+    # def _mms_two_material(self):
+    #     X = self.medium_radius
+    #     xspace = np.linspace(0, self.medium_radius, self.cells+1)
+    #     xspace = 0.5 * (xspace[1:] + xspace[:-1])
+    #     def angle_dependent(angle, x):
+    #         def quasi(x):
+    #             c = 0.3
+    #             return 2 * X * angle - 4 * x * angle - 2 * x**2 \
+    #                    + 2 * X * x - c * (-2 * x**2 + 2 * X * x)
+    #         def scatter(x):
+    #             c = 0.9
+    #             const = -0.125 * X + 0.5 * X**2
+    #             return 0.25 * angle + 0.25 * x + const \
+    #                    - c * ((0.25 * x + const))
+    #         return np.concatenate([quasi(xspace[xspace < 0.5 * X]), \
+    #                                scatter(xspace[xspace > 0.5 * X])])
+    #     source = np.array([angle_dependent(angle, xspace) for angle \
+    #                                                     in self.mu]).T
+    #     return source[:,:,None]
+
+    # def _mms_two_material_angle(self):
+    #     X = self.medium_radius
+    #     xspace = np.linspace(0, self.medium_radius, self.cells+1)
+    #     xspace = 0.5 * (xspace[1:] + xspace[:-1])
+    #     def angle_dependent(angle, x):
+    #         def quasi(x, angle):
+    #             c = 0.3
+    #             return angle * (2 * X**2 - 4 * np.exp(angle) * x) - 2 \
+    #                     * np.exp(angle) * x**2 + 2 * X**2 * x - c / 2 \
+    #                     * (-2 * x**2 * (np.exp(1) - np.exp(-1)) + 4 * X**2 * x)
+    #         def scatter(x, angle):
+    #             c = 0.9
+    #             const = X**3 - X**2 * np.exp(angle)
+    #             return X * angle * np.exp(angle) + X * x * np.exp(angle) + const \
+    #                    - c/2 * (2 * X**3 + (np.exp(1) - np.exp(-1)) * (x * X - X**2))
+    #         return np.concatenate([quasi(xspace[xspace < 0.5 * X], angle), \
+    #                                scatter(xspace[xspace > 0.5 * X], angle)])
+    #     source = np.array([angle_dependent(angle, xspace) for angle \
+    #                                                     in self.mu]).T
+    #     return source[:,:,None]
 
