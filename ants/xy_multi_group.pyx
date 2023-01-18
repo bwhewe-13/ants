@@ -67,9 +67,13 @@ def criticality(int[:] medium_map, double[:,:] xs_total, \
     cdef int cells = medium_map.shape[0]
     cdef int groups = xs_total.shape[1]
     cdef int angles = mu.shape[0]
+    np.random.seed(42)
     flux_old = np.random.rand(cells, groups)
-    keff = cyutils.normalize_flux(flux_old)
-    cyutils.divide_by_keff(flux_old, keff)
+    cyutils.normalize_flux(flux_old)
+    cdef double keff = 1.0
+
+    # keff = cyutils.normalize_flux(flux_old)
+    # cyutils.divide_by_keff(flux_old, keff)
 
     power_source = memoryview(np.zeros((cells * groups)))
     flux = flux_old.copy()
@@ -79,15 +83,21 @@ def criticality(int[:] medium_map, double[:,:] xs_total, \
     cdef int count = 1
     cdef double change = 0.0
     while not (converged):
-        cyutils.power_iteration_source(power_source, flux_old, medium_map, xs_fission, 1.0)
+        cyutils.power_iteration_source(power_source, flux_old, medium_map, xs_fission, keff)
         flux = scalar_multi_group(flux, medium_map, xs_total, xs_scatter, \
                                   power_source, boundary, mu, eta, \
                                   angle_weight, params, delta_x, delta_y)
-        keff = cyutils.normalize_flux(flux)
-        cyutils.divide_by_keff(flux, keff)
+
+        keff = cyutils.update_keffective(flux, flux_old, medium_map, \
+                                    xs_fission, keff)
+        cyutils.normalize_flux(flux)
+
+        # keff = cyutils.normalize_flux(flux)
+        # cyutils.divide_by_keff(flux, keff)
+
         change = cyutils.scalar_convergence(flux, flux_old)
-        print("Power Iteration {}\n{}\nChange {} Keff {}".format(count, \
-                "="*35, change, keff))
+        # print("Power Iteration {}\n{}\nChange {} Keff {}".format(count, \
+        #         "="*35, change, keff))
         converged = (change < OUTER_TOLERANCE) or (count >= MAX_ITERATIONS)
         count += 1
         flux_old = flux.copy()
