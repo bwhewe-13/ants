@@ -358,10 +358,12 @@ class Transport:
     #     self.params = np.array([
     #         PARAMS_DICT[self.info.get("GEOMETRY")],
     #         PARAMS_DICT[self.info.get("SPATIAL")],
-    #         PARAMS_DICT[self.info.get("BOUNDARY X")],
+    #         # PARAMS_DICT[self.info.get("BOUNDARY X")],
+    #         PARAMS_DICT["vacuum"],
     #         external_group_index,
     #         external_angle_index,
-    #         self.boundary_loc,
+    #         # self.boundary_loc,
+    #         0,
     #         boundary_group_index,
     #         PARAMS_DICT[self.info.get("TEMPORAL","None")],
     #         PARAMS_DICT[self.info.get("TIME STEPS","None")]

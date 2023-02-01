@@ -9,6 +9,11 @@
 #
 ########################################################################
 
+# distutils: language=c++
+# cython: cdivision=True
+
+# cython: profile=True
+
 cdef double[:] scalar_sweep(double[:] scalar_flux_old, int[:]& medium_map, \
             double[:]& xs_total, double[:]& xs_scatter, double[:]& off_scatter, \
             double[:]& external_source, double[:]& boundary, \

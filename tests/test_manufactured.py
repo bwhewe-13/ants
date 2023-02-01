@@ -22,10 +22,12 @@ import numpy as np
 @pytest.mark.source_iteration
 @pytest.mark.parametrize("angular", ("True", "False"))
 def test_mms_one_material01(angular):
+    angular = True if angular == "True" else False
     info = {"cells": 400, "angles": 4, "groups": 1, "materials": 1,
              "geometry": 1, "spatial": 2, "qdim": 1, "bc": [0, 0], "bcdim": 0, 
-             "angular": False, "adjoint": False}
-    mu, w = tools._x_angles(info["angles"], info["bc"])
+             "steps": 0, "dt": 0, "angular": angular, "adjoint": False}
+    # mu, w = tools._x_angles(info["angles"], info["bc"])
+    info, mu, w = tools._x_angles(info)
     xs_total = np.array([1.])[:,None]
     xs_scatter = np.array([[0.]])[:,None]
     xs_fission = np.array([[0.]])[:,None]
@@ -36,9 +38,8 @@ def test_mms_one_material01(angular):
     boundary = np.zeros((2))
     boundary[0] = 1
     cell_width = np.repeat(width / info["cells"], info["cells"])
-    angular = True if angular == "True" else False
     flux = si(xs_total, xs_scatter, xs_fission, source, boundary, \
-                medium_map, cell_width, mu, w, info, angular=angular)
+                medium_map, cell_width, mu, w, info)
     xspace = 0.5 * (edges[1:] + edges[:-1])
     ref_flux = mms.solution_one_material_01(xspace, mu)
     if angular:
@@ -51,10 +52,12 @@ def test_mms_one_material01(angular):
 @pytest.mark.source_iteration
 @pytest.mark.parametrize("angular", ("True", "False"))
 def test_mms_one_material02(angular):
+    angular = True if angular == "True" else False
     info = {"cells": 400, "angles": 4, "groups": 1, "materials": 1,
              "geometry": 1, "spatial": 2, "qdim": 1, "bc": [0, 0], "bcdim": 0, 
-             "angular": False, "adjoint": False}
-    mu, w = tools._x_angles(info["angles"], info["bc"])
+             "steps": 0, "dt": 0, "angular": angular, "adjoint": False}
+    # mu, w = tools._x_angles(info["angles"], info["bc"])
+    info, mu, w = tools._x_angles(info)
     xs_total = np.array([1.])[:,None]
     xs_scatter = np.array([[0.]])[:,None]
     xs_fission = np.array([[0.]])[:,None]
@@ -65,9 +68,8 @@ def test_mms_one_material02(angular):
     boundary = np.zeros((2))
     boundary[0] = 1
     cell_width = np.repeat(width / info["cells"], info["cells"])
-    angular = True if angular == "True" else False
     flux = si(xs_total, xs_scatter, xs_fission, source, boundary, \
-                medium_map, cell_width, mu, w, info, angular=angular)
+                medium_map, cell_width, mu, w, info)
     xspace = 0.5 * (edges[1:] + edges[:-1])
     ref_flux = mms.solution_one_material_02(xspace, mu)
     if angular:
@@ -80,10 +82,12 @@ def test_mms_one_material02(angular):
 @pytest.mark.source_iteration
 @pytest.mark.parametrize("angular", ("True", "False"))
 def test_mms_two_material01(angular):
+    angular = True if angular == "True" else False
     info = {"cells": 400, "angles": 4, "groups": 1, "materials": 2,
              "geometry": 1, "spatial": 2, "qdim": 3, "bc": [0, 0], "bcdim": 2,
-             "angular": False, "adjoint": False}
-    mu, w = tools._x_angles(info["angles"], info["bc"])
+             "steps": 0, "dt": 0, "angular": angular, "adjoint": False}
+    # mu, w = tools._x_angles(info["angles"], info["bc"])
+    info, mu, w = tools._x_angles(info)
     xs_total = np.array([[1.],[1.]])
     xs_scatter = np.array([[[0.3]],[[0.9]]])
     xs_fission = np.array([[[0.0]],[[0.0]]])
@@ -94,9 +98,8 @@ def test_mms_two_material01(angular):
     source = tools._mms_two_material(edges, mu) 
     boundary = tools._mms_boundary("mms-03", mu)
     cell_width = np.repeat(width / info["cells"], info["cells"])
-    angular = True if angular == "True" else False
     flux = si(xs_total, xs_scatter, xs_fission, source, boundary, \
-                medium_map, cell_width, mu, w, info, angular=angular)
+                medium_map, cell_width, mu, w, info)
     xspace = 0.5 * (edges[1:] + edges[:-1])
     ref_flux = mms.solution_two_material_01(xspace, mu)
     if angular:
@@ -109,10 +112,12 @@ def test_mms_two_material01(angular):
 @pytest.mark.source_iteration
 @pytest.mark.parametrize("angular", ("True", "False"))
 def test_mms_two_material02(angular):
+    angular = True if angular == "True" else False
     info = {"cells": 400, "angles": 4, "groups": 1, "materials": 2,
              "geometry": 1, "spatial": 2, "qdim": 3, "bc": [0, 0], "bcdim": 2,
-             "angular": False, "adjoint": False}
-    mu, w = tools._x_angles(info["angles"], info["bc"])
+             "steps": 0, "dt": 0, "angular": angular, "adjoint": False}
+    # mu, w = tools._x_angles(info["angles"], info["bc"])
+    info, mu, w = tools._x_angles(info)
     xs_total = np.array([[1.],[1.]])
     xs_scatter = np.array([[[0.3]],[[0.9]]])
     xs_fission = np.array([[[0.0]],[[0.0]]])
@@ -123,9 +128,8 @@ def test_mms_two_material02(angular):
     source = tools._mms_two_material_angle(edges, mu) 
     boundary = tools._mms_boundary("mms-04", mu)
     cell_width = np.repeat(width / info["cells"], info["cells"])
-    angular = True if angular == "True" else False
     flux = si(xs_total, xs_scatter, xs_fission, source, boundary, \
-                medium_map, cell_width, mu, w, info, angular=angular)
+                medium_map, cell_width, mu, w, info)
     xspace = 0.5 * (edges[1:] + edges[:-1])
     ref_flux = mms.solution_two_material_02(xspace, mu)
     if angular:

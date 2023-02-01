@@ -13,7 +13,7 @@
 # cython: cdivision=True
 
 # from ants.parameters cimport params1d
-from ants.cytools cimport params1d
+from ants.cytools_1d cimport params1d
 
 from libcpp cimport float
 

@@ -220,7 +220,7 @@ cdef double[:] scalar_single_sweep(double[:] scalar_flux_old, int[:]& medium_map
     cdef size_t count = 1
     cdef double change = 0.0
     while not (converged):
-        scalar_flux[:] = 0
+        scalar_flux[:] = 0.0
         for angle in range(angles):
             boundary_y[:] = 0.0
             # Might remove this line
@@ -237,6 +237,7 @@ cdef double[:] scalar_single_sweep(double[:] scalar_flux_old, int[:]& medium_map
                             external_source[ex1::ex2][cell_y::cells_y], \
                             params, boundary[angle], mu[angle], spatial_y, \
                             0.25*angle_weight[angle], delta_x, cell_y, 0.0)
+                    # print(cell_y, np.asarray(boundary_y))
             elif mu[angle] < 0 and eta[angle] > 0:
                 # I --> 0, 0 --> J
                 for cell_y in range(cells_y):

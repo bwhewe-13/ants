@@ -12,16 +12,16 @@
 
 import numpy as np
 
-def _x_angles(angles, bc):
-    angle_x, angle_w = np.polynomial.legendre.leggauss(angles)
+def _x_angles(params):
+    angle_x, angle_w = np.polynomial.legendre.leggauss(params["angles"])
     angle_w /= np.sum(angle_w)
-    if bc in [[1, 0]]:
-        angle_x = sorted(angle_x, key=lambda x: (abs(x), x < 0))[::-1]
-    elif bc in [[0, 0], [0, 1]]:
-        angle_x = sorted(angle_x, key=lambda x: (abs(x), x > 0))[::-1]
-    angle_w = np.sort(angle_w)
-    angle_x = np.array(angle_x)
-    return angle_x, angle_w
+    if params["bc"] == [1, 0]:
+        params["angles"] = len(angle_x[angle_x < 0])
+        return params, angle_x[angle_x < 0], angle_w[angle_x < 0]
+    elif params["bc"] == [0, 1]:
+        params["angles"] = len(angle_x[angle_x > 0])
+        return params, angle_x[angle_x > 0], angle_w[angle_x > 0]
+    return params, angle_x, angle_w
 
 def _mms_two_material(cell_edges, angle_x):
     X = max(cell_edges)
