@@ -20,7 +20,7 @@ GEOMETRY: slab
 SPATIAL DISCRETE: diamond
 SPATIAL X CELLS: 100
 SPATIAL X LENGTH: 2
-SPATIAL X CELL WIDTH: 0.2
+
 
 
 # ANGLULAR
@@ -32,7 +32,7 @@ ANGLES: 4
 ########################
 ENERGY GROUPS: 1
 ENERGY BOUNDS: None
-
+ENERGY INDEX: None
 
 # MATERIAL
 ########################
@@ -43,14 +43,12 @@ MATERIAL: 1 // mms-scatter // 1-2
 # BOUNDARY CONDITIONS
 ########################
 BOUNDARY X: vacuum
-
+BOUNDARY LOCATION: right edge
+BOUNDARY NAME: mms two material angle
 
 # SOURCES
 ########################
 EXTERNAL SOURCE: mms two material angle
-BOUNDARY SOURCE LOCATION: right edge
-BOUNDARY SOURCE NAME: mms two material angle
-
 
 # NOTES
 ########################

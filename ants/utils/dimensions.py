@@ -15,14 +15,16 @@ def index_generator(full, reduced):
     assert (grid.sum() == full)
     return np.cumsum(np.insert(grid, 0, 0), dtype=int)
 
-def create_slices(array):
+def create_slices(array, double_count=False):
+    # This is for cell edges
+    coef_ = 2 if double_count else 1
     # Convert Medium Map to List of Slices
     idx = np.where(array[:-1] != array[1:])[0]
     idx = np.append(idx, len(array)-1)
     splits = []
     start = 0
     for ii in idx:
-        splits.append(slice(start, ii+1))
+        splits.append(slice(start, ii + coef_))
         start = ii + 1
     return np.array(splits)
 
@@ -75,24 +77,24 @@ def coarsen_flux(fine_flux, fine_edges, coarse_edges):
     assert count == len(fine_flux), "Not including all cells"
     return coarse_flux
 
-def flux_edges(centers, direction, split=None, dtype="diamond"):
-    # Calculate the flux edge from the center - full medium
-    edges = np.zeros((len(centers)+1))
-    if direction > 0: # Sweep from left to right
-        if dtype == "step":
-            edges[1:] = centers.copy()
-        elif dtype == "diamond":
-            for cell in range(1, len(centers) + 1):
-                edges[cell] = 2 * centers[cell-1] - edges[cell-1]
-    elif direction < 0: # Sweep from right to left
-        if dtype == "step":
-            edges[:-1] = centers.copy()
-        elif dtype == "diamond":
-            for cell in range(len(centers)-1, -1, -1):
-                edges[cell] = 2 * centers[cell] - edges[cell+1]
-    if split is None:
-        return edges
-    return edges[split]
+def flux_edges(center_flux, angle_x, boundary):
+    # Calculate the flux edge from the center
+    edge_flux = np.zeros((center_flux.shape[0]+1, *center_flux.shape[1:]))
+    # center flux is of shape (I x N x G)
+    for gg in range(center_flux.shape[2]):
+        for nn in range(center_flux.shape[1]):
+            if angle_x[nn] > 0.0: # forward sweep
+                edge_flux[0, nn, gg] = boundary[0]
+                for ii in range(1, center_flux.shape[0]+1):
+                    edge_flux[ii,nn,gg] = 2 * center_flux[ii-1,nn,gg] \
+                                            - edge_flux[ii-1,nn,gg]
+            elif angle_x[nn] < 0.0: # backward sweep
+                edge_flux[-1, nn, gg] = boundary[1]
+                for ii in range(center_flux.shape[0]-1, -1, -1):
+                    edge_flux[ii,nn,gg] = 2 * center_flux[ii,nn,gg] \
+                                            - edge_flux[ii+1,nn,gg]
+    return edge_flux
+
 
 def spatial_edges(centers, widths):
     # Calculate the spatial edge from the center

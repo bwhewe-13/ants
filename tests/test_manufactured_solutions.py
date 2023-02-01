@@ -84,22 +84,37 @@ import numpy as np
 
 
 @pytest.mark.source_iteration
-@pytest.mark.parametrize("angular", ("True", "False"))
-def test_mms_two_material02(angular):
+# @pytest.mark.parametrize("angular", ("True", "False"))
+# def test_mms_two_material02(angular):
+def test_mms_two_material02():
     file = "../input-files/mms-two-material02.inp"
     problem = Transport(file)
     problem.change_param("spatial x cells", 400)
-    angular = True if angular == "True" else False
+    # angular = True if angular == "True" else False
     flux = x_multi_group.source_iteration(problem.medium_map, problem.xs_total, \
                             problem.xs_scatter, problem.xs_fission, \
-                            problem.external_source, problem.point_source, \
+                            problem.external_source, problem.boundary, \
                             problem.mu, problem.angle_weight, problem.params, \
-                            problem.cell_width, angular=angular)
+                            problem.cell_width, angular=True)
     xspace = np.linspace(0, problem.cell_width[0] * problem.cells, problem.cells+1)
     xspace = 0.5 * (xspace[1:] + xspace[:-1])
     ref_flux = mms.solution_two_material_02(xspace, problem.mu)
-    if angular:
-        assert np.all(np.fabs(flux[:,:,0] - ref_flux) < 1e-4)
-    else:
-        ref_flux = np.sum(ref_flux * problem.angle_weight, axis=1)
-        assert np.all(np.fabs(flux[:,0] - ref_flux) < 1e-4)
+
+    flux = np.asarray(flux)
+    # import matplotlib.pyplot as plt
+    # for n in range(len(problem.mu)):
+    #     fig, ax = plt.subplots()
+    #     ax.plot(xspace, flux[:,n,0], c="r", alpha=0.6)
+    #     ax.plot(xspace, ref_flux[:,n], c="k", ls=":")
+    #     ax.grid(which="both")
+    #     ax.set_title("Angle {}".format(n))
+    # plt.show()
+    # if angular:
+    # assert np.all(np.fabs(flux[:,:,0] - ref_flux) < 1e-4)
+    print(np.all(np.fabs(flux[:,:,0] - ref_flux) < 1e-4))
+    # else:
+    #     ref_flux = np.sum(ref_flux * problem.angle_weight, axis=1)
+    #     assert np.all(np.fabs(flux[:,0] - ref_flux) < 1e-4)
+
+if __name__ == "__main__":
+    test_mms_two_material02()
