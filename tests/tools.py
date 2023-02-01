@@ -12,50 +12,85 @@
 
 import numpy as np
 
+def _x_angles(params):
+    angle_x, angle_w = np.polynomial.legendre.leggauss(params["angles"])
+    angle_w /= np.sum(angle_w)
+    if params["bc"] == [1, 0]:
+        params["angles"] = len(angle_x[angle_x < 0])
+        return params, angle_x[angle_x < 0], angle_w[angle_x < 0]
+    elif params["bc"] == [0, 1]:
+        params["angles"] = len(angle_x[angle_x > 0])
+        return params, angle_x[angle_x > 0], angle_w[angle_x > 0]
+    return params, angle_x, angle_w
 
-def angles(boundary):
-    angles = 20
-    mu, angle_weight = np.polynomial.legendre.leggauss(angles)
-    angle_weight /= np.sum(angle_weight)
-    if boundary == "reflected":
-        angles = int(0.5*angles)
-        mu = mu[angles:]
-        angle_weight = angle_weight[angles:]
-    return mu, angle_weight
+def _mms_two_material(cell_edges, angle_x):
+    X = max(cell_edges)
+    xspace = 0.5 * (cell_edges[1:] + cell_edges[:-1])
+    def angle_dependent(angle, x):
+        def quasi(x):
+            c = 0.3
+            return 2 * X * angle - 4 * x * angle - 2 * x**2 \
+                   + 2 * X * x - c * (-2 * x**2 + 2 * X * x)
+        def scatter(x):
+            c = 0.9
+            const = -0.125 * X + 0.5 * X**2
+            return 0.25 * angle + 0.25 * x + const \
+                   - c * ((0.25 * x + const))
+        return np.concatenate([quasi(xspace[xspace < 0.5 * X]), \
+                               scatter(xspace[xspace > 0.5 * X])])
+    source = np.array([angle_dependent(angle, xspace) for angle \
+                                                    in angle_x]).T
+    return source[:,:,None].flatten()
 
-def normalize_phi(phi, geometry, boundary):
-    normalize_phi = []
-    phi = phi.flatten()
-    cells = phi.shape[0]
-    if geometry == "sphere":
-        phi /= phi[0]
-        normalize_phi.append(phi[int(cells*0.25)])
-        normalize_phi.append(phi[int(cells*0.5)])
-        normalize_phi.append(phi[int(cells*0.75)])
-        normalize_phi.append(phi[-1])
-    elif geometry == "slab":
-        if boundary == "vacuum":
-            phi /= phi[int(cells*0.5)]
-            normalize_phi.append(phi[int(cells*0.375)])
-            normalize_phi.append(phi[int(cells*0.25)])
-            normalize_phi.append(phi[int(cells*0.125)])
-            normalize_phi.append(phi[0])
-        elif boundary == "reflected":
-            phi /= phi[-1]
-            normalize_phi.append(phi[int(cells*0.75)])
-            normalize_phi.append(phi[int(cells*0.5)])
-            normalize_phi.append(phi[int(cells*0.25)])
-            normalize_phi.append(phi[0])
-    return np.array(normalize_phi)
+def _mms_two_material_angle(cell_edges, angle_x):
+    X = max(cell_edges)
+    xspace = 0.5 * (cell_edges[1:] + cell_edges[:-1])
+    def angle_dependent(angle, x):
+        def quasi(x, angle):
+            c = 0.3
+            return angle * (2 * X**2 - 4 * np.exp(angle) * x) - 2 \
+                    * np.exp(angle) * x**2 + 2 * X**2 * x - c / 2 \
+                    * (-2 * x**2 * (np.exp(1) - np.exp(-1)) + 4 * X**2 * x)
+        def scatter(x, angle):
+            c = 0.9
+            const = X**3 - X**2 * np.exp(angle)
+            return X * angle * np.exp(angle) + X * x * np.exp(angle) + const \
+                   - c/2 * (2 * X**3 + (np.exp(1) - np.exp(-1)) * (x * X - X**2))
+        return np.concatenate([quasi(xspace[xspace < 0.5 * X], angle), \
+                               scatter(xspace[xspace > 0.5 * X], angle)])
+    source = np.array([angle_dependent(angle, xspace) for angle \
+                                                    in angle_x]).T
+    return source[:,:,None].flatten()
 
-def create_param(geometry, boundary, groups):
-    if geometry == "sphere":
-        return np.array([2, 2, 0, groups, 1, 0, 1, 1, 1], dtype=np.int32)
-    elif geometry == "slab":
-        if boundary == "reflected":
-            return np.array([1, 2, 1, groups, 1, 0, 1, 1, 1], dtype=np.int32)
-        elif boundary == "vacuum":
-            return np.array([1, 2, 0, groups, 1, 0, 1, 1, 1], dtype=np.int32)
+def _mms_boundary(name, angle_x):
+    boundary = np.zeros((2, len(angle_x), 1))
+    psi_c1 = 0.5
+    psi_c2 = 0.25
+    XX = 2
+    if name == "mms-01":
+        boundary[0] = psi_c1
+    elif name == "mms-02":
+        boundary[1] = psi_c1 + psi_c2 * np.exp(angle_x)
+    elif name == "mms-03":
+        boundary[1] = 0.5 * XX**2 + 0.125 * XX
+    elif name == "mms-04":
+        boundary[1] = XX**3
+    return boundary.flatten()
+
+def normalize(flux, boundary):
+    cells = len(flux)
+    if boundary == [0, 0]:
+        flux /= flux[int(cells*0.5)]
+        idx = [int(cells*0.375), int(cells*0.25), int(cells*0.125), 0]
+    elif boundary == [0, 1]:
+        flux /= flux[-1]
+        idx = [int(cells*0.75), int(cells*0.5), int(cells*0.25), 0]
+    else: 
+        flux /= flux[0]
+        idx = [int(cells*0.25), int(cells*0.5), int(cells*0.75), -1]
+    nflux = np.array([flux[ii] for ii in idx])
+    return nflux
+
 
 class OneGroup:
     
@@ -65,18 +100,18 @@ class OneGroup:
         self.cells = cells
         self.groups = 1
 
-    def plutonium_01a(self):
-        self.xs_total = np.array([[0.32640]])
-        self.xs_scatter = np.array([[[0.225216]]])
-        self.xs_fission = np.array([[[3.24*0.0816]]])
-        self.params = create_param(self.geometry, self.boundary, self.groups)
-        if (self.geometry == "slab") and (self.boundary == "reflected"):
-            medium_width = 1.853722
-        elif (self.geometry == "slab") and (self.boundary == "vacuum"):
-            medium_width = 1.853722 * 2
-            self.cells *= 2
-        self.medium_map = np.zeros((self.cells), dtype=np.int32)
-        self.cell_width = np.repeat(medium_width / self.cells, self.cells)
+    # def plutonium_01a(self):
+    #     self.xs_total = np.array([[0.32640]])
+    #     self.xs_scatter = np.array([[[0.225216]]])
+    #     self.xs_fission = np.array([[[3.24*0.0816]]])
+    #     self.params = create_param(self.geometry, self.boundary, self.groups)
+    #     if (self.geometry == "slab") and (self.boundary == "reflected"):
+    #         medium_width = 1.853722
+    #     elif (self.geometry == "slab") and (self.boundary == "vacuum"):
+    #         medium_width = 1.853722 * 2
+    #         self.cells *= 2
+    #     self.medium_map = np.zeros((self.cells), dtype=np.int32)
+    #     self.cell_width = np.repeat(medium_width / self.cells, self.cells)
 
     def plutonium_01b(self):
         self.xs_total = np.array([[0.32640]])

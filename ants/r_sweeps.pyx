@@ -66,6 +66,7 @@ cdef double[:] r_sweep(double[:] scalar_flux_old, int[:]& medium_map, \
         alpha_minus = 0
         half_angle_calc(scalar_flux_old, flux_half_angle, medium_map, \
                 xs_total, xs_matrix, off_scatter, external_source, cell_width, 0.0)
+        # print(np.asarray(flux_half_angle))
         for angle in range(angles):
             ex_angle_idx = 0 if params[4] == 1 else angle
             mu_plus = mu_minus + 2 * angle_weight[angle]
@@ -74,6 +75,7 @@ cdef double[:] r_sweep(double[:] scalar_flux_old, int[:]& medium_map, \
                 alpha_plus = 0
             else:
                 alpha_plus = alpha_minus - mu[angle] * angle_weight[angle]
+            # print(angle, mu[angle], tau, alpha_plus, alpha_minus)
             sweep(scalar_flux, scalar_flux_old, medium_map,  xs_total, \
                  xs_matrix, off_scatter, external_source, params, boundary[angle], \
                  flux_half_angle, mu[angle], angle_weight[angle], cell_width, \

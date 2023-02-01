@@ -104,7 +104,11 @@ class CubicNatural:
                 + self.z[idx] / (6*self.h[idx]) * (self.x[idx+1] - n)**3 \
                 + (self.y[idx+1] / self.h[idx] - self.z[idx+1] * self.h[idx] / 6) \
                 * (n - self.x[idx]) + (self.y[idx] / self.h[idx] - self.z[idx] \
+<<<<<<< HEAD
                 * self.h[idx] / 6) * (self.x[idx+1] - n)
+=======
+                * self.h[idx] / 6) * (self.x[idx+1] - n)
+>>>>>>> d960585f57ad3ed97ee357d077e5c16ce4b3de58
         elif idx < 0:
             temp = self.z[0] / (2 * self.h[0]) * (self.x[1] - n)**2 \
                     + (self.y[1] / self.h[0] - self.z[1] * self.h[0] / 6) \
@@ -115,7 +119,11 @@ class CubicNatural:
                     + (self.y[-1] / self.h[-2] - self.z[-1] * self.h[-1] / 6) \
                     - (self.y[-2] / self.h[-2] - self.z[-2] * self.h[-1] / 6)
             return self.y[-1] + temp * (n - self.x[-1])
+<<<<<<< HEAD
 
+=======
+
+>>>>>>> d960585f57ad3ed97ee357d077e5c16ce4b3de58
 
 class CubicHermite:
 

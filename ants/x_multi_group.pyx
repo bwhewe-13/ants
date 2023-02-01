@@ -12,6 +12,8 @@
 # distutils: language=c++
 # cython: cdivision=True
 
+# cython: profile=True
+
 from ants.constants import MAX_ITERATIONS, OUTER_TOLERANCE
 from ants cimport x_sweeps, r_sweeps, cyutils
 
@@ -30,6 +32,9 @@ def criticality(int[:] medium_map, double[:,:] xs_total, \
     cdef size_t angles = mu.shape[0]
     flux_old = np.random.rand(cells, groups)
     cdef double keff = 0.95
+    # keff = cyutils.normalize_flux(flux_old)
+    cyutils.normalize_flux(flux_old)
+    # cyutils.divide_by_keff(flux_old, keff)
     power_source = memoryview(np.zeros((cells * groups)))
     flux = flux_old.copy()
     boundary = memoryview(np.zeros((angles)))
@@ -43,10 +48,10 @@ def criticality(int[:] medium_map, double[:,:] xs_total, \
         flux = scalar_multi_group(flux, medium_map, xs_total, xs_scatter, \
                 power_source, boundary, mu, angle_weight, params, cell_width)
         keff = cyutils.update_keffective(flux, flux_old, medium_map, xs_fission, keff)
-        cyutils.normalize_flux(flux)
+        cyutils.normalize_flux(flux_old)
         change = cyutils.scalar_convergence(flux, flux_old)
-        # print('Power Iteration {}\n{}\nChange {} Keff {}'.format(count, \
-        #         '='*35, change, keff))
+        print('Power Iteration {}\n{}\nChange {} Keff {}'.format(count, \
+                '='*35, change, keff))
         converged = (change < OUTER_TOLERANCE) or (count >= MAX_ITERATIONS)
         count += 1
         flux_old = flux.copy()
@@ -149,6 +154,8 @@ cdef double[:,:] scalar_multi_group(double[:,:]& flux_old, int[:] medium_map, \
                     external_source, boundary[bc_group_idx::params[6]], \
                     mu, angle_weight, params, cell_width, ex_group_idx)
         change = cyutils.scalar_convergence(flux, flux_old)
+        # print("Source Iteration {}\n{}\nChange {} Flux {}".format(count, \
+        #         "="*35, change, np.sum(np.asarray(flux))))
         converged = (change < OUTER_TOLERANCE) or (count >= MAX_ITERATIONS)
         count += 1
         flux_old[:,:] = flux[:,:]
@@ -193,6 +200,8 @@ cdef double[:,:,:] angular_multi_group(double[:,:,:] flux_old, \
                     boundary[bc_group_idx::params[6]], mu, angle_weight, \
                     params, cell_width, ex_group_idx)
         change = cyutils.angular_convergence(flux, flux_old, angle_weight)
+        # print("Source Iteration {}\n{}\nChange {} Flux {}".format(count, \
+        # "="*35, change, np.sum(np.asarray(flux))))
         converged = (change < OUTER_TOLERANCE) or (count >= MAX_ITERATIONS)
         count += 1
         flux_old[:,:,:] = flux[:,:,:]

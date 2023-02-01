@@ -12,6 +12,7 @@
 
 from ants import problem_setup
 from ants.constants import PARAMS_DICT
+from ants.utils import dimensions
 
 import numpy as np
 import os
@@ -19,18 +20,17 @@ import shutil
 import pkg_resources
 import warnings
 
+ENR_PATH = pkg_resources.resource_filename("ants","data/energy/")
+
 class Transport:
     
-    __parameters = ("PROBLEM", "OUTPUT", "FILE LOCATION", "FILE NAME", \
-        "SPATIAL GEOMETRY", "SPATIAL DISCRETE", "SPATIAL X CELLS", \
-        "SPATIAL X LENGTH", "SPATIAL X CELL WIDTH", "SPATIAL Y CELLS", \
-        "SPATIAL Y LENGTH", "SPATIAL Y CELL WIDTH", "ANGLES", \
-        "ANGLES COLLIDED", "TIME DISCRETE", "TIME STEPS", "TIME STEP SIZE", \
-        "ENERGY GROUPS", "ENERGY GROUPS COLLIDED", "ENERGY BOUNDS", \
-        "ENERGY INDEX", "MATERIAL", "MATERIAL", "MAP FILE", \
-        "EXTERNAL SOURCE", "EXTERNAL SOURCE FILE", "BOUNDARY LOCATION", \
-        "BOUNDARY NAME", "BOUNDARY X", "BOUNDARY Y", "SVD", "DJINN", \
-        "AUTOENCODER", "DJINN-AUTOENCODER", "HYBRID", "MMS", "MNB", "NOTE")
+    __parameters = ("FILE LOCATION", "GEOMETRY", "SPATIAL", "X CELLS", \
+                    "X LENGTH", "X CELL WIDTH", "Y CELLS", "Y LENGTH", \
+                    "Y CELL WIDTH", "ANGLES", "TEMPORAL", "TIME STEPS", \
+                    "TIME STEP SIZE", "ENERGY GROUPS", "ENERGY GRID", \
+                    "GRID INDEX", "MATERIAL", "SOURCE NAME", "SOURCE FILE", \
+                    "SOURCE DIMENSION", "BOUNDARY X", "BOUNDARY Y", \
+                    "BOUNDARY NAME", "BOUNDARY LOCATION", "BOUNDARY DIMENSION")
 
     def __init__(self, input_file):
         self.input_file = input_file
@@ -41,8 +41,6 @@ class Transport:
         string = ""
         space = 33
         for kk, vv in self.info.items():
-            if kk == "NOTE":
-                continue
             if kk == "MATERIAL" and "\n" in vv:
                 for ele in vv.split("\n"):
                     temp = "{: <{}}{: >{}}\n".format(kk, space, ele, space)
@@ -56,13 +54,18 @@ class Transport:
 
     def create_problem(self):
         self._generate_parameters()
-        self._generate_x_angles()
-        # self._generate_xy_angles()
         self._generate_medium_map()
+        # self._generate_x_angles()
+        self._x_angles()
+        self._energy_grid()
+        # self._generate_xy_angles()
+        
         self._generate_cross_sections()
-        self._generate_external_source()
-        self._generate_boundary()
-        self._generate_parameter_list()
+        self._external_source()
+        # self._generate_boundary()
+        self._boundary_conditions()
+        # self._generate_parameter_list()
+        self._parameters()
         # Move These To Run Function
         self.external_source = self.external_source.flatten()
         self.boundary = self.boundary.flatten()
@@ -105,39 +108,6 @@ class Transport:
             for line in text:
                 fp.write("{}\n".format(line))
         
-    def save_data(self, file_name):
-        file = {}
-        # Medium data
-        file["geometry"] = self.info.get("GEOMETRY")
-        file["medium-map"] = self.medium_map
-        file["material-key"] = self.material_key
-        # Cross sections
-        file["groups"] = self.groups
-        file["xs-total"] = self.xs_total
-        file["xs-scatter"] = self.xs_scatter
-        file["xs-fission"] = self.xs_fission
-        # Spatial Info
-        file["cells"] = self.cells
-        file["cell-width"] = self.cell_width
-        file["spatial"] = self.info.get("SPATIAL DISCRETE")
-        # Angular Info
-        file["angles"] = self.angles
-        file["mu"] = self.mu
-        file["angle-weight"] = self.angle_weight
-        if self.info.get("GEOMETRY") == "slab":
-            lhs_x = "vacuum"
-        elif self.info.get("GEOMETRY") == "sphere":
-            lhs_x = "reflected"
-        file["boundary"] = [lhs_x, self.info.get("BOUNDARY X")]
-        # Time Info
-        if self.info.get("TIME STEPS", None) is not None:        
-            file["time-steps"] = int(self.info.get("TIME STEPS"))
-            file["time-step-size"] = float(self.info.get("TIME STEP SIZE"))
-            file["temporal"] = self.info.get("TIME DISCRETE")
-        # Extra
-        file["notes"] = self.info.get("NOTE")
-        np.savez(file_name, **file)
-
     def _read_input(self):
         self.info = {}
         self.materials = []
@@ -150,123 +120,108 @@ class Transport:
                 value = value.strip().lower()
                 if key == "MATERIAL":
                     self.materials.append(value)
-                elif key == "NOTE":
-                    notes.append(value)
                 else:
                     value = "-".join(value.split())
                     self.info[self.info.get(key, key)] = value
-        self.info["NOTE"] = "\n".join(notes)
         self.info["MATERIAL"] = "\n".join(self.materials)
 
     def _generate_parameters(self):
-        self.cells = int(self.info.get("SPATIAL X CELLS"))
-        medium_width = float(self.info.get("SPATIAL X LENGTH"))
-        if "SPATIAL X CELL WIDTH" in self.info.keys() \
-            and len(self.info.get("SPATIAL X CELL WIDTH", "")) > 0:
-
-            file_name = os.path.join(self.info.get("FILE LOCATION", "."), \
-                    self.info.get("SPATIAL X CELL WIDTH"))
-            self.cell_width = np.load(file_name)
+        self.cells = int(self.info.get("X CELLS"))
+        if self.info.get("X CELL WIDTH", "uniform") == "uniform":
+            medium_width = float(self.info.get("X LENGTH"))
+            self.cell_width = np.repeat(medium_width / self.cells, self.cells)
+        else:
+            self.cell_width = np.load(os.path.join(self.info.get( \
+                    "FILE LOCATION", "."), self.info.get("X CELL WIDTH")))
             if self.cell_width.shape[0] != self.cells:
                 message = ("Mismatch in cell widths and number of cells, "
                 "adjusting spatial cells to equal number of cell widths")
                 warnings.warn(message)
                 self.cells = self.cell_width.shape[0]
-        else:
-            self.cell_width = np.repeat(medium_width/self.cells, self.cells)
         self.cell_edges = np.insert(np.round(np.cumsum(self.cell_width), 8), 0, 0)
         self.angles = int(self.info.get("ANGLES"))
+        assert (self.angles % 2 == 0), "Must be even number of angles"
         self.groups = int(self.info.get("ENERGY GROUPS"))
+        self.bc = self.info.get("BOUNDARY X").split("-")
+        self.bc = [PARAMS_DICT[ii] for ii in self.bc]
         
     def _generate_x_angles(self):
-        self.mu, self.angle_weight = np.polynomial.legendre.leggauss(self.angles)
-        self.angle_weight /= np.sum(self.angle_weight)
+        self.angle_x, self.angle_w = np.polynomial.legendre.leggauss(self.angles)
+        self.angle_w /= np.sum(self.angle_w)
         # left hand boundary at cell_x = 0 is reflective - negative
         if self.info.get("BOUNDARY X") == "reflected":
             self.angles = int(0.5 * self.angles)
-            self.mu = self.mu[self.mu > 0].copy()
-            self.angle_weight = self.angle_weight[self.mu > 0].copy()
+            self.angle_x = self.angle_x[self.angle_x > 0].copy()
+            self.angle_w = self.angle_w[self.angle_x > 0].copy()
         elif self.info.get("GEOMETRY") == "sphere":
             self.angles = int(0.5 * self.angles)
-            self.mu = self.mu[self.mu < 0].copy()
-            self.angle_weight = self.angle_weight[self.mu < 0].copy()
+            self.angle_x = self.angle_x[self.angle_x < 0].copy()
+            self.angle_w = self.angle_w[self.angle_x < 0].copy()
 
-    @staticmethod
-    def _generate_angles(angles, dimension=1, geometry="slab", \
-                            boundary="reflected"):
-        if dimension == 1:
-            mu, angle_weight = np.polynomial.legendre.leggauss(angles)
-            angle_weight /= np.sum(angle_weight)
-            if boundary == "reflected":
-                return mu[mu > 0], angle_weight[mu > 0]
-            elif geometry == "sphere":
-                return mu[mu < 0], angle_weight[mu < 0]
-            return mu, angle_weight
-        elif dimension == 2:
-            mu, w1 = np.polynomial.legendre.leggauss(angles)
-            y, w2 = np.polynomial.chebyshev.chebgauss(angles)
-            # xi = (1 - mu**2)**(0.5) * np.sin(np.arcsin(y)) # 3D
-            eta = (1 - mu**2)**(0.5) * np.cos(np.arcsin(y))
-            angle_weight = w1 * w2
-            angle_weight /= np.sum(0.5 * w2)
-            angles = int(0.5 * angles)
-            # Only Use the Positive Angles
-            eta = eta[mu > 0].copy()
-            angle_weight = angle_weight[mu > 0].copy()
-            mu = mu[mu > 0].copy()
-        return mu, eta, angle_weight
+    def _x_angles(self):
+        self.angle_x, self.angle_w = np.polynomial.legendre.leggauss(self.angles)
+        self.angle_w /= np.sum(self.angle_w)
+        if self.bc in [[1, 0]]:
+            self.angle_x = sorted(self.angle_x, key=lambda x: (abs(x), x < 0))[::-1]
+        elif self.bc in [[0, 0], [0, 1]]:
+            self.angle_x = sorted(self.angle_x, key=lambda x: (abs(x), x > 0))[::-1]
+        self.angle_w = np.sort(self.angle_w)
+        self.angle_x = np.array(self.angle_x)
 
-    def _generate_xy_angles(self):
-        self.mu, w1 = np.polynomial.legendre.leggauss(self.angles)
-        y, w2 = np.polynomial.chebyshev.chebgauss(self.angles)
-        # xi = (1 - self.mu**2)**(0.5) * np.sin(np.arcsin(y)) # 3D
-        self.eta = (1 - self.mu**2)**(0.5) * np.cos(np.arcsin(y))
-        self.angle_weight = w1 * w2
-        self.angle_weight /= np.sum(0.5 * w2)
-        self.angles = int(0.5 * self.angles)
-        # Only Use the Positive Angles
-        self.eta = self.eta[self.mu > 0].copy()
-        self.angle_weight = self.angle_weight[self.mu > 0].copy()
-        self.mu = mu[self.mu > 0].copy()
-        
-    def _product_quadrature(self):
-        """Compute ordinates and weights for product quadrature
-        Inputs:
-            N:               Order of Legendre or Chebyshev quad
-        Outputs:
-            w:               weights
-            eta,xi,mu:       direction cosines (x,y,z)
-        """
-        assert (self.angles % 2 == 0)
-        #get legendre quad
-        MUL, WL = np.polynomial.legendre.leggauss(self.angles)
-        #get chebyshev y's
-        Y, WC = np.polynomial.chebyshev.chebgauss(self.angles)
-        place = 0
-        self.eta = np.zeros(self.angles * self.angles * 2)
-        self.xi = np.zeros(self.angles * self.angles * 2)
-        self.mu = np.zeros(self.angles * self.angles * 2)
-        self.angle_weight = np.zeros(self.angles * self.angles * 2)
+    def _ordering_xy_angles(w, nx, ny, bc):
+        angles = np.vstack((w, nx, ny))
+        if np.sum(bc) == 1:
+            if bc[0] == [0, 1]:
+                angles = angles[:,angles[1].argsort()[::-1]]
+            elif bc[0] == [1, 0]:
+                angles = angles[:,angles[1].argsort()]
+            elif bc[1] == [0, 1]:
+                angles = angles[:,angles[2].argsort()[::-1]]
+            elif bc[1] == [1, 0]:
+                angles = angles[:,angles[2].argsort()]
+        elif np.sum(bc) == 2:
+            if bc[0] == [0, 1] and bc[1] == [0, 1]:
+                angles = angles[:,angles[1].argsort()]
+                angles = angles[:,angles[2].argsort(kind="mergesort")[::-1]]
+            elif bc[0] == [1, 0] and bc[1] == [0, 1]:
+                angles = angles[:,angles[1].argsort()[::-1]]
+                angles = angles[:,angles[2].argsort(kind="mergesort")[::-1]]
+            elif bc[0] == [0, 1] and bc[1] == [1, 0]:
+                angles = angles[:,angles[1].argsort()[::-1]]
+                angles = angles[:,angles[2].argsort(kind="mergesort")]
+            elif bc[0] == [1, 0] and bc[1] == [1, 0]:
+                angles = angles[:,angles[1].argsort()]
+                angles = angles[:,angles[2].argsort(kind="mergesort")]
+        elif np.sum(bc) > 2:
+            message = ("There must only be one reflected boundary "
+                        "in each direction")
+            warnings.warn(message)
+        return angles
+
+    def _xy_angles(self):
+        # eta, xi, mu: direction cosines (x,y,z) 
+        xx, wx = np.polynomial.legendre.leggauss(self.angles)
+        yy, wy = np.polynomial.chebyshev.chebgauss(self.angles)
+        idx = 0
+        eta = np.zeros(2 * self.angles**2)
+        xi = np.zeros(2 * self.angles**2)
+        mu = np.zeros(2 * self.angles**2)
+        w = np.zeros(2 * self.angles**2)
         for ii in range(self.angles):
             for jj in range(self.angles):
-                mul = MUL[ii]
-                y = Y[jj]
-                self.mu[place] = mul
-                self.mu[place+1] = mul
-                self.eta[place] = (1 - mul**2)**(0.5) * np.cos(np.arccos(y))
-                self.eta[place+1] = (1 - mul**2)**(0.5) * np.cos(-np.arccos(y))
-                self.xi[place] = (1 - mul**2)**(0.5) * np.sin(np.arccos(y))
-                self.xi[place+1] = (1 - mul**2)**(0.5) * np.sin(-np.arccos(y))
-                self.angle_weight[place] = WL[ii]*WC[jj]
-                self.angle_weight[place+1] = WL[ii]*WC[jj]
-                place += 2
-        self.angle_weight = self.angle_weight[self.mu > 0] \
-                            / np.sum(self.angle_weight[self.mu > 0])
-        self.eta = self.eta[self.mu > 0].copy()
-        self.xi = self.xi[self.mu > 0].copy()
+                mu[idx:idx+2] = xx[ii]
+                eta[idx] = np.sqrt(1 - xx[ii]**2) * np.cos(np.arccos(yy[jj]))
+                eta[idx+1] = np.sqrt(1 - xx[ii]**2) * np.cos(-np.arccos(yy[jj]))
+                xi[idx] = np.sqrt(1 - xx[ii]**2) * np.sin(np.arccos(yy[jj]))
+                xi[idx+1] = np.sqrt(1 - xx[ii]**2) * np.sin(-np.arccos(yy[jj]))
+                w[idx:idx+2] = wx[ii] * wy[jj]
+                idx += 2
+        w, eta, xi = Transport._ordering_xy_angles(w[mu > 0] / np.sum(w[mu > 0]), \
+                                            eta[mu > 0], xi[mu > 0], self.bc)
         # Convert to naming convention
-        self.mu = self.eta.copy()
-        self.eta = self.xi.copy()
+        self.angle_w = w.copy()
+        self.angle_x = eta.copy()
+        self.angle_y = xi.copy()
 
     def _generate_medium_map(self):
         mat_widths = []
@@ -302,8 +257,7 @@ class Transport:
         self.xs_scatter = []
         self.xs_fission = []
         creator = problem_setup.Materials(list(self.material_key.keys()), \
-                    self.groups, self.info.get("ENERGY BOUNDS", None), \
-                    self.info.get("ENERGY INDEX", None))
+                            self.groups, self.energy_grid, self.grid_index)
         for idx in range(len(self.material_key.items())):
             material = reversed_key[idx]
             self.xs_total.append(creator.material_key[material][0])
@@ -314,49 +268,112 @@ class Transport:
         self.xs_fission = np.array(self.xs_fission)
         self.velocity = creator.velocity
 
-    def _generate_external_source(self):
-        # delta = np.repeat(self.cell_width, self.cells)
-        creator = problem_setup.ExternalSource( \
-                                self.info.get("EXTERNAL SOURCE", None), \
-                                self.cells, self.cell_width, self.mu)
-        self.external_source = creator._generate_source()
-        if self.info.get("EXTERNAL SOURCE FILE", False):
-            file_name = os.path.join(self.info.get("FILE LOCATION", "."), \
-                    self.info.get("EXTERNAL SOURCE FILE"))
-            file_source = np.load(file_name)
-            assert (self.external_source.shape == file_source.shape), \
+    def _external_source(self):
+        self.external_source = problem_setup.ExternalSource(self.info.get("SOURCE NAME"), \
+                    self.cells, self.cell_edges, self.angle_x, self.groups, \
+                    self.energy_grid, int(self.info.get("SOURCE DIMENSION", 1)))._source()
+        if self.info.get("SOURCE FILE", False):
+            add_source = np.load(os.path.join(self.info.get("FILE LOCATION", "."), \
+                            self.info.get("SOURCE FILE")))
+            assert (self.external_source.shape == add_source.shape), \
                 ("External source size will not match with problem")
-            self.external_source += file_source
-        
-    def _generate_boundary(self):
-        self.boundary_loc = self.info.get("BOUNDARY LOCATION", 0)
-        if self.boundary_loc == "right-edge":
-            self.boundary_loc = int(self.info.get("SPATIAL X CELLS"))
-        creator = problem_setup.BoundarySource( \
-            self.info.get("BOUNDARY NAME", None), self.mu, \
-            self.groups, self.info.get("ENERGY BOUNDS", None), \
-            self.info.get("ENERGY INDEX", None))
-        self.boundary = creator._generate_source()
+            self.external_source += add_source
+        # self.external_source = self.external_source.flatten()
 
-    def _generate_parameter_list(self):
-        external_group_index = 1
-        external_angle_index = 1
-        if self.external_source.ndim == 2:
-            external_group_index = int(self.info.get("ENERGY GROUPS"))
-        elif self.external_source.ndim == 3:
-            external_group_index = int(self.info.get("ENERGY GROUPS"))
-            external_angle_index = int(self.info.get("ANGLES"))
-        boundary_group_index = 1
-        if self.boundary.ndim == 2:
-            boundary_group_index = int(self.info.get("ENERGY GROUPS"))
-        self.params = np.array([
-            PARAMS_DICT[self.info.get("GEOMETRY")],
-            PARAMS_DICT[self.info.get("SPATIAL DISCRETE")],
-            PARAMS_DICT[self.info.get("BOUNDARY X")],
-            external_group_index,
-            external_angle_index,
-            self.boundary_loc,
-            boundary_group_index,
-            PARAMS_DICT[self.info.get("TIME DISCRETE","None")],
-            PARAMS_DICT[self.info.get("TIME STEPS","None")]
-            ], dtype=np.int32)
+    # def _generate_external_source(self):
+    #     # delta = np.repeat(self.cell_width, self.cells)
+    #     creator = problem_setup.ExternalSource( \
+    #                             self.info.get("EXTERNAL SOURCE", None), \
+    #                             self.cells, self.cell_width, self.angle_x)
+    #     self.external_source = creator._generate_source()
+    #     if self.info.get("EXTERNAL SOURCE FILE", False):
+    #         file_name = os.path.join(self.info.get("FILE LOCATION", "."), \
+    #                 self.info.get("EXTERNAL SOURCE FILE"))
+    #         file_source = np.load(file_name)
+    #         assert (self.external_source.shape == file_source.shape), \
+    #             ("External source size will not match with problem")
+    #         self.external_source += file_source
+        
+    def _energy_grid(self):
+        if self.groups == 1 or self.info.get("ENERGY GRID", None) is None:
+            self.energy_grid = np.arange(self.groups + 1)
+            self.grid_index = dimensions.index_generator(self.groups, self.groups)
+        else:
+            label = str(self.info.get("ENERGY GRID")).zfill(3)
+            name = "G{}_energy_grid.npy".format(label)
+            self.energy_grid = np.load(ENR_PATH + name)
+            if self.groups == 361:
+                label = str(self.groups).zfill(3)
+                self.grid_index = np.load(ENR_PATH + "G361_grid_index.npz")
+                self.grid_index = self.grid_index[label]
+            else:
+                self.grid_index = dimensions.index_generator( \
+                        int(self.info.get("ENERGY GRID")), self.groups)
+
+
+    def _boundary_conditions(self):
+        # self.bc = self.info.get("BOUNDARY X").replace("vacuum", "0").replace("reflect", "1")
+        # self.bc = [int(ii) for ii in self.bc.split("-")]
+        if int(self.info.get("BOUNDARY DIMENSION", 0)) == 0:
+            self.boundary = np.zeros((2))
+        else:
+            name = self.info.get("BOUNDARY NAME", "zero")
+            if self.info.get("BOUNDARY LOCATION") == "left":
+                location = 0
+            elif self.info.get("BOUNDARY LOCATION") == "right":
+                location = 1
+            else:
+                location = None
+            ndim = int(self.info.get("BOUNDARY DIMENSION"))
+            self.boundary = problem_setup.BoundaryCondition(name, location, \
+                            self.angle_x, self.groups, self.energy_grid, \
+                            self.grid_index, ndim)._boundary()
+            # self.boundary = self.boundary.flatten()
+            # self.boundary = np.zeros((self.angles))
+        # self.boundary_loc = self.info.get("BOUNDARY LOCATION", 0)
+        # if self.boundary_loc == "right":
+        #     self.boundary_loc = int(self.info.get("X CELLS"))
+
+    # def _generate_boundary(self):
+    #     self.boundary_loc = self.info.get("BOUNDARY LOCATION", 0)
+    #     if self.boundary_loc == "right":
+    #         self.boundary_loc = int(self.info.get("X CELLS"))
+    #     creator = problem_setup.BoundaryCondition( \
+    #         self.info.get("BOUNDARY NAME", None), self.angle_x, \
+    #         self.groups, self.info.get("ENERGY BOUNDS", None), \
+    #         self.info.get("ENERGY INDEX", None))
+    #     self.boundary = creator._generate_source()
+
+    # def _generate_parameter_list(self):
+    #     external_group_index = 1
+    #     external_angle_index = 1
+    #     if self.external_source.ndim == 2:
+    #         external_group_index = int(self.info.get("ENERGY GROUPS"))
+    #     elif self.external_source.ndim == 3:
+    #         external_group_index = int(self.info.get("ENERGY GROUPS"))
+    #         external_angle_index = int(self.info.get("ANGLES"))
+    #     boundary_group_index = 1
+    #     if self.boundary.ndim == 2:
+    #         boundary_group_index = int(self.info.get("ENERGY GROUPS"))
+    #     self.params = np.array([
+    #         PARAMS_DICT[self.info.get("GEOMETRY")],
+    #         PARAMS_DICT[self.info.get("SPATIAL")],
+    #         # PARAMS_DICT[self.info.get("BOUNDARY X")],
+    #         PARAMS_DICT["vacuum"],
+    #         external_group_index,
+    #         external_angle_index,
+    #         # self.boundary_loc,
+    #         0,
+    #         boundary_group_index,
+    #         PARAMS_DICT[self.info.get("TEMPORAL","None")],
+    #         PARAMS_DICT[self.info.get("TIME STEPS","None")]
+    #         ], dtype=np.int32)
+
+    def _parameters(self):
+        self.params = {"cells": self.cells, "angles": self.angles, \
+                       "groups": self.groups, "bc": self.bc, \
+                       "materials": len(self.material_key.items()), \
+                       "geometry": PARAMS_DICT[self.info.get("GEOMETRY")], \
+                       "spatial": PARAMS_DICT[self.info.get("SPATIAL")], \
+                       "qdim": int(self.info.get("SOURCE DIMENSION", 0)), \
+                       "bcdim": int(self.info.get("BOUNDARY DIMENSION", 0))}
