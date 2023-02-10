@@ -63,10 +63,14 @@ cdef double[:,:,:] multigroup_angular(double[:,:,:]& flux_guess, \
                         # source[:,:,group], boundary[:,:,group], \
                         medium_map, delta_x, angle_x, angle_w, params)
         change = tools.group_convergence_angular(flux, flux_old, angle_w, params)
+        # if np.isnan(change) or np.isinf(change):
+        #     change = 0.0        
         converged = (change < OUTER_TOLERANCE) or (count >= MAX_ITERATIONS)
+        # print("count", count, "change", change, "flux", np.sum(flux))
         count += 1
         # print("Count", count, "change", change, "flux", np.sum(flux))
         flux_old[:,:,:] = flux[:,:,:]
+    # print("Multigroup Angular Count", count)
     return flux[:,:,:]
 
 cdef void ordinates_angular(double[:,:] flux, double[:,:] flux_old, \

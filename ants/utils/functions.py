@@ -14,10 +14,10 @@ import numpy as np
 def angles_x_calc(angles, bc):
     angle_x, angle_w = np.polynomial.legendre.leggauss(angles)
     angle_w /= np.sum(angle_w)
-    if bc == [1, 0]:
-        return angle_x[angle_x < 0], angle_w[angle_x < 0]
-    elif bc == [0, 1]:
-        return angle_x[angle_x > 0], angle_w[angle_x > 0]
+    # if bc == [1, 0]:
+    #     return angle_x[angle_x < 0], angle_w[angle_x < 0]
+    # elif bc == [0, 1]:
+    #     return angle_x[angle_x > 0], angle_w[angle_x > 0]
     return angle_x, angle_w
 
 def coarsen_groups_calc(fine, coarse):

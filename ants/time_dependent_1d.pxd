@@ -30,7 +30,7 @@ cdef double[:,:,:,:] multigroup_bdf1(double[:,:,:]& flux_last, \
 cdef double[:,:,:,:] hybrid_bdf1(double[:,:]& xs_total_vu, double[:,:]& xs_total_vc, \
                 double[:,:,:]& xs_scatter_u, double[:,:,:]& xs_scatter_c, \
                 double[:]& velocity_u, double[:]& velocity_c, \
-                double[:]& source, double[:]& boundary, int[:]& medium_map, \
+                double[:]& source_u, double[:]& boundary, int[:]& medium_map, \
                 double[:]& delta_x, double[:]& angle_xu, double[:]& angle_wu, \
                 double[:]& angle_xc, double[:]& angle_wc, \
                 int[:]& index_u, int[:]& index_c, double[:]& factor_u, \

@@ -239,8 +239,14 @@ class Source:
         return self.source
 
     def _uniform(self):
+<<<<<<< HEAD
         if self.name == "unity":
             self.source[(...)] = 1.0
+=======
+        # self.source = 1.0
+        if self.name == "none":
+            self.source *= 0.0
+>>>>>>> clearly
         elif self.name == "half-unity":
             self.source[(...)] = 0.5
         elif self.name == "small":
