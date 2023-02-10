@@ -75,15 +75,21 @@ def backward_euler(double[:,:] xs_total_u, double[:,:,:] xs_scatter_u, \
                         delta_u, delta_c, index_edges_c)
     # factor_u = 
     index_u = functions.index_uncollided_calc(params_c.groups, index_edges_c)
+    # print(index_u, index_c, factor_u)
     ####################################################################
     # print(np.asarray(delta_u), np.asarray(delta_u))
     # print(np.asarray(factor_u), np.asarray(index_c), np.asarray(index_u))
     # print("total star", np.asarray(xs_total_vu), np.asarray(xs_total_vc))
     # print("scatter", np.asarray(xs_scatter_u), np.asarray(xs_scatter_c))
     # print("matrix", np.asarray(xs_matrix_u), np.asarray(xs_matrix_c))
-    flux = td.hybrid_bdf1(xs_total_vu, xs_total_vc, xs_matrix_u, xs_matrix_c, \
-                velocity_u, velocity_c, source, boundary, medium_map, \
+    # flux = td.hybrid_bdf1(xs_total_vu, xs_total_vc, xs_matrix_u, xs_matrix_c, \
+    #             velocity_u, velocity_c, source, boundary, medium_map, \
+    #             delta_x, angle_xu, angle_wu, angle_xc, angle_wc, \
+    #             index_u, index_c, factor_u, params_u, params_c)
+    flux = td.hybrid_bdf1(xs_total_vu, xs_total_vu, xs_matrix_u, xs_matrix_u, \
+                velocity_u, velocity_u, source, boundary, medium_map, \
                 delta_x, angle_xu, angle_wu, angle_xc, angle_wc, \
-                index_u, index_c, factor_u, params_u, params_c)
+                index_u, index_u, factor_u, params_u, params_c)
+
     return np.asarray(flux)
 

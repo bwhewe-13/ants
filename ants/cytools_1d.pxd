@@ -140,13 +140,20 @@ cdef void nearby_fission_source(double[:,:]& flux, double[:,:,:]& xs_fission, \
 
 cdef double nearby_keffective(double[:,:]& flux, double rate, params1d params)
 
-cdef void calculate_collided_source(double[:,:,:]& flux_u, \
-                    double[:,:,:]& xs_scatter_u, double[:]& source_c, \
-                    int[:]& medium_map, double[:]& angle_wu, \
-                    int[:]& index_c, params1d params_u, params1d params_c)
+cdef void calculate_source_c(double[:,:]& scalar_flux_u, double[:,:,:]& xs_scatter_u, \
+                double[:]& source_c, int[:]& medium_map, int[:]& index_ch, \
+                params1d params_u, params1d params_c)
 
-cdef void calculate_total_source(double[:,:,:]& flux_u, double[:,:,:]& flux_c, \
-                    double[:,:,:]& xs_scatter_u, double[:]& source_u, \
-                    int[:]& medium_map, double[:]& angle_wu, double[:]& angle_wc, \
-                    int[:]& index_u, double[:]& factor_u, \
-                    params1d params_u, params1d params_c)
+cdef void calculate_source_t(double[:,:]& flux_u, double[:,:]& flux_c, \
+                double[:,:,:]& xs_scatter_u, double[:]& source_t, \
+                int[:]& medium_map, int[:]& index_u, double[:]& factor_u, \
+                params1d params_u, params1d params_c)
+
+cdef void calculate_source_star(double[:,:,:]& flux_last, double[:]& source_star, \
+        double[:]& source_t, double[:]& source_u, double[:]& velocity, params1d params)
+
+cdef void big_to_small(double[:,:]& flux_u, double[:]& flux_c, \
+                int[:]& index_c, params1d params_u, params1d params_c)
+
+cdef double[:,:] small_to_big(double[:,:]& flux_c, int[:]& index_u, \
+            double[:]& factor_u, params1d params_u, params1d params_c)

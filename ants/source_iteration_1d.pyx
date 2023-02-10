@@ -25,7 +25,7 @@ from ants.constants import MAX_ITERATIONS, OUTER_TOLERANCE, INNER_TOLERANCE, PI
 
 from libc.math cimport pow, fabs #, sqrt
 # from cython.view cimport array as cvarray
-# import numpy as np
+import numpy as np
 # from cython.parallel import prange
 
 cdef double[:,:,:] multigroup_angular(double[:,:,:]& flux_guess, \
@@ -62,9 +62,13 @@ cdef double[:,:,:] multigroup_angular(double[:,:,:]& flux_guess, \
                         source[qq1::qq2], boundary[bc1::bc2], \
                         medium_map, delta_x, angle_x, angle_w, params)
         change = tools.group_convergence_angular(flux, flux_old, angle_w, params)
+        # if np.isnan(change) or np.isinf(change):
+        #     change = 0.0        
         converged = (change < OUTER_TOLERANCE) or (count >= MAX_ITERATIONS)
+        # print("count", count, "change", change, "flux", np.sum(flux))
         count += 1
         flux_old[:,:,:] = flux[:,:,:]
+    # print("Multigroup Angular Count", count)
     return flux[:,:,:]
 
 cdef void ordinates_angular(double[:,:] flux, double[:,:] flux_old, \

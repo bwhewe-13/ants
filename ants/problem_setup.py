@@ -150,7 +150,7 @@ class Materials:
             self.velocity = np.ones((self.groups))
         else:            
             centers = 0.5 * (self.energy_grid[1:] + self.energy_grid[:-1])
-            gamma = (const.EV_TO_JOULES * energy_centers) \
+            gamma = (const.EV_TO_JOULES * centers) \
                     / (const.MASS_NEUTRON * const.LIGHT_SPEED**2) + 1
             velocity = [const.LIGHT_SPEED / gamma * np.sqrt(gamma**2 - 1) * 100]
             self.velocity = np.array([np.mean(velocity[self.grid_index[gg]: \
@@ -346,7 +346,7 @@ class ExternalSource:
         return self.source
 
     def _uniform(self):
-        self.source = 1.0
+        # self.source = 1.0
         if self.name == "none":
             self.source *= 0.0
         elif self.name == "half-unity":

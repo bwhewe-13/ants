@@ -9,9 +9,8 @@
 
 # Loop Exit Conditions
 INNER_TOLERANCE = 1E-08
-
 OUTER_TOLERANCE = 1E-12
-MAX_ITERATIONS = 500
+MAX_ITERATIONS = 200
 
 # For Diffusive Problems
 # OUTER_TOLERANCE = 1E-10

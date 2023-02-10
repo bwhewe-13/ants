@@ -22,7 +22,7 @@
 
 from libc.math cimport sqrt, pow
 from cython.view cimport array as cvarray
-# import numpy as np
+import numpy as np
 
 cdef params1d _to_params1d(dict params_dict):
     cdef params1d params
@@ -195,7 +195,6 @@ cdef double angle_convergence_scalar(double[:]& arr1, double[:]& arr2, \
     change = sqrt(change)
     return change
 
-
 cdef void off_scatter_scalar(double[:,:]& flux, double[:,:]& flux_old, \
             int[:]& medium_map, double[:,:,:]& xs_matrix, double[:]& source, \
             params1d params, size_t group):
@@ -284,84 +283,85 @@ cdef double nearby_keffective(double[:,:]& flux, double rate, params1d params):
             keff += rate * flux[cell,group]
     return keff
 
-cdef void calculate_collided_source(double[:,:,:]& flux_u, \
-                    double[:,:,:]& xs_scatter_u, double[:]& source_c, \
-                    int[:]& medium_map, double[:]& angle_wu, \
-                    int[:]& index_c, params1d params_u, params1d params_c):
+cdef void calculate_source_c(double[:,:]& flux_u, double[:,:,:]& xs_scatter_u, \
+                double[:]& source_c, int[:]& medium_map, int[:]& index_c, \
+                params1d params_u, params1d params_c):
     cdef size_t cell, mat, angle, group, ig, og
-    source_c[:] = 0.0
-    # Convert angular to scalar
-    scalar_flux = array_2d_ig(params_u)
-    for group in range(params_u.groups):
-        for angle in range(params_u.angles):
-            for cell in range(params_u.cells):
-                scalar_flux[cell,group] += angle_wu[angle] * flux_u[cell,angle,group]
     # Multiply flux by scatter
+    flux = flux_u.copy()
     for cell in range(params_u.cells):
         mat = medium_map[cell]
         for ig in range(params_u.groups):
             for og in range(params_u.groups):
-                scalar_flux[cell,og] *=  xs_scatter_u[mat,ig,og]
+                flux[cell,og] *=  xs_scatter_u[mat,ig,og]
     # Shrink to size G hat
+    big_to_small(flux, source_c, index_c, params_u, params_c)
+
+cdef void calculate_source_t(double[:,:]& flux_u, double[:,:]& flux_ch, \
+                double[:,:,:]& xs_scatter_u, double[:]& source_t, \
+                int[:]& medium_map, int[:]& index_u, double[:]& factor_u, \
+                params1d params_u, params1d params_c):
+    cdef size_t cell, mat, angle, group, ig, og
+    source_t[:] = 0.0
+    # Resize collided flux to size (I x G)
+    # flux_c = small_to_big(flux_ch, index_u, factor_u, params_u, params_c)
+    flux_c = flux_ch[:,:]
+    # Add collided and uncollided together
     for cell in range(params_u.cells):
         for group in range(params_u.groups):
-            source_c[index_c[group]::params_c.groups][cell] += scalar_flux[cell,group]
-
-cdef void calculate_total_source(double[:,:,:]& flux_u, double[:,:,:]& flux_c, \
-                    double[:,:,:]& xs_scatter_u, double[:]& source_u, \
-                    int[:]& medium_map, double[:]& angle_wu, double[:]& angle_wc, \
-                    int[:]& index_u, double[:]& factor_u, \
-                    params1d params_u, params1d params_c):
-    cdef size_t cell, mat, angle, group, ig, og, ug
-    source_u[:] = 0.0
-    # Convert collided angular to scalar
-    scalar_flux_c = array_1d_ig(params_c)
-    for group in range(params_c.groups):
-        for angle in range(params_c.angles):
-            for cell in range(params_c.cells):
-                scalar_flux_c[group::params_c.groups][cell] += \
-                            angle_wc[angle] * flux_c[cell,angle,group]
-    # Convert uncollided angular to scalar
-    scalar_flux_u = array_1d_ig(params_u)
-    for group in range(params_u.groups):
-        for angle in range(params_u.angles):
-            for cell in range(params_u.cells):
-                scalar_flux_u[group::params_u.groups][cell] += \
-                            angle_wu[angle] * flux_u[cell,angle,group]
-    # Increase collided to size G
-    for cell in range(params_c.cells):
-        for group in range(params_c.groups):
-            for ug in range(index_u[group], index_u[group+1]):
-                source_u[ug::params_u.groups][cell] += factor_u[ug] \
-                        * scalar_flux_u[group::params_c.groups][cell]
-    # Add collided and uncollided together
-    for cell in range(params_u.cells * params_u.groups):
-        source_u[cell] += scalar_flux_u[cell]
+            source_t[group::params_u.groups][cell] = flux_u[cell,group] + flux_c[cell,group]
     # Multiply flux by scatter
+    # print("sum flux", np.sum(source_t))
     for cell in range(params_u.cells):
         mat = medium_map[cell]
         for ig in range(params_u.groups):
             for og in range(params_u.groups):
-                source_u[og::params_u.groups][cell] *=  xs_scatter_u[mat,ig,og]
+                source_t[og::params_u.groups][cell] *= xs_scatter_u[mat,ig,og]
 
+cdef void calculate_source_star(double[:,:,:]& flux_last, double[:]& source_star, \
+        double[:]& source_t, double[:]& source_u, double[:]& velocity, params1d params):
+    cdef size_t cell, angle, group
+    cdef size_t skip = params.groups * params.angles
+    source_star[:] = 0.0
+    for group in range(params.groups):
+        for angle in range(params.angles):
+            for cell in range(params.cells):
+                source_star[angle::params.angles][cell] = source_t[cell] \
+                        + source_u[angle::params.angles][cell] \
+                        + flux_last[cell,angle,group] \
+                        * 1 / (velocity[group] * params.dt)
 
-# cdef void big_to_small(double[:,:,:]& flux_u, double[:,:,:]& xs_scatter_u, \
-#         double[:]& source_c, int[:]& medium_map, double[:]& angle_wu, \
-#         int[:]& index_collided, params1d params_u, params1d params_c):
-#     cdef size_t cell, mat, angle, ig, og
-#     source_c[:] = 0.0
-#     for cell in range(params_u.cells):
-#         mat = medium_map[cell]
-#         for ig in range(params_u.groups):
-#             for og in range(params.groups):
-#                 for angle in range(params_u.angles):
-#                     source_c[index_collided[ig]::params_c.groups][cell] += angle_wu[angle] \
-#                                 * flux_u[cell,angle,og] * xs_scatter[mat,ig,og]
+                    # = source_t[group::params.groups][cell] \
+                    #     + source_u[group+angle*params.groups::skip][cell] \
+                    #     + flux_last[cell,angle,group] \
+                    #     * 1 / (velocity[group] * params.dt)
 
-# cdef void small_to_big(double[:,:,:]& flux_u, double[:,:,:]& flux_c, \
-#         double[:,:,:]& xs_scatter_u, \
-#         double[:]& source_c, int[:]& medium_map, double[:]& angle_wu, \
-#         int[:]& index_collided, params1d params_u, params1d params_c):
+cdef void big_to_small(double[:,:]& flux_u, double[:]& flux_c, \
+                int[:]& index_c, params1d params_u, params1d params_c):
+    cdef size_t cell, group
+    flux_c[:] = 0.0
+    for cell in range(params_u.cells):
+        for group in range(params_u.groups):
+            # flux_c[cell, index_c[group]] += flux_u[cell,group]
+            flux_c[index_c[group]::params_c.groups][cell] += flux_u[cell,group]
+
+cdef double[:,:] small_to_big(double[:,:]& flux_c, int[:]& index_u, \
+            double[:]& factor_u, params1d params_u, params1d params_c):
+    cdef size_t cell, group_u, group_c
+    flux_u = array_2d_ig(params_u)
+    for cell in range(params_c.cells):
+        for group_c in range(params_c.groups):
+            for group_u in range(index_u[group_c], index_u[group_c+1]):
+                flux_u[cell,group_u] = flux_c[cell,group_c] * factor_u[group_u]
+    return flux_u[:,:]
+
+# def big_2_small(big, fine, coarse, index_collided):
+#     small = np.zeros((cells, coarse))
+#     for cell in range(cells):
+#         for group in range(fine):
+#             small[cell, index_collided[group]] += big[cell,group]
+#             # small[index_collided[group]::coarse][cell] += big[group::fine][cell]
+#     return small
 
 # def small_2_big(small, fine, coarse, index_uncollided, hybrid_factor):
 #     big = np.zeros((cells, fine))
@@ -369,6 +369,7 @@ cdef void calculate_total_source(double[:,:,:]& flux_u, double[:,:,:]& flux_c, \
 #         for group in range(coarse):
 #             for group_u in range(index_uncollided[group], index_uncollided[group+1]):
 #                 big[cell, group_u] = small[cell,group] * hybrid_factor[group_u]
+#                 # big[group_u::fine][cell] = small[group::coarse][cell] * hybrid_factor[group_u]
 #     return big
 
 # index_collided = index_collided_calc(fine, idx)
