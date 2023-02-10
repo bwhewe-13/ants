@@ -67,7 +67,7 @@ def smooth_spatial_grid(medium_map, widths):
 
 def coarsen_flux(fine_flux, fine_edges, coarse_edges):
     cells = coarse_edges.shape[0] - 1
-    coarse_flux = np.zeros((tuple([cells]) + fine_flux.shape[1:]))
+    coarse_flux = np.zeros(((cells,) + fine_flux.shape[1:]))
     count = 0
     for ii in range(cells):
         idx = np.argwhere((fine_edges < coarse_edges[ii+1]) \
@@ -78,23 +78,25 @@ def coarsen_flux(fine_flux, fine_edges, coarse_edges):
     return coarse_flux
 
 def flux_edges(center_flux, angle_x, boundary):
+    # discretize 1: step, 2: diamond
     # Calculate the flux edge from the center
     edge_flux = np.zeros((center_flux.shape[0]+1, *center_flux.shape[1:]))
     # center flux is of shape (I x N x G)
     for gg in range(center_flux.shape[2]):
         for nn in range(center_flux.shape[1]):
             if angle_x[nn] > 0.0: # forward sweep
-                edge_flux[0, nn, gg] = boundary[0]
+                edge_flux[0, nn, gg] = boundary[0,nn,gg]
+                # edge_flux[1:, nn, gg] = center_flux[:,nn,gg]
                 for ii in range(1, center_flux.shape[0]+1):
                     edge_flux[ii,nn,gg] = 2 * center_flux[ii-1,nn,gg] \
                                             - edge_flux[ii-1,nn,gg]
             elif angle_x[nn] < 0.0: # backward sweep
-                edge_flux[-1, nn, gg] = boundary[1]
+                edge_flux[-1, nn, gg] = boundary[1,nn,gg]
+                # edge_flux[:-1, nn, gg] = center_flux[:,nn,gg]
                 for ii in range(center_flux.shape[0]-1, -1, -1):
                     edge_flux[ii,nn,gg] = 2 * center_flux[ii,nn,gg] \
                                             - edge_flux[ii+1,nn,gg]
     return edge_flux
-
 
 def spatial_edges(centers, widths):
     # Calculate the spatial edge from the center

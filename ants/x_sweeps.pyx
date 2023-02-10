@@ -48,7 +48,7 @@ cdef double[:] scalar_sweep(double[:] scalar_flux_old, int[:]& medium_map, \
                 mu[angle], angle_weight[angle], params, cell_width, \
                 ex_group_idx, ex_angle_idx)
         change = cyutils.group_scalar_convergence(scalar_flux, scalar_flux_old)
-        # print("In Count", count, "Change", change)
+        # print("Count", count, "Change", change, "flux", np.sum(scalar_flux))
         converged = (change < INNER_TOLERANCE) or (count >= MAX_ITERATIONS)
         count += 1
         scalar_flux_old[:] = scalar_flux[:]

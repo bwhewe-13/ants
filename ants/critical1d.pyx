@@ -40,7 +40,7 @@ def power_iteration(double[:,:] xs_total, double[:,:,:] xs_scatter, \
                     angle_w, params, keff)
     return np.asarray(flux).reshape(params.cells, params.groups), keff[0]
 
-def nearby_problem(double[:,:] xs_total, double[:,:,:] xs_scatter, \
+def nearby_power(double[:,:] xs_total, double[:,:,:] xs_scatter, \
                    double[:,:,:] xs_fission, double[:] nearby_source, \
                    int[:] medium_map, double[:] delta_x, double[:] angle_x, \
                    double[:] angle_w, double nearby_rate, dict params_dict):

@@ -10,7 +10,7 @@
 # Loop Exit Conditions
 INNER_TOLERANCE = 1E-08
 OUTER_TOLERANCE = 1E-12
-MAX_ITERATIONS = 500
+MAX_ITERATIONS = 250
 
 # INNER_TOLERANCE = 1E-20
 # OUTER_TOLERANCE = 1E-24
@@ -24,8 +24,9 @@ MAX_ITERATIONS = 500
 PARAMS_DICT = {"slab": 1, "sphere": 2,          # Geometry
           "step": 1, "diamond": 2,              # Spatial Discretization
           "vacuum": 0, "reflected": 1,          # Boundary Condition
+          "left": 0, "right": 1,                # Boundary Location
           "bdf1": 1, "bdf2": 2, "tr-bdf2": 3,   # Temporal Discretization
-          "None": 0
+          "None": 0,
           }
 # Conversion Between Units 
 MASS_NEUTRON = 1.67493E-27

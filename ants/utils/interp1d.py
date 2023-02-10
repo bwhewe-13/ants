@@ -104,11 +104,7 @@ class CubicNatural:
                 + self.z[idx] / (6*self.h[idx]) * (self.x[idx+1] - n)**3 \
                 + (self.y[idx+1] / self.h[idx] - self.z[idx+1] * self.h[idx] / 6) \
                 * (n - self.x[idx]) + (self.y[idx] / self.h[idx] - self.z[idx] \
-<<<<<<< HEAD
                 * self.h[idx] / 6) * (self.x[idx+1] - n)
-=======
-                * self.h[idx] / 6) * (self.x[idx+1] - n)
->>>>>>> d960585f57ad3ed97ee357d077e5c16ce4b3de58
         elif idx < 0:
             temp = self.z[0] / (2 * self.h[0]) * (self.x[1] - n)**2 \
                     + (self.y[1] / self.h[0] - self.z[1] * self.h[0] / 6) \
@@ -119,11 +115,6 @@ class CubicNatural:
                     + (self.y[-1] / self.h[-2] - self.z[-1] * self.h[-1] / 6) \
                     - (self.y[-2] / self.h[-2] - self.z[-2] * self.h[-1] / 6)
             return self.y[-1] + temp * (n - self.x[-1])
-<<<<<<< HEAD
-
-=======
-
->>>>>>> d960585f57ad3ed97ee357d077e5c16ce4b3de58
 
 class CubicHermite:
 
@@ -229,11 +220,14 @@ class CubicHermite:
         Returns integral of spline and spline derivative between cell edges
         """
         # Faster this way - but not general
+        # delta_x = np.diff(edges_x)
+        # dflux = first_derivative(edges_x, flux)
         # spline = 0.5 * (flux[:-1] + flux[1:]) * delta_x[:,None,None] \
         #         + 1/12 * (dflux[:-1] - dflux[1:]) * delta_x[:,None,None]**2
         # dspline = flux[1:] - flux[:-1]
         dflux = first_derivative(edges_x, flux)
         spline = np.zeros((flux.shape[0] - 1,) + flux.shape[1:])
+        # print(spline.shape)
         dspline = np.zeros(spline.shape)
         for gg in range(params["groups"]):
             for nn in range(params["angles"]):
@@ -377,15 +371,179 @@ class QuinticHermite:
                     - 0.2 * t**4 + 0.125 * t**3)
         return np.array([phi0, phi1, psi0, psi1, theta0, theta1])
 
-    def integrate(self, cell_edges):
-        integral = []
-        knots = np.array([self.y[:-1], self.y[1:], self.dydx[:-1], \
-                        self.dydx[1:], self.d2ydx2[:-1], self.d2ydx2[1:]])
-        for ii in range(len(self.x)-1):
-            n = np.linspace(cell_edges[ii], cell_edges[ii+2], 3)
-            temp_int = np.sum(knots[:,ii,None] * QuinticHermite.basis_functions(n), axis=0)
-            integral.append(np.diff(temp_int)[:-1])
-            if ii == len(self.x) - 2:
-                integral.append([np.diff(temp_int)[-1]])
-        integral = np.array([item for sublist in integral for item in sublist])
-        return integral
+    # def integrate(self, cell_edges):
+    #     integral = []
+    #     knots = np.array([self.y[:-1], self.y[1:], self.dydx[:-1], \
+    #                     self.dydx[1:], self.d2ydx2[:-1], self.d2ydx2[1:]])
+    #     for ii in range(len(self.x)-1):
+    #         n = np.linspace(cell_edges[ii], cell_edges[ii+2], 3)
+    #         temp_int = np.sum(knots[:,ii,None] * QuinticHermite.basis_functions(n), axis=0)
+    #         integral.append(np.diff(temp_int)[:-1])
+    #         if ii == len(self.x) - 2:
+    #             integral.append([np.diff(temp_int)[-1]])
+    #     integral = np.array([item for sublist in integral for item in sublist])
+    #     return integral
+
+    def _single_spline(a, b, t1, t2, y1, y2, yp1, yp2, ypp1, ypp2):
+        phi1 = -((1/(t1 - t2)**5)*(a**6 - b**6 + 15*a**2*t1**2*t2**2 \
+            - 15*b**2*t1**2*t2**2 - 3*a**5*(t1 + t2) + 3*b**5*(t1 + t2) \
+            - 10*a**3*t1*t2*(t1 + t2) + 10*b**3*t1*t2*(t1 + t2) \
+            - a*t2**3*(10*t1**2 - 5*t1*t2 + t2**2) + b*t2**3*(10*t1**2 \
+            - 5*t1*t2 + t2**2) + (5/2)*a**4*(t1**2 + 4*t1*t2 + t2**2) \
+            - (5/2)*b**4*(t1**2 + 4*t1*t2 + t2**2)))
+
+        phi2 = (1/(t1 - t2)**5)*(a**6 - b**6 + 15*a**2*t1**2*t2**2 \
+            - 15*b**2*t1**2*t2**2 - 3*a**5*(t1 + t2) + 3*b**5*(t1 + t2) \
+            - 10*a**3*t1*t2*(t1 + t2) + 10*b**3*t1*t2*(t1 + t2) \
+            + (5/2)*a**4*(t1**2 + 4*t1*t2 + t2**2) - (5/2)*b**4*(t1**2 \
+            + 4*t1*t2 + t2**2) - a*t1**3*(t1**2 - 5*t1*t2 + 10*t2**2) \
+            + b*t1**3*(t1**2 - 5*t1*t2 + 10*t2**2))
+
+        psi1 = (1/(10*(t1 - t2)**4))*(5*a**6 - 5*b**6 + 10*a*t1*t2**3 \
+            * (-4*t1 + t2) + 5*a**2*(6*t1 - t2)*t2**2 * (2*t1 + t2) \
+            - 20*a**3*t1*t2*(2*t1 + 3*t2) - 2*a**5*(7*t1 + 8*t2) + 5*a**4 \
+            *(2*t1**2 + 10*t1*t2 + 3*t2**2) + b*(2*b**3*(7*b - 5*t1)*t1 \
+            + 2*b**2*(8*b**2 - 25*b*t1 + 20*t1**2) * t2 - 15*b*(b - 2*t1)**2 \
+            *t2**2 - 20*(b - 2*t1)*t1*t2**3 + 5*(b - 2*t1)*t2**4))
+
+        psi2 = (1/(10*(t1 - t2)**4))*(5*a**6 - 5*b**6 + 10*a*t1**3*(t1 - 4*t2)*t2 \
+            - 10*b*t1**3*(t1 - 4*t2)*t2 - 5*a**2*t1**2*(t1 - 6*t2) \
+            * (t1 + 2*t2) + 5*b**2*t1**2*(t1 - 6*t2)*(t1 + 2*t2) \
+            - 20*a**3*t1*t2*(3*t1 + 2*t2) + 20*b**3*t1*t2*(3*t1 + 2*t2) \
+            - 2*a**5*(8*t1 + 7*t2) + 2*b**5*(8*t1 + 7*t2) \
+            + 5*a**4*(3*t1**2 + 10*t1*t2 + 2*t2**2) - 5*b**4*(3*t1**2 \
+            + 10*t1*t2 + 2*t2**2))
+
+        theta1 = (1/(120*(t1 - t2)**3))*(-10*a**6 + 60*a*t1**2*t2**3 \
+            - 30*a**2*t1*t2**2*(3*t1 + 2*t2) + 12*a**5*(2*t1 + 3*t2) \
+            + 20*a**3*t2*(3*t1**2 + 6*t1*t2 + t2**2) - 15*a**4*(t1**2 \
+            + 6*t1*t2 + 3*t2**2) + b*(10*b**5 - 60*t1**2*t2**3 \
+            + 30*b*t1*t2**2*(3*t1 + 2*t2) - 12*b**4*(2*t1 + 3*t2) \
+            - 20*b**2*t2*(3*t1**2 + 6*t1*t2 + t2**2) + 15*b**3*(t1**2 \
+            + 6*t1*t2 + 3*t2**2)))
+
+        theta2 = (1/(120*(t1 - t2)**3))*(10*a**6 - 60*a*t1**3*t2**2 \
+            - 12*a**5*(3*t1 + 2*t2) + 30*a**2*t1**2*t2*(2*t1 + 3*t2) \
+            + 15*a**4*(3*t1**2 + 6*t1*t2 + t2**2) - 20*a**3*t1*(t1**2 \
+            + 6*t1*t2 + 3*t2**2) + b*(-10*b**5 + 60*t1**3*t2**2 + 12*b**4 \
+            * (3*t1 + 2*t2) - 30*b*t1**2*t2*(2*t1 + 3*t2) - 15*b**3 \
+            * (3*t1**2 + 6*t1*t2 + t2**2) + 20*b**2*t1*(t1**2 + 6*t1*t2 \
+            + 3*t2**2)))
+
+        return y1 * phi1 + y2 * phi2 + yp1 * psi1 + yp2 * psi2 \
+                + ypp1 * theta1 + ypp2 * theta2
+
+    def _single_dspline(a, b, t1, t2, y1, y2, yp1, yp2, ypp1, ypp2):
+        phi1 = (1/(t1 - t2)**5)*(-6*a**5 - 30*a*t1**2*t2**2 + 15*a**4 \
+            * (t1 + t2) + 30*a**2*t1*t2*(t1 + t2) - 10*a**3*(t1**2 \
+            + 4 * t1*t2 + t2**2) + b*(6*b**4 + 30*t1**2*t2**2 - 15*b**3 \
+            * (t1 + t2) - 30*b*t1*t2*(t1 + t2) + 10*b**2*(t1**2 + 4*t1*t2 + t2**2)))
+
+        phi2 = (1/(t1 - t2)**5)*(6*a**5 + 30*a*t1**2*t2**2 - 15*a**4*(t1 + t2) \
+            - 30*a**2*t1*t2*(t1 + t2) + 10*a**3*(t1**2 + 4*t1*t2 + t2**2) \
+            + b*(-6*b**4 - 30*t1**2*t2**2 + 15*b**3*(t1 + t2) + 30 \
+            * b*t1*t2*(t1 + t2) - 10*b**2*(t1**2 + 4*t1*t2 + t2**2)))
+
+        psi1 = (1/(t1 - t2)**4)*((-a)*((-a + t2)**3*(3*a + t2) - 4*t1**2 \
+            * (a**2 - 3*a*t2 + 3*t2**2) + t1*(7*a**3 - 20*a**2*t2 \
+            + 18*a*t2**2 - 4*t2**3)) + b*((-b + t2)**3*(3*b + t2) \
+            - 4*t1**2*(b**2 - 3*b*t2 + 3*t2**2) + t1*(7*b**3 - 20*b**2*t2 \
+            + 18*b*t2**2 - 4*t2**3)))
+
+        psi2 = (1/(t1 - t2)**4)*((-a)*(t1**4 - a**2*(3*a - 4*t2)*(a - t2) \
+            + 4*a*t1*(2*a - 3*t2)*(a - t2) - 4*t1**3*t2 - 6*t1**2 * (a**2 \
+            - 3*a*t2 + 2*t2**2)) + b*(t1**4 - b**2*(3*b - 4*t2)*(b - t2) \
+            + 4*b*t1*(2*b - 3*t2) * (b - t2) - 4*t1**3*t2 - 6*t1**2*(b**2 \
+            - 3*b*t2 + 2*t2**2)))
+
+        theta1 = (1/(2*(t1 - t2)**3))*((-a)*(a*(a - t2)**3 + 2*t1*(-a + t2)**3 \
+            + t1**2*(a**2 - 3*a*t2 + 3*t2**2)) + b*(b*(b - t2)**3 + 2*t1*(-b \
+                + t2)**3 + t1**2*(b**2 - 3*b*t2 + 3*t2**2)))
+
+        theta2 = -((1/(2*(t1 - t2)**3))*(a*((-a)*(a - t1)**3 + 2*(a - t1)**3*t2 \
+            - (a**2 - 3*a*t1 + 3*t1**2)*t2**2) + b*(b*(b - t1)**3 - 2*(b - t1)**3 \
+            * t2 + (b**2 - 3*b*t1 + 3*t1**2) * t2**2)))
+
+        return y1 * phi1 + y2 * phi2 + yp1 * psi1 + yp2 * psi2 \
+                + ypp1 * theta1 + ypp2 * theta2
+
+    def integrate_splines_edges(edges_x, flux, params):
+        """
+        Flux and dflux are at the cell edges (cells + 1)
+        Returns integral of spline and spline derivative between cell edges
+        """
+        # Faster this way - but not general
+        # delta_x = np.diff(edges_x)
+        # dflux = first_derivative(edges_x, flux)
+        # spline = 0.5 * (flux[:-1] + flux[1:]) * delta_x[:,None,None] \
+        #         + 1/12 * (dflux[:-1] - dflux[1:]) * delta_x[:,None,None]**2
+        # dspline = flux[1:] - flux[:-1]
+        dflux = first_derivative(edges_x, flux)
+        d2flux = second_derivative(edges_x, flux)
+        spline = np.zeros((flux.shape[0] - 1,) + flux.shape[1:])
+        # print(spline.shape)
+        dspline = np.zeros(spline.shape)
+        for gg in range(params["groups"]):
+            for nn in range(params["angles"]):
+                for ii in range(flux.shape[0] - 1):
+                    spline[ii,nn,gg] = QuinticHermite._single_spline(edges_x[ii], edges_x[ii+1], \
+                            edges_x[ii], edges_x[ii+1], flux[ii,nn,gg], \
+                            flux[ii+1,nn,gg], dflux[ii,nn,gg], dflux[ii+1,nn,gg], \
+                            d2flux[ii,nn,gg], d2flux[ii+1,nn,gg])
+                    dspline[ii,nn,gg] = QuinticHermite._single_dspline(edges_x[ii], edges_x[ii+1], \
+                            edges_x[ii], edges_x[ii+1], flux[ii,nn,gg], \
+                            flux[ii+1,nn,gg], dflux[ii,nn,gg], dflux[ii+1,nn,gg], \
+                            d2flux[ii,nn,gg], d2flux[ii+1,nn,gg])
+        return spline, dspline
+
+    def integrate_splines_centers(edges_x, flux, params):
+        """
+        Flux and dflux are at the cell centers (cells)
+        Returns integral of spline and spline derivative between cell edges
+        """
+        centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
+        dflux = first_derivative(centers_x, flux)
+        d2flux = second_derivative(centers_x, flux)
+        spline = np.zeros(flux.shape)
+        dspline = np.zeros(spline.shape)
+        for gg in range(params["groups"]):
+            for nn in range(params["angles"]):
+                # Calculate the first cell (one spline)
+                spline[0,nn,gg] = QuinticHermite._single_spline(edges_x[0], edges_x[1], \
+                            centers_x[0], centers_x[1], flux[0,nn,gg], \
+                            flux[1,nn,gg], dflux[0,nn,gg], dflux[1,nn,gg], \
+                            d2flux[0,nn,gg], d2flux[1,nn,gg])
+                dspline[0,nn,gg] = QuinticHermite._single_dspline(edges_x[0], edges_x[1], \
+                            centers_x[0], centers_x[1], flux[0,nn,gg], \
+                            flux[1,nn,gg], dflux[0,nn,gg], dflux[1,nn,gg], \
+                            d2flux[0,nn,gg], d2flux[1,nn,gg])
+                for ii in range(1, flux.shape[0]-1):
+                    # Take half integrals and add together
+                    S0 = QuinticHermite._single_spline(edges_x[ii], centers_x[ii], \
+                            centers_x[ii-1], centers_x[ii], flux[ii-1,nn,gg], \
+                            flux[ii,nn,gg], dflux[ii-1,nn,gg], dflux[ii,nn,gg], \
+                            d2flux[ii-1,nn,gg], d2flux[ii,nn,gg])
+                    S1 = QuinticHermite._single_spline(centers_x[ii], edges_x[ii+1], \
+                            centers_x[ii], centers_x[ii+1], flux[ii,nn,gg], \
+                            flux[ii+1,nn,gg], dflux[ii,nn,gg], dflux[ii+1,nn,gg], \
+                            d2flux[ii,nn,gg], d2flux[ii+1,nn,gg])
+                    spline[ii,nn,gg] = S0 + S1
+                    dS0 = QuinticHermite._single_dspline(edges_x[ii], centers_x[ii], \
+                            centers_x[ii-1], centers_x[ii], flux[ii-1,nn,gg], \
+                            flux[ii,nn,gg], dflux[ii-1,nn,gg], dflux[ii,nn,gg], \
+                            d2flux[ii-1,nn,gg], d2flux[ii,nn,gg])
+                    dS1 = QuinticHermite._single_dspline(centers_x[ii], edges_x[ii+1], \
+                            centers_x[ii], centers_x[ii+1], flux[ii,nn,gg], \
+                            flux[ii+1,nn,gg], dflux[ii,nn,gg], dflux[ii+1,nn,gg], \
+                            d2flux[ii,nn,gg], d2flux[ii+1,nn,gg])
+                    dspline[ii,nn,gg] = dS0 + dS1
+                # Calculate the last cell (one spline)
+                spline[-1,nn,gg] = QuinticHermite._single_spline(edges_x[-2], edges_x[-1], \
+                            centers_x[-2], centers_x[-1], flux[-2,nn,gg], \
+                            flux[-1,nn,gg], dflux[-2,nn,gg], dflux[-1,nn,gg], \
+                            d2flux[-2,nn,gg], d2flux[-1,nn,gg])
+                dspline[-1,nn,gg] = QuinticHermite._single_dspline(edges_x[-2], edges_x[-1], \
+                            centers_x[-2], centers_x[-1], flux[-2,nn,gg], \
+                            flux[-1,nn,gg], dflux[-2,nn,gg], dflux[-1,nn,gg], \
+                            d2flux[-2,nn,gg], d2flux[-1,nn,gg])
+        return spline, dspline

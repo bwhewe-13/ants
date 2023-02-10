@@ -11,46 +11,47 @@
 
 import numpy as np
 
-def solution_one_material_01(xspace, angles_mu):
-    angular_flux = np.zeros((len(xspace), len(angles_mu)))
-    for n, angle in enumerate(angles_mu):
+def solution_mms_01(x, angle_x):
+    """ One material, single direction """
+    flux = np.zeros((len(x), len(angle_x)))
+    for n, mu in enumerate(angle_x):
         if angle > 0:
-            angular_flux[:,n] = 1
+            flux[:,n] = 1.
         else:
-            angular_flux[:,n] = 1 - np.exp((1 - xspace)/angle)
-    return angular_flux
+            flux[:,n] = 1 - np.exp((1 - x) / mu)
+    return flux
 
-def solution_one_material_02(xspace, angles_mu):
-    angular_flux = np.zeros((len(xspace), len(angles_mu)))
-    for n, angle in enumerate(angles_mu):
-        if angle > 0:
-            angular_flux[:,n] = 0.5 + 0.5 * np.exp(-xspace / angle)
+def solution_mms_02(x, angle_x):
+    """ One material, angular dependent"""
+    flux = np.zeros((len(x), len(angle_x)))
+    for n, mu in enumerate(angle_x):
+        if mu > 0:
+            flux[:,n] = 0.5 + 0.5 * np.exp(-x / mu)
         else:
-            angular_flux[:,n] = 0.5 - 0.5 * np.exp((1 - xspace) / angle)
-    return angular_flux
+            flux[:,n] = 0.5 - 0.5 * np.exp((1 - x) / mu)
+    return flux
 
-def solution_one_material_03(xspace, angles_mu):
-    angular_flux = np.zeros((len(xspace), len(angles_mu)))
-    for n, angle in enumerate(angles_mu):
-        angular_flux[:,n] = 0.25 + 0.25 * xspace**2 * np.exp(angle)
-    return angular_flux
+def solution_mms_03(x, angle_x):
+    """ One material, angular dependent, with source"""
+    flux = np.zeros((len(x), len(angle_x)))
+    for n, mu in enumerate(angle_x):
+        flux[:,n] = 0.25 + 0.25 * x**2 * np.exp(mu)
+    return flux
 
-def solution_two_material_01(xspace, angles_mu):
-    angular_flux = np.zeros((len(xspace), len(angles_mu)))
-    length = np.round(xspace[-1])
-    for n, angle in enumerate(angles_mu):
-        angular_flux[xspace < 1,n] = -2 * xspace[xspace < 1]**2 \
-                                        + 2 * length * xspace[xspace < 1]
-        angular_flux[xspace > 1,n] = 0.25 * xspace[xspace > 1] \
-                                    - 0.125 * length + 0.5 * length**2
-    return angular_flux
+def solution_mms_04(x, angle_x):
+    """ Two materials, angular independent """
+    width = 2
+    flux = np.zeros((len(x), len(angle_x)))
+    for n, mu in enumerate(angle_x):
+        flux[x < 1,n] = -2 * x[x < 1]**2 + 2 * width * x[x < 1]
+        flux[x > 1,n] = 0.25 * x[x > 1] - 0.125 * width + 0.5 * width**2
+    return flux
 
-def solution_two_material_02(xspace, angles_mu):
-    angular_flux = np.zeros((len(xspace), len(angles_mu)))
-    length = np.round(xspace[-1])
-    for n, angle in enumerate(angles_mu):
-        angular_flux[xspace < 1,n] = -2 * np.exp(angle) * xspace[xspace < 1]**2 \
-                                    + 2 * length**2 * xspace[xspace < 1]
-        angular_flux[xspace > 1,n] = length * np.exp(angle) * xspace[xspace > 1] \
-                                    + length**2 * (length - np.exp(angle))
-    return angular_flux
+def solution_mms_05(x, angle_x):
+    """ Two materials, angular dependent """
+    width = 2
+    flux = np.zeros((len(x), len(angle_x)))
+    for n, mu in enumerate(angle_x):
+        flux[x < 1,n] = -2 * np.exp(mu) * x[x < 1]**2 + 2 * width**2 * x[x < 1]
+        flux[x > 1,n] = width * np.exp(mu) * x[x > 1] + width**2 * (width - np.exp(mu))
+    return flux

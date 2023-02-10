@@ -25,7 +25,7 @@ from ants.constants import MAX_ITERATIONS, OUTER_TOLERANCE, INNER_TOLERANCE, PI
 
 from libc.math cimport pow, fabs #, sqrt
 # from cython.view cimport array as cvarray
-# import numpy as np
+import numpy as np
 # from cython.parallel import prange
 
 cdef double[:,:,:] multigroup_angular(double[:,:,:]& flux_guess, \
@@ -60,10 +60,12 @@ cdef double[:,:,:] multigroup_angular(double[:,:,:]& flux_guess, \
             ordinates_angular(flux[:,:,group], flux_1g, xs_total[:,group], \
                         xs_scatter[:,group,group], off_scatter, \
                         source[qq1::qq2], boundary[bc1::bc2], \
+                        # source[:,:,group], boundary[:,:,group], \
                         medium_map, delta_x, angle_x, angle_w, params)
         change = tools.group_convergence_angular(flux, flux_old, angle_w, params)
         converged = (change < OUTER_TOLERANCE) or (count >= MAX_ITERATIONS)
         count += 1
+        # print("Count", count, "change", change, "flux", np.sum(flux))
         flux_old[:,:,:] = flux[:,:,:]
     return flux[:,:,:]
 
@@ -99,6 +101,7 @@ cdef void slab_ordinates_angular(double[:,:] flux, double[:,:] flux_old, \
             bc1 = 0 if params.bcdim != 2 else angle
             slab_sweep(flux[:,angle], scalar_flux, xs_total, xs_scatter, \
                 off_scatter, source[qq1::qq2], boundary[bc1::bc2], medium_map, \
+                # off_scatter, source[:,angle], boundary[:,angle], medium_map, \
                 delta_x, angle_x[angle], 1.0, params)
         change = tools.angle_convergence_angular(flux, flux_old, angle_w, params)
         converged = (change < INNER_TOLERANCE) or (count >= MAX_ITERATIONS)
@@ -140,6 +143,7 @@ cdef double[:,:] multigroup_scalar(double[:,:]& flux_guess, double[:,:]& xs_tota
         change = tools.group_convergence_scalar(flux, flux_old, params)
         converged = (change < OUTER_TOLERANCE) or (count >= MAX_ITERATIONS)
         count += 1
+        # print("Count", count, "change", change, "flux", np.sum(flux))
         flux_old[:,:] = flux[:,:]
     return flux[:,:]
 
@@ -398,3 +402,4 @@ cdef double edge_surface_area(double rho):
 
 cdef double cell_volume(double rho_plus, double rho_minus):
     return 4 * PI / 3 * (pow(rho_plus, 3) - pow(rho_minus, 3))
+

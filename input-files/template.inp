@@ -17,22 +17,16 @@ SPATIAL: STEP, DIAMOND
 X CELLS: INT
 X LENGTH: FLOAT
 X CELL WIDTH: .npy file, UNIFORM
-Y CELLS: INT
-Y LENGTH: FLOAT
-Y CELL WIDTH: .npy file, UNIFORM
-
 
 # ANGLULAR
 ########################
 ANGLES: 
-
 
 # TIME
 ########################
 TEMPORAL: BDF1, BDF2, TR-BDF2
 TIME STEPS: INT
 TIME STEP SIZE: FLOAT 
-
 
 # ENERGY
 ########################
@@ -44,18 +38,15 @@ GRID INDEX:
 ########################
 MATERIAL: 
 
-
 # SOURCES
 ########################
 SOURCE NAME: 
-SOURCE FILE: 
-SOURCE DIMENSION: 
-
+SOURCE DIMENSION: 0, 1, 2, 3
+SOURCE FILE:
 
 # BOUNDARY CONDITIONS
 ########################
-BOUNDARY X: vacuum vacuum
-BOUNDARY Y: vacuum vacuum
+BOUNDARY X: vacuum-vacuum
 BOUNDARY NAME: 
-BOUNDARY LOCATION: left or right
-BOUNDARY DIMENSION:
+BOUNDARY LOCATION: left-right
+BOUNDARY DIMENSION: 0, 1, 2
