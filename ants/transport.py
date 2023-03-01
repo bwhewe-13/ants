@@ -11,7 +11,8 @@
 ########################################################################
 
 from ants import problem_setup
-from ants.constants import PARAMS_DICT
+# from ants.constants import PARAMS_DICT
+from ants.constants import *
 from ants.utils import dimensions
 
 import numpy as np
@@ -220,7 +221,7 @@ class Transport:
         self.xs_total = np.array(self.xs_total)
         self.xs_scatter = np.array(self.xs_scatter)
         self.xs_fission = np.array(self.xs_fission)
-        self.velocity = creator.velocity
+        # self.velocity = creator.velocity
 
     def _generate_sources(self):
         name = self.info.get("SOURCE NAME", "none")
@@ -268,3 +269,32 @@ class Transport:
                        "bcdim": int(self.info.get("BOUNDARY DIMENSION", 0)),
                        "steps": 0, "dt": 1,
                        "angular": True, "adjoint": False}
+
+def calculate_velocity(groups, energy_edges=None):
+    """ Convert energy edges to speed at cell centers, Relative Physics
+    Arguments:
+        groups: Number of energy groups
+        energy_edges: energy grid bounds
+    Returns:
+        speeds at cell centers (cm/s)   """
+    if energy_edges == None:
+        return np.ones((groups))
+    energy_centers = 0.5 * (energy_edges[1:] + energy_edges[:-1])
+    gamma = (EV_TO_JOULES * energy_centers) / (MASS_NEUTRON * LIGHT_SPEED**2) + 1
+    velocity = LIGHT_SPEED / gamma * np.sqrt(gamma**2 - 1) * 100
+    return velocity
+
+# def calculate_x_angles(angles, bc=[0, 0], geometry="slab"):
+def calculate_x_angles(params):
+    angle_x, angle_w = np.polynomial.legendre.leggauss(params["angles"])
+    angle_w /= np.sum(angle_w)
+    # left hand boundary at cell_x = 0 is reflective - negative
+    if params["bc"] in [[1, 0]] or params["geometry"] == 2:
+        params["angles"] = int(0.5 * params["angles"])
+        angle_x = angle_x[angle_x < 0].copy()
+        angle_w = angle_w[angle_x < 0].copy()
+    elif params["bc"] in [[0, 1]]:
+        params["angles"] = int(0.5 * params["angles"])
+        angle_x = angle_x[angle_x > 0].copy()
+        angle_w = angle_w[angle_x > 0].copy()
+    return angle_x, angle_w

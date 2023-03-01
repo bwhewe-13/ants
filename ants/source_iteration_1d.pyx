@@ -21,7 +21,7 @@
 
 from ants cimport cytools_1d as tools
 from ants.cytools_1d cimport params1d
-from ants.constants import MAX_ITERATIONS, OUTER_TOLERANCE, INNER_TOLERANCE, PI
+from ants.constants import *
 
 from libc.math cimport pow, fabs #, sqrt
 # from cython.view cimport array as cvarray
@@ -36,6 +36,7 @@ cdef double[:,:,:] multigroup_angular(double[:,:,:]& flux_guess, \
                         params1d params):
     # Initialize components
     cdef size_t qq1, qq2, bc1, bc2, group
+    cdef int similar = 0
     # Set indexing
     qq2 = 1 if params.qdim == 1 else params.groups
     bc2 = 1 if params.bcdim == 0 else params.groups
@@ -63,12 +64,13 @@ cdef double[:,:,:] multigroup_angular(double[:,:,:]& flux_guess, \
                         # source[:,:,group], boundary[:,:,group], \
                         medium_map, delta_x, angle_x, angle_w, params)
         change = tools.group_convergence_angular(flux, flux_old, angle_w, params)
-        # if np.isnan(change) or np.isinf(change):
-        #     change = 0.0        
-        converged = (change < OUTER_TOLERANCE) or (count >= MAX_ITERATIONS)
+        if np.isnan(change) or np.isinf(change):
+            change = 0.5
+            similar += 1
+        converged = (change < OUTER_TOLERANCE) or (count >= MAX_ITERATIONS) \
+                    or (similar >= 2)
         # print("count", count, "change", change, "flux", np.sum(flux))
         count += 1
-        # print("Count", count, "change", change, "flux", np.sum(flux))
         flux_old[:,:,:] = flux[:,:,:]
     # print("Multigroup Angular Count", count)
     return flux[:,:,:]
@@ -119,6 +121,7 @@ cdef double[:,:] multigroup_scalar(double[:,:]& flux_guess, double[:,:]& xs_tota
                         double[:]& angle_w, params1d params):
     # Initialize components
     cdef size_t qq1, qq2, bc1, bc2, group
+    # cdef int similar = 0
     # Set indexing
     qq2 = 1 if params.qdim == 1 else params.groups
     bc2 = 1 if params.bcdim == 0 else params.groups
@@ -141,13 +144,18 @@ cdef double[:,:] multigroup_scalar(double[:,:]& flux_guess, double[:,:]& xs_tota
             flux_1g[:] = flux_old[:,group]
             tools.off_scatter_scalar(flux, flux_old, medium_map, \
                         xs_scatter, off_scatter, params, group)
+            # print(np.sum(off_scatter))
             ordinates_scalar(flux[:,group], flux_1g, xs_total[:,group], \
                 xs_scatter[:,group,group], off_scatter, source[qq1::qq2], \
                 boundary[bc1::bc2], medium_map, delta_x, angle_x, angle_w, params)
+            # if group in [10, 20, 30]:
+            #     print("group", group, "flux", np.sum(flux))
         change = tools.group_convergence_scalar(flux, flux_old, params)
+        if np.isnan(change) or np.isinf(change):
+            change = 0.5
         converged = (change < OUTER_TOLERANCE) or (count >= MAX_ITERATIONS)
+        # print("Count", count, "change", change, "flux", np.sum(flux), "old", np.sum(flux_old))
         count += 1
-        # print("Count", count, "change", change, "flux", np.sum(flux))
         flux_old[:,:] = flux[:,:]
     return flux[:,:]
 

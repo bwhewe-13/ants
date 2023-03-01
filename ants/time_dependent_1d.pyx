@@ -22,8 +22,7 @@ from ants cimport source_iteration_1d as si
 from ants cimport cytools_1d as tools
 from ants.cytools_1d cimport params1d
 
-import numpy as np
-import matplotlib.pyplot as plt
+# import numpy as np
 
 cdef double[:,:,:,:] multigroup_bdf1(double[:,:,:]& flux_guess, \
                         double[:,:]& xs_total_v, double[:,:,:]& xs_scatter, \
@@ -65,8 +64,11 @@ cdef double[:,:,:,:] hybrid_bdf1(double[:,:]& xs_total_vu, double[:,:]& xs_total
     flux_last = tools.array_3d_ing(params_u)
     flux_uncollided = tools.array_2d_ig(params_u)
     flux_collided = tools.array_2d_ig(params_c)
+
     zero_matrix = tools.array_3d_mgg(params_u)
     flux_times = tools.array_4d_ting(params_u)
+
+    cdef double[2] zero_boundary = [0.0, 0.0]
     for step in range(params_u.steps):
         # Create source star
         tools.combine_source_flux(flux_last, source_star, \
@@ -75,22 +77,17 @@ cdef double[:,:,:,:] hybrid_bdf1(double[:,:]& xs_total_vu, double[:,:]& xs_total
         flux_uncollided = si.multigroup_scalar(flux_uncollided, xs_total_vu, \
                         zero_matrix, source_star, boundary, medium_map, \
                         delta_x, angle_xu, angle_wu, params_u)
-        # print("uncollided flux", np.sum(flux_uncollided))
         # Step 2: Compute collided source
-        tools.calculate_source_c(flux_uncollided, xs_scatter_c, source_c, \
+        tools.calculate_source_c(flux_uncollided, xs_scatter_u, source_c, \
                                 medium_map, index_c, params_u, params_c)
-        # print("collided source", np.sum(source_c), np.sum(flux_uncollided))
         # Step 3: Solve Collided Equation
-        # print("boundary", boundary.shape, np.array_equal(angle_xc, angle_xu))
         flux_collided = si.multigroup_scalar(flux_collided, xs_total_vc, \
-                        xs_scatter_c, source_c, boundary, medium_map, \
+                        xs_scatter_c, source_c, zero_boundary, medium_map, \
                         delta_x, angle_xc, angle_wc, params_c)
-        # print("collided flux", np.sum(flux_collided), np.sum(flux_uncollided))
         # Step 4: Create a new source and solve for angular flux
         tools.calculate_source_t(flux_uncollided, flux_collided, \
                 xs_scatter_u, source_t, medium_map, index_u, factor_u, \
                 params_u, params_c)
-        # print("total source", np.sum(source_t))
         tools.calculate_source_star(flux_last, source_star, source_t, \
                                     source_u, velocity_u, params_u)
         # Solve for angular flux
