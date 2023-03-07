@@ -25,7 +25,7 @@ from ants.cytools_2d cimport params2d
 import numpy as np
 
 def backward_euler(double[:,:] xs_total, double[:,:,:] xs_scatter, \
-        double[:,:,:] xs_fission, double[:] velocity, double[:] source, \
+        double[:,:,:] xs_fission, double[:] velocity, double[:] external, \
         double[:] boundary_x, double[:] boundary_y, int[:] medium_map, \
         double[:] delta_x, double[:] delta_y, double[:] angle_x, \
         double[:] angle_y, double[:] angle_w, dict params_dict):
@@ -39,6 +39,7 @@ def backward_euler(double[:,:] xs_total, double[:,:,:] xs_scatter, \
     tools.combine_total_velocity(xs_total_v, xs_total, velocity, params)
     flux_last = tools.array_3d_ijng(params)
     flux = td.multigroup_bdf1(flux_last, xs_total_v, xs_matrix, velocity, \
-        source, boundary_x, boundary_y, medium_map, delta_x, delta_y, \
-        angle_x, angle_y, angle_w, params)
+                              external, boundary_x, boundary_y, medium_map, \
+                              delta_x, delta_y, angle_x, angle_y, angle_w, \
+                              params)
     return np.asarray(flux)

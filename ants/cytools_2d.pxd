@@ -89,10 +89,10 @@ cdef void combine_self_scattering(double[:,:,:] xs_matrix, \
         double[:,:,:] xs_scatter, double[:,:,:] xs_fission, params2d params)
 
 cdef void combine_total_velocity(double[:,:]& xs_total_star, \
-            double[:,:]& xs_total, double[:]& velocity, params2d params)
+        double[:,:]& xs_total, double[:]& velocity, params2d params)
 
 cdef void combine_source_flux(double[:,:,:]& flux_last, double[:]& source_star, \
-                double[:]& source, double[:]& velocity, params2d params)
+        double[:]& source, double[:]& velocity, params2d params)
 
 cdef double[:] array_1d_ij(params2d params)
 
@@ -113,54 +113,54 @@ cdef double[:,:,:,:] array_4d_tijng(params2d params)
 cdef double[:] update_y_edge(double[:]& boundary_y, double angle_y, params2d params)
 
 cdef double group_convergence_scalar(double[:,:]& arr1, double[:,:]& arr2, \
-                                params2d params)
+        params2d params)
 
 cdef double group_convergence_angular(double[:,:,:]& arr1, double[:,:,:]& arr2, \
-                                    double[:]& weight, params2d params)
+        double[:]& weight, params2d params)
 
 cdef double[:] angle_flux(params2d params, bint angular)
 
 cdef void angle_angular_to_scalar(double[:,:]& angular, double[:]& scalar, \
-                                double[:]& weight, params2d params)
+        double[:]& weight, params2d params)
 
 cdef double angle_convergence_scalar(double[:]& arr1, double[:]& arr2, \
-                                params2d params)
+        params2d params)
 
 cdef double angle_convergence_angular(double[:,:]& arr1, double[:,:]& arr2, \
-                                    double[:]& weight, params2d params)
+        double[:]& weight, params2d params)
 
 cdef void off_scatter_scalar(double[:,:]& flux, double[:,:]& flux_old, \
-                            int[:]& medium_map, double[:,:,:]& xs_matrix, \
-                            double[:]& source, params2d params, size_t group)
+        int[:]& medium_map, double[:,:,:]& xs_matrix, double[:]& source, \
+        params2d params, size_t group)
 
 cdef void off_scatter_angular(double[:,:,:]& flux, double[:,:,:]& flux_old, \
-            int[:]& medium_map, double[:,:,:]& xs_matrix, double[:]& source, \
-            double[:]& weight, params2d params, size_t group)
+        int[:]& medium_map, double[:,:,:]& xs_matrix, double[:]& source, \
+        double[:]& weight, params2d params, size_t group)
 
 cdef void fission_source(double[:]& power_source, double[:,:]& flux, \
-                    double[:,:,:]& xs_fission, int[:]& medium_map, \
-                    params2d params, double[:] keff)
+        double[:,:,:]& xs_fission, int[:]& medium_map, params2d params, \
+        double[:] keff)
 
 cdef void normalize_flux(double[:,:]& flux, params2d params)
 
 cdef double update_keffective(double[:,:]& flux, double[:,:]& flux_old, \
-                            int[:]& medium_map, double[:,:,:]& xs_fission, \
-                            params2d params, double keff_old)
+        int[:]& medium_map, double[:,:,:]& xs_fission, params2d params, \
+        double keff_old)
 
 cdef void calculate_source_c(double[:,:]& scalar_flux_u, double[:,:,:]& xs_scatter_u, \
-                double[:]& source_c, int[:]& medium_map, int[:]& index_ch, \
-                params2d params_u, params2d params_c)
+        double[:]& source_c, int[:]& medium_map, int[:]& index_ch, \
+        params2d params_u, params2d params_c)
 
 cdef void calculate_source_t(double[:,:]& flux_u, double[:,:]& flux_c, \
-                double[:,:,:]& xs_scatter_u, double[:]& source_t, \
-                int[:]& medium_map, int[:]& index_u, double[:]& factor_u, \
-                params2d params_u, params2d params_c)
+        double[:,:,:]& xs_scatter_u, double[:]& source_t, \
+        int[:]& medium_map, int[:]& index_u, double[:]& factor_u, \
+        params2d params_u, params2d params_c)
 
 cdef void calculate_source_star(double[:,:,:]& flux_last, double[:]& source_star, \
         double[:]& source_t, double[:]& source_u, double[:]& velocity, params2d params)
 
 cdef void big_to_small(double[:,:]& flux_u, double[:]& flux_c, \
-                int[:]& index_c, params2d params_u, params2d params_c)
+        int[:]& index_c, params2d params_u, params2d params_c)
 
 cdef double[:,:] small_to_big(double[:,:]& flux_c, int[:]& index_u, \
-            double[:]& factor_u, params2d params_u, params2d params_c)
+        double[:]& factor_u, params2d params_u, params2d params_c)
