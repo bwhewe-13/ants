@@ -79,6 +79,13 @@ cdef double[:] array_1d_ij(params2d params):
     flux[:] = 0.0
     return flux
 
+cdef double[:] array_1d_ijg(params2d params):
+    dd1 = cvarray((params.cells_x * params.cells_y * params.groups,), \
+                    itemsize=sizeof(double), format="d")
+    cdef double[:] flux = dd1
+    flux[:] = 0.0
+    return flux
+
 cdef double[:] array_1d_ijng(params2d params):
     dd1 = cvarray((params.cells_x * params.cells_y * params.angles \
                 * params.groups,), itemsize=sizeof(double), format="d")
@@ -108,6 +115,13 @@ cdef double[:,:,:] array_3d_ijng(params2d params):
     flux[:,:,:] = 0.0
     return flux
 
+cdef double[:,:,:] array_3d_mgg(params2d params):
+    dd1 = cvarray((params.materials, params.groups, params.groups), \
+                    itemsize=sizeof(double), format="d")
+    cdef double[:,:,:] flux = dd1
+    flux[:,:,:] = 0.0
+    return flux
+
 cdef double[:,:,:,:] array_4d_tijng(params2d params):
     dd1 = cvarray((params.steps, params.cells_x * params.cells_y, \
             params.angles, params.groups), itemsize=sizeof(double), format="d")
@@ -115,15 +129,17 @@ cdef double[:,:,:,:] array_4d_tijng(params2d params):
     flux[:,:,:,:] = 0.0
     return flux
 
-cdef double[:] edge_y_calc(double[:]& boundary_y, double angle_y, params2d params):
+cdef double[:] update_y_edge(double[:]& boundary_y, double angle_y, params2d params):
     # This is for converting boundary condition of [2 x I] or [2] into
     # [I] for edge_y
-    cdef size_t bcy1, bcy2
+    cdef size_t loc
     dd1 = cvarray((params.cells_x,), itemsize=sizeof(double), format="d")
     cdef double[:] edge_y = dd1
-    bcy1 = 0 if angle_y > 0.0 else 1
-    bcy2 = 1 if params.bcdim_y == 0 else 2
-    edge_y[:] = boundary_y[bcy1]
+    loc = 0 if angle_y > 0.0 else 1 # top or bottom
+    if params.bcdim_y == 0:
+        edge_y[:] = boundary_y[loc]
+    else:
+        edge_y[:] = boundary_y[0:params.cells_x]
     return edge_y
 
 # cdef double[:] group_flux(params2d params):
@@ -284,3 +300,67 @@ cdef double update_keffective(double[:,:]& flux, double[:,:]& flux_old, \
                 rate_new += flux[cell,og] * xs_fission[mat,ig,og]
                 rate_old += flux_old[cell,og] * xs_fission[mat,ig,og]
     return (rate_new * keff_old) / rate_old
+
+cdef void calculate_source_c(double[:,:]& flux_u, double[:,:,:]& xs_scatter_u, \
+                double[:]& source_c, int[:]& medium_map, int[:]& index_c, \
+                params2d params_u, params2d params_c):
+    cdef size_t cell, mat, ig, og
+    # Multiply flux by scatter
+    flux = flux_u.copy()
+    flux[:,:] = 0.0
+    for cell in range(params_u.cells_x * params_u.cells_y):
+        mat = medium_map[cell]
+        for og in range(params_u.groups):
+            for ig in range(params_u.groups):
+                flux[cell,ig] += flux_u[cell,og] * xs_scatter_u[mat,ig,og]
+    # Shrink to size G hat
+    big_to_small(flux, source_c, index_c, params_u, params_c)
+
+cdef void calculate_source_t(double[:,:]& flux_u, double[:,:]& flux_c, \
+                double[:,:,:]& xs_scatter_u, double[:]& source_t, \
+                int[:]& medium_map, int[:]& index_u, double[:]& factor_u, \
+                params2d params_u, params2d params_c):
+    cdef size_t cell, mat, angle, group, ig, og
+    source_t[:] = 0.0
+    # Resize collided flux to size (I x G)
+    flux = small_to_big(flux_c, index_u, factor_u, params_u, params_c)
+    for cell in range(params_u.cells * params_u.cells_y):
+        mat = medium_map[cell]
+        for og in range(params_u.groups):
+            for ig in range(params_u.groups):
+                source_t[ig::params_u.groups][cell] += xs_scatter_u[mat,ig,og] \
+                                    * (flux_u[cell,og] + flux[cell,og])
+
+cdef void calculate_source_star(double[:,:,:]& flux_last, double[:]& source_star, \
+        double[:]& source_t, double[:]& source_u, double[:]& velocity, params2d params):
+    cdef size_t cell, angle, group, start
+    cdef size_t stop = params.groups * params.angles
+    source_star[:] = 0.0
+    for group in range(params.groups):
+        for angle in range(params.angles):
+            for cell in range(params.cells_x * params.cells_y):
+                start = group + angle * params.groups
+                source_star[start::stop][cell] = source_t[group::params.groups][cell] \
+                        + source_u[start::stop][cell] \
+                        + flux_last[cell,angle,group] \
+                        * 1 / (velocity[group] * params.dt)
+                        
+
+cdef void big_to_small(double[:,:]& flux_u, double[:]& flux_c, \
+                int[:]& index_c, params2d params_u, params2d params_c):
+    cdef size_t cell, group
+    flux_c[:] = 0.0
+    for cell in range(params_u.cells_x * params_u.cells_y):
+        for group in range(params_u.groups):
+            flux_c[index_c[group]::params_c.groups][cell] += flux_u[cell,group]
+            # flux_c[group::params_c.groups][cell] += flux_u[cell,group]
+
+cdef double[:,:] small_to_big(double[:,:]& flux_c, int[:]& index_u, \
+            double[:]& factor_u, params2d params_u, params2d params_c):
+    cdef size_t cell, group_u, group_c
+    flux_u = array_2d_ijg(params_u)
+    for cell in range(params_c.cells_x * params_c.cells_y):
+        for group_c in range(params_c.groups):
+            for group_u in range(index_u[group_c], index_u[group_c+1]):
+                flux_u[cell,group_u] = flux_c[cell,group_c] * factor_u[group_u]
+    return flux_u[:,:]

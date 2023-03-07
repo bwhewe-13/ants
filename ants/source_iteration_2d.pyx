@@ -21,7 +21,7 @@
 
 from ants cimport cytools_2d as tools
 from ants.cytools_2d cimport params2d
-from ants.constants import MAX_ITERATIONS, OUTER_TOLERANCE, INNER_TOLERANCE
+from ants.constants import *
 
 from libc.math cimport fabs #, sqrt, pow
 # from libc.stdlib cimport abs as fabs 
@@ -29,7 +29,7 @@ from libc.math cimport fabs #, sqrt, pow
 # from cython.view cimport array as cvarray
 # from cython.parallel import prange
 
-import numpy as np
+# import numpy as np
 
 cdef double[:,:,:] multigroup_angular(double[:,:,:]& flux_guess, \
                         double[:,:]& xs_total, double[:,:,:]& xs_scatter, \
@@ -39,11 +39,11 @@ cdef double[:,:,:] multigroup_angular(double[:,:,:]& flux_guess, \
                         double[:]& angle_x, double[:]& angle_y, \
                         double[:]& angle_w, params2d params):
     # Initialize components
-    cdef size_t group, qq1, qq2 #, bcx1, bcx2, bcy1, bcy2
+    cdef size_t group, qq1, qq2, bcx1, bcx2, bcy1, bcy2
     # Set indexing
     qq2 = 1 if params.qdim == 1 else params.groups
-    # bcx2 = 1 if params.bcdim_x < 2 else params.groups
-    # bcy2 = 1 if params.bcdim_y < 2 else params.groups
+    bcx2 = 1 if params.bcdim_x < 2 else params.groups
+    bcy2 = 1 if params.bcdim_y < 2 else params.groups
     # Initialize flux
     flux = tools.array_3d_ijng(params)
     flux_old = flux_guess.copy()
@@ -58,15 +58,15 @@ cdef double[:,:,:] multigroup_angular(double[:,:,:]& flux_guess, \
         flux[:,:,:] = 0.0
         for group in range(params.groups):
             qq1 = 0 if params.qdim == 1 else group
-            # bcx1 = 0 if params.bcdim_x < 2 else group
-            # bcy1 = 0 if params.bcdim_y < 2 else group
+            bcx1 = 0 if params.bcdim_x < 2 else group
+            bcy1 = 0 if params.bcdim_y < 2 else group
             flux_1g[:,:] = flux_old[:,:,group]
             tools.off_scatter_angular(flux, flux_old, medium_map, xs_scatter, \
                                     off_scatter, angle_w, params, group)
             ordinates_angular(flux[:,:,group], flux_1g, xs_total[:,group], \
                 xs_scatter[:,group,group], off_scatter, source[qq1::qq2], \
-                boundary_x, boundary_y, medium_map, delta_x, delta_y, \
-                angle_x, angle_y, angle_w, params)
+                boundary_x[bcx1::bcx2], boundary_y[bcy1::bcy2], medium_map, \
+                delta_x, delta_y, angle_x, angle_y, angle_w, params)
         change = tools.group_convergence_angular(flux, flux_old, angle_w, params)
         converged = (change < OUTER_TOLERANCE) or (count >= MAX_ITERATIONS)
         count += 1
@@ -91,12 +91,12 @@ cdef void square_ordinates_angular(double[:,:]& flux, double[:,:]& flux_old, \
             double[:]& angle_x, double[:]& angle_y, double[:]& angle_w, \
             params2d params):
     # Initialize indices etc
-    cdef size_t angle, qq1, qq2 #, bcx1, bcx2, bcy1, bcy2
+    cdef size_t angle, qq1, qq2, bcx1, bcx2, bcy1, bcy2
     scalar_flux = tools.array_1d_ij(params)
     # Set indexing
     qq2 = 1 if params.qdim != 3 else params.angles
-    # bcx2 = 1 if params.bcdim_x != 3 else params.angles
-    # bcy2 = 1 if params.bcdim_y != 3 else params.angles
+    bcx2 = 1 if params.bcdim_x != 3 else params.angles
+    bcy2 = 1 if params.bcdim_y != 3 else params.angles
     # Set convergence limits
     cdef bint converged = False
     cdef size_t count = 1
@@ -107,11 +107,11 @@ cdef void square_ordinates_angular(double[:,:]& flux, double[:,:]& flux_old, \
         # for angle in prange(params.angles, nogil=True):
         for angle in range(params.angles):
             qq1 = 0 if params.qdim != 3 else angle
-            # bcx1 = 0 if params.bcdim_x != 3 else params.angles
-            # bcy1 = 0 if params.bcdim_y != 3 else params.angles
+            bcx1 = 0 if params.bcdim_x != 3 else params.angles
+            bcy1 = 0 if params.bcdim_y != 3 else params.angles
             spatial_sweep(flux[:,angle], scalar_flux, xs_total, xs_scatter, \
-                off_scatter, source[qq1::qq2], boundary_x, \
-                boundary_y, medium_map, delta_x, delta_y, \
+                off_scatter, source[qq1::qq2], boundary_x[bcx1::bcx2], \
+                boundary_y[bcy1::bcy2], medium_map, delta_x, delta_y, \
                 angle_x[angle], angle_y[angle], 1.0, params)
         change = tools.angle_convergence_angular(flux, flux_old, angle_w, params)
         converged = (change < INNER_TOLERANCE) or (count >= MAX_ITERATIONS)
@@ -123,7 +123,7 @@ cdef void spatial_sweep(double[:]& flux, double[:]& flux_old, \
             double[:]& source, double[:]& boundary_x, double[:]& boundary_y, \
             int[:]& medium_map, double[:]& delta_x, double[:]& delta_y, \
             double angle_x, double angle_y, double angle_w, params2d params):
-    edge_y = tools.edge_y_calc(boundary_y, angle_y, params)
+    edge_y = tools.update_y_edge(boundary_y, angle_y, params)
     if angle_y > 0.0:
         square_forward_y(flux, flux_old, xs_total, xs_scatter, off_scatter, \
             source, boundary_x, edge_y, medium_map, delta_x, delta_y, \
@@ -138,26 +138,26 @@ cdef void square_forward_y(double[:]& flux, double[:]& flux_old, \
             double[:]& source, double[:]& boundary_x, double[:]& edge_y, \
             int[:]& medium_map, double[:]& delta_x, double[:]& delta_y, \
             double angle_x, double angle_y, double angle_w, params2d params):
-    cdef size_t cell, qq1, qq2 #, bcx1, bcx2
+    cdef size_t cell, qq1, qq2, bcx1, bcx2
     cdef double coef_y, edge
     qq2 = 1 if params.qdim == 0 else params.cells_y
-    # bcx2 = 1 if params.bcdim_x == 0 else params.cells_y
+    bcx2 = 1 if params.bcdim_x == 0 else params.cells_y
     for cell in range(params.cells_y):
         qq1 = 0 if params.qdim == 0 else cell
-        # bcx1 = 0 if params.bcdim_x == 0 else cell
+        bcx1 = 0 if params.bcdim_x == 0 else cell
         coef_y = 2 * fabs(angle_y) / delta_y[cell]
         if angle_x > 0.0:
             edge = square_forward_x(flux[cell::params.cells_y], \
                     flux_old[cell::params.cells_y], xs_total, xs_scatter, \
                     off_scatter[cell::params.cells_y], source[qq1::qq2], \
-                    boundary_x[0], edge_y, \
+                    boundary_x[bcx1::bcx2][0], edge_y, \
                     medium_map[cell::params.cells_y], delta_x, angle_x, \
                     angle_w, coef_y, params)
         elif angle_x < 0.0:
             edge = square_backward_x(flux[cell::params.cells_y], \
                     flux_old[cell::params.cells_y], xs_total, xs_scatter, \
                     off_scatter[cell::params.cells_y], source[qq1::qq2], \
-                    boundary_x[1], edge_y, \
+                    boundary_x[bcx1::bcx2][1], edge_y, \
                     medium_map[cell::params.cells_y], delta_x, angle_x, \
                     angle_w, coef_y, params)
 
@@ -186,26 +186,26 @@ cdef void square_backward_y(double[:]& flux, double[:]& flux_old, \
             double[:]& source, double[:]& boundary_x, double[:]& edge_y, \
             int[:]& medium_map, double[:]& delta_x, double[:]& delta_y, \
             double angle_x, double angle_y, double angle_w, params2d params):
-    cdef size_t cell, qq1, qq2 #, bcx1, bcx2
+    cdef size_t cell, qq1, qq2, bcx1, bcx2
     cdef double coef_y, edge
     qq2 = 1 if params.qdim == 0 else params.cells_y
-    # bcx2 = 1 if params.bcdim_x == 0 else params.cells_y
+    bcx2 = 1 if params.bcdim_x == 0 else params.cells_y
     for cell in range(params.cells_y-1, -1, -1):
         qq1 = 0 if params.qdim == 0 else cell
-        # bcx1 = 0 if params.bcdim_x == 0 else cell
+        bcx1 = 0 if params.bcdim_x == 0 else cell
         coef_y = 2 * fabs(angle_y) / delta_y[cell]
         if angle_x > 0.0:
             edge = square_forward_x(flux[cell::params.cells_y], \
                     flux_old[cell::params.cells_y], xs_total, xs_scatter, \
                     off_scatter[cell::params.cells_y], source[qq1::qq2], \
-                    boundary_x[0], edge_y, \
+                    boundary_x[bcx1::bcx2][0], edge_y, \
                     medium_map[cell::params.cells_y], delta_x, angle_x, \
                     angle_w, coef_y, params)
         elif angle_x < 0.0:
             edge = square_backward_x(flux[cell::params.cells_y], \
                     flux_old[cell::params.cells_y], xs_total, xs_scatter, \
                     off_scatter[cell::params.cells_y], source[qq1::qq2], \
-                    boundary_x[1], edge_y, \
+                    boundary_x[bcx1::bcx2][1], edge_y, \
                     medium_map[cell::params.cells_y], delta_x, angle_x, \
                     angle_w, coef_y, params)
 
@@ -229,13 +229,11 @@ cdef double square_backward_x(double[:]& flux, double[:]& flux_old, \
         edge_y[cell] = 2 * center - edge_y[cell]
     return edge1
 
-cdef double[:,:] multigroup_scalar(double[:,:]& flux_guess, \
-                        double[:,:]& xs_total, double[:,:,:]& xs_scatter, \
-                        double[:]& source, double [:]& boundary_x, \
-                        double [:]& boundary_y, int[:]& medium_map, \
-                        double[:]& delta_x, double[:]& delta_y, \
-                        double[:]& angle_x, double[:]& angle_y, \
-                        double[:]& angle_w, params2d params):
+cdef double[:,:] multigroup_scalar(double[:,:]& flux_guess, double[:,:]& xs_total, \
+            double[:,:,:]& xs_scatter, double[:]& source, double [:]& boundary_x, \
+            double [:]& boundary_y, int[:]& medium_map, double[:]& delta_x, \
+            double[:]& delta_y, double[:]& angle_x, double[:]& angle_y, \
+            double[:]& angle_w, params2d params):
     # Initialize components
     cdef size_t group, qq1, qq2 #, bcx1, bcx2, bcy1, bcy2
     # Set indexing

@@ -96,6 +96,8 @@ cdef void combine_source_flux(double[:,:,:]& flux_last, double[:]& source_star, 
 
 cdef double[:] array_1d_ij(params2d params)
 
+cdef double[:] array_1d_ijg(params2d params)
+
 cdef double[:] array_1d_ijng(params2d params)
 
 cdef double[:,:] array_2d_ijg(params2d params)
@@ -104,9 +106,11 @@ cdef double[:,:] array_2d_ijn(params2d params)
 
 cdef double[:,:,:] array_3d_ijng(params2d params)
 
+cdef double[:,:,:] array_3d_mgg(params2d params)
+
 cdef double[:,:,:,:] array_4d_tijng(params2d params)
 
-cdef double[:] edge_y_calc(double[:]& boundary_y, double angle_y, params2d params)
+cdef double[:] update_y_edge(double[:]& boundary_y, double angle_y, params2d params)
 
 cdef double group_convergence_scalar(double[:,:]& arr1, double[:,:]& arr2, \
                                 params2d params)
@@ -142,3 +146,21 @@ cdef void normalize_flux(double[:,:]& flux, params2d params)
 cdef double update_keffective(double[:,:]& flux, double[:,:]& flux_old, \
                             int[:]& medium_map, double[:,:,:]& xs_fission, \
                             params2d params, double keff_old)
+
+cdef void calculate_source_c(double[:,:]& scalar_flux_u, double[:,:,:]& xs_scatter_u, \
+                double[:]& source_c, int[:]& medium_map, int[:]& index_ch, \
+                params2d params_u, params2d params_c)
+
+cdef void calculate_source_t(double[:,:]& flux_u, double[:,:]& flux_c, \
+                double[:,:,:]& xs_scatter_u, double[:]& source_t, \
+                int[:]& medium_map, int[:]& index_u, double[:]& factor_u, \
+                params2d params_u, params2d params_c)
+
+cdef void calculate_source_star(double[:,:,:]& flux_last, double[:]& source_star, \
+        double[:]& source_t, double[:]& source_u, double[:]& velocity, params2d params)
+
+cdef void big_to_small(double[:,:]& flux_u, double[:]& flux_c, \
+                int[:]& index_c, params2d params_u, params2d params_c)
+
+cdef double[:,:] small_to_big(double[:,:]& flux_c, int[:]& index_u, \
+            double[:]& factor_u, params2d params_u, params2d params_c)
