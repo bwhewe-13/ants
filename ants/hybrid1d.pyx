@@ -74,16 +74,8 @@ def backward_euler(double[:,:] xs_total_u, double[:,:,:] xs_scatter_u, \
                         delta_u, delta_c, idx_edges)
     index_u = dimensions.calculate_uncollided_index(params_c.groups, idx_edges)
     ####################################################################
-    # print(type(xs_scatter_c), type(xs_scatter_u))
-    # print(type(xs_fission_c), type(xs_fission_u))
-    # print(type(xs_matrix_c), type(xs_matrix_u))
-    # print(xs_matrix_c.shape, np.asarray(xs_scatter_c[0]))
-    # return 0
-    ####################################################################
     flux = td.hybrid_bdf1(xs_total_vu, xs_total_vc, xs_matrix_u, xs_matrix_c, \
                 velocity_u, velocity_c, source, boundary, medium_map, \
                 delta_x, angle_xu, angle_wu, angle_xc, angle_wc, \
                 index_u, index_c, factor_u, params_u, params_c)
-    # print("after function")
     return np.asarray(flux)
-

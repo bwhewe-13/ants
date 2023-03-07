@@ -9,12 +9,11 @@
 # 
 ########################################################################
 
-import ants.constants as const
+from ants.constants import *
 from ants.utils import dimensions
 
 import numpy as np
 import pkg_resources
-
 
 MAT_PATH = pkg_resources.resource_filename("ants","data/materials/")
 SOR_PATH = pkg_resources.resource_filename("ants","data/sources/")
@@ -59,7 +58,7 @@ class Materials:
         self.grid_index = grid_index
         self.material_key = {}
         self.compile_cross_sections()
-        self.compile_velocity()
+        # self.compile_velocity()
 
     def __str__(self):
         msg = "Energy Groups: {}\nMaterial: ".format(self.groups)
@@ -124,35 +123,27 @@ class Materials:
         return [total, scatter, fission]
 
     def _generate_uranium_hydride(enrichment):
-        partial_molar_mass = enrichment * const.URANIUM_235_MM \
-                    + (1 - enrichment) * const.URANIUM_238_MM
-        rho = const.URANIUM_HYDRIDE_RHO / const.URANIUM_RHO
-        n235 = (enrichment * rho * partial_molar_mass) \
-                / (partial_molar_mass + 3 * const.HYDROGEN_MM) 
-        n238 = ((1 - enrichment) * rho * partial_molar_mass) \
-                / (partial_molar_mass + 3 * const.HYDROGEN_MM) 
-        n1 = const.URANIUM_HYDRIDE_RHO * const.AVAGADRO_NUMBER \
-                / (partial_molar_mass + 3 * const.HYDROGEN_MM) \
-                * const.CM_TO_BARNS * 3
+        molar = enrichment * URANIUM_235_MM + (1 - enrichment) * URANIUM_238_MM
+        rho = URANIUM_HYDRIDE_RHO / URANIUM_RHO
+        n235 = (enrichment * rho * molar) / (molar + 3 * HYDROGEN_MM) 
+        n238 = ((1 - enrichment) * rho * molar) / (molar + 3 * HYDROGEN_MM) 
+        n1 = URANIUM_HYDRIDE_RHO * AVAGADRO / (molar + 3 * HYDROGEN_MM) * CM_TO_BARNS * 3
         u235 = np.load(MAT_PATH + "uranium-235.npz")
         u238 = np.load(MAT_PATH + "uranium-238.npz")
         h1 = np.load(MAT_PATH + "hydrogen.npz")
-        total = n235 * u235["total"] + n238 * u238["total"] \
-                + n1 * h1["total"]
-        scatter = n235 * u235["scatter"] + n238 * u238["scatter"] \
-                + n1 * h1["scatter"]
-        fission = n235 * u235["fission"] + n238 * u238["fission"] \
-                + n1 * h1["fission"]
+        total = n235 * u235["total"] + n238 * u238["total"] + n1 * h1["total"]
+        scatter = n235 * u235["scatter"] + n238 * u238["scatter"] + n1 * h1["scatter"]
+        fission = n235 * u235["fission"] + n238 * u238["fission"] + n1 * h1["fission"]
         return total, scatter, fission
 
-    def compile_velocity(self):
-        if self.materials[0] in self.__class__.__nonphysical_materials:
-            self.velocity = np.ones((self.groups))
-        else:
-            energy_centers = 0.5 * (self.energy_grid[1:] + self.energy_grid[:-1])
-            gamma = (const.EV_TO_JOULES * energy_centers) \
-                    / (const.MASS_NEUTRON * const.LIGHT_SPEED**2) + 1
-            self.velocity = const.LIGHT_SPEED / gamma * np.sqrt(gamma**2 - 1) * 100
+    # def compile_velocity(self):
+    #     if self.materials[0] in self.__class__.__nonphysical_materials:
+    #         self.velocity = np.ones((self.groups))
+    #     else:
+    #         energy_centers = 0.5 * (self.energy_grid[1:] + self.energy_grid[:-1])
+    #         gamma = (EV_TO_JOULES * energy_centers) \
+    #                 / (MASS_NEUTRON * LIGHT_SPEED**2) + 1
+    #         self.velocity = LIGHT_SPEED / gamma * np.sqrt(gamma**2 - 1) * 100
             # self.velocity = np.array([np.mean(velocity[self.grid_index[gg]: \
             #             self.grid_index[gg+1]]) for gg in range(self.groups)])
 
@@ -239,14 +230,8 @@ class Source:
         return self.source
 
     def _uniform(self):
-<<<<<<< HEAD
         if self.name == "unity":
             self.source[(...)] = 1.0
-=======
-        # self.source = 1.0
-        if self.name == "none":
-            self.source *= 0.0
->>>>>>> clearly
         elif self.name == "half-unity":
             self.source[(...)] = 0.5
         elif self.name == "small":

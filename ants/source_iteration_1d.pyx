@@ -72,7 +72,6 @@ cdef double[:,:,:] multigroup_angular(double[:,:,:]& flux_guess, \
         # print("count", count, "change", change, "flux", np.sum(flux))
         count += 1
         flux_old[:,:,:] = flux[:,:,:]
-    # print("Multigroup Angular Count", count)
     return flux[:,:,:]
 
 cdef void ordinates_angular(double[:,:] flux, double[:,:] flux_old, \
