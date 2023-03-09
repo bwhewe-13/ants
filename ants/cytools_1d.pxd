@@ -93,6 +93,8 @@ cdef double[:,:] array_2d_ig(params1d params)
 
 cdef double[:,:] array_2d_in(params1d params)
 
+cdef double[:,:] array_2d_mg(params1d params)
+
 cdef double[:,:,:] array_3d_ing(params1d params)
 
 cdef double[:,:,:] array_3d_mgg(params1d params)

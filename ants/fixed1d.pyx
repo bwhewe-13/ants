@@ -25,9 +25,9 @@ from ants.cytools_1d cimport params1d
 import numpy as np
 
 def source_iteration(double[:,:] xs_total, double[:,:,:] xs_scatter, \
-            double[:,:,:] xs_fission, double[:] source, double[:] boundary, \
-            int[:] medium_map, double[:] delta_x, double[:] angle_x, \
-            double[:] angle_w, dict params_dict):
+        double[:,:,:] xs_fission, double[:] external, double[:] boundary, \
+        int[:] medium_map, double[:] delta_x, double[:] angle_x, \
+        double[:] angle_w, dict params_dict):
     # Covert dictionary to type params1d
     params = tools._to_params1d(params_dict)
     # Combine fission and scattering
@@ -36,10 +36,14 @@ def source_iteration(double[:,:] xs_total, double[:,:,:] xs_scatter, \
     tools.combine_self_scattering(xs_matrix, xs_scatter, xs_fission, params)
     if params.angular == True:
         flux_old = tools.array_3d_ing(params)
-        flux = si.multigroup_angular(flux_old, xs_total, xs_matrix, source, \
-                    boundary, medium_map, delta_x, angle_x, angle_w, params)
-        return np.asarray(flux)
-    flux_old = tools.array_2d_ig(params)
-    flux = si.multigroup_scalar(flux_old, xs_total, xs_matrix, source, boundary, \
-                    medium_map, delta_x, angle_x, angle_w, params)
-    return np.asarray(flux)
+        flux = si.multigroup_angular(flux_old, xs_total, xs_matrix, \
+                                     external, boundary, medium_map, \
+                                     delta_x, angle_x, angle_w, params)
+        flux = np.asarray(flux).reshape(params.cells, params.angles, params.groups)
+    else:
+        flux_old = tools.array_2d_ig(params)
+        flux = si.multigroup_scalar(flux_old, xs_total, xs_matrix, \
+                                    external, boundary, medium_map, \
+                                    delta_x, angle_x, angle_w, params)
+        flux = np.asarray(flux).reshape(params.cells, params.groups)
+    return flux

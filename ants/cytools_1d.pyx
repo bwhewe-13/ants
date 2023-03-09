@@ -103,6 +103,13 @@ cdef double[:,:] array_2d_in(params1d params):
     flux[:,:] = 0.0
     return flux
 
+cdef double[:,:] array_2d_mg(params1d params):
+    dd1 = cvarray((params.materials, params.groups), \
+                    itemsize=sizeof(double), format="d")
+    cdef double[:,:] flux = dd1
+    flux[:,:] = 0.0
+    return flux
+
 cdef double[:,:,:] array_3d_ing(params1d params):
     dd1 = cvarray((params.cells, params.angles, params.groups), \
                     itemsize=sizeof(double), format="d")
