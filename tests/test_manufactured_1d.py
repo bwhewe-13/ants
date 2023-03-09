@@ -17,7 +17,6 @@ import pytest
 import numpy as np
 
 
-
 @pytest.mark.smoke
 @pytest.mark.source_iteration
 @pytest.mark.parametrize("angular", ("True", "False"))
