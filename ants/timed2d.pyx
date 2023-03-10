@@ -42,4 +42,6 @@ def backward_euler(double[:,:] xs_total, double[:,:,:] xs_scatter, \
                               external, boundary_x, boundary_y, medium_map, \
                               delta_x, delta_y, angle_x, angle_y, angle_w, \
                               params)
-    return np.asarray(flux)
+    flux = np.asarray(flux).reshape(params.steps, params.cells_x, params.cells_y, \
+                                    params.angles, params.groups)
+    return flux

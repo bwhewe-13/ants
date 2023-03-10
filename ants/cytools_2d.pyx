@@ -62,13 +62,13 @@ cdef void combine_total_velocity(double[:,:]& xs_total_star, \
 
 cdef void combine_source_flux(double[:,:,:]& flux_last, double[:]& source_star, \
         double[:]& source, double[:]& velocity, params2d params):
-    cdef size_t cell, angle, group
-    cdef size_t skip = params.groups * params.angles
+    cdef size_t cell, angle, group, start
+    cdef size_t stop = params.groups * params.angles
     for group in range(params.groups):
         for angle in range(params.angles):
             for cell in range(params.cells_x * params.cells_y):
-                source_star[group+angle*params.groups::skip][cell] \
-                    = source[group+angle*params.groups::skip][cell] \
+                start = group + angle * params.groups
+                source_star[start::stop][cell] = source[start::stop][cell] \
                         + flux_last[cell,angle,group] \
                         * 1 / (velocity[group] * params.dt)
 
@@ -88,7 +88,7 @@ cdef double[:] array_1d_ijg(params2d params):
 
 cdef double[:] array_1d_ijng(params2d params):
     dd1 = cvarray((params.cells_x * params.cells_y * params.angles \
-                * params.groups,), itemsize=sizeof(double), format="d")
+                  * params.groups,), itemsize=sizeof(double), format="d")
     cdef double[:] flux = dd1
     flux[:] = 0.0
     return flux
@@ -133,13 +133,15 @@ cdef double[:] update_y_edge(double[:]& boundary_y, double angle_y, params2d par
     # This is for converting boundary condition of [2 x I] or [2] into
     # [I] for edge_y
     cdef size_t loc
+    loc = 0 if angle_y > 0.0 else 1 # top or bottom
     dd1 = cvarray((params.cells_x,), itemsize=sizeof(double), format="d")
     cdef double[:] edge_y = dd1
-    loc = 0 if angle_y > 0.0 else 1 # top or bottom
     if params.bcdim_y == 0:
         edge_y[:] = boundary_y[loc]
-    else:
+    elif loc == 0:
         edge_y[:] = boundary_y[0:params.cells_x]
+    else:
+        edge_y[:] = boundary_y[params.cells_x:2*params.cells_x]
     return edge_y
 
 # cdef double[:] group_flux(params2d params):
@@ -324,7 +326,7 @@ cdef void calculate_source_t(double[:,:]& flux_u, double[:,:]& flux_c, \
     source_t[:] = 0.0
     # Resize collided flux to size (I x G)
     flux = small_to_big(flux_c, index_u, factor_u, params_u, params_c)
-    for cell in range(params_u.cells * params_u.cells_y):
+    for cell in range(params_u.cells_x * params_u.cells_y):
         mat = medium_map[cell]
         for og in range(params_u.groups):
             for ig in range(params_u.groups):

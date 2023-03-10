@@ -18,11 +18,11 @@
 # cython: profile=True
 # distutils: language = c++
 
+import ants
 from ants cimport time_dependent_1d as td
 from ants cimport cytools_1d as tools
 from ants.cytools_1d cimport params1d
 from ants.utils import dimensions
-from ants import transport
 
 import numpy as np
 
@@ -35,8 +35,8 @@ def backward_euler(double[:,:] xs_total_u, double[:,:,:] xs_scatter_u, \
         double[:] delta_x, double[:] energy_edges, int[:] idx_edges, \
         dict params_dict_u, dict params_dict_c):
     # Create angles and weights
-    angle_xu, angle_wu = transport.calculate_x_angles(params_dict_u)
-    angle_xc, angle_wc = transport.calculate_x_angles(params_dict_c)
+    angle_xu, angle_wu = ants._angle_x(params_dict_u)
+    angle_xc, angle_wc = ants._angle_x(params_dict_c)
     ####################################################################
     # UNCOLLIDED PORTION
     ####################################################################

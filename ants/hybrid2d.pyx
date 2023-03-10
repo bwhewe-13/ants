@@ -18,11 +18,11 @@
 # cython: profile=True
 # distutils: language = c++
 
+import ants
 from ants cimport time_dependent_2d as td
 from ants cimport cytools_2d as tools
 from ants.cytools_2d cimport params2d
 from ants.utils import dimensions
-from ants import transport
 
 import numpy as np
 
@@ -30,14 +30,13 @@ import numpy as np
 # Collided is coarse grid (N' x G')
 
 def backward_euler(double[:,:] xs_total_u, double[:,:,:] xs_scatter_u, \
-            double[:,:,:] xs_fission_u, double[:] velocity_u, \
-            double[:] source, double[:] boundary_x, double[:] boundary_y, \
-            int[:] medium_map, double[:] delta_x, double[:] delta_y, \
-            double[:] energy_edges, int[:] idx_edges, \
-            dict params_dict_u, dict params_dict_c):
+        double[:,:,:] xs_fission_u, double[:] velocity_u, double[:] external, \
+        double[:] boundary_x, double[:] boundary_y, int[:] medium_map, \
+        double[:] delta_x, double[:] delta_y, double[:] energy_edges, \
+        int[:] idx_edges, dict params_dict_u, dict params_dict_c):
     # Create angles and weights
-    angle_xu, angle_yu, angle_wu = transport.calculate_xy_angles(params_dict_u)
-    angle_xc, angle_yc, angle_wc = transport.calculate_xy_angles(params_dict_c)
+    angle_xu, angle_yu, angle_wu = ants._angle_xy(params_dict_u)
+    angle_xc, angle_yc, angle_wc = ants._angle_xy(params_dict_c)
     ####################################################################
     # UNCOLLIDED PORTION
     ####################################################################
@@ -72,12 +71,14 @@ def backward_euler(double[:,:] xs_total_u, double[:,:,:] xs_scatter_u, \
     index_c = dimensions.calculate_collided_index(params_u.groups, idx_edges)
     delta_u, delta_c = dimensions.energy_bin_widths(energy_edges, idx_edges)
     factor_u = dimensions.calculate_hybrid_factor(params_u.groups, params_c.groups, \
-                        delta_u, delta_c, idx_edges)
+                                                  delta_u, delta_c, idx_edges)
     index_u = dimensions.calculate_uncollided_index(params_c.groups, idx_edges)
     ####################################################################
-    # flux = td.hybrid_bdf1(xs_total_vu, xs_total_vc, xs_matrix_u, xs_matrix_c, \
-    #             velocity_u, velocity_c, source, boundary, medium_map, \
-    #             delta_x, angle_xu, angle_wu, angle_xc, angle_wc, \
-    #             index_u, index_c, factor_u, params_u, params_c)
-    # return np.asarray(flux)
-
+    flux = td.hybrid_bdf1(xs_total_vu, xs_total_vc, xs_matrix_u, xs_matrix_c, \
+                          velocity_u, velocity_c, external, boundary_x, \
+                          boundary_y, medium_map, delta_x, delta_y, angle_xu, \
+                          angle_yu, angle_wu, angle_xc, angle_yc, angle_wc, \
+                          index_u, index_c, factor_u, params_u, params_c)
+    flux = np.asarray(flux).reshape(params_u.steps, params_u.cells_x, \
+                    params_u.cells_y, params_u.angles, params_u.groups)
+    return flux
