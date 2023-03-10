@@ -24,11 +24,8 @@ from ants.cytools_2d cimport params2d
 from ants.constants import *
 
 from libc.math cimport fabs #, sqrt, pow
-# from libc.stdlib cimport abs as fabs 
-# cimport cython
 # from cython.view cimport array as cvarray
 # from cython.parallel import prange
-
 # import numpy as np
 
 cdef double[:,:,:] multigroup_angular(double[:,:,:]& flux_guess, \
@@ -67,7 +64,10 @@ cdef double[:,:,:] multigroup_angular(double[:,:,:]& flux_guess, \
                               boundary_y[bcy1::bcy2], medium_map, delta_x, \
                               delta_y, angle_x, angle_y, angle_w, params)
         change = tools.group_convergence_angular(flux, flux_old, angle_w, params)
+        # if np.isnan(change) or np.isinf(change):
+        #     change = 0.5
         converged = (change < OUTER_TOLERANCE) or (count >= MAX_ITERATIONS)
+        # print("count", count, "change", change, "flux", np.sum(flux))
         count += 1
         flux_old[:,:,:] = flux[:,:,:]
     return flux[:,:,:]
@@ -109,8 +109,8 @@ cdef void square_ordinates_angular(double[:,:]& flux, double[:,:]& flux_old, \
         # for angle in prange(params.angles, nogil=True):
         for angle in range(params.angles):
             qq1 = 0 if params.qdim != 3 else angle
-            bcx1 = 0 if params.bcdim_x != 3 else params.angles
-            bcy1 = 0 if params.bcdim_y != 3 else params.angles
+            bcx1 = 0 if params.bcdim_x != 3 else angle
+            bcy1 = 0 if params.bcdim_y != 3 else angle
             spatial_sweep(flux[:,angle], scalar_flux, xs_total, xs_scatter, \
                           off_scatter, external[qq1::qq2], boundary_x[bcx1::bcx2], \
                           boundary_y[bcy1::bcy2], medium_map, delta_x, delta_y, \
@@ -236,17 +236,18 @@ cdef double square_backward_x(double[:]& flux, double[:]& flux_old, \
         edge_y[cell] = 2 * center - edge_y[cell]
     return edge1
 
+
 cdef double[:,:] multigroup_scalar(double[:,:]& flux_guess, \
         double[:,:]& xs_total, double[:,:,:]& xs_scatter, double[:]& external, \
         double [:]& boundary_x, double [:]& boundary_y, int[:]& medium_map, \
         double[:]& delta_x, double[:]& delta_y, double[:]& angle_x, \
         double[:]& angle_y, double[:]& angle_w, params2d params):
     # Initialize components
-    cdef size_t group, qq1, qq2 #, bcx1, bcx2, bcy1, bcy2
+    cdef size_t group, qq1, qq2, bcx1, bcx2, bcy1, bcy2
     # Set indexing
     qq2 = 1 if params.qdim == 1 else params.groups
-    # bcx2 = 1 if params.bcdim_x < 2 else params.groups
-    # bcy2 = 1 if params.bcdim_y < 2 else params.groups
+    bcx2 = 1 if params.bcdim_x < 2 else params.groups
+    bcy2 = 1 if params.bcdim_y < 2 else params.groups
     # Initialize flux
     flux = tools.array_2d_ijg(params)
     flux_old = flux_guess.copy()
@@ -261,21 +262,22 @@ cdef double[:,:] multigroup_scalar(double[:,:]& flux_guess, \
         flux[:,:] = 0.0
         for group in range(params.groups):
             qq1 = 0 if params.qdim == 1 else group
-            # bcx1 = 0 if params.bcdim_x < 2 else group
-            # bcy1 = 0 if params.bcdim_y < 2 else group
+            bcx1 = 0 if params.bcdim_x < 2 else group
+            bcy1 = 0 if params.bcdim_y < 2 else group
             flux_1g[:] = flux_old[:,group]
             tools.off_scatter_scalar(flux, flux_old, medium_map, xs_scatter, \
                                      off_scatter, params, group)
             ordinates_scalar(flux[:,group], flux_1g, xs_total[:,group], \
                              xs_scatter[:,group,group], off_scatter, \
-                             external[qq1::qq2], boundary_x, boundary_y, \
-                             medium_map, delta_x, delta_y, angle_x, angle_y, \
-                             angle_w, params)
+                             external[qq1::qq2], boundary_x[bcx1::bcx2], \
+                             boundary_y[bcy1::bcy2], medium_map, delta_x, \
+                             delta_y, angle_x, angle_y, angle_w, params)
         change = tools.group_convergence_scalar(flux, flux_old, params)
         converged = (change < OUTER_TOLERANCE) or (count >= MAX_ITERATIONS)
         count += 1
         flux_old[:,:] = flux[:,:]
     return flux[:,:]
+
 
 cdef void ordinates_scalar(double[:] flux, double[:] flux_old, \
         double[:] xs_total, double[:] xs_scatter, double[:] off_scatter, \
@@ -289,6 +291,7 @@ cdef void ordinates_scalar(double[:] flux, double[:] flux_old, \
                                 boundary_y, medium_map, delta_x, delta_y, \
                                 angle_x, angle_y, angle_w, params)
 
+
 cdef void square_ordinates_scalar(double[:]& flux, double[:]& flux_old, \
         double[:]& xs_total, double[:]& xs_scatter, double[:]& off_scatter, \
         double[:]& external, double[:]& boundary_x, double[:]& boundary_y, \
@@ -296,11 +299,11 @@ cdef void square_ordinates_scalar(double[:]& flux, double[:]& flux_old, \
         double[:]& angle_x, double[:]& angle_y, double[:]& angle_w, \
         params2d params):
     # Initialize indices etc
-    cdef size_t angle, qq1, qq2 #, bcx1, bcx2, bcy1, bcy2
+    cdef size_t angle, qq1, qq2, bcx1, bcx2, bcy1, bcy2
     # Set indexing
     qq2 = 1 if params.qdim != 3 else params.angles
-    # bcx2 = 1 if params.bcdim_x != 3 else params.angles
-    # bcy2 = 1 if params.bcdim_y != 3 else params.angles
+    bcx2 = 1 if params.bcdim_x != 3 else params.angles
+    bcy2 = 1 if params.bcdim_y != 3 else params.angles
     # Set convergence limits
     cdef bint converged = False
     cdef size_t count = 1
@@ -310,16 +313,18 @@ cdef void square_ordinates_scalar(double[:]& flux, double[:]& flux_old, \
         # for angle in prange(params.angles, nogil=True):
         for angle in range(params.angles):
             qq1 = 0 if params.qdim != 3 else angle
-            # bcx1 = 0 if params.bcdim_x != 3 else params.angles
-            # bcy1 = 0 if params.bcdim_y != 3 else params.angles
+            bcx1 = 0 if params.bcdim_x != 3 else angle
+            bcy1 = 0 if params.bcdim_y != 3 else angle
             spatial_sweep(flux, flux_old, xs_total, xs_scatter, off_scatter, \
-                          external[qq1::qq2], boundary_x, boundary_y, \
-                          medium_map, delta_x, delta_y, angle_x[angle], \
-                          angle_y[angle], angle_w[angle], params)
+                          external[qq1::qq2], boundary_x[bcx1::bcx2], \
+                          boundary_y[bcy1::bcy2], medium_map, delta_x, \
+                          delta_y, angle_x[angle], angle_y[angle], \
+                          angle_w[angle], params)
         change = tools.angle_convergence_scalar(flux, flux_old, params)
         converged = (change < INNER_TOLERANCE) or (count >= MAX_ITERATIONS)
         count += 1
         flux_old[:] = flux[:]
+
 
 # cdef void spatial_sweep(double[:]& flux, double[:]& flux_old, \
 #             double[:]& xs_total, double[:]& xs_scatter, double[:] off_scatter, \

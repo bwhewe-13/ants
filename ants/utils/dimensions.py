@@ -207,3 +207,47 @@ def energy_bin_widths(energy_edges, index):
     # Return delta_u, delta_c
     energy_edges = np.asarray(energy_edges)
     return np.diff(energy_edges), np.diff(energy_edges[index])
+
+########################################################################
+# Cylinder cross sections on cartesian grid
+########################################################################
+
+def cylinder_cross_sections(weight_map, xs_total, xs_scatter, xs_fission, \
+                            cells_x, cells_y):
+    # Convert cross sections to weight map
+    cy_xs_total = []
+    cy_xs_scatter = []
+    cy_xs_fission = []
+    if weight_map.shape[0] != (cells_x * cells_y):
+        cells_x = int(0.5 * cells_x)
+        cells_y = int(0.5 * cells_y)
+    medium_map = np.zeros((cells_x * cells_y), dtype=np.int32)
+    for mat, weight in enumerate(np.unique(weight_map, axis=0)):
+        cy_xs_total.append(np.sum(xs_total * weight[:,None], axis=0))
+        cy_xs_scatter.append(np.sum(xs_scatter * weight[:,None,None], axis=0))
+        cy_xs_fission.append(np.sum(xs_fission * weight[:,None,None], axis=0))
+        medium_map[np.where(np.all(weight_map == weight, axis=1))] = mat
+    medium_map = medium_map.reshape(cells_x, cells_y)
+    cy_xs_total = np.array(cy_xs_total)
+    cy_xs_scatter = np.array(cy_xs_scatter)
+    cy_xs_fission = np.array(cy_xs_fission)
+    return medium_map, cy_xs_total, cy_xs_scatter, cy_xs_fission
+
+def expand_cylinder_medium_map(quad4, quadrants=[1,2,3,4]):
+    # Assumes that medium_map is quadrant IV
+    quad1 = np.flip(quad4, axis=0).copy()
+    quad2 = np.flip(quad4, axis=(1,0)).copy()
+    quad3 = np.flip(quad4, axis=1).copy()
+    if quadrants == [1,2,3,4]: # Full circle
+        medium_map = np.block([[quad2, quad1], [quad3, quad4]])
+    elif quadrants == [1,2]: # Upper semi
+        medium_map = np.block([quad2, quad1])
+    elif quadrants == [1,4]: # Right semi
+        medium_map = np.block([[quad1], [quad4]])
+    elif quadrants == [2,3]: # Left semi
+        medium_map = np.block([[quad2], [quad3]])
+    elif quadrants == [3,4]: # Lower semi
+        medium_map = np.block([quad3, quad4])
+    else:
+        medium_map = quad1.copy()
+    return medium_map
