@@ -7,4 +7,5 @@
 #
 ########################################################################
 
-from ants.transport import Transport as load
+from ants.main import _angle_x, _angle_xy, _velocity, _energy_grid, _medium_map
+from ants.sources import materials, externals, boundaries

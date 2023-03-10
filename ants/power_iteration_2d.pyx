@@ -22,14 +22,14 @@
 from ants cimport source_iteration_2d as si
 from ants cimport cytools_2d as tools
 from ants.cytools_2d cimport params2d
-from ants.constants import MAX_ITERATIONS, OUTER_TOLERANCE
+from ants.constants import *
+
 
 cdef double[:,:] multigroup(double[:,:]& flux_guess, double[:,:]& xs_total, \
-                    double[:,:,:]& xs_scatter, double[:,:,:]& xs_fission, 
-                    double[:]& power_source, int[:]& medium_map, \
-                    double[:]& delta_x, double[:]& delta_y, \
-                    double[:]& angle_x, double[:]& angle_y, \
-                    double[:]& angle_w, params2d params, double[:]& keff):
+        double[:,:,:]& xs_scatter, double[:,:,:]& xs_fission, \
+        double[:]& power_source, int[:]& medium_map, double[:]& delta_x, \
+        double[:]& delta_y, double[:]& angle_x, double[:]& angle_y, \
+        double[:]& angle_w, params2d params, double[:]& keff):
     # Initialize flux
     flux = tools.array_2d_ijg(params)
     flux_old = flux_guess.copy()
@@ -42,11 +42,11 @@ cdef double[:,:] multigroup(double[:,:]& flux_guess, double[:,:]& xs_total, \
     cdef double change = 0.0
     while not (converged):
         tools.fission_source(power_source, flux_old, xs_fission, \
-                            medium_map, params, keff)
-        print("here")
+                             medium_map, params, keff)
         flux = si.multigroup_scalar(flux, xs_total, xs_scatter, power_source, \
-                            boundary_x, boundary_y, medium_map, delta_x, \
-                            delta_y, angle_x, angle_y, angle_w, params)
+                                    boundary_x, boundary_y, medium_map, \
+                                    delta_x, delta_y, angle_x, angle_y, \
+                                    angle_w, params)
         keff[0] = tools.update_keffective(flux, flux_old, medium_map, \
                                           xs_fission, params, keff[0])
         tools.normalize_flux(flux, params)

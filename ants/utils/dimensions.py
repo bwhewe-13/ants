@@ -7,6 +7,8 @@
 #
 ########################################################################
 
+from ants.constants import *
+
 import numpy as np
 
 def index_generator(full, reduced):
@@ -28,14 +30,14 @@ def create_slices(array, double_count=False):
         start = ii + 1
     return np.array(splits)
 
-def matrix_reduction(matrix, idx):
-    energy_groups = len(idx) - 1
-    return [[np.sum(matrix[idx[ii]:idx[ii+1],idx[jj]:idx[jj+1]]) \
-        for jj in range(energy_groups)] for ii in range(energy_groups)]
+# def matrix_reduction(matrix, idx):
+#     energy_groups = len(idx) - 1
+#     return [[np.sum(matrix[idx[ii]:idx[ii+1],idx[jj]:idx[jj+1]]) \
+#         for jj in range(energy_groups)] for ii in range(energy_groups)]
 
-def vector_reduction(vector, idx):
-    energy_groups = len(idx) - 1
-    return [sum(vector[idx[ii]:idx[ii+1]]) for ii in range(energy_groups)]
+# def vector_reduction(vector, idx):
+#     energy_groups = len(idx) - 1
+#     return [sum(vector[idx[ii]:idx[ii+1]]) for ii in range(energy_groups)]
 
 def half_spatial_grid(medium_map, cell_widths, error, epsilon=0.1):
     new_medium_map = []
@@ -121,4 +123,131 @@ def mesh_refinement(x, y):
     for pt in range(len(x) - 1):
         x_plus[2*pt+1] = 0.5 * (x[pt] + x[pt+1])
         y_plus[2*pt+1] = 0.5 * (y[pt] + y[pt+1])
-    return x_plus, y_plus    
+    return x_plus, y_plus
+
+
+########################################################################
+# Coarsening Arrays for Hybrid Methods
+########################################################################
+
+def calculate_coarse_edges(fine, coarse):
+    """  Get the indices for resizing matrices
+    Arguments:
+        fine: larger energy group size, int
+        coarse: coarseer energy group size, int
+    Returns:
+        array of indicies of length (coarse + 1) """
+    index = np.ones((coarse)) * int(fine / coarse)
+    index[np.linspace(0, coarse-1, fine % coarse, dtype=np.int32)] += 1
+    assert (index.sum() == fine)
+    return np.cumsum(np.insert(index, 0, 0), dtype=np.int32)
+
+def xs_vector_coarsen(xs_total_u, energy_edges_u, index):
+    xs_total_c = []
+    energy_edges_u = np.asarray(energy_edges_u)
+    delta_u = np.diff(energy_edges_u)
+    delta_c = np.diff(energy_edges_u[index])
+    for mat in range(len(xs_total_u)):
+        one_mat = xs_total_u[mat] * delta_u
+        collapsed = [np.sum(one_mat[aa1:aa2]) for aa1, aa2 \
+                        in zip(index[:-1], index[1:])]
+        xs_total_c.append(np.array(collapsed) / delta_c)
+    return np.array(xs_total_c)
+
+def xs_matrix_coarsen(xs_scatter_u, energy_edges_u, index):
+    xs_scatter_c = []
+    energy_edges_u = np.asarray(energy_edges_u)
+    delta_u = np.diff(energy_edges_u)
+    delta_c = np.diff(energy_edges_u[index])
+    for mat in range(len(xs_scatter_u)):
+        one_mat = xs_scatter_u[mat] * delta_u
+        collapsed = [[np.sum(one_mat[aa1:aa2, bb1:bb2]) for bb1, bb2 \
+                        in zip(index[:-1], index[1:])] for aa1, aa2 \
+                        in zip(index[:-1], index[1:])]
+        xs_scatter_c.append(np.array(collapsed) / delta_c)
+    return memoryview(np.array(xs_scatter_c))
+
+def velocity_mean_coarsen(velocity_u, index):
+    velocity_c = np.zeros((len(index) - 1))
+    for group, (left, right) in enumerate(zip(index[:-1], index[1:])):
+        velocity_c[group] = np.mean(velocity_u[left:right])
+    return velocity_c
+
+########################################################################
+# Indexing for Hybrid Methods
+########################################################################
+
+def calculate_collided_index(fine, index):
+    # Of length (fine)
+    # Which coarse group the fine group is a part of 
+    index_collided = np.zeros((fine), dtype=np.int32)
+    splits = [slice(ii,jj) for ii,jj in zip(index[:-1],index[1:])]
+    for count, split in enumerate(splits):
+        index_collided[split] = count
+    return index_collided
+
+def calculate_hybrid_factor(fine, coarse, delta_u, delta_c, index):
+    factor = delta_u.copy()
+    splits = [slice(ii,jj) for ii,jj in zip(index[:-1],index[1:])]
+    for count, split in enumerate(splits):
+        for ii in range(split.start, split.stop):
+            factor[ii] /= delta_c[count]
+    return factor
+
+def calculate_uncollided_index(coarse, index):
+    # Of length (coarse + 1)
+    # Location of edges between collided and uncollided grids
+    index_uncollided = np.zeros((coarse+1), dtype=np.int32)
+    splits = [slice(ii,jj) for ii,jj in zip(index[:-1],index[1:])]
+    for count, split in enumerate(splits):
+        index_uncollided[count+1] = split.stop
+    return index_uncollided
+
+def energy_bin_widths(energy_edges, index):
+    # Return delta_u, delta_c
+    energy_edges = np.asarray(energy_edges)
+    return np.diff(energy_edges), np.diff(energy_edges[index])
+
+########################################################################
+# Cylinder cross sections on cartesian grid
+########################################################################
+
+def cylinder_cross_sections(weight_map, xs_total, xs_scatter, xs_fission, \
+                            cells_x, cells_y):
+    # Convert cross sections to weight map
+    cy_xs_total = []
+    cy_xs_scatter = []
+    cy_xs_fission = []
+    if weight_map.shape[0] != (cells_x * cells_y):
+        cells_x = int(0.5 * cells_x)
+        cells_y = int(0.5 * cells_y)
+    medium_map = np.zeros((cells_x * cells_y), dtype=np.int32)
+    for mat, weight in enumerate(np.unique(weight_map, axis=0)):
+        cy_xs_total.append(np.sum(xs_total * weight[:,None], axis=0))
+        cy_xs_scatter.append(np.sum(xs_scatter * weight[:,None,None], axis=0))
+        cy_xs_fission.append(np.sum(xs_fission * weight[:,None,None], axis=0))
+        medium_map[np.where(np.all(weight_map == weight, axis=1))] = mat
+    medium_map = medium_map.reshape(cells_x, cells_y)
+    cy_xs_total = np.array(cy_xs_total)
+    cy_xs_scatter = np.array(cy_xs_scatter)
+    cy_xs_fission = np.array(cy_xs_fission)
+    return medium_map, cy_xs_total, cy_xs_scatter, cy_xs_fission
+
+def expand_cylinder_medium_map(quad4, quadrants=[1,2,3,4]):
+    # Assumes that medium_map is quadrant IV
+    quad1 = np.flip(quad4, axis=0).copy()
+    quad2 = np.flip(quad4, axis=(1,0)).copy()
+    quad3 = np.flip(quad4, axis=1).copy()
+    if quadrants == [1,2,3,4]: # Full circle
+        medium_map = np.block([[quad2, quad1], [quad3, quad4]])
+    elif quadrants == [1,2]: # Upper semi
+        medium_map = np.block([quad2, quad1])
+    elif quadrants == [1,4]: # Right semi
+        medium_map = np.block([[quad1], [quad4]])
+    elif quadrants == [2,3]: # Left semi
+        medium_map = np.block([[quad2], [quad3]])
+    elif quadrants == [3,4]: # Lower semi
+        medium_map = np.block([quad3, quad4])
+    else:
+        medium_map = quad1.copy()
+    return medium_map
