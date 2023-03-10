@@ -9,7 +9,7 @@ __pycache__/
 *.c
 
 # Data files
-data/
+sources/
 
 # Packaging
 *.egg-info/
