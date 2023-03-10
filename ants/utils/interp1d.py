@@ -371,18 +371,18 @@ class QuinticHermite:
                     - 0.2 * t**4 + 0.125 * t**3)
         return np.array([phi0, phi1, psi0, psi1, theta0, theta1])
 
-    # def integrate(self, cell_edges):
-    #     integral = []
-    #     knots = np.array([self.y[:-1], self.y[1:], self.dydx[:-1], \
-    #                     self.dydx[1:], self.d2ydx2[:-1], self.d2ydx2[1:]])
-    #     for ii in range(len(self.x)-1):
-    #         n = np.linspace(cell_edges[ii], cell_edges[ii+2], 3)
-    #         temp_int = np.sum(knots[:,ii,None] * QuinticHermite.basis_functions(n), axis=0)
-    #         integral.append(np.diff(temp_int)[:-1])
-    #         if ii == len(self.x) - 2:
-    #             integral.append([np.diff(temp_int)[-1]])
-    #     integral = np.array([item for sublist in integral for item in sublist])
-    #     return integral
+    def integrate(self, cell_edges):
+        integral = []
+        knots = np.array([self.y[:-1], self.y[1:], self.dydx[:-1], \
+                        self.dydx[1:], self.d2ydx2[:-1], self.d2ydx2[1:]])
+        for ii in range(len(self.x)-1):
+            n = np.linspace(cell_edges[ii], cell_edges[ii+2], 3)
+            temp_int = np.sum(knots[:,ii,None] * QuinticHermite.basis_functions(n), axis=0)
+            integral.append(np.diff(temp_int)[:-1])
+            if ii == len(self.x) - 2:
+                integral.append([np.diff(temp_int)[-1]])
+        integral = np.array([item for sublist in integral for item in sublist])
+        return integral
 
     def _single_spline(a, b, t1, t2, y1, y2, yp1, yp2, ypp1, ypp2):
         phi1 = -((1/(t1 - t2)**5)*(a**6 - b**6 + 15*a**2*t1**2*t2**2 \

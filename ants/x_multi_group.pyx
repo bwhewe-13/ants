@@ -50,8 +50,8 @@ def criticality(int[:] medium_map, double[:,:] xs_total, \
         keff = cyutils.update_keffective(flux, flux_old, medium_map, xs_fission, keff)
         cyutils.normalize_flux(flux_old)
         change = cyutils.scalar_convergence(flux, flux_old)
-        print('Power Iteration {}\n{}\nChange {} Keff {}'.format(count, \
-                '='*35, change, keff))
+        # print('Power Iteration {}\n{}\nChange {} Keff {}'.format(count, \
+        #         '='*35, change, keff))
         converged = (change < OUTER_TOLERANCE) or (count >= MAX_ITERATIONS)
         count += 1
         flux_old = flux.copy()
@@ -158,7 +158,7 @@ cdef double[:,:] scalar_multi_group(double[:,:]& flux_old, int[:] medium_map, \
         #         "="*35, change, np.sum(np.asarray(flux))))
         converged = (change < OUTER_TOLERANCE) or (count >= MAX_ITERATIONS)
         count += 1
-        print("Count", count, "Change", change, "flux", np.sum(flux))
+        # print("Count", count, "Change", change, "flux", np.sum(flux))
         flux_old[:,:] = flux[:,:]
     # print(count, change)
     return np.asarray(flux)
