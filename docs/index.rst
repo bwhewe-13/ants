@@ -11,6 +11,10 @@ Accelerated Neutron Transport Solution (ANTS) calculates the neutron flux for bo
    :numbered:
    
    Running ANTS <running-ants/index>
-   The Neutron Transport Equation <neutron-transport/index>
-   The Method of Nearby Problems <nearby-problems/index>
+   
+   Neutron Transport Equation <neutron-transport/index>
+   
+   Collision-Based Hybrid Method <hybrid-method/index>
+   
+   Method of Nearby Problems <nearby-problems/index>
 
