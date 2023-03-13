@@ -274,6 +274,7 @@ cdef double[:,:] multigroup_scalar(double[:,:]& flux_guess, \
                              delta_y, angle_x, angle_y, angle_w, params)
         change = tools.group_convergence_scalar(flux, flux_old, params)
         converged = (change < OUTER_TOLERANCE) or (count >= MAX_ITERATIONS)
+        # print("count", count, "change", change, "flux", np.sum(flux))
         count += 1
         flux_old[:,:] = flux[:,:]
     return flux[:,:]

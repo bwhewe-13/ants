@@ -53,7 +53,7 @@ cdef double[:,:] multigroup(double[:,:]& flux_guess, double[:,:]& xs_total, \
         change = tools.group_convergence_scalar(flux, flux_old, params)
         # print("Power Iteration {}\n{}\nChange {} Keff {}".format(count, \
         #         "="*35, change, keff[0]))
-        print("Count {}\tKeff {}".format(str(count).zfill(3), keff[0]), end="\r")        
+        print("Count {}\tKeff {}".format(str(count).zfill(3), keff[0]), end="\r")
         converged = (change < OUTER_TOLERANCE) or (count >= MAX_ITERATIONS)
         count += 1
         flux_old[:,:] = flux[:,:]

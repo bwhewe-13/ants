@@ -30,17 +30,17 @@ cdef params2d _to_params2d(dict params_dict):
     params.angles = params_dict["angles"]
     params.groups = params_dict["groups"]
     params.materials = params_dict["materials"]
-    params.geometry = params_dict["geometry"]
-    params.spatial = params_dict["spatial"]
+    params.geometry = params_dict.get("geometry", 1)
+    params.spatial = params_dict.get("spatial", 2)
     params.qdim = params_dict["qdim"]
-    params.bc_x = params_dict["bc_x"]
+    params.bc_x = params_dict.get("bc_x", [0, 0])
     params.bcdim_x = params_dict["bcdim_x"]
-    params.bc_y = params_dict["bc_y"]
+    params.bc_y = params_dict.get("bc_y", [0, 0])
     params.bcdim_y = params_dict["bcdim_y"]
-    params.steps = params_dict["steps"]
-    params.dt = params_dict["dt"]
-    params.angular = params_dict["angular"]
-    params.adjoint = params_dict["adjoint"]
+    params.steps = params_dict.get("steps", 0)
+    params.dt = params_dict.get("dt", 0.0)
+    params.angular = params_dict.get("angular", True)
+    params.adjoint = params_dict.get("adjoint", False)
     return params
 
 cdef void combine_self_scattering(double[:,:,:] xs_matrix, \

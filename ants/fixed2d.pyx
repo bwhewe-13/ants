@@ -42,7 +42,7 @@ def source_iteration(double[:,:] xs_total, double[:,:,:] xs_scatter, \
                                      delta_x, delta_y, angle_x, angle_y, \
                                      angle_w, params)
         flux = np.asarray(flux).reshape(params.cells_x, params.cells_y, \
-                                params.angles, params.groups)
+                                        params.angles, params.groups)
     else:
         flux_old = tools.array_2d_ijg(params)
         flux = si.multigroup_scalar(flux_old, xs_total, xs_matrix, external, \

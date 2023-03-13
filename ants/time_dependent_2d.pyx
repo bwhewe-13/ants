@@ -47,8 +47,8 @@ cdef double[:,:,:,:] multigroup_bdf1(double[:,:,:]& flux_guess, \
                                                  medium_map, delta_x, \
                                                  delta_y, angle_x, angle_y, \
                                                  angle_w, params)
-        # boundary_x[:] = 0.0
-        # boundary_y[:] = 0.0
+        boundary_x[:] = 0.0
+        boundary_y[:] = 0.0
         flux_last[:,:,:] = flux_times[step,:,:,:]
         # print("Multigroup", step, np.sum(flux_last))
     return flux_times[:,:,:,:]
@@ -122,7 +122,7 @@ cdef double[:,:,:,:] hybrid_bdf1(double[:,:]& xs_total_vu, \
                                                  angle_wu, params_u)
         # Step 5: Update and repeat
         flux_last[:,:,:] = flux_times[step,:,:,:]
-        # boundary_x[:] = 0.0
-        # boundary_y[:] = 0.0
+        boundary_x[:] = 0.0
+        boundary_y[:] = 0.0
         # print("Hybrid", step, np.sum(flux_last))
     return flux_times[:,:,:,:]
