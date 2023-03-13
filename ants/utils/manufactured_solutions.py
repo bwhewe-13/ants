@@ -15,7 +15,7 @@ def solution_mms_01(x, angle_x):
     """ One material, single direction """
     flux = np.zeros((len(x), len(angle_x)))
     for n, mu in enumerate(angle_x):
-        if angle > 0:
+        if mu > 0:
             flux[:,n] = 1.
         else:
             flux[:,n] = 1 - np.exp((1 - x) / mu)
@@ -35,7 +35,7 @@ def solution_mms_03(x, angle_x):
     """ One material, angular dependent, with source"""
     flux = np.zeros((len(x), len(angle_x)))
     for n, mu in enumerate(angle_x):
-        flux[:,n] = 0.25 + 0.25 * x**2 * np.exp(mu)
+        flux[:,n] = 0.5 + 0.25 * x**2 * np.exp(mu)
     return flux
 
 def solution_mms_04(x, angle_x):

@@ -151,8 +151,8 @@ def _external_mms_03(external, centers_x, angle_x):
         external[:,n] = dependence(mu)[:,None]
     return external
 
-def _external_mms_04(external, centers_x, angles_x):
-    width = 2
+def _external_mms_04(external, centers_x, angle_x):
+    width = 2.
     def quasi(x, mu):
         c = 0.3
         return 2 * width * mu - 4 * x * mu - 2 * x**2 \
@@ -162,14 +162,14 @@ def _external_mms_04(external, centers_x, angles_x):
         const = -0.125 * width + 0.5 * width**2
         return 0.25 * (mu + x) + const - c * ((0.25 * x + const))
     for n, mu in enumerate(angle_x):
-        idx = [centers_x < (0.5 * width)]
-        external[idx,n] = quasi(centers_x[idx], mu)[:,None]
-        idx = [centers_x > (0.5 * width)]
-        external[idx,n] = scatter(centers_x[idx], mu)[:,None]
+        idx = (centers_x < (0.5 * width))
+        external[idx,n] = quasi(centers_x[idx], mu)
+        idx = (centers_x > (0.5 * width))
+        external[idx,n] = scatter(centers_x[idx], mu)
     return external
 
 def _external_mms_05(external, centers_x, angle_x):
-    width = 2
+    width = 2.
     def quasi(x, mu):
         c = 0.3
         return mu * (2 * width**2 - 4 * np.exp(mu) * x) - 2 * np.exp(mu) \
@@ -182,10 +182,10 @@ def _external_mms_05(external, centers_x, angle_x):
                 - c/2 * (2 * width**3 + (np.exp(1) - np.exp(-1)) \
                 * (x * width - width**2))
     for n, mu in enumerate(angle_x):
-        idx = [centers_x < (0.5 * width)]
-        external[idx,n] = quasi(centers_x[idx], mu)[:,None]
-        idx = [centers_x > (0.5 * width)]
-        external[idx,n] = scatter(centers_x[idx], mu)[:,None]
+        idx = (centers_x < (0.5 * width))
+        external[idx,n] = quasi(centers_x[idx], mu)
+        idx = (centers_x > (0.5 * width))
+        external[idx,n] = scatter(centers_x[idx], mu)
     return external
 
 def _external_ambe(external, groups, edges_x):
@@ -224,7 +224,7 @@ def boundaries(name, shape, location, **kw):
         return boundary
     elif name == "mms-03":
         assert "angle_x" in kw, "Need angle_x for boundary condition"
-        return _boundary_mms_03(boundary, angle_x)
+        return _boundary_mms_03(boundary, kw["angle_x"])
     elif name in ["mms-04", "mms-05"]:
         return _boundary_mms_04_05(boundary, name)
     warnings.warn("Boundary condition not populated, use {}".format(__boundaries))
@@ -233,13 +233,12 @@ def boundaries(name, shape, location, **kw):
 def _boundary_mms_03(boundary, angle_x):
     const1 = 0.5
     const2 = 0.25
-    width = 2
     boundary[0] = const1
     boundary[1] = const1 + const2 * np.exp(angle_x)
     return boundary
 
 def _boundary_mms_04_05(boundary, name):
-    width = 2
+    width = 2.
     if name == "mms-04":
         boundary[1] = 0.5 * width**2 + 0.125 * width
     elif name == "mms-05":

@@ -113,7 +113,7 @@ def _medium_map(materials, edges_x, key=False):
     medium_map = np.ones((len(edges_x) - 1)) * -1
     for material in materials:
         material_key[material[0]] = material[1]
-        for region in material[2]:
+        for region in material[2].split(","):
             start, stop = region.split("-")
             idx1 = np.argwhere(float(start) == edges_x)[0,0]
             idx2 = np.argwhere(float(stop) == edges_x)[0,0]
