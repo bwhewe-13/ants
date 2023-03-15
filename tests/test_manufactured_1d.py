@@ -9,130 +9,163 @@
 #
 ########################################################################
 
-from ants.fixed1d import source_iteration as si
+import ants
+from ants.fixed1d import source_iteration
 from ants.utils import manufactured_solutions as mms
-from tests import tools
 
 import pytest
 import numpy as np
 
-
 @pytest.mark.smoke
 @pytest.mark.source_iteration
-@pytest.mark.parametrize("angular", ("True", "False"))
-def test_mms_one_material01(angular):
-    angular = True if angular == "True" else False
-    info = {"cells": 400, "angles": 4, "groups": 1, "materials": 1,
-             "geometry": 1, "spatial": 2, "qdim": 1, "bc": [0, 0], "bcdim": 0, 
-             "steps": 0, "dt": 0, "angular": angular, "adjoint": False}
-    # mu, w = tools._x_angles(info["angles"], info["bc"])
-    info, mu, w = tools._x_angles(info)
-    xs_total = np.array([1.])[:,None]
-    xs_scatter = np.array([[0.]])[:,None]
-    xs_fission = np.array([[0.]])[:,None]
-    medium_map = np.zeros((info["cells"]), dtype=np.int32)
-    width = 1
-    edges = np.linspace(0, width, info["cells"]+1)
-    source = np.ones((info["cells"]))
-    boundary = np.zeros((2))
-    boundary[0] = 1
-    cell_width = np.repeat(width / info["cells"], info["cells"])
-    flux = si(xs_total, xs_scatter, xs_fission, source, boundary, \
-                medium_map, cell_width, mu, w, info)
-    xspace = 0.5 * (edges[1:] + edges[:-1])
-    ref_flux = mms.solution_one_material_01(xspace, mu)
-    if angular:
-        assert np.all(np.fabs(flux[:,:,0] - ref_flux) < 1e-4)
-    else:
-        ref_flux = np.sum(ref_flux * w, axis=1)
-        assert np.all(np.fabs(flux[:,0] - ref_flux) < 1e-4)
+@pytest.mark.parametrize(("angular", "spatial"), [(True, 1), (True, 2), \
+                         (False, 1), (False, 2)])
+def test_manufactured_01(angular, spatial):
+    params = {"cells": 400, "angles": 4, "groups": 1, "materials": 1,
+              "geometry": 1, "spatial": spatial, "qdim": 1, "bc": [0, 0],
+              "bcdim": 2, "angular": angular}
+    length = 1.
+    delta_x = np.repeat(length / params["cells"], params["cells"])
+    edges_x = np.linspace(0, length, params["cells"]+1)
+    centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
+    xs_total = np.array([[1.0]])
+    xs_scatter = np.array([[[0.0]]])
+    xs_fission = np.array([[[0.0]]])
+    external = ants.externals(1.0, (params["cells"],))
+    boundary = ants.boundaries(1.0, (2, params["angles"], params["groups"]), [0])
+    angle_x, angle_w = ants._angle_x(params)
+    medium_map = np.zeros((params["cells"]), dtype=np.int32)
+    flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
+                            boundary.flatten(), medium_map, delta_x, \
+                            angle_x, angle_w, params)
+    exact = mms.solution_mms_01(centers_x, angle_x)
+    if not angular:
+        exact = np.sum(exact * angle_w[None,:], axis=1)
+    atol = 1e-5 if spatial == 2 else 5e-3
+    assert np.all(np.isclose(flux[(..., 0)], exact, atol=atol)), \
+        "Incorrect flux" 
 
 
 @pytest.mark.source_iteration
-@pytest.mark.parametrize("angular", ("True", "False"))
-def test_mms_one_material02(angular):
-    angular = True if angular == "True" else False
-    info = {"cells": 400, "angles": 4, "groups": 1, "materials": 1,
-             "geometry": 1, "spatial": 2, "qdim": 1, "bc": [0, 0], "bcdim": 0, 
-             "steps": 0, "dt": 0, "angular": angular, "adjoint": False}
-    # mu, w = tools._x_angles(info["angles"], info["bc"])
-    info, mu, w = tools._x_angles(info)
-    xs_total = np.array([1.])[:,None]
-    xs_scatter = np.array([[0.]])[:,None]
-    xs_fission = np.array([[0.]])[:,None]
-    medium_map = np.zeros((info["cells"]), dtype=np.int32)
-    width = 1
-    edges = np.linspace(0, width, info["cells"]+1)
-    source = np.ones((info["cells"])) * 0.5
-    boundary = np.zeros((2))
-    boundary[0] = 1
-    cell_width = np.repeat(width / info["cells"], info["cells"])
-    flux = si(xs_total, xs_scatter, xs_fission, source, boundary, \
-                medium_map, cell_width, mu, w, info)
-    xspace = 0.5 * (edges[1:] + edges[:-1])
-    ref_flux = mms.solution_one_material_02(xspace, mu)
-    if angular:
-        assert np.all(np.fabs(flux[:,:,0] - ref_flux) < 1e-4)
-    else:
-        ref_flux = np.sum(ref_flux * w, axis=1)
-        assert np.all(np.fabs(flux[:,0] - ref_flux) < 1e-4)
+@pytest.mark.parametrize(("angular", "spatial"), [(True, 1), (True, 2), \
+                         (False, 1), (False, 2)])
+def test_manufactured_02(angular, spatial):
+    params = {"cells": 400, "angles": 4, "groups": 1, "materials": 1,
+              "geometry": 1, "spatial": spatial, "qdim": 1, "bc": [0, 0],
+              "bcdim": 2, "angular": angular}
+    length = 1.
+    delta_x = np.repeat(length / params["cells"], params["cells"])
+    edges_x = np.linspace(0, length, params["cells"]+1)
+    centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
+    xs_total = np.array([[1.0]])
+    xs_scatter = np.array([[[0.0]]])
+    xs_fission = np.array([[[0.0]]])
+    external = ants.externals(0.5, (params["cells"],))
+    boundary = ants.boundaries(1.0, (2, params["angles"], params["groups"]), [0])
+    angle_x, angle_w = ants._angle_x(params)
+    medium_map = np.zeros((params["cells"]), dtype=np.int32)
+    flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
+                            boundary.flatten(), medium_map, delta_x, \
+                            angle_x, angle_w, params)
+    exact = mms.solution_mms_02(centers_x, angle_x)
+    if not angular:
+        exact = np.sum(exact * angle_w[None,:], axis=1)
+    atol = 1e-5 if spatial == 2 else 5e-3
+    assert np.all(np.isclose(flux[(..., 0)], exact, atol=atol)), \
+        "Incorrect flux"
 
 
 @pytest.mark.source_iteration
-@pytest.mark.parametrize("angular", ("True", "False"))
-def test_mms_two_material01(angular):
-    angular = True if angular == "True" else False
-    info = {"cells": 400, "angles": 4, "groups": 1, "materials": 2,
-             "geometry": 1, "spatial": 2, "qdim": 3, "bc": [0, 0], "bcdim": 2,
-             "steps": 0, "dt": 0, "angular": angular, "adjoint": False}
-    # mu, w = tools._x_angles(info["angles"], info["bc"])
-    info, mu, w = tools._x_angles(info)
-    xs_total = np.array([[1.],[1.]])
-    xs_scatter = np.array([[[0.3]],[[0.9]]])
-    xs_fission = np.array([[[0.0]],[[0.0]]])
-    medium_map = np.zeros((info["cells"]), dtype=np.int32)
-    medium_map[200:] = 1
-    width = 2
-    edges = np.linspace(0, width, info["cells"]+1)
-    source = tools._mms_two_material(edges, mu) 
-    boundary = tools._mms_boundary("mms-03", mu)
-    cell_width = np.repeat(width / info["cells"], info["cells"])
-    flux = si(xs_total, xs_scatter, xs_fission, source, boundary, \
-                medium_map, cell_width, mu, w, info)
-    xspace = 0.5 * (edges[1:] + edges[:-1])
-    ref_flux = mms.solution_two_material_01(xspace, mu)
-    if angular:
-        assert np.all(np.fabs(flux[:,:,0] - ref_flux) < 1e-4)
-    else:
-        ref_flux = np.sum(ref_flux * w, axis=1)
-        assert np.all(np.fabs(flux[:,0] - ref_flux) < 1e-4)
+@pytest.mark.parametrize(("angular", "spatial"), [(True, 1), (True, 2), \
+                         (False, 1), (False, 2)])
+def test_manufactured_03(angular, spatial):
+    params = {"cells": 400, "angles": 4, "groups": 1, "materials": 1,
+              "geometry": 1, "spatial": spatial, "qdim": 3, "bc": [0, 0],
+              "bcdim": 2, "angular": angular}
+    length = 1.
+    delta_x = np.repeat(length / params["cells"], params["cells"])
+    edges_x = np.linspace(0, length, params["cells"]+1)
+    centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
+    angle_x, angle_w = ants._angle_x(params)
+    xs_total = np.array([[1.0]])
+    xs_scatter = np.array([[[0.9]]])
+    xs_fission = np.array([[[0.0]]])
+    external = ants.externals("mms-03", (params["cells"], params["angles"], \
+                              params["groups"]), centers_x=centers_x, \
+                              angle_x=angle_x).flatten()
+    boundary = ants.boundaries("mms-03", (2, params["angles"]), [0, 1], \
+                               angle_x=angle_x).flatten()
+    medium_map = np.zeros((params["cells"]), dtype=np.int32)
+    flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
+                            boundary, medium_map, delta_x, angle_x, \
+                            angle_w, params)
+    exact = mms.solution_mms_03(centers_x, angle_x)
+    if not angular:
+        exact = np.sum(exact * angle_w[None,:], axis=1)
+    atol = 1e-5 if spatial == 2 else 5e-3
+    assert np.all(np.isclose(flux[(..., 0)], exact, atol=atol)), \
+        "Incorrect flux"
 
 
 @pytest.mark.source_iteration
-@pytest.mark.parametrize("angular", ("True", "False"))
-def test_mms_two_material02(angular):
-    angular = True if angular == "True" else False
-    info = {"cells": 400, "angles": 4, "groups": 1, "materials": 2,
-             "geometry": 1, "spatial": 2, "qdim": 3, "bc": [0, 0], "bcdim": 2,
-             "steps": 0, "dt": 0, "angular": angular, "adjoint": False}
-    # mu, w = tools._x_angles(info["angles"], info["bc"])
-    info, mu, w = tools._x_angles(info)
-    xs_total = np.array([[1.],[1.]])
-    xs_scatter = np.array([[[0.3]],[[0.9]]])
-    xs_fission = np.array([[[0.0]],[[0.0]]])
-    medium_map = np.zeros((info["cells"]), dtype=np.int32)
-    medium_map[200:] = 1
-    width = 2
-    edges = np.linspace(0, width, info["cells"]+1)
-    source = tools._mms_two_material_angle(edges, mu) 
-    boundary = tools._mms_boundary("mms-04", mu)
-    cell_width = np.repeat(width / info["cells"], info["cells"])
-    flux = si(xs_total, xs_scatter, xs_fission, source, boundary, \
-                medium_map, cell_width, mu, w, info)
-    xspace = 0.5 * (edges[1:] + edges[:-1])
-    ref_flux = mms.solution_two_material_02(xspace, mu)
-    if angular:
-        assert np.all(np.fabs(flux[:,:,0] - ref_flux) < 1e-4)
-    else:
-        ref_flux = np.sum(ref_flux * w, axis=1)
-        assert np.all(np.fabs(flux[:,0] - ref_flux) < 1e-4)
+@pytest.mark.parametrize(("angular", "spatial"), [(True, 1), (True, 2), \
+                         (False, 1), (False, 2)])
+def test_manufactured_04(angular, spatial):
+    params = {"cells": 400, "angles": 4, "groups": 1, "materials": 2,
+              "geometry": 1, "spatial": spatial, "qdim": 3, "bc": [0, 0],
+              "bcdim": 2, "angular": angular}
+    length = 2.
+    delta_x = np.repeat(length / params["cells"], params["cells"])
+    edges_x = np.linspace(0, length, params["cells"]+1)
+    centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
+    angle_x, angle_w = ants._angle_x(params)
+    xs_total = np.array([[1.0], [1.0]])
+    xs_scatter = np.array([[[0.3]], [[0.9]]])
+    xs_fission = np.array([[[0.0]], [[0.0]]])
+    external = ants.externals("mms-04", (params["cells"], params["angles"]), \
+                              centers_x=centers_x, angle_x=angle_x).flatten()
+    boundary = ants.boundaries("mms-04", (2, params["angles"]), [0, 1], \
+                               angle_x=angle_x).flatten()
+    materials = [[0, "quasi", "0-1"], [1, "scatter", "1-2"]]
+    medium_map = ants._medium_map(materials, edges_x)
+    flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
+                            boundary, medium_map, delta_x, angle_x, \
+                            angle_w, params)
+    exact = mms.solution_mms_04(centers_x, angle_x)
+    if not angular:
+        exact = np.sum(exact * angle_w[None,:], axis=1)
+    atol = 1e-4 if spatial == 2 else 1e-2
+    assert np.all(np.isclose(flux[(..., 0)], exact, atol=atol)), \
+        "Incorrect flux"
+
+
+@pytest.mark.source_iteration
+@pytest.mark.parametrize(("angular", "spatial"), [(True, 1), (True, 2), \
+                         (False, 1), (False, 2)])
+def test_manufactured_05(angular, spatial):
+    params = {"cells": 400, "angles": 4, "groups": 1, "materials": 2,
+              "geometry": 1, "spatial": spatial, "qdim": 3, "bc": [0, 0],
+              "bcdim": 2, "angular": angular}
+    length = 2.
+    delta_x = np.repeat(length / params["cells"], params["cells"])
+    edges_x = np.linspace(0, length, params["cells"]+1)
+    centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
+    angle_x, angle_w = ants._angle_x(params)
+    xs_total = np.array([[1.0], [1.0]])
+    xs_scatter = np.array([[[0.3]], [[0.9]]])
+    xs_fission = np.array([[[0.0]], [[0.0]]])
+    external = ants.externals("mms-05", (params["cells"], params["angles"]), \
+                              centers_x=centers_x, angle_x=angle_x).flatten()
+    boundary = ants.boundaries("mms-05", (2, params["angles"]), [0, 1], \
+                               angle_x=angle_x).flatten()
+    materials = [[0, "quasi", "0-1"], [1, "scatter", "1-2"]]
+    medium_map = ants._medium_map(materials, edges_x)
+    flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
+                            boundary, medium_map, delta_x, angle_x, \
+                            angle_w, params)
+    exact = mms.solution_mms_05(centers_x, angle_x)
+    if not angular:
+        exact = np.sum(exact * angle_w[None,:], axis=1)
+    atol = 1e-4 if spatial == 2 else 2e-2
+    assert np.all(np.isclose(flux[(..., 0)], exact, atol=atol)), \
+        "Incorrect flux"
