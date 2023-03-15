@@ -23,6 +23,7 @@ from ants cimport cytools_1d as tools
 from ants.cytools_1d cimport params1d
 
 # import numpy as np
+from tqdm import tqdm
 
 cdef double[:,:,:,:] multigroup_bdf1(double[:,:,:]& flux_guess, \
                         double[:,:]& xs_total_v, double[:,:,:]& xs_scatter, \
@@ -36,7 +37,10 @@ cdef double[:,:,:,:] multigroup_bdf1(double[:,:,:]& flux_guess, \
     # Initialize fluxes
     flux_last = flux_guess.copy()
     flux_times = tools.array_4d_ting(params)
-    for step in range(params.steps):
+    for step in tqdm(range(params.steps)):
+        # Adjust boundary condition
+        tools.boundary_decay(boundary, step, params)
+        # Create source star
         tools.combine_source_flux(flux_last, source_star, \
                                     source, velocity, params)
         flux_times[step] = si.multigroup_angular(flux_last, xs_total_v, \
@@ -69,7 +73,8 @@ cdef double[:,:,:,:] hybrid_bdf1(double[:,:]& xs_total_vu, double[:,:]& xs_total
     flux_times = tools.array_4d_ting(params_u)
 
     cdef double[2] zero_boundary = [0.0, 0.0]
-    for step in range(params_u.steps):
+    for step in tqdm(range(params_u.steps)):
+        tools.boundary_decay(boundary, step, params_u)
         # Create source star
         tools.combine_source_flux(flux_last, source_star, \
                                 source_u, velocity_u, params_u)

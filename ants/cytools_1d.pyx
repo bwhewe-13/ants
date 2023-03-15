@@ -17,12 +17,12 @@
 # cython: initializedcheck=False
 # cython: cdivision=True
 # distutils: language = c++
-
 # cython: profile=True
 
-from libc.math cimport sqrt, pow
+from libc.math cimport sqrt, pow, erfc, ceil
+
 from cython.view cimport array as cvarray
-import numpy as np
+# import numpy as np
 
 cdef params1d _to_params1d(dict params_dict):
     cdef params1d params
@@ -39,6 +39,7 @@ cdef params1d _to_params1d(dict params_dict):
     params.dt = params_dict.get("dt", 0.0)
     params.angular = params_dict.get("angular", True)
     params.adjoint = params_dict.get("adjoint", False)
+    params.bcdecay = params_dict.get("bcdecay", 0)
     return params
 
 cdef void combine_self_scattering(double[:,:,:]& xs_matrix, \
@@ -358,3 +359,46 @@ cdef double[:,:] small_to_big(double[:,:]& flux_c, int[:]& index_u, \
             for group_u in range(index_u[group_c], index_u[group_c+1]):
                 flux_u[cell,group_u] = flux_c[cell,group_c] * factor_u[group_u]
     return flux_u[:,:]
+
+########################################################################
+# Time Dependent Boundary Decays
+########################################################################
+
+cdef void boundary_decay(double[:]& boundary, size_t step, params1d params):
+    cdef double t = params.dt * step
+    cdef size_t bc_length
+    if params.bcdim == 1:
+        bc_length = 2 * params.groups
+    elif params.bcdim == 2:
+        bc_length = 2 * params.groups * params.angles
+    else:
+        bc_length = 2
+    # Cycle through different decay processes
+    if params.bcdecay == 0: # Do nothing
+        pass
+    elif params.bcdecay == 1: # Turn off after one step
+        decay_01(boundary, bc_length, step)
+    elif params.bcdecay == 2: # Step decay
+        decay_02(boundary, bc_length, t)        
+
+
+cdef void decay_01(double[:]& boundary, size_t bc_length, size_t step):
+    cdef size_t cell
+    cdef double magnitude = 0.0 if step > 0 else 1.0
+    for cell in range(bc_length):
+        boundary[cell] = magnitude
+
+
+cdef void decay_02(double[:]& boundary, size_t bc_length, double t):
+    cdef size_t cell
+    cdef double k, err_arg
+    t *= 1e6 # Convert elapsed time
+    for cell in range(bc_length):
+        if boundary[cell] == 0.0:
+            continue
+        if t < 0.2:
+            boundary[cell] = 1.
+        else:
+            k = ceil((t - 0.2) / 0.1)
+            err_arg = (t - 0.1 * (1 + k)) / (0.01)
+            boundary[cell] = pow(0.5, k) * (1 + 2 * erfc(err_arg))

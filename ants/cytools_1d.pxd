@@ -56,6 +56,9 @@ cdef struct params1d:
 
     # :param dt: Time step width
     # :type dt: double
+
+    # :param bcdecay: Type of boundary source decay
+    # :type bcdecay: int
     # """
     int cells
     int angles
@@ -70,6 +73,7 @@ cdef struct params1d:
     double dt
     bint angular
     bint adjoint
+    int bcdecay
 
 cdef params1d _to_params1d(dict params_dict)
 
@@ -159,3 +163,5 @@ cdef void big_to_small(double[:,:]& flux_u, double[:]& flux_c, \
 
 cdef double[:,:] small_to_big(double[:,:]& flux_c, int[:]& index_u, \
             double[:]& factor_u, params1d params_u, params1d params_c)
+
+cdef void boundary_decay(double[:]& boundary, size_t step, params1d params)
