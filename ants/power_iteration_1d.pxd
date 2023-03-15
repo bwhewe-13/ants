@@ -21,13 +21,13 @@
 from ants.cytools_1d cimport params1d
 
 cdef double[:,:] multigroup(double[:,:]& flux_guess, double[:,:]& xs_total, \
-                    double[:,:,:]& xs_scatter, double[:,:,:]& xs_fission, 
-                    double[:]& power_source, int[:]& medium_map, \
-                    double[:]& delta_x, double[:]& angle_x, \
-                    double[:]& angle_w, params1d params, double[:]& keff)
+        double[:,:,:]& xs_scatter, double[:,:,:]& xs_fission, \
+        double[:]& power_source, int[:]& medium_map, double[:]& delta_x, \
+        double[:]& angle_x, double[:]& angle_w, params1d params, \
+        double[:]& keff)
 
 cdef double[:,:] nearby(double[:,:]& flux_guess, double[:,:]& xs_total, \
-                    double[:,:,:]& xs_scatter, double[:,:,:]& xs_fission, 
-                    double[:]& power_source, double[:]& nearby_source, \
-                    int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
-                    double[:]& angle_w, params1d params, double[:]& keff)
+        double[:,:,:]& xs_scatter, double[:,:,:]& xs_fission, 
+        double[:]& power_source, double[:]& nearby_source, \
+        int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
+        double[:]& angle_w, params1d params, double[:]& keff)

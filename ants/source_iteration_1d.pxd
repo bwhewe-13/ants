@@ -15,8 +15,8 @@
 # cython: infertypes=True
 # cython: initializedcheck=False
 # cython: cdivision=True
-# distutils: language = c++
 # cython: profile=True
+# distutils: language = c++
 
 from ants.cytools_1d cimport params1d
 
