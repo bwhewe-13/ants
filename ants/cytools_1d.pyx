@@ -22,6 +22,7 @@
 from libc.math cimport sqrt, pow, erfc, ceil
 
 from cython.view cimport array as cvarray
+from ants.constants import PI
 # import numpy as np
 
 cdef params1d _to_params1d(dict params_dict):
@@ -36,7 +37,7 @@ cdef params1d _to_params1d(dict params_dict):
     params.bc = params_dict.get("bc", [0, 0])
     params.bcdim = params_dict["bcdim"]
     params.steps = params_dict.get("steps", 0)
-    params.dt = params_dict.get("dt", 0.0)
+    params.dt = params_dict.get("dt", 1.0)
     params.angular = params_dict.get("angular", True)
     params.adjoint = params_dict.get("adjoint", False)
     params.bcdecay = params_dict.get("bcdecay", 0)
@@ -60,6 +61,14 @@ cdef void combine_total_velocity(double[:,:]& xs_total_star, \
             xs_total_star[mat,group] = xs_total[mat,group] \
                                     + 1 / (velocity[group] * params.dt)
 
+cdef void inverse_velocity(double[:]& velocity, params1d params):
+    cdef size_t group
+    for group in range(params.groups):
+        velocity[group] = 1 / velocity[group]
+
+cdef double cell_volume(double rho_plus, double rho_minus):
+    return 4 * PI / 3 * (pow(rho_plus, 3) - pow(rho_minus, 3))
+
 # Work on this
 cdef void combine_source_flux(double[:,:,:]& flux_last, double[:]& source_star, \
                 double[:]& source, double[:]& velocity, params1d params):
@@ -71,6 +80,12 @@ cdef void combine_source_flux(double[:,:,:]& flux_last, double[:]& source_star, 
                 start = group + angle * params.groups
                 source_star[start::stop][cell] = source[start::stop][cell] \
                     + flux_last[cell,angle,group] * 1 / (velocity[group] * params.dt)
+
+cdef double[:] array_1d(int dimension):
+    dd1 = cvarray((dimension,), itemsize=sizeof(double), format="d")
+    cdef double[:] arr = dd1
+    arr[:] = 0.0
+    return arr
 
 cdef double[:] array_1d_i(params1d params):
     dd1 = cvarray((params.cells,), itemsize=sizeof(double), format="d")

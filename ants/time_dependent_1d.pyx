@@ -27,7 +27,7 @@ from tqdm import tqdm
 
 cdef double[:,:,:,:] multigroup_bdf1(double[:,:,:]& flux_guess, \
         double[:,:]& xs_total_v, double[:,:,:]& xs_scatter, \
-        double[:]& velocity, double[:]& source, double[:]& boundary, \
+        double[:]& velocity, double[:]& external, double[:]& boundary, \
         int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
         double[:]& angle_w, params1d params):
 
@@ -38,10 +38,11 @@ cdef double[:,:,:,:] multigroup_bdf1(double[:,:,:]& flux_guess, \
     flux_last = flux_guess.copy()
     flux_times = tools.array_4d_ting(params)
     for step in tqdm(range(params.steps)):
+    # for step in range(params.steps):
         # Adjust boundary condition
         tools.boundary_decay(boundary, step, params)
         # Create source star
-        tools.combine_source_flux(flux_last, source_star, source, \
+        tools.combine_source_flux(flux_last, source_star, external, \
                                   velocity, params)
         flux_times[step] = si.multigroup_angular(flux_last, xs_total_v, \
                                                  xs_scatter, source_star, \

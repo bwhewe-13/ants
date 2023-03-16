@@ -113,7 +113,8 @@ def externals(name, shape, **kw):
         return external
     if name == "reeds":
         assert "edges_x" in kw, "Need edges_x for external source"
-        return _external_reeds(external, kw["edges_x"])
+        assert "bc" in kw, "Need bc for boundary conditions"
+        return _external_reeds(external, kw["edges_x"], kw["bc"])
     elif name in ["mms-03", "mms-04", "mms-05"]:
         assert "centers_x" in kw, "Need centers_x for external source"
         assert "angle_x" in kw, "Need angle_x for external source"
@@ -130,10 +131,16 @@ def externals(name, shape, **kw):
     warnings.warn("External Source not populated, use {}".format(__externals))
     return external
 
-def _external_reeds(external, edges_x):
-    source_values = [0.0, 1.0, 0.0, 50.0, 0.0, 1.0, 0.0]
-    lhs = [0., 2., 4., 6., 10., 12., 14.]
-    rhs = [2., 4., 6., 10., 12., 14., 16.]
+def _external_reeds(external, edges_x, bc):
+    source_values = np.array([0.0, 1.0, 0.0, 50.0, 50.0, 0.0, 1.0, 0.0])
+    lhs = np.array([0., 2., 4., 6., 8., 10., 12., 14.])
+    rhs = np.array([2., 4., 6., 8., 10., 12., 14., 16.])
+    if np.sum(bc) > 0.0:
+        idx = slice(0, 4) if bc == [0, 1] else slice(4, 8)
+        corrector = 0.0 if bc == [0, 1] else 8.0
+        source_values = source_values[idx].copy()
+        lhs = lhs[idx].copy() - corrector
+        rhs = rhs[idx].copy() - corrector
     loc = lambda x: int(np.argwhere(edges_x == x))
     bounds = [slice(loc(ii), loc(jj)) for ii, jj in zip(lhs, rhs)]
     for ii in range(len(bounds)):

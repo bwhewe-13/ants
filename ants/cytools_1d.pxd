@@ -87,6 +87,8 @@ cdef void combine_total_velocity(double[:,:]& xs_total_star, \
 cdef void combine_source_flux(double[:,:,:]& flux_last, double[:]& source_star, \
                 double[:]& source, double[:]& velocity, params1d params)
 
+cdef double[:] array_1d(int dimension)
+
 cdef double[:] array_1d_i(params1d params)
 
 cdef double[:] array_1d_ig(params1d params)

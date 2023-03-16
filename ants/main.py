@@ -22,15 +22,14 @@ DATA_PATH = pkg_resources.resource_filename("ants","sources/energy/")
 def _angle_x(params):
     angle_x, angle_w = np.polynomial.legendre.leggauss(params["angles"])
     angle_w /= np.sum(angle_w)
-    # left hand boundary at cell_x = 0 is reflective - negative
-    if params["bc"] in [[1, 0]] or params["geometry"] == 2:
-        params["angles"] = int(0.5 * params["angles"])
-        angle_x = angle_x[angle_x < 0].copy()
-        angle_w = angle_w[angle_x < 0].copy()
-    elif params["bc"] in [[0, 1]]:
-        params["angles"] = int(0.5 * params["angles"])
-        angle_x = angle_x[angle_x > 0].copy()
-        angle_w = angle_w[angle_x > 0].copy()
+    # Ordering for reflective boundaries
+    if np.sum(params["bc"]) > 0.0:
+        if params["bc"] == [1, 0]:
+            idx = angle_x.argsort()
+        elif params["bc"] == [0, 1]:
+            idx = angle_x.argsort()[::-1]
+        angle_x = angle_x[idx].copy()
+        angle_w = angle_w[idx].copy()
     return angle_x, angle_w
 
 def _angle_xy(params, rewrite=True):
@@ -115,8 +114,8 @@ def _medium_map(materials, edges_x, key=False):
         material_key[material[0]] = material[1]
         for region in material[2].split(","):
             start, stop = region.split("-")
-            idx1 = np.argwhere(float(start) == edges_x)[0,0]
-            idx2 = np.argwhere(float(stop) == edges_x)[0,0]
+            idx1 = np.argmin(np.fabs(float(start) - edges_x))
+            idx2 = np.argmin(np.fabs(float(stop) - edges_x))
             medium_map[idx1:idx2] = material[0]
     # Verify all cells are filled
     assert np.all(medium_map != -1)

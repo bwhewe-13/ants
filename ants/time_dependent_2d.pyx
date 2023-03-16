@@ -22,7 +22,7 @@ from ants cimport source_iteration_2d as si
 from ants cimport cytools_2d as tools
 from ants.cytools_2d cimport params2d
 
-import numpy as np
+# import numpy as np
 from tqdm import tqdm
 
 cdef double[:,:,:,:] multigroup_bdf1(double[:,:,:]& flux_guess, \

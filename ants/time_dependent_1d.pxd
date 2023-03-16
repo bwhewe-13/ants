@@ -23,7 +23,7 @@ from ants.cytools_1d cimport params1d
 
 cdef double[:,:,:,:] multigroup_bdf1(double[:,:,:]& flux_guess, \
         double[:,:]& xs_total_v, double[:,:,:]& xs_scatter, \
-        double[:]& velocity, double[:]& source, double[:]& boundary, \
+        double[:]& velocity, double[:]& external, double[:]& boundary, \
         int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
         double[:]& angle_w, params1d params)
 
