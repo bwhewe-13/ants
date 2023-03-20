@@ -15,7 +15,7 @@
 
 import ants
 from ants.fixed1d import source_iteration
-from ants.utils import manufactured_solutions as mms
+from ants.utils import manufactured_1d as mms
 
 import numpy as np
 import matplotlib.pyplot as plt

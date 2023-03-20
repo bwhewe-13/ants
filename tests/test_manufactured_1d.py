@@ -11,7 +11,7 @@
 
 import ants
 from ants.fixed1d import source_iteration
-from ants.utils import manufactured_solutions as mms
+from ants.utils import manufactured_1d as mms
 
 import pytest
 import numpy as np
