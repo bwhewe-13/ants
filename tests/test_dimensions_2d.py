@@ -46,19 +46,20 @@ def test_dimensions_boundary_x():
     groups = 1
     angles = 4
     bc = [0, 0]
-    angles, angle_x, angle_y, angle_w = ants.calculate_xy_angles(angles, [bc,bc])
     velocity = np.ones((groups))
     external = np.zeros((cells_x, cells_y)).flatten()
     # Set boundary terms
     boundary_y = np.zeros((2,))
-    bounds = [np.zeros((2,)), np.zeros((2, cells_y)), \
-              np.zeros((2, cells_y, groups)), \
-              np.zeros((2, cells_y, angles, groups))]
     params = {"cells_x": cells_x, "cells_y": cells_y, "angles": angles, \
              "groups": groups, "materials": len(xs_total), "geometry": 1, \
              "spatial": 2, "qdim": 1, "bc_x": bc, "bcdim_x": 0, \
              "bc_y": bc, "bcdim_y": 0, "steps": 0, "dt": 0, \
              "adjoint": False, "angular": False}
+    angle_x, angle_y, angle_w = ants._angle_xy(params)
+    angles = params["angles"]
+    bounds = [np.zeros((2,)), np.zeros((2, cells_y)), \
+              np.zeros((2, cells_y, groups)), \
+              np.zeros((2, cells_y, angles, groups))]
     flux = []
     for loc in [0, 1]:
         for bcdim_x, boundary_x in enumerate(bounds):
@@ -104,19 +105,21 @@ def test_dimensions_boundary_y():
     groups = 1
     angles = 4
     bc = [0, 0]
-    angles, angle_x, angle_y, angle_w = ants.calculate_xy_angles(angles, [bc,bc])
+    # angles, angle_x, angle_y, angle_w = ants.calculate_xy_angles(angles, [bc,bc])
     velocity = np.ones((groups))
     external = np.zeros((cells_x, cells_y)).flatten()
     # Set boundary terms
     boundary_x = np.zeros((2,))
-    bounds = [np.zeros((2,)), np.zeros((2, cells_y)), \
-              np.zeros((2, cells_y, groups)), \
-              np.zeros((2, cells_y, angles, groups))]
     params = {"cells_x": cells_x, "cells_y": cells_y, "angles": angles, \
              "groups": groups, "materials": len(xs_total), "geometry": 1, \
              "spatial": 2, "qdim": 1, "bc_x": bc, "bcdim_x": 0, \
              "bc_y": bc, "bcdim_y": 0, "steps": 0, "dt": 0, \
              "adjoint": False, "angular": False}
+    angle_x, angle_y, angle_w = ants._angle_xy(params)
+    angles = params["angles"]
+    bounds = [np.zeros((2,)), np.zeros((2, cells_y)), \
+              np.zeros((2, cells_y, groups)), \
+              np.zeros((2, cells_y, angles, groups))]
     flux = []
     for loc in [0, 1]:
         for bcdim_y, boundary_y in enumerate(bounds):
@@ -162,21 +165,23 @@ def test_dimensions_external_zero():
     groups = 1
     angles = 4
     bc = [0, 0]
-    angles, angle_x, angle_y, angle_w = ants.calculate_xy_angles(angles, [bc,bc])
+    # angles, angle_x, angle_y, angle_w = ants.calculate_xy_angles(angles, [bc,bc])
     velocity = np.ones((groups))
     external = np.zeros((cells_x, cells_y)).flatten()
     # Set boundary terms
     boundary_x = np.zeros((2,))
     boundary_x[0] = 1.0
     boundary_y = np.zeros((2,))
-    externals = [np.zeros((cells_x, cells_y)), \
-                 np.zeros((cells_x, cells_y, groups)), \
-                 np.zeros((cells_x, cells_y, angles, groups))]
     params = {"cells_x": cells_x, "cells_y": cells_y, "angles": angles, \
              "groups": groups, "materials": len(xs_total), "geometry": 1, \
              "spatial": 2, "qdim": 1, "bc_x": bc, "bcdim_x": 0, \
              "bc_y": bc, "bcdim_y": 0, "steps": 0, "dt": 0, \
              "adjoint": False, "angular": False}
+    angle_x, angle_y, angle_w = ants._angle_xy(params)
+    angles = params["angles"]
+    externals = [np.zeros((cells_x, cells_y)), \
+                 np.zeros((cells_x, cells_y, groups)), \
+                 np.zeros((cells_x, cells_y, angles, groups))]
     flux = []
     for qdim, external in enumerate(externals):
         params["qdim"] = qdim + 1
