@@ -45,7 +45,9 @@ def backward_euler(double[:,:] xs_total_u, double[:,:,:] xs_scatter_u, \
     # Combine fission and scattering for uncollided
     # xs_matrix_u = memoryview(np.zeros((params_u.materials, \
     #                         params_u.groups, params_u.groups)))
-    xs_matrix_u = tools.array_3d_mgg(params_u)
+    # xs_matrix_u = tools.array_3d_mgg(params_u)
+    xs_matrix_u = tools.array_3d(params_u.materials, params_u.groups, \
+                                 params_u.groups)
     tools.combine_self_scattering(xs_matrix_u, xs_scatter_u, xs_fission_u, params_u)
     # Combine total and 1/vdt for uncollided
     xs_total_vu = memoryview(np.zeros((params_u.materials, params_u.groups)))
@@ -61,7 +63,9 @@ def backward_euler(double[:,:] xs_total_u, double[:,:,:] xs_scatter_u, \
     xs_fission_c = dimensions.xs_matrix_coarsen(xs_fission_u, energy_edges, idx_edges)
     velocity_c = dimensions.velocity_mean_coarsen(velocity_u, idx_edges)
     # Combine fission and scattering for collided
-    xs_matrix_c = tools.array_3d_mgg(params_c)
+    # xs_matrix_c = tools.array_3d_mgg(params_c)
+    xs_matrix_c = tools.array_3d(params_c.materials, params_c.groups, \
+                                 params_c.groups)
     tools.combine_self_scattering(xs_matrix_c, xs_scatter_c, xs_fission_c, params_c)
     # Combine total and 1/vdt for collided
     xs_total_vc = memoryview(np.zeros((params_c.materials, params_c.groups)))

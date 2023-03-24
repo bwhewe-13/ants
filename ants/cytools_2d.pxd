@@ -94,21 +94,13 @@ cdef void combine_total_velocity(double[:,:]& xs_total_star, \
 cdef void combine_source_flux(double[:,:,:]& flux_last, double[:]& source_star, \
         double[:]& source, double[:]& velocity, params2d params)
 
-cdef double[:] array_1d_ij(params2d params)
+cdef double[:] array_1d(int dim1)
 
-cdef double[:] array_1d_ijg(params2d params)
+cdef double[:,:] array_2d(int dim1, int dim2)
 
-cdef double[:] array_1d_ijng(params2d params)
+cdef double[:,:,:] array_3d(int dim1, int dim2, int dim3)
 
-cdef double[:,:] array_2d_ijg(params2d params)
-
-cdef double[:,:] array_2d_ijn(params2d params)
-
-cdef double[:,:,:] array_3d_ijng(params2d params)
-
-cdef double[:,:,:] array_3d_mgg(params2d params)
-
-cdef double[:,:,:,:] array_4d_tijng(params2d params)
+cdef double[:,:,:,:] array_4d(int dim1, int dim2, int dim3, int dim4)
 
 cdef double[:] update_y_edge(double[:]& boundary_y, double angle_y, params2d params)
 
