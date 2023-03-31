@@ -232,18 +232,12 @@ class Critical:
         return splines, dsplines
 
     def _nearby(self, dtype):
-        print("dtype:", dtype)
+        print("DTYPE:", dtype.capitalize())
         self.params["qdim"] = 3
-        # mydic = {"xs_total": self.xs_total, "xs_scatter": self.xs_scatter,
-        #         "xs_fission": self.xs_fission, "residual": self.residual.flatten(), \
-        #         "medium_map": self.medium_map, "delta_x": self.delta_x, \
-        #         "angle_x": self.angle_x, "angle_w": self.angle_w, \
-        #         "nearby_rate": self.nearby_rate, "params" :self.params}
         self.nearby_flux, self.nearby_keff = critical1d.nearby_power( \
                 self.xs_total, self.xs_scatter, self.xs_fission, \
                 self.residual.flatten(), self.medium_map, self.delta_x, \
                 self.angle_x, self.angle_w, self.nearby_rate, self.params)
-        # print("Nearby Keff:", self.nearby_keff)
 
     def _normalize(self):
         self.nearby_flux /= np.linalg.norm(self.nearby_flux)
@@ -252,12 +246,12 @@ class Critical:
 
 class FixedSource:
 
-    def __init__(self, xs_total, xs_scatter, xs_fission, source, boundary, \
-                 medium_map, delta_x, angle_x, angle_w, params):
+    def __init__(self, xs_total, xs_scatter, xs_fission, external, \
+                 boundary, medium_map, delta_x, angle_x, angle_w, params):
         self.xs_total = xs_total
         self.xs_scatter = xs_scatter
         self.xs_fission = xs_fission
-        self.source = source
+        self.external = external
         self.boundary = boundary
         self.medium_map = medium_map
         self.delta_x = delta_x
@@ -281,7 +275,7 @@ class FixedSource:
 
     def _numerical(self):
         self.numerical_flux = fixed1d.source_iteration(self.xs_total, self.xs_scatter, \
-            self.xs_fission, self.source.flatten(), self.boundary.flatten(), \
+            self.xs_fission, self.external.flatten(), self.boundary.flatten(), \
             self.medium_map, self.delta_x, self.angle_x, self.angle_w, self.params)
 
     def _curve_fit_point(self):
@@ -301,7 +295,7 @@ class FixedSource:
                         self.curve_fit_boundary[1,angle,group] = func([self.edges_x[-1]])
 
     def _residual_point(self):
-        self.residual = np.zeros(self.source.shape)
+        self.residual = np.zeros(self.external.shape)
         scalar_flux = np.sum(self.curve_fit_flux * self.angle_w[None,:,None], axis=1)
         for group in range(self.params["groups"]):
             for angle in range(self.params["angles"]):
@@ -311,8 +305,7 @@ class FixedSource:
                             + self.curve_fit_flux[cell,angle,group] * self.xs_total[mat,group]) \
                             - (scalar_flux[cell] @ self.xs_scatter[mat].T)[group] \
                             - (scalar_flux[cell] @ self.xs_fission[mat].T)[group] \
-                            - self.source[cell,angle,group]
-        # print("Residual Sum:", np.sum(self.residual))
+                            - self.external[cell,angle,group]
 
     def _curve_fit(self):
         splits = dimensions.create_slices(self.medium_map)
@@ -329,7 +322,7 @@ class FixedSource:
                         self.curve_fit_boundary[1,angle,group] = func([self.edges_x[-1]])
 
     def _residual(self, dtype="centers"):
-        self.residual = np.zeros(self.source.shape)
+        self.residual = np.zeros(self.external.shape)
         splines, dsplines = self._integrate_splines(dtype)
         # Calculate scalar flux
         ssplines = np.sum(splines * self.angle_w[None,:,None], axis=1)
@@ -340,12 +333,12 @@ class FixedSource:
                             + splines[ii,nn,gg] * self.xs_total[mat,gg]) \
                             - (ssplines[ii] @ self.xs_scatter[mat].T)[gg] \
                             - (ssplines[ii] @ self.xs_fission[mat].T)[gg] \
-                            - self.source[ii,nn,gg] * self.delta_x[ii]
+                            - self.external[ii,nn,gg] * self.delta_x[ii]
 
     def _integrate_splines(self, dtype):
         edges_splits = dimensions.create_slices(self.medium_map, double_count=True)
         centers_splits = dimensions.create_slices(self.medium_map, double_count=False)
-        splines = np.zeros(self.source.shape)
+        splines = np.zeros(self.external.shape)
         dsplines = np.zeros(splines.shape)
         if dtype == "centers":
             for csplit, esplit in zip(centers_splits, edges_splits):
@@ -360,20 +353,13 @@ class FixedSource:
 
     def _nearby(self, dtype):
         # Add residual to source term
-        # if dtype == "point":
-        #     print("saved")
-        #     np.save("temp-residual", self.residual)
-        # if dtype in ["edges", "centers"]:
-        #     self.residual *= 3
-        #     print("loaded")
-        #     self.residual = np.load("temp-residual.npy")
-        updated_source = (self.source + self.residual).flatten()
-        print("{} Residual Sum: {}".format(dtype, np.sum(self.residual)))
+        updated_external = (self.external + self.residual).flatten()
+        print("{} Residual Sum: {}".format(dtype.capitalize(), np.sum(self.residual)))
         self.nearby_flux = fixed1d.source_iteration(self.xs_total, self.xs_scatter, \
-            self.xs_fission, updated_source, self.curve_fit_boundary.flatten(), \
+            self.xs_fission, updated_external, self.curve_fit_boundary.flatten(), \
             self.medium_map, self.delta_x, self.angle_x, self.angle_w, self.params)
         # Calculate Relative Error
-        self.error = np.fabs(self.nearby_flux - self.curve_fit_flux) \
-                        / self.curve_fit_flux
-        self.error[np.isnan(self.error)] = 0.0
+        # self.error = np.fabs(self.nearby_flux - self.curve_fit_flux) \
+        #                 / self.curve_fit_flux
+        # self.error[np.isnan(self.error)] = 0.0
 
