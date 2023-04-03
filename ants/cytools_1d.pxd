@@ -102,8 +102,6 @@ cdef double group_convergence_scalar(double[:,:]& arr1, double[:,:]& arr2, \
 cdef double group_convergence_angular(double[:,:,:]& arr1, \
                 double[:,:,:]& arr2, double[:]& weight, params1d params)
 
-cdef double[:] angle_flux(params1d params, bint angular)
-
 cdef void angle_angular_to_scalar(double[:,:]& angular, double[:]& scalar, \
                                   double[:]& weight, params1d params)
 

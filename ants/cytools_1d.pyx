@@ -102,7 +102,7 @@ cdef double group_convergence_scalar(double[:,:]& arr1, double[:,:]& arr2, \
     cdef size_t cell, group
     cdef double change = 0.0
     for group in range(params.groups):
-        for cell in range(params.cells):
+        for cell in range(params.cells + params.edges):
             if arr1[cell,group] == 0.0:
                 pass
             else:
@@ -117,7 +117,7 @@ cdef double group_convergence_angular(double[:,:,:]& arr1, \
     cdef double change = 0.0
     cdef double flux, flux_old
     for group in range(params.groups):
-        for cell in range(params.cells):
+        for cell in range(params.cells + params.edges):
             flux = 0.0
             flux_old = 0.0
             for angle in range(params.angles):
@@ -127,31 +127,20 @@ cdef double group_convergence_angular(double[:,:,:]& arr1, \
     change = sqrt(change)
     return change
 
-cdef double[:] angle_flux(params1d params, bint angular):
-    cdef int flux_size
-    if angular == True:
-        flux_size = params.cells * params.angles
-    else:
-        flux_size = params.cells
-    dd1 = cvarray((flux_size,), itemsize=sizeof(double), format="d")
-    cdef double[:] flux = dd1
-    flux[:] = 0.0
-    return flux
-
 cdef void angle_angular_to_scalar(double[:,:]& angular, double[:]& scalar, \
-                                  double[:]& weight, params1d params):
+        double[:]& weight, params1d params):
     cdef size_t cell, angle
     scalar[:] = 0.0
     for angle in range(params.angles):
-        for cell in range(params.cells):
+        for cell in range(params.cells + params.edges):
             scalar[cell] += weight[angle] * angular[cell,angle]
 
 cdef double angle_convergence_angular(double[:,:]& arr1, double[:,:]& arr2, \
-                                double[:]& weight, params1d params):
+        double[:]& weight, params1d params):
     cdef size_t cell, angle
     cdef double change = 0.0
     cdef double flux, flux_old
-    for cell in range(params.cells):
+    for cell in range(params.cells + params.edges):
         flux = 0.0
         flux_old = 0.0
         for angle in range(params.angles):
@@ -162,10 +151,10 @@ cdef double angle_convergence_angular(double[:,:]& arr1, double[:,:]& arr2, \
     return change
 
 cdef double angle_convergence_scalar(double[:]& arr1, double[:]& arr2, \
-                                params1d params):
+        params1d params):
     cdef size_t cell
     cdef double change = 0.0    
-    for cell in range(params.cells):
+    for cell in range(params.cells + params.edges):
         if arr1[cell] == 0.0:
             pass
         else:
@@ -173,21 +162,29 @@ cdef double angle_convergence_scalar(double[:]& arr1, double[:]& arr2, \
     change = sqrt(change)
     return change
 
+
 cdef void off_scatter_scalar(double[:,:]& flux, double[:,:]& flux_old, \
-            int[:]& medium_map, double[:,:,:]& xs_matrix, double[:]& source, \
-            params1d params, size_t group):
+        int[:]& medium_map, double[:,:,:]& xs_matrix, double[:]& source, \
+        params1d params, size_t group):
     cdef size_t cell, mat, angle, og
     source[:] = 0.0
     for cell in range(params.cells):
         mat = medium_map[cell]
         for og in range(0, group):
             source[cell] += xs_matrix[mat,group,og] * flux[cell,og]
-        for og in range(group+1, params.groups):
+        for og in range(group + 1, params.groups):
             source[cell] += xs_matrix[mat,group,og] * flux_old[cell,og]
+    if params.edges:
+        mat = medium_map[params.cells]
+        for og in range(0, group):
+            source[params.cells] += xs_matrix[mat,group,og] * flux[params.cells,og]
+        for og in range(group + 1, params.groups):
+            source[params.cells] += xs_matrix[mat,group,og] * flux_old[params.cells,og]
+
 
 cdef void off_scatter_angular(double[:,:,:]& flux, double[:,:,:]& flux_old, \
-            int[:]& medium_map, double[:,:,:]& xs_matrix, double[:]& source, \
-            double[:]& weight, params1d params, size_t group):
+        int[:]& medium_map, double[:,:,:]& xs_matrix, double[:]& source, \
+        double[:]& weight, params1d params, size_t group):
     cdef size_t cell, mat, angle, og
     source[:] = 0.0
     for cell in range(params.cells):
@@ -196,13 +193,23 @@ cdef void off_scatter_angular(double[:,:,:]& flux, double[:,:,:]& flux_old, \
             for og in range(0, group):
                 source[cell] += xs_matrix[mat,group,og] * weight[angle] \
                                 * flux[cell,angle,og]
-            for og in range(group+1, params.groups):
+            for og in range(group + 1, params.groups):
                 source[cell] += xs_matrix[mat,group,og] * weight[angle] \
                                 * flux_old[cell,angle,og]
+    if params.edges:
+        mat = medium_map[params.cells]
+        for angle in range(params.angles):
+            for og in range(0, group):
+                source[params.cells] += xs_matrix[mat,group,og] * weight[angle] \
+                                        * flux[params.cells,angle,og]
+            for og in range(group + 1, params.groups):
+                source[params.cells] += xs_matrix[mat,group,og] * weight[angle] \
+                                        * flux_old[params.cells,angle,og]
+
 
 cdef void fission_source(double[:,:] flux, double[:,:,:] xs_fission, \
-                    double[:] power_source, int[:] medium_map, \
-                    params1d params, double keff):
+        double[:] power_source, int[:] medium_map, params1d params, \
+        double keff):
     power_source[:] = 0.0
     cdef size_t cell, mat, ig, og
     for cell in range(params.cells):
@@ -224,8 +231,8 @@ cdef void normalize_flux(double[:,:]& flux, params1d params):
             flux[cell,group] /= keff
 
 cdef double update_keffective(double[:,:] flux, double[:,:] flux_old, \
-                            double[:,:,:] xs_fission, int[:] medium_map, \
-                            params1d params, double keff_old):
+        double[:,:,:] xs_fission, int[:] medium_map, params1d params, \
+        double keff_old):
     cdef double rate_new = 0.0
     cdef double rate_old = 0.0
     cdef size_t cell, mat, ig, og
@@ -238,20 +245,22 @@ cdef double update_keffective(double[:,:] flux, double[:,:] flux_old, \
     return (rate_new * keff_old) / rate_old
 
 cdef void nearby_fission_source(double[:,:]& flux, double[:,:,:]& xs_fission, \
-                        double[:]& power_source, double[:]& nearby_source, \
-                        int[:]& medium_map, params1d params, double keff):
+        double[:]& power_source, double[:]& nearby_source, int[:]& medium_map, \
+        params1d params, double keff):
     power_source[:] = 0.0
-    cdef size_t cell, mat, angle, ig, og, skip
-    skip = params.angles * params.groups
+    cdef size_t cell, mat, angle, ig, og, start, stop
+    stop = params.angles * params.groups
     for cell in range(params.cells):
         mat = medium_map[cell]
         for angle in range(params.angles):
             for ig in range(params.groups):
                 for og in range(params.groups):
-                    power_source[ig+angle*params.groups::skip][cell] += \
-                            flux[cell,og] * xs_fission[mat,ig,og] / keff
-    for cell in range(params.cells * skip):
+                    start = ig + angle * params.groups
+                    power_source[start::stop][cell] += flux[cell,og] \
+                                        * xs_fission[mat,ig,og] / keff
+    for cell in range(params.cells * stop):
         power_source[cell] += nearby_source[cell]
+
 
 cdef double nearby_keffective(double[:,:]& flux, double rate, params1d params):
     cdef size_t cell, group
@@ -261,9 +270,10 @@ cdef double nearby_keffective(double[:,:]& flux, double rate, params1d params):
             keff += rate * flux[cell,group]
     return keff
 
+
 cdef void calculate_source_c(double[:,:]& flux_u, double[:,:,:]& xs_scatter_u, \
-                double[:]& source_c, int[:]& medium_map, int[:]& index_c, \
-                params1d params_u, params1d params_c):
+        double[:]& source_c, int[:]& medium_map, int[:]& index_c, \
+        params1d params_u, params1d params_c):
     cdef size_t cell, mat, ig, og
     # Multiply flux by scatter
     flux = flux_u.copy()
@@ -276,10 +286,11 @@ cdef void calculate_source_c(double[:,:]& flux_u, double[:,:,:]& xs_scatter_u, \
     # Shrink to size G hat
     big_to_small(flux, source_c, index_c, params_u, params_c)
 
+
 cdef void calculate_source_t(double[:,:]& flux_u, double[:,:]& flux_c, \
-                double[:,:,:]& xs_scatter_u, double[:]& source_t, \
-                int[:]& medium_map, int[:]& index_u, double[:]& factor_u, \
-                params1d params_u, params1d params_c):
+        double[:,:,:]& xs_scatter_u, double[:]& source_t, \
+        int[:]& medium_map, int[:]& index_u, double[:]& factor_u, \
+        params1d params_u, params1d params_c):
     cdef size_t cell, mat, angle, group, ig, og
     source_t[:] = 0.0
     # Resize collided flux to size (I x G)
@@ -303,8 +314,7 @@ cdef void calculate_source_star(double[:,:,:]& flux_last, double[:]& source_star
                 source_star[start::stop][cell] = source_t[group::params.groups][cell] \
                         + source_u[start::stop][cell] \
                         + flux_last[cell,angle,group] \
-                        * 1 / (velocity[group] * params.dt)
-                        
+                        * 1 / (velocity[group] * params.dt)            
 
 cdef void big_to_small(double[:,:]& flux_u, double[:]& flux_c, \
                 int[:]& index_c, params1d params_u, params1d params_c):

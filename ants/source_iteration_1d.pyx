@@ -40,11 +40,11 @@ cdef double[:,:,:] multigroup_angular(double[:,:,:]& flux_guess, \
     qq2 = 1 if params.qdim == 1 else params.groups
     bc2 = 1 if params.bcdim == 0 else params.groups
     # Initialize flux
-    flux = tools.array_3d(params.cells, params.angles, params.groups)
+    flux = tools.array_3d(params.cells + params.edges, params.angles, params.groups)
     flux_old = flux_guess.copy()
-    flux_1g = tools.array_2d(params.cells, params.angles)
+    flux_1g = tools.array_2d(params.cells + params.edges, params.angles)
     # Create off-scattering term
-    off_scatter = tools.array_1d(params.cells)
+    off_scatter = tools.array_1d(params.cells + params.edges)
     # Set convergence limits
     cdef bint converged = False
     cdef size_t count = 1
@@ -97,7 +97,7 @@ cdef void slab_ordinates_angular(double[:,:] flux, double[:,:] flux_old, \
     # Initialize indices etc
     cdef size_t angle, qq1, qq2, bc1, bc2
     cdef double edge = 0.0
-    scalar_flux = tools.array_1d(params.cells)
+    scalar_flux = tools.array_1d(params.cells + params.edges)
     reflector = tools.array_1d(params.angles)
     # Set indexing
     qq2 = 1 if params.qdim != 3 else params.angles
@@ -250,13 +250,17 @@ cdef double slab_forward_x(double[:]& flux, double[:]& flux_old, \
     cdef float const1 = 0 if params.spatial == 1 else -0.5
     cdef float const2 = 1 if params.spatial == 1 else 0.5
     edge1 += boundary
+    if params.edges:
+        flux[0] = angle_w * edge1
     for cell in range(params.cells):
         mat = medium_map[cell]
         edge2 = (xs_scatter[mat] * flux_old[cell] + external[cell] \
                 + off_scatter[cell] + edge1 * (fabs(angle_x) / delta_x[cell] \
                 + const1 * xs_total[mat])) * 1 / (fabs(angle_x) \
                 / delta_x[cell] + const2 * xs_total[mat])
-        if params.spatial == 1:
+        if params.edges:
+            flux[cell+1] += angle_w * edge2
+        elif params.spatial == 1:
             flux[cell] += angle_w * edge2
         elif params.spatial == 2:
             flux[cell] += 0.5 * angle_w * (edge1 + edge2) 

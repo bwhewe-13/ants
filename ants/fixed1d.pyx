@@ -35,15 +35,17 @@ def source_iteration(double[:,:] xs_total, double[:,:,:] xs_scatter, \
                             params.groups)))
     tools.combine_self_scattering(xs_matrix, xs_scatter, xs_fission, params)
     if params.angular == True:
-        flux_old = tools.array_3d(params.cells, params.angles, params.groups)
+        flux_old = tools.array_3d(params.cells + params.edges, \
+                                  params.angles, params.groups)
         flux = si.multigroup_angular(flux_old, xs_total, xs_matrix, \
                                      external, boundary, medium_map, \
                                      delta_x, angle_x, angle_w, params)
-        flux = np.asarray(flux).reshape(params.cells, params.angles, params.groups)
+        flux = np.asarray(flux).reshape(params.cells + params.edges, \
+                                        params.angles, params.groups)
     else:
-        flux_old = tools.array_2d(params.cells, params.groups)
+        flux_old = tools.array_2d(params.cells + params.edges, params.groups)
         flux = si.multigroup_scalar(flux_old, xs_total, xs_matrix, \
                                     external, boundary, medium_map, \
                                     delta_x, angle_x, angle_w, params)
-        flux = np.asarray(flux).reshape(params.cells, params.groups)
+        flux = np.asarray(flux).reshape(params.cells + params.edges, params.groups)
     return flux
