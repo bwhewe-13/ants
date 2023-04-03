@@ -22,7 +22,6 @@
 from libc.math cimport sqrt, pow, erfc, ceil
 
 from cython.view cimport array as cvarray
-from ants.constants import PI
 # import numpy as np
 
 cdef params1d _to_params1d(dict params_dict):
@@ -41,6 +40,7 @@ cdef params1d _to_params1d(dict params_dict):
     params.angular = params_dict.get("angular", True)
     params.adjoint = params_dict.get("adjoint", False)
     params.bcdecay = params_dict.get("bcdecay", 0)
+    params.edges = params_dict.get("edges", 0) # 0 = Center, 1 = Edge
     return params
 
 cdef void combine_self_scattering(double[:,:,:]& xs_matrix, \
@@ -61,14 +61,6 @@ cdef void combine_total_velocity(double[:,:]& xs_total_star, \
             xs_total_star[mat,group] = xs_total[mat,group] \
                                     + 1 / (velocity[group] * params.dt)
 
-cdef void inverse_velocity(double[:]& velocity, params1d params):
-    cdef size_t group
-    for group in range(params.groups):
-        velocity[group] = 1 / velocity[group]
-
-cdef double cell_volume(double rho_plus, double rho_minus):
-    return 4 * PI / 3 * (pow(rho_plus, 3) - pow(rho_minus, 3))
-
 # Work on this
 cdef void combine_source_flux(double[:,:,:]& flux_last, double[:]& source_star, \
                 double[:]& source, double[:]& velocity, params1d params):
@@ -81,71 +73,29 @@ cdef void combine_source_flux(double[:,:,:]& flux_last, double[:]& source_star, 
                 source_star[start::stop][cell] = source[start::stop][cell] \
                     + flux_last[cell,angle,group] * 1 / (velocity[group] * params.dt)
 
-cdef double[:] array_1d(int dimension):
-    dd1 = cvarray((dimension,), itemsize=sizeof(double), format="d")
+cdef double[:] array_1d(int dim1):
+    dd1 = cvarray((dim1,), itemsize=sizeof(double), format="d")
     cdef double[:] arr = dd1
     arr[:] = 0.0
     return arr
 
-cdef double[:] array_1d_i(params1d params):
-    dd1 = cvarray((params.cells,), itemsize=sizeof(double), format="d")
-    cdef double[:] flux = dd1
-    flux[:] = 0.0
-    return flux
+cdef double[:,:] array_2d(int dim1, int dim2):
+    dd2 = cvarray((dim1, dim2), itemsize=sizeof(double), format="d")
+    cdef double[:,:] arr = dd2
+    arr[:,:] = 0.0
+    return arr
 
-cdef double[:] array_1d_ig(params1d params):
-    dd1 = cvarray((params.cells * params.groups,), \
-                    itemsize=sizeof(double), format="d")
-    cdef double[:] flux = dd1
-    flux[:] = 0.0
-    return flux
+cdef double[:,:,:] array_3d(int dim1, int dim2, int dim3):
+    dd3 = cvarray((dim1, dim2, dim3), itemsize=sizeof(double), format="d")
+    cdef double[:,:,:] arr = dd3
+    arr[:,:,:] = 0.0
+    return arr
 
-cdef double[:] array_1d_ing(params1d params):
-    dd1 = cvarray((params.cells * params.angles * params.groups,), \
-                    itemsize=sizeof(double), format="d")
-    cdef double[:] flux = dd1
-    flux[:] = 0.0
-    return flux
-
-cdef double[:,:] array_2d_ig(params1d params):
-    dd1 = cvarray((params.cells, params.groups), itemsize=sizeof(double), format="d")
-    cdef double[:,:] flux = dd1
-    flux[:,:] = 0.0
-    return flux
-
-cdef double[:,:] array_2d_in(params1d params):
-    dd1 = cvarray((params.cells, params.angles), itemsize=sizeof(double), format="d")
-    cdef double[:,::1] flux = dd1
-    flux[:,:] = 0.0
-    return flux
-
-cdef double[:,:] array_2d_mg(params1d params):
-    dd1 = cvarray((params.materials, params.groups), \
-                    itemsize=sizeof(double), format="d")
-    cdef double[:,:] flux = dd1
-    flux[:,:] = 0.0
-    return flux
-
-cdef double[:,:,:] array_3d_ing(params1d params):
-    dd1 = cvarray((params.cells, params.angles, params.groups), \
-                    itemsize=sizeof(double), format="d")
-    cdef double[:,:,:] flux = dd1
-    flux[:,:,:] = 0.0
-    return flux
-
-cdef double[:,:,:] array_3d_mgg(params1d params):
-    dd1 = cvarray((params.materials, params.groups, params.groups), \
-                    itemsize=sizeof(double), format="d")
-    cdef double[:,:,:] flux = dd1
-    flux[:,:,:] = 0.0
-    return flux
-
-cdef double[:,:,:,:] array_4d_ting(params1d params):
-    dd1 = cvarray((params.steps, params.cells, params.angles, params.groups), \
-                    itemsize=sizeof(double), format="d")
-    cdef double[:,:,:,:] flux = dd1
-    flux[:,:,:,:] = 0.0
-    return flux
+cdef double[:,:,:,:] array_4d(int dim1, int dim2, int dim3, int dim4):
+    dd4 = cvarray((dim1, dim2, dim3, dim4), itemsize=sizeof(double), format="d")
+    cdef double[:,:,:,:] arr = dd4
+    arr[:,:,:,:] = 0.0
+    return arr
 
 cdef double group_convergence_scalar(double[:,:]& arr1, double[:,:]& arr2, \
                                 params1d params):
@@ -368,7 +318,7 @@ cdef void big_to_small(double[:,:]& flux_u, double[:]& flux_c, \
 cdef double[:,:] small_to_big(double[:,:]& flux_c, int[:]& index_u, \
             double[:]& factor_u, params1d params_u, params1d params_c):
     cdef size_t cell, group_u, group_c
-    flux_u = array_2d_ig(params_u)
+    flux_u = array_2d(params_u.cells, params_u.groups)
     for cell in range(params_c.cells):
         for group_c in range(params_c.groups):
             for group_u in range(index_u[group_c], index_u[group_c+1]):

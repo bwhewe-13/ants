@@ -33,10 +33,11 @@ cdef double[:,:,:,:] multigroup_bdf1(double[:,:,:]& flux_guess, \
 
     cdef size_t step
     # Combine last time step and source term
-    source_star = tools.array_1d_ing(params)
+    source_star = tools.array_1d(params.cells * params.angles * params.groups)
     # Initialize fluxes
     flux_last = flux_guess.copy()
-    flux_times = tools.array_4d_ting(params)
+    flux_times = tools.array_4d(params.steps, params.cells, params.angles, \
+                                params.groups)
     for step in tqdm(range(params.steps)):
     # for step in range(params.steps):
         # Adjust boundary condition
@@ -64,16 +65,18 @@ cdef double[:,:,:,:] hybrid_bdf1(double[:,:]& xs_total_vu, \
 
     cdef size_t step
     # Combine last time step and source term
-    source_star = tools.array_1d_ing(params_u)
-    source_c = tools.array_1d_ig(params_c)
-    source_t = tools.array_1d_ig(params_u)
+    source_star = tools.array_1d(params_u.cells * params_u.angles * params_u.groups)
+    source_c = tools.array_1d(params_c.cells * params_c.groups)
+    source_t = tools.array_1d(params_u.cells * params_u.groups)
     # Initialize fluxes
-    flux_last = tools.array_3d_ing(params_u)
-    flux_uncollided = tools.array_2d_ig(params_u)
-    flux_collided = tools.array_2d_ig(params_c)
+    flux_last = tools.array_3d(params_u.cells, params_u.angles, params_u.groups)
+    flux_uncollided = tools.array_2d(params_u.cells, params_u.groups)
+    flux_collided = tools.array_2d(params_c.cells, params_c.groups)
 
-    zero_matrix = tools.array_3d_mgg(params_u)
-    flux_times = tools.array_4d_ting(params_u)
+    zero_matrix = tools.array_3d(params_u.materials, params_u.groups, \
+                                 params_u.groups)
+    flux_times = tools.array_4d(params_u.steps, params_u.cells, \
+                                params_u.angles, params_u.groups)
 
     cdef double[2] zero_boundary = [0.0, 0.0]
     for step in tqdm(range(params_u.steps)):

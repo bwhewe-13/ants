@@ -74,6 +74,7 @@ cdef struct params1d:
     bint angular
     bint adjoint
     int bcdecay
+    int edges
 
 cdef params1d _to_params1d(dict params_dict)
 
@@ -87,25 +88,13 @@ cdef void combine_total_velocity(double[:,:]& xs_total_star, \
 cdef void combine_source_flux(double[:,:,:]& flux_last, double[:]& source_star, \
                 double[:]& source, double[:]& velocity, params1d params)
 
-cdef double[:] array_1d(int dimension)
+cdef double[:] array_1d(int dim1)
 
-cdef double[:] array_1d_i(params1d params)
+cdef double[:,:] array_2d(int dim1, int dim2)
 
-cdef double[:] array_1d_ig(params1d params)
+cdef double[:,:,:] array_3d(int dim1, int dim2, int dim3)
 
-cdef double[:] array_1d_ing(params1d params)
-
-cdef double[:,:] array_2d_ig(params1d params)
-
-cdef double[:,:] array_2d_in(params1d params)
-
-cdef double[:,:] array_2d_mg(params1d params)
-
-cdef double[:,:,:] array_3d_ing(params1d params)
-
-cdef double[:,:,:] array_3d_mgg(params1d params)
-
-cdef double[:,:,:,:] array_4d_ting(params1d params)
+cdef double[:,:,:,:] array_4d(int dim1, int dim2, int dim3, int dim4)
 
 cdef double group_convergence_scalar(double[:,:]& arr1, double[:,:]& arr2, \
                                 params1d params)
