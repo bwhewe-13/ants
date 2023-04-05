@@ -104,7 +104,7 @@ def _generate_uranium_hydride(enrichment):
 # External Sources
 ########################################################################
 
-__externals = ("reeds", "mms-03", "mms-04", "mms-05", "ambe")
+__externals = ("reeds", "mms-03", "mms-04", "mms-05", "ambe", "mms-01-2d")
 
 def externals(name, shape, **kw):
     external = np.zeros(shape)

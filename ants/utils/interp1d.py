@@ -8,6 +8,7 @@
 ########################################################################
 
 import numpy as np
+from scipy.integrate import quad
 
 def first_derivative(x, y):
     assert len(x) == len(y), "Need to be same length"
@@ -19,10 +20,6 @@ def first_derivative(x, y):
             # yp.append((y[1] - y[0]) / (x[1] - x[0]))
             # Second Order Accurate
             # yp.append((-3 * y[0] + 4 * y[1] - y[2]) / (x[2] - x[0]))
-            # one = (y[0] - y[1]) / (x[0] - x[1])
-            # two = (y[0] - y[2]) / (x[0] - x[2])
-            # three = (y[2] - y[1]) / (x[1] - x[2])
-            # yp.append((one + two + three))
             yp.append((y[0] - y[1]) / (x[0] - x[1]) \
                     + (y[0] - y[2]) / (x[0] - x[2]) \
                     + (y[2] - y[1]) / (x[1] - x[2]))
@@ -31,10 +28,6 @@ def first_derivative(x, y):
             # yp.append((y[n] - y[n-1]) / (x[n] - x[n-1]))
             # Second Order Accurate
             # yp.append((3 * y[n] - 4 * y[n-1] + y[n-2]) / (x[n] - x[n-2]))
-            # one = (y[n] - y[n-1]) / (x[n] - x[n-1])
-            # two = (y[n] - y[n-2]) / (x[n] - x[n-2])
-            # three = (-y[n-1] + y[n-2]) / (x[n-1] - x[n-2])
-            # yp.append((one + two + three))
             yp.append((y[n] - y[n-1]) / (x[n] - x[n-1]) \
                      + (y[n] - y[n-2]) / (x[n] - x[n-2]) \
                      + (-y[n-1] + y[n-2]) / (x[n-1] - x[n-2]))
@@ -190,29 +183,52 @@ class CubicHermite:
     #     return integral
 
     def _single_spline(a, b, t1, t2, y1, y2, yp1, yp2):
-        phi1 = (1/(2*(t1 - t2)**3))*(a**4 + 6*a**2*t1*t2 + 2*a*t2**2*(-3*t1 + t2) \
-                - 2*a**3*(t1 + t2) - b*(b**3 + 6*b*t1*t2 + 2*t2**2*(-3*t1 + t2) \
-                - 2*b**2*(t1 + t2)))
-        phi2 = (1/(2*(t1 - t2)**3))*((-a)*(a**3 + 2*t1**2*(t1 - 3*t2) + 6*a*t1*t2 \
-                - 2*a**2*(t1 + t2)) + b*(b**3 + 2*t1**2*(t1 - 3*t2) + 6*b*t1*t2 \
-                - 2*b**2*(t1 + t2)))
-        psi1 = (1/(12*(t1 - t2)**2))*(-3*a**4 + 12*a*t1*t2**2 - 6*a**2*t2*(2*t1 + t2) + 4*a**3*(t1 + 2*t2) \
-                + b*(3*b**3 - 12*t1*t2**2 + 6*b*t2*(2*t1 + t2) - 4*b**2*(t1 + 2*t2)))
-        psi2 = (1/(12*(t1 - t2)**2))*(-3*a**4 + 12*a*t1**2*t2 + 4*a**3*(2*t1 + t2) \
-                - 6*a**2*t1*(t1 + 2*t2) + b*(3*b**3 - 12*t1**2*t2 - 4*b**2*(2*t1 + t2) \
-                + 6*b*t1*(t1 + 2*t2)))
-        return y1 * phi1 + y2 * phi2 + yp1 * psi1 + yp2 * psi2
+        def phi1(x, t1, t2):
+            t = (x - t1) / (t2 - t1)
+            return 2 * t**3 - 3 * t**2 + 1
+
+        def phi2(x, t1, t2):
+            t = (x - t1) / (t2 - t1)
+            return -2 * t**3 + 3 * t**2
+
+        def psi1(x, t1, t2):
+            t = (x - t1) / (t2 - t1)
+            return (t2 - t1) * (t**3 - 2 * t**2 + t)
+
+        def psi2(x, t1, t2):
+            t = (x - t1) / (t2 - t1)
+            return (t2 - t1) * (t**3 - t**2)
+
+        integral = 0.0
+        ys = [y1, y2, yp1, yp2]
+        funcs = [phi1, phi2, psi1, psi2]
+        for ii, jj in zip(ys, funcs):
+            integral += ii * quad(jj, a, b, args=(t1, t2))[0]
+        return integral
 
     def _single_dspline(a, b, t1, t2, y1, y2, yp1, yp2):
-        phi1 = (t1 - t2)**(-3) * ((a - b)*(2*a**2 + 2*a*b + 2*b**2 + 6*t1*t2 \
-                - 3*a*(t1 + t2) - 3*b*(t1 + t2)))
-        phi2 = (t1 - t2)**(-3) * (-2*a**3 - 6*a*t1*t2 + 3*a**2*(t1 + t2) \
-                + b*(2*b**2 + 6*t1*t2 - 3*b*(t1 + t2)))
-        psi1 = (t1 - t2)**(-2) * (b*((-t1)*(b - 2*t2) + (b - t2)**2) \
-                + a*t1*(a - 2*t2) - a*(a - t2)**2)
-        psi2 = -(t1 - t2)**(-2) * ((a - b)*(a**2 + (b - t1)**2 \
-                + a*(b - 2*t1 - t2) - (b - 2*t1)*t2))
-        return y1 * phi1 + y2 * phi2 + yp1 * psi1 + yp2 * psi2
+        def phi1(x, t1, t2):
+            t = (x - t1) / (t2 - t1)
+            return 6 / (t2 - t1) * (t**2 - t)
+
+        def phi2(x, t1, t2):
+            t = (x - t1) / (t2 - t1)
+            return 6 / (t2 - t1) * (t - t**2)
+
+        def psi1(x, t1, t2):
+            t = (x - t1) / (t2 - t1)
+            return 1 - 4 * t + 3 * t**2
+
+        def psi2(x, t1, t2):
+            t = (x - t1) / (t2 - t1)
+            return 3 * t**2 - 2 * t
+
+        integral = 0.0
+        ys = [y1, y2, yp1, yp2]
+        funcs = [phi1, phi2, psi1, psi2]
+        for ii, jj in zip(ys, funcs):
+            integral += ii * quad(jj, a, b, args=(t1, t2))[0]
+        return integral
 
     def integrate_splines_edges(edges_x, flux, params):
         """
@@ -385,87 +401,69 @@ class QuinticHermite:
         return integral
 
     def _single_spline(a, b, t1, t2, y1, y2, yp1, yp2, ypp1, ypp2):
-        phi1 = -((1/(t1 - t2)**5)*(a**6 - b**6 + 15*a**2*t1**2*t2**2 \
-            - 15*b**2*t1**2*t2**2 - 3*a**5*(t1 + t2) + 3*b**5*(t1 + t2) \
-            - 10*a**3*t1*t2*(t1 + t2) + 10*b**3*t1*t2*(t1 + t2) \
-            - a*t2**3*(10*t1**2 - 5*t1*t2 + t2**2) + b*t2**3*(10*t1**2 \
-            - 5*t1*t2 + t2**2) + (5/2)*a**4*(t1**2 + 4*t1*t2 + t2**2) \
-            - (5/2)*b**4*(t1**2 + 4*t1*t2 + t2**2)))
+        def phi1(x, t1, t2):
+            t = (x - t1) / (t2 - t1)
+            return -6 * t**5 + 15 * t**4 - 10 * t**3 + 1
 
-        phi2 = (1/(t1 - t2)**5)*(a**6 - b**6 + 15*a**2*t1**2*t2**2 \
-            - 15*b**2*t1**2*t2**2 - 3*a**5*(t1 + t2) + 3*b**5*(t1 + t2) \
-            - 10*a**3*t1*t2*(t1 + t2) + 10*b**3*t1*t2*(t1 + t2) \
-            + (5/2)*a**4*(t1**2 + 4*t1*t2 + t2**2) - (5/2)*b**4*(t1**2 \
-            + 4*t1*t2 + t2**2) - a*t1**3*(t1**2 - 5*t1*t2 + 10*t2**2) \
-            + b*t1**3*(t1**2 - 5*t1*t2 + 10*t2**2))
+        def phi2(x, t1, t2):
+            t = (x - t1) / (t2 - t1)
+            return 6 * t**5 - 15 * t**4 + 10 * t**3
 
-        psi1 = (1/(10*(t1 - t2)**4))*(5*a**6 - 5*b**6 + 10*a*t1*t2**3 \
-            * (-4*t1 + t2) + 5*a**2*(6*t1 - t2)*t2**2 * (2*t1 + t2) \
-            - 20*a**3*t1*t2*(2*t1 + 3*t2) - 2*a**5*(7*t1 + 8*t2) + 5*a**4 \
-            *(2*t1**2 + 10*t1*t2 + 3*t2**2) + b*(2*b**3*(7*b - 5*t1)*t1 \
-            + 2*b**2*(8*b**2 - 25*b*t1 + 20*t1**2) * t2 - 15*b*(b - 2*t1)**2 \
-            *t2**2 - 20*(b - 2*t1)*t1*t2**3 + 5*(b - 2*t1)*t2**4))
+        def psi1(x, t1, t2):
+            t = (x - t1) / (t2 - t1)
+            return (t2 - t1) * (-3 * t**5 + 8 * t**4 - 6 * t**3 + t)
 
-        psi2 = (1/(10*(t1 - t2)**4))*(5*a**6 - 5*b**6 + 10*a*t1**3*(t1 - 4*t2)*t2 \
-            - 10*b*t1**3*(t1 - 4*t2)*t2 - 5*a**2*t1**2*(t1 - 6*t2) \
-            * (t1 + 2*t2) + 5*b**2*t1**2*(t1 - 6*t2)*(t1 + 2*t2) \
-            - 20*a**3*t1*t2*(3*t1 + 2*t2) + 20*b**3*t1*t2*(3*t1 + 2*t2) \
-            - 2*a**5*(8*t1 + 7*t2) + 2*b**5*(8*t1 + 7*t2) \
-            + 5*a**4*(3*t1**2 + 10*t1*t2 + 2*t2**2) - 5*b**4*(3*t1**2 \
-            + 10*t1*t2 + 2*t2**2))
+        def psi2(x, t1, t2):
+            t = (x - t1) / (t2 - t1)
+            return (t2 - t1) * (-3 * t**5 + 7 * t**4 - 4 * t**3)
 
-        theta1 = (1/(120*(t1 - t2)**3))*(-10*a**6 + 60*a*t1**2*t2**3 \
-            - 30*a**2*t1*t2**2*(3*t1 + 2*t2) + 12*a**5*(2*t1 + 3*t2) \
-            + 20*a**3*t2*(3*t1**2 + 6*t1*t2 + t2**2) - 15*a**4*(t1**2 \
-            + 6*t1*t2 + 3*t2**2) + b*(10*b**5 - 60*t1**2*t2**3 \
-            + 30*b*t1*t2**2*(3*t1 + 2*t2) - 12*b**4*(2*t1 + 3*t2) \
-            - 20*b**2*t2*(3*t1**2 + 6*t1*t2 + t2**2) + 15*b**3*(t1**2 \
-            + 6*t1*t2 + 3*t2**2)))
+        def theta1(x, t1, t2):
+            t = (x - t1) / (t2 - t1)
+            return (t2 - t1)**2 * (-0.5 * t**5 + 1.5 * t**4 - 1.5 * t**3 \
+                    + 0.5 * t**2)
 
-        theta2 = (1/(120*(t1 - t2)**3))*(10*a**6 - 60*a*t1**3*t2**2 \
-            - 12*a**5*(3*t1 + 2*t2) + 30*a**2*t1**2*t2*(2*t1 + 3*t2) \
-            + 15*a**4*(3*t1**2 + 6*t1*t2 + t2**2) - 20*a**3*t1*(t1**2 \
-            + 6*t1*t2 + 3*t2**2) + b*(-10*b**5 + 60*t1**3*t2**2 + 12*b**4 \
-            * (3*t1 + 2*t2) - 30*b*t1**2*t2*(2*t1 + 3*t2) - 15*b**3 \
-            * (3*t1**2 + 6*t1*t2 + t2**2) + 20*b**2*t1*(t1**2 + 6*t1*t2 \
-            + 3*t2**2)))
+        def theta2(x, t1, t2):
+            t = (x - t1) / (t2 - t1)
+            return (t2 - t1)**2 * (0.5 * t**5 - t**4 + 0.5 * t**3)
 
-        return y1 * phi1 + y2 * phi2 + yp1 * psi1 + yp2 * psi2 \
-                + ypp1 * theta1 + ypp2 * theta2
+        integral = 0.0
+        ys = [y1, y2, yp1, yp2, ypp1, ypp2]
+        funcs = [phi1, phi2, psi1, psi2, theta1, theta2]
+        for ii, jj in zip(ys, funcs):
+            integral += ii * quad(jj, a, b, args=(t1, t2))[0]
+        return integral
 
     def _single_dspline(a, b, t1, t2, y1, y2, yp1, yp2, ypp1, ypp2):
-        phi1 = (1/(t1 - t2)**5)*(-6*a**5 - 30*a*t1**2*t2**2 + 15*a**4 \
-            * (t1 + t2) + 30*a**2*t1*t2*(t1 + t2) - 10*a**3*(t1**2 \
-            + 4 * t1*t2 + t2**2) + b*(6*b**4 + 30*t1**2*t2**2 - 15*b**3 \
-            * (t1 + t2) - 30*b*t1*t2*(t1 + t2) + 10*b**2*(t1**2 + 4*t1*t2 + t2**2)))
+        def phi1(x, t1, t2):
+            t = (x - t1) / (t2 - t1)
+            return 30 / (t2 - t1) * (-1 * t**2 + 2 * t**3 - t**4)
 
-        phi2 = (1/(t1 - t2)**5)*(6*a**5 + 30*a*t1**2*t2**2 - 15*a**4*(t1 + t2) \
-            - 30*a**2*t1*t2*(t1 + t2) + 10*a**3*(t1**2 + 4*t1*t2 + t2**2) \
-            + b*(-6*b**4 - 30*t1**2*t2**2 + 15*b**3*(t1 + t2) + 30 \
-            * b*t1*t2*(t1 + t2) - 10*b**2*(t1**2 + 4*t1*t2 + t2**2)))
+        def phi2(x, t1, t2):
+            t = (x - t1) / (t2 - t1)
+            return 30 / (t2 - t1) * (t**2 - 2 * t**3 + t**4)
 
-        psi1 = (1/(t1 - t2)**4)*((-a)*((-a + t2)**3*(3*a + t2) - 4*t1**2 \
-            * (a**2 - 3*a*t2 + 3*t2**2) + t1*(7*a**3 - 20*a**2*t2 \
-            + 18*a*t2**2 - 4*t2**3)) + b*((-b + t2)**3*(3*b + t2) \
-            - 4*t1**2*(b**2 - 3*b*t2 + 3*t2**2) + t1*(7*b**3 - 20*b**2*t2 \
-            + 18*b*t2**2 - 4*t2**3)))
+        def psi1(x, t1, t2):
+            t = (x - t1) / (t2 - t1)
+            return 1 - 18 * t**2 + 32 * t**3 - 15 * t**4
 
-        psi2 = (1/(t1 - t2)**4)*((-a)*(t1**4 - a**2*(3*a - 4*t2)*(a - t2) \
-            + 4*a*t1*(2*a - 3*t2)*(a - t2) - 4*t1**3*t2 - 6*t1**2 * (a**2 \
-            - 3*a*t2 + 2*t2**2)) + b*(t1**4 - b**2*(3*b - 4*t2)*(b - t2) \
-            + 4*b*t1*(2*b - 3*t2) * (b - t2) - 4*t1**3*t2 - 6*t1**2*(b**2 \
-            - 3*b*t2 + 2*t2**2)))
+        def psi2(x, t1, t2):
+            t = (x - t1) / (t2 - t1)
+            return - 12 * t**2 + 28 * t**3 - 15 * t**4
 
-        theta1 = (1/(2*(t1 - t2)**3))*((-a)*(a*(a - t2)**3 + 2*t1*(-a + t2)**3 \
-            + t1**2*(a**2 - 3*a*t2 + 3*t2**2)) + b*(b*(b - t2)**3 + 2*t1*(-b \
-                + t2)**3 + t1**2*(b**2 - 3*b*t2 + 3*t2**2)))
+        def theta1(x, t1, t2):
+            t = (x - t1) / (t2 - t1)
+            return (t2 - t1) * (t - 4.5 * t**2 + 6 * t**3 - 2.5 * t**4)
 
-        theta2 = -((1/(2*(t1 - t2)**3))*(a*((-a)*(a - t1)**3 + 2*(a - t1)**3*t2 \
-            - (a**2 - 3*a*t1 + 3*t1**2)*t2**2) + b*(b*(b - t1)**3 - 2*(b - t1)**3 \
-            * t2 + (b**2 - 3*b*t1 + 3*t1**2) * t2**2)))
+        def theta2(x, t1, t2):
+            t = (x - t1) / (t2 - t1)
+            return (t2 - t1) * (1.5 * t**2 - 4 * t**3 + 2.5 * t**4)
 
-        return y1 * phi1 + y2 * phi2 + yp1 * psi1 + yp2 * psi2 \
-                + ypp1 * theta1 + ypp2 * theta2
+        integral = 0.0
+        ys = [y1, y2, yp1, yp2, ypp1, ypp2]
+        funcs = [phi1, phi2, psi1, psi2, theta1, theta2]
+        for ii, jj in zip(ys, funcs):
+            integral += ii * quad(jj, a, b, args=(t1, t2))[0]
+        return integral
 
     def integrate_splines_edges(edges_x, flux, params):
         """
@@ -475,13 +473,12 @@ class QuinticHermite:
         # Faster this way - but not general
         # delta_x = np.diff(edges_x)
         # dflux = first_derivative(edges_x, flux)
-        # spline = 0.5 * (flux[:-1] + flux[1:]) * delta_x[:,None,None] \
+        # spline2 = 0.5 * (flux[:-1] + flux[1:]) * delta_x[:,None,None] \
         #         + 1/12 * (dflux[:-1] - dflux[1:]) * delta_x[:,None,None]**2
-        # dspline = flux[1:] - flux[:-1]
+        # dspline2 = flux[1:] - flux[:-1]
         dflux = first_derivative(edges_x, flux)
         d2flux = second_derivative(edges_x, flux)
         spline = np.zeros((flux.shape[0] - 1,) + flux.shape[1:])
-        # print(spline.shape)
         dspline = np.zeros(spline.shape)
         for gg in range(params["groups"]):
             for nn in range(params["angles"]):
