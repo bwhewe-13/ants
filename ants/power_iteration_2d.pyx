@@ -31,7 +31,7 @@ cdef double[:,:] multigroup(double[:,:]& flux_guess, double[:,:]& xs_total, \
         double[:]& delta_y, double[:]& angle_x, double[:]& angle_y, \
         double[:]& angle_w, params2d params, double[:]& keff):
     # Initialize flux
-    flux = tools.array_2d_ijg(params)
+    flux = tools.array_2d(params.cells_x * params.cells_y, params.groups)
     flux_old = flux_guess.copy()
     # Vacuum boundaries
     cdef double[2] boundary_x = [0.0, 0.0]

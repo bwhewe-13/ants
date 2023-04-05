@@ -37,7 +37,9 @@ def backward_euler(double[:,:] xs_total, double[:,:,:] xs_scatter, \
     tools.combine_self_scattering(xs_matrix, xs_scatter, xs_fission, params)
     xs_total_v = memoryview(np.zeros((params.materials, params.groups)))
     tools.combine_total_velocity(xs_total_v, xs_total, velocity, params)
-    flux_last = tools.array_3d_ijng(params)
+    # flux_last = tools.array_3d_ijng(params)
+    flux_last = tools.array_3d(params.cells_x * params.cells_y, \
+                               params.angles, params.groups)
     flux = td.multigroup_bdf1(flux_last, xs_total_v, xs_matrix, velocity, \
                               external, boundary_x, boundary_y, medium_map, \
                               delta_x, delta_y, angle_x, angle_y, angle_w, \

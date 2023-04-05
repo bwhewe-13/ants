@@ -72,62 +72,29 @@ cdef void combine_source_flux(double[:,:,:]& flux_last, double[:]& source_star, 
                         + flux_last[cell,angle,group] \
                         * 1 / (velocity[group] * params.dt)
 
-cdef double[:] array_1d_ij(params2d params):
-    dd1 = cvarray((params.cells_x * params.cells_y,), \
-                    itemsize=sizeof(double), format="d")
-    cdef double[:] flux = dd1
-    flux[:] = 0.0
-    return flux
+cdef double[:] array_1d(int dim1):
+    dd1 = cvarray((dim1,), itemsize=sizeof(double), format="d")
+    cdef double[:] arr = dd1
+    arr[:] = 0.0
+    return arr
 
-cdef double[:] array_1d_ijg(params2d params):
-    dd1 = cvarray((params.cells_x * params.cells_y * params.groups,), \
-                    itemsize=sizeof(double), format="d")
-    cdef double[:] flux = dd1
-    flux[:] = 0.0
-    return flux
+cdef double[:,:] array_2d(int dim1, int dim2):
+    dd2 = cvarray((dim1, dim2), itemsize=sizeof(double), format="d")
+    cdef double[:,:] arr = dd2
+    arr[:,:] = 0.0
+    return arr
 
-cdef double[:] array_1d_ijng(params2d params):
-    dd1 = cvarray((params.cells_x * params.cells_y * params.angles \
-                  * params.groups,), itemsize=sizeof(double), format="d")
-    cdef double[:] flux = dd1
-    flux[:] = 0.0
-    return flux
+cdef double[:,:,:] array_3d(int dim1, int dim2, int dim3):
+    dd3 = cvarray((dim1, dim2, dim3), itemsize=sizeof(double), format="d")
+    cdef double[:,:,:] arr = dd3
+    arr[:,:,:] = 0.0
+    return arr
 
-cdef double[:,:] array_2d_ijg(params2d params):
-    dd1 = cvarray((params.cells_x * params.cells_y, params.groups), \
-                    itemsize=sizeof(double), format="d")
-    cdef double[:,:] flux = dd1
-    flux[:,:] = 0.0
-    return flux
-
-cdef double[:,:] array_2d_ijn(params2d params):
-    dd1 = cvarray((params.cells_x * params.cells_y, params.angles), \
-                    itemsize=sizeof(double), format="d")
-    cdef double[:,:] flux = dd1
-    flux[:,:] = 0.0
-    return flux
-
-
-cdef double[:,:,:] array_3d_ijng(params2d params):
-    dd1 = cvarray((params.cells_x * params.cells_y, params.angles, \
-                params.groups), itemsize=sizeof(double), format="d")
-    cdef double[:,:,:] flux = dd1
-    flux[:,:,:] = 0.0
-    return flux
-
-cdef double[:,:,:] array_3d_mgg(params2d params):
-    dd1 = cvarray((params.materials, params.groups, params.groups), \
-                    itemsize=sizeof(double), format="d")
-    cdef double[:,:,:] flux = dd1
-    flux[:,:,:] = 0.0
-    return flux
-
-cdef double[:,:,:,:] array_4d_tijng(params2d params):
-    dd1 = cvarray((params.steps, params.cells_x * params.cells_y, \
-            params.angles, params.groups), itemsize=sizeof(double), format="d")
-    cdef double[:,:,:,:] flux = dd1
-    flux[:,:,:,:] = 0.0
-    return flux
+cdef double[:,:,:,:] array_4d(int dim1, int dim2, int dim3, int dim4):
+    dd4 = cvarray((dim1, dim2, dim3, dim4), itemsize=sizeof(double), format="d")
+    cdef double[:,:,:,:] arr = dd4
+    arr[:,:,:,:] = 0.0
+    return arr
 
 cdef double[:] update_y_edge(double[:]& boundary_y, double angle_y, params2d params):
     # This is for converting boundary condition of [2 x I] or [2] into
@@ -357,10 +324,11 @@ cdef void big_to_small(double[:,:]& flux_u, double[:]& flux_c, \
             flux_c[index_c[group]::params_c.groups][cell] += flux_u[cell,group]
             # flux_c[group::params_c.groups][cell] += flux_u[cell,group]
 
+
 cdef double[:,:] small_to_big(double[:,:]& flux_c, int[:]& index_u, \
         double[:]& factor_u, params2d params_u, params2d params_c):
     cdef size_t cell, group_u, group_c
-    flux_u = array_2d_ijg(params_u)
+    flux_u = array_2d(params_u.cells_x * params_u.cells_y, params_u.groups)
     for cell in range(params_c.cells_x * params_c.cells_y):
         for group_c in range(params_c.groups):
             for group_u in range(index_u[group_c], index_u[group_c+1]):

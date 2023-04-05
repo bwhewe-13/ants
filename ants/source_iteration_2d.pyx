@@ -40,11 +40,12 @@ cdef double[:,:,:] multigroup_angular(double[:,:,:]& flux_guess, \
     bcx2 = 1 if params.bcdim_x < 2 else params.groups
     bcy2 = 1 if params.bcdim_y < 2 else params.groups
     # Initialize flux
-    flux = tools.array_3d_ijng(params)
+    flux = tools.array_3d(params.cells_x * params.cells_y, params.angles, \
+                          params.groups)
     flux_old = flux_guess.copy()
-    flux_1g = tools.array_2d_ijn(params)
+    flux_1g = tools.array_2d(params.cells_x * params.cells_y, params.angles)
     # Create off-scattering term
-    off_scatter = tools.array_1d_ij(params)
+    off_scatter = tools.array_1d(params.cells_x * params.cells_y)
     # Set convergence limits
     cdef bint converged = False
     cdef size_t count = 1
@@ -94,7 +95,7 @@ cdef void square_ordinates_angular(double[:,:]& flux, double[:,:]& flux_old, \
         params2d params):
     # Initialize indices etc
     cdef size_t angle, qq1, qq2, bcx1, bcx2, bcy1, bcy2
-    scalar_flux = tools.array_1d_ij(params)
+    scalar_flux = tools.array_1d(params.cells_x * params.cells_y)
     # Set indexing
     qq2 = 1 if params.qdim != 3 else params.angles
     bcx2 = 1 if params.bcdim_x != 3 else params.angles
@@ -249,11 +250,11 @@ cdef double[:,:] multigroup_scalar(double[:,:]& flux_guess, \
     bcx2 = 1 if params.bcdim_x < 2 else params.groups
     bcy2 = 1 if params.bcdim_y < 2 else params.groups
     # Initialize flux
-    flux = tools.array_2d_ijg(params)
+    flux = tools.array_2d(params.cells_x * params.cells_y, params.groups)
     flux_old = flux_guess.copy()
-    flux_1g = tools.array_1d_ij(params)
+    flux_1g = tools.array_1d(params.cells_x * params.cells_y)
     # Create off-scattering term
-    off_scatter = tools.array_1d_ij(params)
+    off_scatter = tools.array_1d(params.cells_x * params.cells_y)
     # Set convergence limits
     cdef bint converged = False
     cdef size_t count = 1
