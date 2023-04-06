@@ -19,14 +19,17 @@ import numpy as np
 
 @pytest.mark.slab2d
 @pytest.mark.power_iteration
-@pytest.mark.parametrize(("finite"), ["x", "y"])
-def test_one_group_infinite(finite):
+@pytest.mark.parametrize(("finite", "spatial"), [("x", "step"), \
+                         ("x", "diamond"), ("y", "step"), ("y", "diamond")])
+def test_one_group_infinite(finite, spatial):
     if finite == "x":
         cells_x = 100; length_x = 1.853722 * 2
         cells_y = 10; length_y = 1000 * 2 
     else:
         cells_y = 100; length_y = 1.853722 * 2
         cells_x = 10; length_x = 1000 * 2
+    # Spatial discretization
+    ss = 1 if spatial == "step" else 2
     delta_x = np.repeat(length_x / cells_x, cells_x)
     delta_y = np.repeat(length_y / cells_y, cells_y)
     medium_map = np.zeros((cells_x, cells_y), dtype=np.int32).flatten()
@@ -39,9 +42,10 @@ def test_one_group_infinite(finite):
     angles = 12
     bc = [0, 0]
     params = {"cells_x": cells_x, "cells_y": cells_y, "angles": angles, \
-             "groups": groups, "materials": 1, "geometry": 1, "spatial": 2, \
-             "qdim": 2, "bc_x": bc, "bcdim_x": 0, "bc_y": bc, "bcdim_y": 0, \
-             "steps": 0, "dt": 0, "adjoint": False, "angular": False}
+              "groups": groups, "materials": 1, "geometry": 1, \
+              "spatial": ss, "qdim": 2, "bc_x": bc, "bcdim_x": 0, \
+              "bc_y": bc, "bcdim_y": 0, "steps": 0, "dt": 0, \
+              "adjoint": False, "angular": False}
     angle_x, angle_y, angle_w = ants._angle_xy(params)
     flux, keff = power(xs_total, xs_scatter, xs_fission, medium_map, \
                        delta_x, delta_y, angle_x, angle_y, angle_w, params)
@@ -51,14 +55,17 @@ def test_one_group_infinite(finite):
 @pytest.mark.smoke
 @pytest.mark.slab2d
 @pytest.mark.power_iteration
-@pytest.mark.parametrize(("finite"), ["x", "y"])
-def test_two_group_infinite(finite):
+@pytest.mark.parametrize(("finite", "spatial"), [("x", "step"), \
+                         ("x", "diamond"), ("y", "step"), ("y", "diamond")])
+def test_two_group_infinite(finite, spatial):
     if finite == "x":
         cells_x = 100; length_x = 1.795602 * 2
         cells_y = 10; length_y = 2000
     else:
         cells_y = 100; length_y = 1.795602 * 2
         cells_x = 10; length_x = 2000
+    # Spatial discretization
+    ss = 1 if spatial == "step" else 2
     delta_x = np.repeat(length_x / cells_x, cells_x)
     delta_y = np.repeat(length_y / cells_y, cells_y)
     medium_map = np.zeros((cells_x, cells_y), dtype=np.int32).flatten()
@@ -77,9 +84,10 @@ def test_two_group_infinite(finite):
     angles = 10
     bc = [0, 0]
     params = {"cells_x": cells_x, "cells_y": cells_y, "angles": angles, \
-             "groups": groups, "materials": 1, "geometry": 1, "spatial": 2, \
-             "qdim": 2, "bc_x": bc, "bcdim_x": 0, "bc_y": bc, "bcdim_y": 0, \
-             "steps": 0, "dt": 0, "adjoint": False, "angular": False}    
+              "groups": groups, "materials": 1, "geometry": 1, \
+              "spatial": ss, "qdim": 2, "bc_x": bc, "bcdim_x": 0, \
+              "bc_y": bc, "bcdim_y": 0, "steps": 0, "dt": 0, \
+              "adjoint": False, "angular": False}    
     angle_x, angle_y, angle_w = ants._angle_xy(params)
     flux, keff = power(xs_total, xs_scatter, xs_fission, medium_map, \
                        delta_x, delta_y, angle_x, angle_y, angle_w, params)
@@ -167,9 +175,9 @@ def test_cylinder_two_material():
     angles = 6
     bc = [0, 0]
     params = {"cells_x": cells_x, "cells_y": cells_y, "angles": angles, \
-             "groups": groups, "materials": len(xs_total), "geometry": 1, "spatial": 2, \
-             "qdim": 2, "bc_x": bc, "bcdim_x": 0, "bc_y": bc, "bcdim_y": 0, \
-             "steps": 0, "dt": 0, "adjoint": False, "angular": False}
+              "groups": groups, "materials": len(xs_total), "geometry": 1, \
+              "spatial": 2, "qdim": 2, "bc_x": bc, "bcdim_x": 0, "bc_y": bc, \
+              "bcdim_y": 0, "steps": 0, "dt": 0, "adjoint": False, "angular": False}
     angle_x, angle_y, angle_w = ants._angle_xy(params)
     flux, keff = power(xs_total, xs_scatter, xs_fission, medium_map.flatten(), \
                        delta_x, delta_y, angle_x, angle_y, angle_w, params)

@@ -144,13 +144,16 @@ cdef void square_forward_y(double[:]& flux, double[:]& flux_old, \
         int[:]& medium_map, double[:]& delta_x, double[:]& delta_y, \
         double angle_x, double angle_y, double angle_w, params2d params):
     cdef size_t cell, qq1, qq2, bcx1, bcx2
-    cdef double coef_y, edge
+    cdef double coef_y, edge, cc
+    # Step vs Diamond
+    cc = 2.0 if params.spatial == 2 else 1.0
+    # Different boundary, source dimensions
     qq2 = 1 if params.qdim == 0 else params.cells_y
     bcx2 = 1 if params.bcdim_x == 0 else params.cells_y
     for cell in range(params.cells_y):
         qq1 = 0 if params.qdim == 0 else cell
         bcx1 = 0 if params.bcdim_x == 0 else cell
-        coef_y = 2 * fabs(angle_y) / delta_y[cell]
+        coef_y = cc * fabs(angle_y) / delta_y[cell]
         if angle_x > 0.0:
             edge = square_forward_x(flux[cell::params.cells_y], \
                                     flux_old[cell::params.cells_y], xs_total, \
@@ -173,18 +176,24 @@ cdef double square_forward_x(double[:]& flux, double[:]& flux_old, \
         int[:]& medium_map, double[:]& delta_x,  double angle_x, \
         double angle_w, double coef_y, params2d params):
     cdef size_t cell, mat #, qq
-    cdef double center, edge1, coef_x
+    cdef double center, edge1, coef_x, cc
+    # Step vs Diamond
+    cc = 2.0 if params.spatial == 2 else 1.0
     edge1 = edge_x
     for cell in range(params.cells_x):
         mat = medium_map[cell]
         # qq = cell if params.qdim != 0 else 0
-        coef_x = (2 * fabs(angle_x) / delta_x[cell])
+        coef_x = (cc * fabs(angle_x) / delta_x[cell])
         center = (coef_x * edge1 + coef_y * edge_y[cell] \
                 + xs_scatter[mat] * flux_old[cell] + external[cell] \
                 + off_scatter[cell]) / (xs_total[mat] + coef_x + coef_y)
         flux[cell] += angle_w * center
-        edge1 = 2 * center - edge1
-        edge_y[cell] = 2 * center - edge_y[cell]
+        if params.spatial == 1:
+            edge1 = center
+            edge_y[cell] = center
+        elif params.spatial == 2:
+            edge1 = 2 * center - edge1
+            edge_y[cell] = 2 * center - edge_y[cell]
     return edge1
 
 
@@ -194,13 +203,15 @@ cdef void square_backward_y(double[:]& flux, double[:]& flux_old, \
         int[:]& medium_map, double[:]& delta_x, double[:]& delta_y, \
         double angle_x, double angle_y, double angle_w, params2d params):
     cdef size_t cell, qq1, qq2, bcx1, bcx2
-    cdef double coef_y, edge
+    cdef double coef_y, edge, cc
+    # Step vs Diamond
+    cc = 2.0 if params.spatial == 2 else 1.0
     qq2 = 1 if params.qdim == 0 else params.cells_y
     bcx2 = 1 if params.bcdim_x == 0 else params.cells_y
     for cell in range(params.cells_y-1, -1, -1):
         qq1 = 0 if params.qdim == 0 else cell
         bcx1 = 0 if params.bcdim_x == 0 else cell
-        coef_y = 2 * fabs(angle_y) / delta_y[cell]
+        coef_y = cc * fabs(angle_y) / delta_y[cell]
         if angle_x > 0.0:
             edge = square_forward_x(flux[cell::params.cells_y], \
                                     flux_old[cell::params.cells_y], xs_total, \
@@ -223,18 +234,25 @@ cdef double square_backward_x(double[:]& flux, double[:]& flux_old, \
         int[:]& medium_map, double[:]& delta_x,  double angle_x, \
         double angle_w, double coef_y, params2d params):
     cdef size_t cell, mat #, qq
-    cdef double center, edge1, coef_x
+    cdef double center, edge1, coef_x, cc
+    # Step vs Diamond Difference
+    cc = 2.0 if params.spatial == 2 else 1.0
+    # Sweeping
     edge1 = edge_x
     for cell in range(params.cells_x-1, -1, -1):
         mat = medium_map[cell]
         # qq = cell if params.qdim != 0 else 0
-        coef_x = (2 * fabs(angle_x) / delta_x[cell])
+        coef_x = (cc * fabs(angle_x) / delta_x[cell])
         center = (coef_x * edge1 + coef_y * edge_y[cell] \
                 + xs_scatter[mat] * flux_old[cell] + external[cell] \
                 + off_scatter[cell]) / (xs_total[mat] + coef_x + coef_y)
         flux[cell] += angle_w * center
-        edge1 = 2 * center - edge1
-        edge_y[cell] = 2 * center - edge_y[cell]
+        if params.spatial == 1: # Step Method
+            edge1 = center
+            edge_y[cell] = center
+        elif params.spatial == 2: # Diamond Difference
+            edge1 = 2 * center - edge1
+            edge_y[cell] = 2 * center - edge_y[cell]
     return edge1
 
 
@@ -326,51 +344,3 @@ cdef void square_ordinates_scalar(double[:]& flux, double[:]& flux_old, \
         converged = (change < INNER_TOLERANCE) or (count >= MAX_ITERATIONS)
         count += 1
         flux_old[:] = flux[:]
-
-
-# cdef void spatial_sweep(double[:]& flux, double[:]& flux_old, \
-#             double[:]& xs_total, double[:]& xs_scatter, double[:] off_scatter, \
-#             double[:] external, double[:] boundary, int[:] medium_map, \
-#             double[:] delta_x, double[:] delta_y, double angle_x, \
-#             double angle_y, double angle_w, size_t angle, params2d params) nogil:
-#     cdef double edge1, edge2, center, weight
-#     cdef size_t ii, xx, jj, yy, mat
-#     cdef size_t ff1, ff2, qq1, qq2, bc1, bc2
-#     # Initialize Weight
-#     weight = 1 if params.angular == True else 0.25*angle_w
-#     # Initialize index parameters
-#     ff1 = 0 if params.angular == False else angle
-#     ff2 = params.angles if params.angular == True else 1
-#     qq1 = 0 if params.qdim != 3 else angle
-#     qq2 = 1 if params.qdim != 3 else params.angles
-#     # bc1 = 0 if params.bcdim != 2 else angle
-#     # bc2 = 1 if params.bcdim != 2 else params.angles
-#     # Initialize boundary condition
-#     cdef double[:] boundary_y
-#     with cython.gil:
-#         arr1d = cvarray((params.cells_x,), itemsize=sizeof(double), format="d")
-#         boundary_y = arr1d
-#         boundary_y[:] = 0.0
-#     # Sweep over X and Y directions
-#     for jj in range(params.cells_y):
-#         yy = sweep_direction(angle_y, params.cells_y, jj)
-#         edge1 = 0.0
-#         for ii in range(params.cells_x):
-#             xx = sweep_direction(angle_x, params.cells_x, ii)
-#             mat = medium_map[yy::params.cells_y][xx]
-#             center = ((2 * fabs(angle_x) / delta_x[xx]) * edge1 \
-#                     + (2 * fabs(angle_y) / delta_y[yy]) * boundary_y[xx] \
-#                     + xs_scatter[mat] * flux_old[yy::params.cells_y][xx] \
-#                     + external[qq1::qq2][yy::params.cells_y][xx] \
-#                     + off_scatter[yy::params.cells_y][xx]) \
-#                     / (xs_total[mat] + (2 * fabs(angle_x) / delta_x[xx]) \
-#                     + (2 * fabs(angle_y) / delta_y[yy]))
-#             flux[ff1::ff2][yy::params.cells_y][xx] += weight * center
-#             edge1 = 2 * center - edge1
-#             boundary_y[xx] = 2 * center - boundary_y[xx]
-
-# cdef int sweep_direction(double angle, int cells, int cell) nogil:
-#     if angle > 0.0:
-#         return cell
-#     elif angle < 0.0:
-#         return cells - (cell + 1)
