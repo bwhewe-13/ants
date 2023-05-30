@@ -153,9 +153,9 @@ exact_scalar = np.sum(exact_angular * angle_w[None,None,:,None], axis=(2,3))
 # ax.set_zlabel("Angular Flux", labelpad=20)
 
 fig, ax = plt.subplots()
-img = ax.imshow(exact_scalar - flux[:,:,0].T, cmap="rainbow", \
+img = ax.imshow(abs(exact_scalar - flux[:,:,0].T), cmap="rainbow", \
                 origin="lower") #, vmin=mini, vmax=maxi)
-fig.colorbar(img, ax=ax, label="(Exact - Approx)", format="%.0e")
+fig.colorbar(img, ax=ax, label="(Exact - Approx)", format="%.02e")
 ax.set_title("Scalar Flux Difference, N = {}".format(angles1))
 ax.set_xticks(np.arange(-0.5, cells_x+1)[::10])
 ax.set_xticklabels(np.round(edges_x, 3)[::10])
@@ -167,20 +167,20 @@ ax.set_ylabel("y Direction (cm)")
 # fig.savefig("scalar-flux-difference.png", bbox_inches="tight", dpi=300)
 
 
-maxi = np.amax([np.amax(exact_scalar), np.amax(flux)])
-mini = np.amin([np.amin(exact_scalar), np.amin(flux)])
+# maxi = np.amax([np.amax(exact_scalar), np.amax(flux)])
+# mini = np.amin([np.amin(exact_scalar), np.amin(flux)])
 
 
-fig, ax = plt.subplots()
-img = ax.imshow(exact_scalar, cmap="rainbow", origin="lower", vmin=mini, vmax=maxi)
-fig.colorbar(img, ax=ax, label="Scalar Flux")
-ax.set_title("Analytical Scalar Flux, N = {}".format(angles1))
-ax.set_xticks(np.arange(-0.5, cells_x+1)[::10])
-ax.set_xticklabels(np.round(edges_x, 3)[::10])
-ax.set_yticks(np.arange(-0.5, cells_y+1)[::10])
-ax.set_yticklabels(np.round(edges_y, 3)[::10])
-ax.set_xlabel("x Direction (cm)")
-ax.set_ylabel("y Direction (cm)")
+# fig, ax = plt.subplots()
+# img = ax.imshow(exact_scalar, cmap="rainbow", origin="lower", vmin=mini, vmax=maxi)
+# fig.colorbar(img, ax=ax, label="Scalar Flux")
+# ax.set_title("Analytical Scalar Flux, N = {}".format(angles1))
+# ax.set_xticks(np.arange(-0.5, cells_x+1)[::10])
+# ax.set_xticklabels(np.round(edges_x, 3)[::10])
+# ax.set_yticks(np.arange(-0.5, cells_y+1)[::10])
+# ax.set_yticklabels(np.round(edges_y, 3)[::10])
+# ax.set_xlabel("x Direction (cm)")
+# ax.set_ylabel("y Direction (cm)")
 # fig.savefig("analytical-scalar-flux.png", bbox_inches="tight", dpi=300)
 
 

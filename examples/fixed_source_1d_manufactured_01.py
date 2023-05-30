@@ -42,9 +42,6 @@ params = {
             "qdim": 1, 
             "bc": bc,
             "bcdim": 2, 
-            "steps": 0, 
-            "dt": 0, 
-            "adjoint": False, 
             "angular": True
         }
 
@@ -63,11 +60,9 @@ flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
                         params)
 
 
-
 exact = mms.solution_mms_01(centers_x, angle_x)
 
 colors = sns.color_palette("hls", angles)
-
 fig, ax = plt.subplots()
 for n in range(angles):
     ax.plot(centers_x, flux[:,n,0], color=colors[n], alpha=0.6, \

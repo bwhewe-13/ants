@@ -15,10 +15,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-cells_x = 100
-cells_y = 100
-angles = 4
-angles1 = 4
+cells_x = cells_y = 50
+# cells_y = 200
+angles = angles1 = 4
+# angles1 = 4
 groups = 1
 
 length_x = 1.
@@ -86,22 +86,22 @@ flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
 exact_angular = mms.solution_mms_02(centers_x, centers_y, angle_x, angle_y)
 exact_scalar = np.sum(exact_angular * angle_w[None,None,:,None], axis=(2,3))
 
-np.save("exact_scalar_x{}".format(str(cells_x).zfill(3)), exact_scalar)
-np.save("estimated_scalar_x{}".format(str(cells_x).zfill(3)), flux[:,:,0].T)
+# np.save("exact_scalar_x{}".format(str(cells_x).zfill(3)), exact_scalar)
+# np.save("estimated_scalar_x{}".format(str(cells_x).zfill(3)), flux[:,:,0].T)
 
-print("Saved!")
+# print("Saved!")
 
-# fig, ax = plt.subplots()
-# img = ax.imshow(np.fabs(exact_scalar - flux[:,:,0].T), cmap="rainbow", \
-#                 origin="lower") #, vmin=mini, vmax=maxi)
-# fig.colorbar(img, ax=ax, label="|Exact - Approx|", format="%.0e")
-# ax.set_title("Scalar Flux Difference, N = {}".format(angles1))
-# ax.set_xticks(np.arange(-0.5, cells_x+1)[::10])
-# ax.set_xticklabels(np.round(edges_x, 3)[::10])
-# ax.set_yticks(np.arange(-0.5, cells_y+1)[::10])
-# ax.set_yticklabels(np.round(edges_y, 3)[::10])
-# ax.set_xlabel("x Direction (cm)")
-# ax.set_ylabel("y Direction (cm)")
+fig, ax = plt.subplots()
+img = ax.imshow(np.fabs(exact_scalar - flux[:,:,0].T), cmap="rainbow", \
+                origin="lower") #, vmin=mini, vmax=maxi)
+fig.colorbar(img, ax=ax, label="|Exact - Approx|", format="%.02e")
+ax.set_title("Scalar Flux Difference, N = {}".format(angles1))
+ax.set_xticks(np.arange(-0.5, cells_x+1)[::10])
+ax.set_xticklabels(np.round(edges_x, 3)[::10])
+ax.set_yticks(np.arange(-0.5, cells_y+1)[::10])
+ax.set_yticklabels(np.round(edges_y, 3)[::10])
+ax.set_xlabel("x Direction (cm)")
+ax.set_ylabel("y Direction (cm)")
 # # fig.savefig("mms2-scalar-flux-difference.png", bbox_inches="tight", dpi=300)
 
 
