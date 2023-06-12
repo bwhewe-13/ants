@@ -34,16 +34,16 @@ materials = [[0, "scattering", "0-4, 12-16"], [1, "vacuum", "4-5, 11-12"], \
 # materials = [[0, "scattering", "4-8"], [1, "vacuum", "3-4"], \
 #              [2, "absorber", "2-3"], [3, "source", "0-2"]]
 
-params = {
-            "cells": cells, 
+info = {
+            "cells_x": cells,
             "angles": angles, 
             "groups": groups, 
             "materials": len(materials),
             "geometry": 1, 
             "spatial": 2, 
             "qdim": 3, 
-            "bc": bc,
-            "bcdim": 0, 
+            "bc_x": bc,
+            "bcdim_x": 1,
             "angular": True
         }
 
@@ -57,7 +57,7 @@ centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
 medium_map = ants._medium_map(materials, edges_x)
 
 # Angular
-angle_x, angle_w = ants._angle_x(params)
+angle_x, angle_w = ants._angle_x(info)
 
 # Cross Sections
 xs_total = np.array([[1.0], [0.0], [5.0], [50.0]])
@@ -66,14 +66,13 @@ xs_fission = np.array([[[0.0]], [[0.0]], [[0.0]], [[0.0]]])
 
 # External and boundary sources
 external = ants.externals("reeds", (cells, angles, groups), \
-                          edges_x=edges_x, bc=params["bc"]).flatten()
-boundary = np.zeros((2,))
+                          edges_x=edges_x, bc=info["bc_x"]).flatten()
+boundary_x = np.zeros((2,))
 
 flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
-                        boundary, medium_map, delta_x, angle_x, angle_w, \
-                        params)
+                boundary_x, medium_map, delta_x, angle_x, angle_w, info)
 # Convert to scalar flux
-if params["angular"]:
+if info["angular"]:
     flux = np.sum(flux[:,:,0] * angle_w[None,:], axis=1)
 
 fig, ax = plt.subplots()

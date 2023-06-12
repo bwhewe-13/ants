@@ -28,25 +28,22 @@ delta_x = np.repeat(length / cells, cells)
 edges_x = np.linspace(0, length, cells+1)
 centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
 
-bc = [0, 0]
+bc_x = [0, 0]
 
-params = {
-            "cells": cells, 
+info = {
+            "cells_x": cells,
             "angles": angles, 
             "groups": groups, 
             "materials": 2,
             "geometry": 1, 
             "spatial": 2, 
             "qdim": 3, 
-            "bc": bc,
-            "bcdim": 2, 
-            "steps": 0, 
-            "dt": 0, 
-            "adjoint": False, 
+            "bc_x": bc_x,
+            "bcdim_x": 3,
             "angular": True
         }
 
-angle_x, angle_w = ants._angle_x(params)
+angle_x, angle_w = ants._angle_x(info)
 materials = [[0, "quasi", "0-1"], [1, "scatter", "1-2"]]
 medium_map = ants._medium_map(materials, edges_x)
 
@@ -56,12 +53,11 @@ xs_fission = np.array([[[0.0]], [[0.0]]])
 
 external = ants.externals("mms-04", (cells, angles), \
                           centers_x=centers_x, angle_x=angle_x).flatten()
-boundary = ants.boundaries("mms-04", (2, angles), [0, 1], \
+boundary_x = ants.boundaries("mms-04", (2, angles), [0, 1], \
                            angle_x=angle_x).flatten()
 
 flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
-                        boundary, medium_map, delta_x, angle_x, angle_w, \
-                        params)
+                boundary_x, medium_map, delta_x, angle_x, angle_w, info)
 
 
 exact = mms.solution_mms_04(centers_x, angle_x)
