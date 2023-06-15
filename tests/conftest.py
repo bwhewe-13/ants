@@ -1,18 +1,23 @@
 
+from pathlib import Path
 import pytest
 
-@pytest.fixture(params=['00','25','50','100'])
-def enrich(request):
-    return request.param
 
-@pytest.fixture(params=[80, 60, 43, 21, 10])
-def g087r(request):
-    return request.param
+@pytest.fixture(autouse=True)
+def change_test_dir(request, monkeypatch):
+    monkeypatch.chdir(request.fspath.dirname)
 
-@pytest.fixture(params=[300, 240, 180, 150, 120, 90, 60, 30])
-def g361r(request):
-    return request.param
 
-@pytest.fixture(params=[600, 500, 400, 300, 200, 100])
-def g618r(request):
-    return request.param
+def pytest_addoption(parser):
+    parser.addoption("--mg1d", action="store_true", default=False, \
+                     help="Runs one-dimensional multigroup problems if True")
+
+
+def pytest_collection_modifyitems(config, items):
+    if config.getoption("--mg1d"):
+        # --mg1d given in cli: do not skip multigroup tests
+        return
+    multigroup1d = pytest.mark.skip(reason="Run on --mg1d option")
+    for item in items:
+        if "multigroup1d" in item.keywords:
+            item.add_marker(multigroup1d)

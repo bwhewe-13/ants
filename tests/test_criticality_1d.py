@@ -289,7 +289,7 @@ def test_two_group_sphere_plutonium_01():
     assert abs(keff - 1.) < 2e-3, str(keff) + " not critical"
 
 
-@pytest.mark.skip
+@pytest.mark.skip(reason="Incorrect answer from Benchmarks")
 @pytest.mark.slab1d
 @pytest.mark.power_iteration
 @pytest.mark.parametrize(("boundary"), [[0, 0], [0, 1], [1, 0]])
@@ -313,7 +313,7 @@ def test_two_group_slab_uranium_01(boundary):
     assert abs(keff - 1.) < 2e-3, str(keff) + " not critical"
 
 
-@pytest.mark.skip
+@pytest.mark.skip(reason="Incorrect answer from Benchmarks")
 @pytest.mark.sphere1d
 @pytest.mark.power_iteration
 def test_two_group_sphere_uranium_01():
