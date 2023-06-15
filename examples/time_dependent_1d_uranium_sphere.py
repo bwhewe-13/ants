@@ -14,13 +14,13 @@ info = {
             "cells_x": cells,
             "angles": angles, 
             "groups": groups, 
-            "materials": 2,
-            "geometry": 1, 
-            "spatial": 2, 
-            "qdim": 3, 
-            "bc_x": [0, 0],
+            "materials": 3,
+            "geometry": 2,
+            "spatial": 2,
+            "qdim": 3,
+            "bc_x": [1, 0],
             "bcdim_x": 2,
-            "steps": steps, 
+            "steps": steps,
             "dt": 1e-8,
             "bcdecay": 2
         }
@@ -39,8 +39,8 @@ velocity = ants._velocity(groups, energy_grid)
 angle_x, angle_w = ants._angle_x(info)
 
 # Medium Map
-materials = [[0, "stainless-steel-440", "0-4, 6-10"], \
-             [1, "uranium-%20%", "4-6"]]
+materials = [[0, "uranium-%20%", "0-4"], [1, "uranium-%0%", "4-6"], \
+             [2, "stainless-steel-440", "6-10"]]
 medium_map = ants._medium_map(materials, edges_x)
 
 # Cross Sections
@@ -49,9 +49,9 @@ xs_total, xs_scatter, xs_fission = ants.materials(groups, materials)
 
 # External and boundary sources
 external = ants.externals(0.0, (cells * angles * groups,))
-boundary_x = ants.boundaries("14.1-mev", (2, groups), [0], \
+boundary_x = ants.boundaries("14.1-mev", (2, groups), [1], \
                              energy_grid=energy_grid).flatten()
 
 flux = backward_euler(xs_total, xs_scatter, xs_fission, velocity, external, \
             boundary_x, medium_map, delta_x, angle_x, angle_w, info)
-# np.save("time_dependent_uranium_slab", flux)
+# np.save("time_dependent_uranium_sphere", flux)

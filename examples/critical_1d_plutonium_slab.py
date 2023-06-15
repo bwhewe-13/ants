@@ -1,11 +1,8 @@
 
 import numpy as np
-import matplotlib.pyplot as plt
-import time
 
 import ants
 from ants.critical1d import power_iteration as power
-
 
 # General conditions
 cells = 1000
@@ -45,13 +42,8 @@ medium_map = ants._medium_map(materials, edges_x)
 materials_names = np.array(materials)[:,1]
 xs_total, xs_scatter, xs_fission = ants.materials(groups, materials_names)
 
-start = time.time()
 flux, keff = power(xs_total, xs_scatter, xs_fission,  medium_map, \
                     delta_x, angle_x, angle_w, info)
-stop = time.time()
 
-np.save(f"critical_plutonium_{enrich}_slab_flux", flux)
-np.save(f"critical_plutonium_{enrich}_slab_keff", keff)
-
-
-
+# np.save(f"critical_plutonium_{enrich}_slab_flux", flux)
+# np.save(f"critical_plutonium_{enrich}_slab_keff", keff)

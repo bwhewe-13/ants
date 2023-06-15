@@ -2,27 +2,24 @@
 import numpy as np
 
 import ants
-from ants.timed1d import backward_euler
+from ants.fixed1d import source_iteration
+
 
 # General conditions
 cells = 1000
 angles = 16
 groups = 87
-steps = 100
 
 info = {
             "cells_x": cells,
             "angles": angles, 
             "groups": groups, 
-            "materials": 2,
-            "geometry": 1, 
-            "spatial": 2, 
-            "qdim": 3, 
-            "bc_x": [0, 0],
-            "bcdim_x": 2,
-            "steps": steps, 
-            "dt": 1e-8,
-            "bcdecay": 2
+            "materials": 3,
+            "geometry": 2,
+            "spatial": 2,
+            "qdim": 2,
+            "bc_x": [1, 0],
+            "bcdim_x": 2
         }
 
 # Spatial
@@ -33,14 +30,13 @@ centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
 
 # Energy Grid
 energy_grid, idx_edges = ants._energy_grid(groups, 87)
-velocity = ants._velocity(groups, energy_grid)
 
 # Angular
 angle_x, angle_w = ants._angle_x(info)
 
 # Medium Map
-materials = [[0, "stainless-steel-440", "0-4, 6-10"], \
-             [1, "uranium-%20%", "4-6"]]
+materials = [[0, "uranium-%20%", "0-4"], [1, "uranium-%0%", "4-6"], \
+             [2, "stainless-steel-440", "6-10"]]
 medium_map = ants._medium_map(materials, edges_x)
 
 # Cross Sections
@@ -48,10 +44,10 @@ materials = np.array(materials)[:,1]
 xs_total, xs_scatter, xs_fission = ants.materials(groups, materials)
 
 # External and boundary sources
-external = ants.externals(0.0, (cells * angles * groups,))
-boundary_x = ants.boundaries("14.1-mev", (2, groups), [0], \
+external = ants.externals(0.0, (cells * groups,))
+boundary_x = ants.boundaries("14.1-mev", (2, groups), [1], \
                              energy_grid=energy_grid).flatten()
 
-flux = backward_euler(xs_total, xs_scatter, xs_fission, velocity, external, \
+flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
             boundary_x, medium_map, delta_x, angle_x, angle_w, info)
-# np.save("time_dependent_uranium_slab", flux)
+# np.save("time_independent_uranium_sphere", flux)
