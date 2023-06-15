@@ -23,10 +23,10 @@ def _angle_x(params):
     angle_x, angle_w = np.polynomial.legendre.leggauss(params["angles"])
     angle_w /= np.sum(angle_w)
     # Ordering for reflective boundaries
-    if np.sum(params["bc"]) > 0.0:
-        if params["bc"] == [1, 0]:
+    if np.sum(params["bc_x"]) > 0.0:
+        if params["bc_x"] == [1, 0]:
             idx = angle_x.argsort()
-        elif params["bc"] == [0, 1]:
+        elif params["bc_x"] == [0, 1]:
             idx = angle_x.argsort()[::-1]
         angle_x = angle_x[idx].copy()
         angle_w = angle_w[idx].copy()

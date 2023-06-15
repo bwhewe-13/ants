@@ -10,11 +10,17 @@
 # Loop Exit Conditions
 INNER_TOLERANCE = 1E-08
 OUTER_TOLERANCE = 1E-12
-MAX_ITERATIONS = 100
+MAX_ITERATIONS = 100 # Regular problem
+# MAX_ITERATIONS = 1E6 # Diffusion Problem
 
-# For Diffusive Problems
-# OUTER_TOLERANCE = 1E-10
-# MAX_ITERATIONS = 1000000
+# Convergence conditions
+EPSILON_ANGULAR = 1E-12
+EPSILON_ENERGY = 1E-08
+EPSILON_POWER = 1E-06 # For Power Iterations
+
+MAX_ANGULAR = 100
+MAX_ENERGY = 100
+MAX_POWER = 100
 
 # Transport Parameters Dictionary
 PARAMS_DICT = {"slab": 1, "sphere": 2,          # Geometry
