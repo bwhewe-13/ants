@@ -18,69 +18,102 @@
 # cython: profile=True
 # distutils: language = c++
 
-import ants
-from ants cimport time_dependent_1d as td
-from ants cimport cytools_1d as tools
-from ants.cytools_1d cimport params1d
-from ants.utils import dimensions
-
 import numpy as np
+from tqdm import tqdm
+
+from ants import angular_x
+from ants cimport multi_group_1d as mg
+from ants cimport cytools_1d as tools
+from ants.parameters cimport params
+from ants cimport parameters
+from ants.utils.hybrid import hybrid_coarsen, hybrid_index
 
 # Uncollided is fine grid (N x G)
 # Collided is coarse grid (N' x G')
 
 def backward_euler(double[:,:] xs_total_u, double[:,:,:] xs_scatter_u, \
         double[:,:,:] xs_fission_u, double[:] velocity_u, \
-        double[:] external, double[:] boundary, int[:] medium_map, \
-        double[:] delta_x, double[:] energy_edges, int[:] idx_edges, \
+        double[:] external_u, double[:] boundary_u, int[:] medium_map, \
+        double[:] delta_x, double[:] edges_g, int[:] edges_gidx, \
         dict params_dict_u, dict params_dict_c):
     # Create angles and weights
-    angle_xu, angle_wu = ants._angle_x(params_dict_u)
-    angle_xc, angle_wc = ants._angle_x(params_dict_c)
-    ####################################################################
-    # UNCOLLIDED PORTION
-    ####################################################################
-    # Uncollided dictionary to params1d
-    params_u = tools._to_params1d(params_dict_u)
-    # Combine fission and scattering for uncollided
-    # xs_matrix_u = memoryview(np.zeros((params_u.materials, \
-    #                         params_u.groups, params_u.groups)))
-    xs_matrix_u = tools.array_3d(params_u.materials, params_u.groups, \
-                                 params_u.groups)
-    tools.combine_self_scattering(xs_matrix_u, xs_scatter_u, xs_fission_u, params_u)
-    # Combine total and 1/vdt for uncollided
-    xs_total_vu = tools.array_2d(params_u.materials, params_u.groups)
-    tools.combine_total_velocity(xs_total_vu, xs_total_u, velocity_u, params_u)
-    ####################################################################
-    # COLLIDED PORTION
-    ####################################################################
-    # Collided dictionary to params1d
-    params_c = tools._to_params1d(params_dict_c)
-    # Create collided cross sections and velocity    
-    xs_total_c = dimensions.xs_vector_coarsen(xs_total_u, energy_edges, idx_edges)
-    xs_scatter_c = dimensions.xs_matrix_coarsen(xs_scatter_u, energy_edges, idx_edges)
-    xs_fission_c = dimensions.xs_matrix_coarsen(xs_fission_u, energy_edges, idx_edges)
-    velocity_c = dimensions.velocity_mean_coarsen(velocity_u, idx_edges)
-    # Combine fission and scattering for collided
-    xs_matrix_c = tools.array_3d(params_c.materials, params_c.groups, \
-                                 params_c.groups)
-    tools.combine_self_scattering(xs_matrix_c, xs_scatter_c, xs_fission_c, params_c)
-    # Combine total and 1/vdt for collided
-    xs_total_vc = tools.array_2d(params_c.materials, params_c.groups)
-    tools.combine_total_velocity(xs_total_vc, xs_total_c, velocity_c, params_c)
-    ####################################################################
+    angle_xu, angle_wu = angular_x(params_dict_u)
+    angle_xc, angle_wc = angular_x(params_dict_c)
+    # Convert uncollided dictionary to type params
+    info_u = parameters._to_params(params_dict_u)
+    parameters._check_hybrid1d_bdf1_uncollided(info_u, xs_total_u.shape[0])
+    # Convert collided dictionary to type params
+    info_c = parameters._to_params(params_dict_c)
+    parameters._check_hybrid1d_bdf1_collided(info_c, xs_total_u.shape[0])
+    # Combine fission and scattering
+    tools._xs_matrix(xs_scatter_u, xs_fission_u, info_u)
+    # Create collided cross sections and velocity
+    xs_total_c, xs_scatter_c, velocity_c = hybrid_coarsen(xs_total_u, \
+                        xs_scatter_u, velocity_u, edges_g, edges_gidx)
+    # Create sigma_t + 1 / (v * dt)
+    tools._total_velocity(xs_total_u, velocity_u, info_u)
+    tools._total_velocity(xs_total_c, velocity_c, info_c)
     # Indexing Parameters
-    index_c = dimensions.calculate_collided_index(params_u.groups, idx_edges)
-    delta_u, delta_c = dimensions.energy_bin_widths(energy_edges, idx_edges)
-    factor_u = dimensions.calculate_hybrid_factor(params_u.groups, params_c.groups, \
-                                                  delta_u, delta_c, idx_edges)
-    index_u = dimensions.calculate_uncollided_index(params_c.groups, idx_edges)
-    ####################################################################
-    flux = td.hybrid_bdf1(xs_total_vu, xs_total_vc, xs_matrix_u, xs_matrix_c, \
-                          velocity_u, velocity_c, external, boundary, \
-                          medium_map, delta_x, angle_xu, angle_wu, \
-                          angle_xc, angle_wc, index_u, index_c, factor_u, \
-                          params_u, params_c)
-    flux = np.asarray(flux).reshape(params_u.steps, params_u.cells_x, \
-                                    params_u.angles, params_u.groups)
-    return flux
+    coarse_idx, fine_idx, factor = hybrid_index(info_u.groups, \
+                                    info_c.groups, edges_g, edges_gidx)
+    # Run Backward Euler
+    flux = multigroup_bdf1(xs_total_u, xs_scatter_u, velocity_u, external_u, \
+                boundary_u, medium_map, delta_x, angle_xu, angle_wu, \
+                xs_total_c, xs_scatter_c, velocity_c, angle_xc, angle_wc, \
+                fine_idx, coarse_idx, factor, info_u, info_c)
+    return np.asarray(flux)
+
+
+cdef double[:,:,:] multigroup_bdf1(double[:,:]& xs_total_u, \
+        double[:,:,:]& xs_scatter_u, double[:]& velocity_u, double[:]& external_u, \
+        double[:]& boundary_u, int[:]& medium_map, double[:]& delta_x, \
+        double[:]& angle_xu, double[:]& angle_wu, double[:,:]& xs_total_c, \
+        double[:,:,:]& xs_scatter_c, double[:]& velocity_c, double[:]& angle_xc, \
+        double[:]& angle_wc, int[:]& fine_idx, int[:]& coarse_idx, \
+        double[:]& factor, params info_u, params info_c):
+    # Initialize time step
+    cdef int step
+    # Combine last time step and uncollided source term
+    q_star = tools.array_1d((info_u.cells_x + info_u.edges) \
+                            * info_u.angles * info_u.groups)
+    # Initialize angular flux for previous time step
+    flux_last = tools.array_3d(info_u.cells_x + info_u.edges, \
+                            info_u.angles, info_u.groups)
+    # Initialize uncollided scalar flux
+    flux_u = tools.array_2d(info_u.cells_x + info_u.edges, info_u.groups)
+    # Initialize collided scalar flux
+    flux_c = tools.array_2d(info_c.cells_x + info_c.edges, info_c.groups)
+    # Initialize total scalar flux
+    flux_t = tools.array_2d(info_u.cells_x + info_u.edges, info_u.groups)
+    # Initialize array with all scalar flux time steps
+    flux_time = tools.array_3d(info_u.steps, info_u.cells_x + info_u.edges, info_u.groups)
+    # Initialize collided source
+    source_c = tools.array_1d((info_c.cells_x + info_c.edges) * info_c.groups)
+    # Initialize collided boundary
+    cdef double[2] boundary_c = [0.0, 0.0]
+    # Iterate over time steps
+    for step in tqdm(range(info_u.steps)):
+        # Adjust boundary condition
+        tools.boundary_decay(boundary_u, step, info_u)
+        # Update q_star as external + 1/(v*dt) * psi
+        tools._time_source_star(flux_last, q_star, external_u, velocity_u, info_u)
+        # Step 1: Solve Uncollided Equation known_source (I x N x G) -> (I x G)
+        flux_u = tools._angular_to_scalar(mg._known_source(xs_total_u, q_star, boundary_u, \
+                        medium_map, delta_x, angle_xu, angle_wu, info_u), angle_wu, info_u)
+        # Step 2: Compute collided source (I x G')
+        tools._hybrid_source_collided(flux_u, xs_scatter_u, source_c, \
+                                medium_map, coarse_idx, info_u, info_c)
+        # Step 3: Solve Collided Equation (I x G')
+        flux_c = mg.source_iteration(flux_c, xs_total_c, xs_scatter_c, \
+                                    source_c, boundary_c, medium_map, \
+                                    delta_x, angle_xc, angle_wc, info_c)
+        # Step 4: Create a new source and solve for angular flux
+        tools._expand_hybrid_source(flux_t, flux_c, fine_idx, factor, info_u, info_c)
+        tools._hybrid_source_total(flux_t, flux_u, xs_scatter_u, q_star, \
+                            medium_map, fine_idx, factor, info_u, info_c)
+        # Solve for angular flux of time step
+        flux_last = mg._known_source(xs_total_u, q_star, boundary_u, \
+                        medium_map, delta_x, angle_xu, angle_wu, info_u)
+        # Step 5: Update and repeat
+        flux_time[step] = tools._angular_to_scalar(flux_last, angle_wu, info_u)
+    return flux_time[:,:,:]

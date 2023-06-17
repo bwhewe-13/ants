@@ -57,8 +57,7 @@ cdef double[:,:] _angular_to_scalar(double[:,:,:]& angular_flux,
 ########################################################################
 # Time Dependent functions
 ########################################################################
-cdef void _total_velocity(double[:,:]& xs_total_v, double[:,:]& xs_total, \
-        double[:]& velocity, params info)
+cdef void _total_velocity(double[:,:]& xs_total, double[:]& velocity, params info)
 
 cdef void _time_source_total(double[:]& source, double[:,:]& scalar_flux, \
         double[:,:,:]& angular_flux, double[:,:,:]& xs_matrix, \
@@ -97,7 +96,9 @@ cdef void _hybrid_source_collided(double[:,:]& flux, double[:,:,:]& xs_scatter, 
         double[:]& source_c, int[:]& medium_map, int[:]& index_c, \
         params info_u, params info_c)
 
-cdef void _hybrid_source_total(double[:,:]& flux_u, double[:,:]& flux_c, \
-        double[:,:,:]& xs_scatter_u, double[:]& source_t, \
-        int[:]& medium_map, int[:]& index_u, double[:]& factor_u, \
-        params info_u, params info_c)
+cdef void _hybrid_source_total(double[:,:]& flux_t, double[:,:]& flux_u, \
+        double[:,:,:]& xs_matrix, double[:]& source, int[:]& medium_map, \
+        int[:]& index_u, double[:]& factor_u, params info_u, params info_c)
+
+cdef void _expand_hybrid_source(double[:,:]& flux_t, double[:,:]& flux_c, \
+        int[:]& index_u, double[:]& factor_u, params info_u, params info_c)

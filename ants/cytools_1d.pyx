@@ -19,11 +19,10 @@
 # distutils: language = c++
 # cython: profile=True
 
-from ants.parameters cimport params
-
 from libc.math cimport sqrt, pow, erfc, ceil
-
 from cython.view cimport array as cvarray
+
+from ants.parameters cimport params
 
 ########################################################################
 # Memoryview functions
@@ -146,19 +145,19 @@ cdef double[:,:] _angular_to_scalar(double[:,:,:]& angular_flux,
         for nn in range(info.angles):
             for gg in range(info.groups):
                 scalar_flux[ii,gg] += angular_flux[ii,nn,gg] * angle_w[nn]
+    return scalar_flux
 
 
 ########################################################################
 # Time Dependent functions
 ########################################################################
 
-cdef void _total_velocity(double[:,:]& xs_total_v, double[:,:]& xs_total, \
-        double[:]& velocity, params info):
+cdef void _total_velocity(double[:,:]& xs_total, double[:]& velocity, params info):
     # Create sigma_t + 1 / (v * dt)
     cdef int mm, gg
     for gg in range(info.groups):
         for mm in range(info.materials):
-            xs_total_v[mm,gg] = xs_total[mm,gg] + 1 / (velocity[gg] * info.dt)
+            xs_total[mm,gg] += 1 / (velocity[gg] * info.dt)
 
 
 cdef void _time_source_total(double[:]& source, double[:,:]& scalar_flux, \
@@ -331,13 +330,13 @@ cdef void _hybrid_source_collided(double[:,:]& flux, double[:,:,:]& xs_scatter, 
     for ii in range(info_u.cells_x):
         mat = medium_map[ii]
         for og in range(info_u.groups):
-            # scalar_flux[ii,og] += angle_w[nn] * flux[ii,nn,og]
             for ig in range(info_u.groups):
                 scatter_rate[ii,og] += flux[ii,ig] * xs_scatter[mat,og,ig]
     # Shrink to size G hat
     _reduce_hybrid_source(scatter_rate, source_c, index_c, info_u, info_c)
 
 
+# Big to small
 cdef void _reduce_hybrid_source(double[:,:]& scatter_rate, double[:]& source_c, \
         int[:]& index_c, params info_u, params info_c):
     # Initialize iterables
@@ -347,84 +346,33 @@ cdef void _reduce_hybrid_source(double[:,:]& scatter_rate, double[:]& source_c, 
     for ii in range(info_u.cells_x):
         for gg in range(info_u.groups):
             loc = index_c[gg] + ii * info_c.groups
-            # source_c[index_c[gg]::info_c.groups][ii] += scatter_rate[ii,gg]
             source_c[loc] += scatter_rate[ii,gg]
 
 
-cdef void _hybrid_source_total(double[:,:]& flux_u, double[:,:]& flux_c, \
-        double[:,:,:]& xs_scatter_u, double[:]& source_t, \
-        int[:]& medium_map, int[:]& index_u, double[:]& factor_u, \
-        params info_u, params info_c):
+cdef void _hybrid_source_total(double[:,:]& flux_t, double[:,:]& flux_u, \
+        double[:,:,:]& xs_matrix, double[:]& source, int[:]& medium_map, \
+        int[:]& index_u, double[:]& factor_u, params info_u, params info_c):
     # Initialize iterables
     cdef int ii, mat, nn, ig, og, loc
-    # Assume that source_t is already (Qu + 1 / (v * dt) * psi^{\ell-1})
-    # source_t[:] = 0.0
-    # Resize collided flux to size (I x G)
-    flux_c_star = _expand_hybrid_source(flux_c, index_u, factor_u, \
-                                        info_u, info_c)
+    # Assume that source is already (Qu + 1 / (v * dt) * psi^{\ell-1})
+    # source[:] = 0.0
     for ii in range(info_u.cells_x):
         mat = medium_map[ii]
         for nn in range(info_u.angles):
             for og in range(info_u.groups):
                 loc = og + info_u.groups * (nn + ii * info_u.angles)
                 for ig in range(info_u.groups):
-                    source_t[loc] += (flux_u[ii,ig] + flux_c_star[ii,ig]) \
-                                        * xs_scatter_u[mat,og,ig]
+                    source[loc] += (flux_t[ii,ig] + flux_u[ii,ig]) \
+                                    * xs_matrix[mat,og,ig]
 
 
-cdef double[:,:] _expand_hybrid_source(double[:,:]& flux_c, int[:]& index_u, \
-        double[:]& factor_u, params info_u, params info_c):
+cdef void _expand_hybrid_source(double[:,:]& flux_t, double[:,:]& flux_c, \
+        int[:]& index_u, double[:]& factor_u, params info_u, params info_c):
     # Initialize iterables
     cdef int cell, gu, gc
+    flux_t[:,:] = 0.0
     # Create uncollided flux size
-    flux_u = array_2d(info_u.cells_x, info_u.groups)
     for cell in range(info_c.cells_x):
         for gc in range(info_c.groups):
             for gu in range(index_u[gc], index_u[gc+1]):
-                flux_u[cell,gu] = flux_c[cell,gc] * factor_u[gu]
-    return flux_u[:,:]
-
-
-# cdef void calculate_source_t(double[:,:]& flux_u, double[:,:]& flux_c, \
-#         double[:,:,:]& xs_scatter_u, double[:]& source_t, \
-#         int[:]& medium_map, int[:]& index_u, double[:]& factor_u, \
-#         params info_u, params info_c):
-#     cdef size_t cell, mat, angle, group, ig, og
-#     source_t[:] = 0.0
-#     # Resize collided flux to size (I x G)
-#     flux = small_to_big(flux_c, index_u, factor_u, params_u, params_c)
-#     for cell in range(params_u.cells):
-#         mat = medium_map[cell]
-#         for og in range(params_u.groups):
-#             for ig in range(params_u.groups):
-#                 source_t[ig::params_u.groups][cell] += xs_scatter_u[mat,ig,og] \
-#                                     * (flux_u[cell,og] + flux[cell,og])
-
-
-# cdef void calculate_source_star(double[:,:,:]& flux_last, double[:]& source_star, \
-#         double[:]& source_t, double[:]& source_u, double[:]& velocity, params info):
-#     cdef size_t cell, angle, group, start
-#     cdef size_t stop = info.groups * info.angles
-#     source_star[:] = 0.0
-#     for group in range(info.groups):
-#         for angle in range(info.angles):
-#             for cell in range(info.cells_x):
-#                 start = group + angle * info.groups
-#                 source_star[start::stop][cell] = source_t[group::info.groups][cell] \
-#                         + source_u[start::stop][cell] \
-#                         + flux_last[cell,angle,group] \
-#                         * 1 / (velocity[group] * info.dt)
-
-
-
-# cdef double[:,:] small_to_big(double[:,:]& flux_c, int[:]& index_u, \
-#             double[:]& factor_u, params info_u, params info_c):
-#     cdef size_t cell, group_u, group_c
-#     flux_u = array_2d(params_u.cells, params_u.groups)
-#     for cell in range(params_c.cells):
-#         for group_c in range(params_c.groups):
-#             for group_u in range(index_u[group_c], index_u[group_c+1]):
-#                 flux_u[cell,group_u] = flux_c[cell,group_c] * factor_u[group_u]
-#     return flux_u[:,:]
-
-
+                flux_t[cell,gu] = flux_c[cell,gc] * factor_u[gu]
