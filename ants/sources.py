@@ -9,12 +9,11 @@
 # 
 ########################################################################
 
-from ants.constants import *
-from ants.utils import dimensions
-
 import numpy as np
 import pkg_resources
 import warnings
+
+from ants.constants import *
 
 DATA_PATH = pkg_resources.resource_filename("ants","sources/")
 

@@ -52,7 +52,7 @@ xs_fission = np.array([[[0.0]]])
 external = ants.externals(1.0, (cells * angles * groups,))
 boundary_x = ants.boundaries(1.0, (2, angles, groups), [0]).flatten()
 
-angle_x, angle_w = ants._angle_x(info)
+angle_x, angle_w = ants.angular_x(info)
 medium_map = np.zeros((cells), dtype=np.int32)
 
 flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \

@@ -7,5 +7,6 @@
 #
 ########################################################################
 
-from ants.main import _angle_x, _angle_xy, _velocity, _energy_grid, _medium_map
+from ants.main import angular_x, angular_xy
+from ants.main import energy_velocity, energy_grid, spatial_map
 from ants.sources import materials, externals, boundaries

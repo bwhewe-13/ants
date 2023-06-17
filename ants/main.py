@@ -10,16 +10,18 @@
 # 
 ########################################################################
 
-from ants.constants import *
-from ants.utils import dimensions
-
 import numpy as np
 import pkg_resources
 import warnings
 
+from ants.constants import *
+from ants.utils.hybrid import energy_coarse_index
+
 DATA_PATH = pkg_resources.resource_filename("ants","sources/energy/")
 
-def _angle_x(params):
+
+# def _angle_x(params):
+def angular_x(params):
     angle_x, angle_w = np.polynomial.legendre.leggauss(params["angles"])
     angle_w /= np.sum(angle_w)
     # Ordering for reflective boundaries
@@ -32,7 +34,8 @@ def _angle_x(params):
         angle_w = angle_w[idx].copy()
     return angle_x, angle_w
 
-def _angle_xy(params, rewrite=True):
+# def _angle_xy(params, rewrite=True):
+def angular_xy(params, rewrite=True):
     angles = params["angles"]
     bc = [params["bc_x"], params["bc_y"]]
     # eta, xi, mu: direction cosines (x,y,z) 
@@ -92,21 +95,35 @@ def _ordering_xy_angles(w, nx, ny, bc):
         warnings.warn(message)
     return angles
 
-def _energy_grid(groups, grid):
+
+# def _energy_grid(groups, grid):
+def energy_grid(groups, grid):
+    """
+    Calculate energy grid bounds (MeV) and index for coarsening
+    Arguments:
+        groups (int): Number of energy groups for problem
+        grid (int): specified energy grid to use (87, 361, 618)
+    Returns:
+        edges_g (float [grid + 1]): MeV energy group bounds
+        edges_gidx (int [groups + 1]): Location of grid index for problem
+    """
     # Create energy grid
     if grid in [87, 361, 618]:
-        energy_grid = np.load(DATA_PATH + "energy_bounds.npz")[str(grid)]
+        edges_g = np.load(DATA_PATH + "energy_bounds.npz")[str(grid)]
     else:
-        energy_grid = np.arange(groups + 1)
+        edges_g = np.arange(groups + 1, dtype=float)
+    # Calculate the indicies for the specific grid
     if groups == 361:
         label = str(self.groups).zfill(3)
-        idx_edges = np.load(DATA_PATH + "G361_grid_index.npz")
-        idx_edges = idx_edges[label]
+        edges_gidx = np.load(DATA_PATH + "G361_grid_index.npz")
+        edges_gidx = edges_gidx[label]
     else:
-        idx_edges = dimensions.index_generator(len(energy_grid)-1, groups)
-    return energy_grid, idx_edges
+        edges_gidx = energy_coarse_index(len(edges_g)-1, groups)
+    return edges_g, edges_gidx
 
-def _medium_map(materials, edges_x, key=False):
+
+# def _medium_map(materials, edges_x, key=False):
+def spatial_map(materials, edges_x, key=False):
     # materials is list of list with each element [idx, material, width]
     material_key = {}
     medium_map = np.ones((len(edges_x) - 1)) * -1
@@ -124,16 +141,18 @@ def _medium_map(materials, edges_x, key=False):
         return medium_map, material_key
     return medium_map
 
-def _velocity(groups, edges_gg=None):
+
+# def _velocity(groups, edges_g=None):
+def energy_velocity(groups, edges_g=None):
     """ Convert energy edges to speed at cell centers, Relative Physics
     Arguments:
         groups: Number of energy groups
-        edges_gg: energy grid bounds
+        edges_g: energy grid bounds
     Returns:
         speeds at cell centers (cm/s)   """
-    if np.all(edges_gg == None):
-        return np.ones((groups))
-    centers_gg = 0.5 * (edges_gg[1:] + edges_gg[:-1])
+    if np.all(edges_g == None):
+        return np.ones((groups,))
+    centers_gg = 0.5 * (edges_g[1:] + edges_g[:-1])
     gamma = (EV_TO_JOULES * centers_gg) / (MASS_NEUTRON * LIGHT_SPEED**2) + 1
     velocity = LIGHT_SPEED / gamma * np.sqrt(gamma**2 - 1) * 100
     return velocity

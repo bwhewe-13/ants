@@ -54,10 +54,10 @@ edges_x = np.linspace(0, length, cells+1)
 centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
 
 # Medium Map
-medium_map = ants._medium_map(materials, edges_x)
+medium_map = ants.spatial_map(materials, edges_x)
 
 # Angular
-angle_x, angle_w = ants._angle_x(info)
+angle_x, angle_w = ants.angular_x(info)
 
 # Cross Sections
 xs_total = np.array([[1.0], [0.0], [5.0], [50.0]])

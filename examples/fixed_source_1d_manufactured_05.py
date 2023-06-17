@@ -43,9 +43,9 @@ info = {
             "angular": True
         }
 
-angle_x, angle_w = ants._angle_x(info)
+angle_x, angle_w = ants.angular_x(info)
 materials = [[0, "quasi", "0-1"], [1, "scatter", "1-2"]]
-medium_map = ants._medium_map(materials, edges_x)
+medium_map = ants.spatial_map(materials, edges_x)
 
 xs_total = np.array([[1.0], [1.0]])
 xs_scatter = np.array([[[0.3]], [[0.9]]])

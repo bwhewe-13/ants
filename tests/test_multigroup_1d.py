@@ -34,13 +34,13 @@ def sphere_01(ptype):
     centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
 
     # Energy Grid
-    energy_grid, idx_edges = ants._energy_grid(groups, 87)
-    velocity = ants._velocity(groups, energy_grid)
+    edges_g, edges_gidx = ants.energy_grid(groups, 87)
+    velocity = ants.energy_velocity(groups, edges_g)
 
     # Medium Map
     materials = [[0, "uranium-%20%", "0-4"], [1, "uranium-%0%", "4-6"], \
                  [2, "stainless-steel-440", "6-10"]]
-    medium_map = ants._medium_map(materials, edges_x)
+    medium_map = ants.spatial_map(materials, edges_x)
 
     # Cross Sections
     materials = np.array(materials)[:,1]
@@ -49,7 +49,7 @@ def sphere_01(ptype):
     # External and boundary sources
     external = ants.externals(0.0, (cells * angles * groups,))
     boundary_x = ants.boundaries("14.1-mev", (2, groups), [1], \
-                                 energy_grid=energy_grid).flatten()
+                                 energy_grid=edges_g).flatten()
 
     info = {
                 "cells_x": cells,
@@ -64,7 +64,7 @@ def sphere_01(ptype):
             }
 
     # Angular
-    angle_x, angle_w = ants._angle_x(info)
+    angle_x, angle_w = ants.angular_x(info)
 
     if ptype == "timed":
         info["steps"] = 5

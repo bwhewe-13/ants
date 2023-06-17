@@ -34,7 +34,7 @@ def test_manufactured_01(angular, spatial):
     xs_fission = np.array([[[0.0]]])
     external = ants.externals(1.0, (info["cells_x"] * info["angles"] * info["groups"],))
     boundary = ants.boundaries(1.0, (2, info["angles"], info["groups"]), [0])
-    angle_x, angle_w = ants._angle_x(info)
+    angle_x, angle_w = ants.angular_x(info)
     medium_map = np.zeros((info["cells_x"]), dtype=np.int32)
     flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
                             boundary.flatten(), medium_map, delta_x, \
@@ -64,7 +64,7 @@ def test_manufactured_02(angular, spatial):
     xs_fission = np.array([[[0.0]]])
     external = ants.externals(0.5, (info["cells_x"] * info["angles"] * info["groups"],))
     boundary = ants.boundaries(1.0, (2, info["angles"], info["groups"]), [0])
-    angle_x, angle_w = ants._angle_x(info)
+    angle_x, angle_w = ants.angular_x(info)
     medium_map = np.zeros((info["cells_x"]), dtype=np.int32)
     flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
                             boundary.flatten(), medium_map, delta_x, \
@@ -89,7 +89,7 @@ def test_manufactured_03(angular, spatial):
     delta_x = np.repeat(length / info["cells_x"], info["cells_x"])
     edges_x = np.linspace(0, length, info["cells_x"]+1)
     centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
-    angle_x, angle_w = ants._angle_x(info)
+    angle_x, angle_w = ants.angular_x(info)
     xs_total = np.array([[1.0]])
     xs_scatter = np.array([[[0.9]]])
     xs_fission = np.array([[[0.0]]])
@@ -122,7 +122,7 @@ def test_manufactured_04(angular, spatial):
     delta_x = np.repeat(length / info["cells_x"], info["cells_x"])
     edges_x = np.linspace(0, length, info["cells_x"]+1)
     centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
-    angle_x, angle_w = ants._angle_x(info)
+    angle_x, angle_w = ants.angular_x(info)
     xs_total = np.array([[1.0], [1.0]])
     xs_scatter = np.array([[[0.3]], [[0.9]]])
     xs_fission = np.array([[[0.0]], [[0.0]]])
@@ -131,7 +131,7 @@ def test_manufactured_04(angular, spatial):
     boundary = ants.boundaries("mms-04", (2, info["angles"]), [0, 1], \
                                angle_x=angle_x).flatten()
     materials = [[0, "quasi", "0-1"], [1, "scatter", "1-2"]]
-    medium_map = ants._medium_map(materials, edges_x)
+    medium_map = ants.spatial_map(materials, edges_x)
     flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
                             boundary, medium_map, delta_x, angle_x, \
                             angle_w, info)
@@ -155,7 +155,7 @@ def test_manufactured_05(angular, spatial):
     delta_x = np.repeat(length / info["cells_x"], info["cells_x"])
     edges_x = np.linspace(0, length, info["cells_x"]+1)
     centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
-    angle_x, angle_w = ants._angle_x(info)
+    angle_x, angle_w = ants.angular_x(info)
     xs_total = np.array([[1.0], [1.0]])
     xs_scatter = np.array([[[0.3]], [[0.9]]])
     xs_fission = np.array([[[0.0]], [[0.0]]])
@@ -164,7 +164,7 @@ def test_manufactured_05(angular, spatial):
     boundary = ants.boundaries("mms-05", (2, info["angles"]), [0, 1], \
                                angle_x=angle_x).flatten()
     materials = [[0, "quasi", "0-1"], [1, "scatter", "1-2"]]
-    medium_map = ants._medium_map(materials, edges_x)
+    medium_map = ants.spatial_map(materials, edges_x)
     flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
                             boundary, medium_map, delta_x, angle_x, \
                             angle_w, info)

@@ -18,12 +18,12 @@
 # cython: profile=True
 # distutils: language = c++
 
+from libc.math cimport isnan, isinf
+
 from ants.spatial_sweep_1d cimport discrete_ordinates, _known_sweep
 from ants cimport cytools_1d as tools
 from ants.parameters cimport params
 from ants.constants import *
-
-from libc.math cimport isnan, isinf
 
 cdef double[:,:] source_iteration(double[:,:]& flux_guess, double[:,:]& xs_total, \
         double[:,:,:]& xs_scatter, double[:]& external, double [:]& boundary_x, \

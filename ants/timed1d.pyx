@@ -37,16 +37,17 @@ def backward_euler(double[:,:] xs_total, double[:,:,:] xs_scatter, \
     # Combine fission and scattering
     tools._xs_matrix(xs_scatter, xs_fission, info)
     # Create sigma_t + 1 / (v * dt)
-    xs_total_v = memoryview(np.zeros((info.materials, info.groups)))
-    tools._total_velocity(xs_total_v, xs_total, velocity, info)
+    # xs_total_v = memoryview(np.zeros((info.materials, info.groups)))
+    # tools._total_velocity(xs_total_v, xs_total, velocity, info)
+    # xs_total_v = memoryview(np.zeros((info.materials, info.groups)))
+    tools._total_velocity(xs_total, velocity, info)
     # Run Backward Euler
-    flux = multigroup_bdf1(xs_total_v, xs_scatter, velocity, external, \
-                           boundary_x, medium_map, delta_x, angle_x, \
-                           angle_w, info)
+    flux = multigroup_bdf1(xs_total, xs_scatter, velocity, external, \
+                boundary_x, medium_map, delta_x, angle_x, angle_w, info)
     return np.asarray(flux)
 
 
-cdef double[:,:,:] multigroup_bdf1(double[:,:]& xs_total_v, \
+cdef double[:,:,:] multigroup_bdf1(double[:,:]& xs_total, \
         double[:,:,:]& xs_scatter, double[:]& velocity, double[:]& external, \
         double[:]& boundary_x, int[:]& medium_map, double[:]& delta_x, \
         double[:]& angle_x, double[:]& angle_w, params info):
@@ -68,7 +69,7 @@ cdef double[:,:,:] multigroup_bdf1(double[:,:]& xs_total_v, \
         # Update q_star as external + 1/(v*dt) * psi
         tools._time_source_star(flux_last, q_star, external, velocity, info)
         # Solve for the current time step
-        flux_time[step] = mg.source_iteration(scalar_flux, xs_total_v, \
+        flux_time[step] = mg.source_iteration(scalar_flux, xs_total, \
                                 xs_scatter, q_star, boundary_x, medium_map, \
                                 delta_x, angle_x, angle_w, info)
         # Update previous time step
@@ -77,6 +78,6 @@ cdef double[:,:,:] multigroup_bdf1(double[:,:]& xs_total_v, \
         tools._time_source_total(q_star, scalar_flux, flux_last, xs_scatter, \
                                  velocity, medium_map, external, info)
         # Solve for angular flux of previous time step
-        flux_last = mg._known_source(xs_total_v, q_star, boundary_x, \
+        flux_last = mg._known_source(xs_total, q_star, boundary_x, \
                             medium_map, delta_x, angle_x, angle_w, info)
     return flux_time[:,:,:]

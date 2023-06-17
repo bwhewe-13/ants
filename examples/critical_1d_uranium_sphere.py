@@ -28,12 +28,12 @@ edges_x = np.linspace(0, length, cells+1)
 centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
 
 # Angular
-angle_x, angle_w = ants._angle_x(info)
+angle_x, angle_w = ants.angular_x(info)
 
 # Medium Map
 materials = [[0, "uranium-%20%", "0-4"], [1, "uranium-%0%", "4-6"], \
              [2, "stainless-steel-440", "6-10"]]
-medium_map = ants._medium_map(materials, edges_x)
+medium_map = ants.spatial_map(materials, edges_x)
 
 # Cross Sections
 materials = np.array(materials)[:,1]

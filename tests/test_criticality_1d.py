@@ -37,7 +37,7 @@ def normalize(flux, boundary):
 def test_one_group_slab_plutonium_01a(boundary):
     info = {"cells_x": 50, "angles": 16, "groups": 1, "materials": 1,
             "geometry": 1, "spatial": 2, "qdim": 2, "bc_x": boundary}
-    angle_x, angle_w = ants._angle_x(info)
+    angle_x, angle_w = ants.angular_x(info)
     xs_total = np.array([[0.32640]])
     xs_scatter = np.array([[[0.225216]]])
     xs_fission = np.array([[[3.24*0.0816]]])
@@ -57,7 +57,7 @@ def test_one_group_slab_plutonium_01a(boundary):
 def test_one_group_slab_plutonium_01b(boundary):
     info = {"cells_x": 75, "angles": 16, "groups": 1, "materials": 1,
              "geometry": 1, "spatial": 2, "qdim": 2, "bc_x": boundary}
-    angle_x, angle_w = ants._angle_x(info)
+    angle_x, angle_w = ants.angular_x(info)
     xs_total = np.array([[0.32640]])
     xs_scatter = np.array([[[0.225216]]])
     xs_fission = np.array([[[2.84*0.0816]]])
@@ -80,7 +80,7 @@ def test_one_group_slab_plutonium_01b(boundary):
 def test_one_group_sphere_plutonium_01b():
     info = {"cells_x": 150, "angles": 16, "groups": 1, "materials": 1,
              "geometry": 2, "spatial": 2, "qdim": 2, "bc_x": [1, 0]}
-    angle_x, angle_w = ants._angle_x(info)
+    angle_x, angle_w = ants.angular_x(info)
     xs_total = np.array([[0.32640]])
     xs_scatter = np.array([[[0.225216]]])
     xs_fission = np.array([[[2.84*0.0816]]])
@@ -101,7 +101,7 @@ def test_one_group_sphere_plutonium_01b():
 def test_one_group_slab_plutonium_02a():
     info = {"cells_x": 500, "angles": 16, "groups": 1, "materials": 2,
              "geometry": 1, "spatial": 2, "qdim": 2, "bc_x": [0, 0]}
-    angle_x, angle_w = ants._angle_x(info)
+    angle_x, angle_w = ants.angular_x(info)
     xs_total = np.array([[0.32640], [0.32640]])
     xs_scatter = np.array([[[0.225216]], [[0.293760]]])
     xs_fission = np.array([[[3.24*0.0816]], [[0.0]]])
@@ -110,7 +110,7 @@ def test_one_group_slab_plutonium_02a():
     delta_x = np.repeat(length / info["cells_x"], info["cells_x"])
     materials = [[0, "fuel", "0 - 2.956802"], \
                 [1, "moderator", "2.956802 - 6.020527"]]
-    medium_map = ants._medium_map(materials, edges_x)    
+    medium_map = ants.spatial_map(materials, edges_x)
     flux, keff = power(xs_total, xs_scatter, xs_fission,  medium_map, \
                         delta_x, angle_x, angle_w, info)
     assert abs(keff - 1.) < 2e-3, str(keff) + " not critical"
@@ -121,7 +121,7 @@ def test_one_group_slab_plutonium_02a():
 def test_one_group_slab_plutonium_02b():
     info = {"cells_x": 502, "angles": 16, "groups": 1, "materials": 2,
              "geometry": 1, "spatial": 2, "qdim": 2, "bc_x": [0, 0]}
-    angle_x, angle_w = ants._angle_x(info)
+    angle_x, angle_w = ants.angular_x(info)
     xs_total = np.array([[0.32640], [0.32640]])
     xs_scatter = np.array([[[0.225216]], [[0.293760]]])
     xs_fission = np.array([[[3.24*0.0816]], [[0.0]]])
@@ -130,7 +130,7 @@ def test_one_group_slab_plutonium_02b():
     delta_x = np.repeat(length / info["cells_x"], info["cells_x"])
     materials = [[0, "fuel", "1.531863 - 4.167525"], \
                 [1, "moderator", "0 - 1.531863, 4.167525 - 5.699388"]]
-    medium_map = ants._medium_map(materials, edges_x)    
+    medium_map = ants.spatial_map(materials, edges_x)
     flux, keff = power(xs_total, xs_scatter, xs_fission,  medium_map, \
                         delta_x, angle_x, angle_w, info)
     assert abs(keff - 1.) < 2e-3, str(keff) + " not critical"
@@ -142,7 +142,7 @@ def test_one_group_slab_plutonium_02b():
 def test_one_group_slab_uranium_01a(boundary):
     info = {"cells_x": 75, "angles": 16, "groups": 1, "materials": 1,
              "geometry": 1, "spatial": 2, "qdim": 2, "bc_x": boundary}
-    angle_x, angle_w = ants._angle_x(info)
+    angle_x, angle_w = ants.angular_x(info)
     xs_total = np.array([[0.32640]])
     xs_scatter = np.array([[[0.248064]]])
     xs_fission = np.array([[[2.70*0.065280]]])
@@ -164,7 +164,7 @@ def test_one_group_slab_uranium_01a(boundary):
 def test_one_group_sphere_uranium_01a():
     info = {"cells_x": 150, "angles": 16, "groups": 1, "materials": 1,
              "geometry": 2, "spatial": 2, "qdim": 2, "bc_x": [1, 0]}
-    angle_x, angle_w = ants._angle_x(info)
+    angle_x, angle_w = ants.angular_x(info)
     xs_total = np.array([[0.32640]])
     xs_scatter = np.array([[[0.248064]]])
     xs_fission = np.array([[[2.70*0.065280]]])
@@ -186,7 +186,7 @@ def test_one_group_sphere_uranium_01a():
 def test_one_group_slab_heavy_water_01a(boundary):
     info = {"cells_x": 600, "angles": 16, "groups": 1, "materials": 1,
              "geometry": 1, "spatial": 2, "qdim": 2, "bc_x": boundary}
-    angle_x, angle_w = ants._angle_x(info)
+    angle_x, angle_w = ants.angular_x(info)
     xs_total = np.array([[0.54628]])
     xs_scatter = np.array([[[0.464338]]])
     xs_fission = np.array([[[1.70*0.054628]]])
@@ -208,7 +208,7 @@ def test_one_group_slab_heavy_water_01a(boundary):
 def test_one_group_sphere_heavy_water_01a():
     info = {"cells_x": 300, "angles": 16, "groups": 1, "materials": 1,
              "geometry": 2, "spatial": 2, "qdim": 2, "bc_x": [1, 0]}
-    angle_x, angle_w = ants._angle_x(info)
+    angle_x, angle_w = ants.angular_x(info)
     xs_total = np.array([[0.54628]])
     xs_scatter = np.array([[[0.464338]]])
     xs_fission = np.array([[[1.70*0.054628]]])
@@ -229,7 +229,7 @@ def test_one_group_sphere_heavy_water_01a():
 def test_one_group_slab_uranium_reactor_01a():
     info = {"cells_x": 200, "angles": 16, "groups": 1, "materials": 1,
              "geometry": 1, "spatial": 2, "qdim": 2, "bc_x": [0, 0]}
-    angle_x, angle_w = ants._angle_x(info)
+    angle_x, angle_w = ants.angular_x(info)
     xs_total = np.array([[0.407407]])
     xs_scatter = np.array([[[0.328042]]])
     xs_fission = np.array([[[2.50*0.06922744]]])
@@ -250,7 +250,7 @@ def test_one_group_slab_uranium_reactor_01a():
 def test_two_group_slab_plutonium_01(boundary):
     info = {"cells_x": 200, "angles": 20, "groups": 2, "materials": 1,
              "geometry": 1, "spatial": 2, "qdim": 2, "bc_x": boundary}
-    angle_x, angle_w = ants._angle_x(info)
+    angle_x, angle_w = ants.angular_x(info)
     xs_total = np.array([[0.3360,0.2208]])
     xs_scatter = np.array([np.array([[0.23616, 0.0],[0.0432, 0.0792]]).T])
     chi = np.array([[0.425], [0.575]])
@@ -273,7 +273,7 @@ def test_two_group_slab_plutonium_01(boundary):
 def test_two_group_sphere_plutonium_01():
     info = {"cells_x": 200, "angles": 20, "groups": 2, "materials": 1,
              "geometry": 2, "spatial": 2, "qdim": 2, "bc_x": [1, 0]}
-    angle_x, angle_w = ants._angle_x(info)
+    angle_x, angle_w = ants.angular_x(info)
     xs_total = np.array([[0.3360,0.2208]])
     xs_scatter = np.array([np.array([[0.23616, 0.0],[0.0432, 0.0792]]).T])
     chi = np.array([[0.425], [0.575]])
@@ -296,7 +296,7 @@ def test_two_group_sphere_plutonium_01():
 def test_two_group_slab_uranium_01(boundary):
     info = {"cells_x": 200, "angles": 20, "groups": 2, "materials": 1,
              "geometry": 1, "spatial": 2, "qdim": 2, "bc_x": boundary}
-    angle_x, angle_w = ants._angle_x(info)
+    angle_x, angle_w = ants.angular_x(info)
     xs_total = np.array([[0.3456, 0.2160]])
     xs_scatter = np.array([np.array([[0.26304, 0.0],[0.0720, 0.078240]]).T])
     chi = np.array([[0.425], [0.575]])
@@ -319,7 +319,7 @@ def test_two_group_slab_uranium_01(boundary):
 def test_two_group_sphere_uranium_01():
     info = {"cells_x": 200, "angles": 20, "groups": 2, "materials": 1,
              "geometry": 2, "spatial": 2, "qdim": 2, "bc_x": [1, 0]}
-    angle_x, angle_w = ants._angle_x(info)
+    angle_x, angle_w = ants.angular_x(info)
     xs_total = np.array([[0.3456, 0.2160]])
     xs_scatter = np.array([np.array([[0.26304, 0.0],[0.0720, 0.078240]]).T])
     chi = np.array([[0.425], [0.575]])
@@ -341,7 +341,7 @@ def test_two_group_sphere_uranium_01():
 def test_two_group_slab_uranium_aluminum(boundary):
     info = {"cells_x": 200, "angles": 20, "groups": 2, "materials": 1,
              "geometry": 1, "spatial": 2, "qdim": 2, "bc_x": boundary}
-    angle_x, angle_w = ants._angle_x(info)
+    angle_x, angle_w = ants.angular_x(info)
     xs_total = np.array([[1.27698, 0.26817]])
     xs_scatter = np.array([np.array([[1.21313, 0.0],[0.020432, 0.247516]]).T])
     chi = np.array([[0.0], [1.0]])
@@ -363,7 +363,7 @@ def test_two_group_slab_uranium_aluminum(boundary):
 def test_two_group_sphere_uranium_aluminum():
     info = {"cells_x": 200, "angles": 20, "groups": 2, "materials": 1,
              "geometry": 2, "spatial": 2, "qdim": 2, "bc_x": [1, 0]}
-    angle_x, angle_w = ants._angle_x(info)
+    angle_x, angle_w = ants.angular_x(info)
     xs_total = np.array([[1.27698, 0.26817]])
     xs_scatter = np.array([np.array([[1.21313, 0.0],[0.020432, 0.247516]]).T])
     chi = np.array([[0.0], [1.0]])
@@ -385,7 +385,7 @@ def test_two_group_sphere_uranium_aluminum():
 def test_two_group_slab_uranium_reactor_01(boundary):
     info = {"cells_x": 200, "angles": 20, "groups": 2, "materials": 1,
              "geometry": 1, "spatial": 2, "qdim": 2, "bc_x": boundary}
-    angle_x, angle_w = ants._angle_x(info)
+    angle_x, angle_w = ants.angular_x(info)
     xs_total = np.array([[2.52025, 0.65696]])
     xs_scatter = np.array([np.array([[2.44383, 0.0],[0.029227, 0.62568]]).T])
     chi = np.array([[0.0], [1.0]])
@@ -407,7 +407,7 @@ def test_two_group_slab_uranium_reactor_01(boundary):
 def test_two_group_sphere_uranium_reactor_01():
     info = {"cells_x": 200, "angles": 20, "groups": 2, "materials": 1,
              "geometry": 2, "spatial": 2, "qdim": 2, "bc_x": [1, 0]}
-    angle_x, angle_w = ants._angle_x(info)
+    angle_x, angle_w = ants.angular_x(info)
     xs_total = np.array([[2.52025, 0.65696]])
     xs_scatter = np.array([np.array([[2.44383, 0.0],[0.029227, 0.62568]]).T])
     chi = np.array([[0.0], [1.0]])

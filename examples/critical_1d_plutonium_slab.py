@@ -30,13 +30,13 @@ centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
 enrich = "80"
 
 # Angular
-angle_x, angle_w = ants._angle_x(info)
+angle_x, angle_w = ants.angular_x(info)
 
 # Medium Map
 materials = [[0, "high-density-polyethyene-618", "0-5"],
              [1, "plutonium-%{}%".format(enrich), "5-6.5"],
              [2, "plutonium-240", "6.5-10"]]
-medium_map = ants._medium_map(materials, edges_x)
+medium_map = ants.spatial_map(materials, edges_x)
 
 # Cross Sections
 materials_names = np.array(materials)[:,1]

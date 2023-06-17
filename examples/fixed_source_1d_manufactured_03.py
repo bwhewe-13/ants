@@ -45,7 +45,7 @@ info = {
             "angular": True
         }
 
-angle_x, angle_w = ants._angle_x(info)
+angle_x, angle_w = ants.angular_x(info)
 medium_map = np.zeros((cells), dtype=np.int32)
 
 xs_total = np.array([[1.0]])

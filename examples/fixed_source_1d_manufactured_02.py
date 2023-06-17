@@ -45,7 +45,7 @@ info = {
             "angular": True
         }
 
-angle_x, angle_w = ants._angle_x(info)
+angle_x, angle_w = ants.angular_x(info)
 medium_map = np.zeros((cells), dtype=np.int32)
 
 xs_total = np.array([[1.0]])
@@ -54,7 +54,6 @@ xs_fission = np.array([[[0.0]]])
 
 external = ants.externals(0.5, (cells * angles * groups,))
 boundary_x = ants.boundaries(1.0, (2, angles, groups), [0]).flatten()
-print(boundary_x)
 
 flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
                 boundary_x, medium_map, delta_x, angle_x, angle_w, info)
