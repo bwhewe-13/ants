@@ -18,11 +18,11 @@
 # cython: profile=True
 # distutils: language = c++
 
+import numpy as np
+
 from ants cimport multi_group_1d as mg
 from ants cimport cytools_1d as tools
 from ants cimport parameters
-
-import numpy as np
 
 
 def source_iteration(double[:,:] xs_total, double[:,:,:] xs_scatter, \

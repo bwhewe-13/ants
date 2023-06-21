@@ -18,19 +18,19 @@
 # cython: profile=True
 # distutils: language = c++
 
+import numpy as np
+
 from ants cimport multi_group_1d as mg
 from ants cimport cytools_1d as tools
 from ants.parameters cimport params
 from ants cimport parameters
 from ants.constants import *
 
-import numpy as np
-
 
 def power_iteration(double[:,:] xs_total, double[:,:,:] xs_scatter, \
         double[:,:,:] xs_fission, int[:] medium_map, double[:] delta_x, \
         double[:] angle_x, double[:] angle_w, dict params_dict):
-    # Convert dictionary to type params1d
+    # Convert dictionary to type params
     info = parameters._to_params(params_dict)
     parameters._check_critical1d_power_iteration(info)
     # Initialize keff

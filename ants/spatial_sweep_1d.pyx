@@ -18,12 +18,13 @@
 # cython: profile=True
 # distutils: language = c++
 
+from libc.math cimport pow, fabs
+# from cython.parallel import prange
+
 from ants cimport cytools_1d as tools
 from ants.parameters cimport params
 from ants.constants import *
 
-from libc.math cimport pow, fabs
-# from cython.parallel import prange
 
 cdef void discrete_ordinates(double[:]& flux, double[:]& flux_old, \
         double[:]& xs_total, double[:]& xs_scatter, double[:]& off_scatter, \
@@ -87,7 +88,7 @@ cdef void slab_ordinates(double[:]& flux, double[:]& flux_old, \
 
 
 cdef void reflector_corrector(double[:]& reflector, double[:]& angle_x, \
-                              double edge, int angle, params info):
+        double edge, int angle, params info):
     # Reflected angle index
     cdef int reflected_idx = info.angles - angle - 1
     # Add edge to boundary condition if reflected surface
