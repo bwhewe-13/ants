@@ -32,7 +32,7 @@ def test_one_group_infinite(finite, spatial):
     ss = 1 if spatial == "step" else 2
     delta_x = np.repeat(length_x / cells_x, cells_x)
     delta_y = np.repeat(length_y / cells_y, cells_y)
-    medium_map = np.zeros((cells_x, cells_y), dtype=np.int32).flatten()
+    medium_map = np.zeros((cells_x, cells_y), dtype=np.int32)
     # Cross Sections
     xs_total = np.array([[0.32640]])
     xs_scatter = np.array([[[0.225216]]])
@@ -41,14 +41,12 @@ def test_one_group_infinite(finite, spatial):
     groups = 1
     angles = 12
     bc = [0, 0]
-    params = {"cells_x": cells_x, "cells_y": cells_y, "angles": angles, \
-              "groups": groups, "materials": 1, "geometry": 1, \
-              "spatial": ss, "qdim": 2, "bc_x": bc, "bcdim_x": 0, \
-              "bc_y": bc, "bcdim_y": 0, "steps": 0, "dt": 0, \
-              "adjoint": False, "angular": False}
-    angle_x, angle_y, angle_w = ants._angle_xy(params)
+    info = {"cells_x": cells_x, "cells_y": cells_y, "angles": angles, \
+            "groups": groups, "materials": 1, "geometry": 1, "spatial": ss, \
+            "qdim": 2, "bc_x": bc, "bcdim_x": 1, "bc_y": bc, "bcdim_y": 1}
+    angle_x, angle_y, angle_w = ants.angular_xy(info)
     flux, keff = power(xs_total, xs_scatter, xs_fission, medium_map, \
-                       delta_x, delta_y, angle_x, angle_y, angle_w, params)
+                       delta_x, delta_y, angle_x, angle_y, angle_w, info)
     assert abs(keff - 1) < 2e-3, "k-effective: " + str(keff)
 
 
@@ -68,7 +66,7 @@ def test_two_group_infinite(finite, spatial):
     ss = 1 if spatial == "step" else 2
     delta_x = np.repeat(length_x / cells_x, cells_x)
     delta_y = np.repeat(length_y / cells_y, cells_y)
-    medium_map = np.zeros((cells_x, cells_y), dtype=np.int32).flatten()
+    medium_map = np.zeros((cells_x, cells_y), dtype=np.int32)
     # Cross Sections
     chi = np.array([[0.425], [0.575]])
     nu = np.array([[2.93, 3.10]])
@@ -83,14 +81,12 @@ def test_two_group_infinite(finite, spatial):
     groups = 2
     angles = 10
     bc = [0, 0]
-    params = {"cells_x": cells_x, "cells_y": cells_y, "angles": angles, \
-              "groups": groups, "materials": 1, "geometry": 1, \
-              "spatial": ss, "qdim": 2, "bc_x": bc, "bcdim_x": 0, \
-              "bc_y": bc, "bcdim_y": 0, "steps": 0, "dt": 0, \
-              "adjoint": False, "angular": False}    
-    angle_x, angle_y, angle_w = ants._angle_xy(params)
+    info = {"cells_x": cells_x, "cells_y": cells_y, "angles": angles, \
+            "groups": groups, "materials": 1, "geometry": 1, "spatial": ss, \
+            "qdim": 2, "bc_x": bc, "bcdim_x": 1, "bc_y": bc, "bcdim_y": 1}    
+    angle_x, angle_y, angle_w = ants.angular_xy(info)
     flux, keff = power(xs_total, xs_scatter, xs_fission, medium_map, \
-                       delta_x, delta_y, angle_x, angle_y, angle_w, params)
+                       delta_x, delta_y, angle_x, angle_y, angle_w, info)
     assert abs(keff - 1) < 5e-3, "k-effective: " + str(keff)
 
 
@@ -136,13 +132,12 @@ def test_two_group_twigl():
     groups = 2
     angles = 4
     bc = [0, 0]
-    params = {"cells_x": cells_x, "cells_y": cells_y, "angles": angles, \
-             "groups": groups, "materials": 3, "geometry": 1, "spatial": 2, \
-             "qdim": 2, "bc_x": bc, "bcdim_x": 0, "bc_y": bc, "bcdim_y": 0, \
-             "steps": 0, "dt": 0, "adjoint": False, "angular": False}
-    angle_x, angle_y, angle_w = ants._angle_xy(params)
-    flux, keff = power(xs_total, xs_scatter, xs_fission, medium_map.flatten(), \
-                       delta_x, delta_y, angle_x, angle_y, angle_w, params)
+    info = {"cells_x": cells_x, "cells_y": cells_y, "angles": angles, \
+            "groups": groups, "materials": 3, "geometry": 1, "spatial": 2, \
+            "qdim": 2, "bc_x": bc, "bcdim_x": 1, "bc_y": bc, "bcdim_y": 1}
+    angle_x, angle_y, angle_w = ants.angular_xy(info)
+    flux, keff = power(xs_total, xs_scatter, xs_fission, medium_map, \
+                       delta_x, delta_y, angle_x, angle_y, angle_w, info)
     reference_keff = 0.917507
     assert abs(keff - reference_keff) < 2e-3, "k-effective: " + str(keff)
 
@@ -164,7 +159,7 @@ def test_cylinder_two_material():
     # Update cross sections for cylinder
     # weight_map = math.monte_carlo_weight_matrix(delta_x, delta_y, \
     #                                             center, radii)
-    weight_map = np.load("data/weight_map_cylinder_two_material.npy")
+    weight_map = np.load("data/weight_maps_2d/cylinder_two_material.npy")
     data = dimensions.cylinder_cross_sections(weight_map, xs_total, \
                                               xs_scatter, xs_fission, \
                                               cells_x, cells_y)
@@ -174,13 +169,13 @@ def test_cylinder_two_material():
     groups = 1
     angles = 6
     bc = [0, 0]
-    params = {"cells_x": cells_x, "cells_y": cells_y, "angles": angles, \
-              "groups": groups, "materials": len(xs_total), "geometry": 1, \
-              "spatial": 2, "qdim": 2, "bc_x": bc, "bcdim_x": 0, "bc_y": bc, \
-              "bcdim_y": 0, "steps": 0, "dt": 0, "adjoint": False, "angular": False}
-    angle_x, angle_y, angle_w = ants._angle_xy(params)
-    flux, keff = power(xs_total, xs_scatter, xs_fission, medium_map.flatten(), \
-                       delta_x, delta_y, angle_x, angle_y, angle_w, params)
+    info = {"cells_x": cells_x, "cells_y": cells_y, "angles": angles, \
+            "groups": groups, "materials": len(xs_total), "geometry": 1, \
+            "spatial": 2, "qdim": 2, "bc_x": bc, "bcdim_x": 1, "bc_y": bc, \
+            "bcdim_y": 1}
+    angle_x, angle_y, angle_w = ants.angular_xy(info)
+    flux, keff = power(xs_total, xs_scatter, xs_fission, medium_map, \
+                       delta_x, delta_y, angle_x, angle_y, angle_w, info)
     assert abs(keff - 1) < 2e-3, "k-effective: " + str(keff)
 
 
@@ -206,7 +201,7 @@ def test_cylinder_three_material(layer):
     # from ants.utils import math
     # weight_map = math.monte_carlo_weight_matrix(delta_x, delta_y, \
     #                                             center, radii)
-    weight_map = np.load("data/weight_map_cylinder_three_material_{}.npy".format(layer))
+    weight_map = np.load("data/weight_maps_2d/cylinder_three_material_{}.npy".format(layer))
     data = dimensions.cylinder_cross_sections(weight_map, xs_total, \
                                               xs_scatter, xs_fission, \
                                               cells_x, cells_y)
@@ -216,13 +211,12 @@ def test_cylinder_three_material(layer):
     groups = 1
     angles = 4
     bc = [0, 0]
-    params = {"cells_x": cells_x, "cells_y": cells_y, "angles": angles, \
-             "groups": groups, "materials": len(xs_total), "geometry": 1, "spatial": 2, \
-             "qdim": 2, "bc_x": bc, "bcdim_x": 0, "bc_y": bc, "bcdim_y": 0, \
-             "steps": 0, "dt": 0, "adjoint": False, "angular": False}
-    angle_x, angle_y, angle_w = ants._angle_xy(params)
-    flux, keff = power(xs_total, xs_scatter, xs_fission, medium_map.flatten(), \
-                       delta_x, delta_y, angle_x, angle_y, angle_w, params)
+    info = {"cells_x": cells_x, "cells_y": cells_y, "angles": angles, \
+            "groups": groups, "materials": len(xs_total), "geometry": 1, "spatial": 2, \
+            "qdim": 2, "bc_x": bc, "bcdim_x": 1, "bc_y": bc, "bcdim_y": 1}
+    angle_x, angle_y, angle_w = ants.angular_xy(info)
+    flux, keff = power(xs_total, xs_scatter, xs_fission, medium_map, \
+                       delta_x, delta_y, angle_x, angle_y, angle_w, info)
     assert abs(keff - 1) < 2e-3, "k-effective: " + str(keff)
 
 # if __name__ == "__main__":

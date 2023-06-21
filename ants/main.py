@@ -12,7 +12,6 @@
 
 import numpy as np
 import pkg_resources
-import warnings
 
 from ants.constants import *
 from ants.utils.hybrid import energy_coarse_index
@@ -20,80 +19,71 @@ from ants.utils.hybrid import energy_coarse_index
 DATA_PATH = pkg_resources.resource_filename("ants","sources/energy/")
 
 
-# def _angle_x(params):
-def angular_x(params):
-    angle_x, angle_w = np.polynomial.legendre.leggauss(params["angles"])
+def angular_x(info):
+    angle_x, angle_w = np.polynomial.legendre.leggauss(info["angles"])
     angle_w /= np.sum(angle_w)
     # Ordering for reflective boundaries
-    if np.sum(params["bc_x"]) > 0.0:
-        if params["bc_x"] == [1, 0]:
+    if np.sum(info["bc_x"]) > 0.0:
+        if info["bc_x"] == [1, 0]:
             idx = angle_x.argsort()
-        elif params["bc_x"] == [0, 1]:
+        elif info["bc_x"] == [0, 1]:
             idx = angle_x.argsort()[::-1]
         angle_x = angle_x[idx].copy()
         angle_w = angle_w[idx].copy()
     return angle_x, angle_w
 
-# def _angle_xy(params, rewrite=True):
-def angular_xy(params, rewrite=True):
-    angles = params["angles"]
-    bc = [params["bc_x"], params["bc_y"]]
+
+def angular_xy(info):
+    angles = info["angles"]
+    bc_x = info["bc_x"]
+    bc_y = info["bc_y"]
     # eta, xi, mu: direction cosines (x,y,z) 
     xx, wx = np.polynomial.legendre.leggauss(angles)
     yy, wy = np.polynomial.chebyshev.chebgauss(angles)
+    # Create arrays for each angle
+    angle_x = np.zeros(2 * angles**2)
+    angle_y = np.zeros(2 * angles**2)
+    angle_z = np.zeros(2 * angles**2)
+    angle_w = np.zeros(2 * angles**2)
+    # Indexing
     idx = 0
-    eta = np.zeros(2 * angles**2)
-    xi = np.zeros(2 * angles**2)
-    mu = np.zeros(2 * angles**2)
-    w = np.zeros(2 * angles**2)
     for ii in range(angles):
         for jj in range(angles):
-            mu[idx:idx+2] = xx[ii]
-            eta[idx] = np.sqrt(1 - xx[ii]**2) * np.cos(np.arccos(yy[jj]))
-            eta[idx+1] = np.sqrt(1 - xx[ii]**2) * np.cos(-np.arccos(yy[jj]))
-            xi[idx] = np.sqrt(1 - xx[ii]**2) * np.sin(np.arccos(yy[jj]))
-            xi[idx+1] = np.sqrt(1 - xx[ii]**2) * np.sin(-np.arccos(yy[jj]))
-            w[idx:idx+2] = wx[ii] * wy[jj]
+            angle_z[idx:idx+2] = xx[ii]
+            angle_x[idx] = np.sqrt(1 - xx[ii]**2) * np.cos(np.arccos(yy[jj]))
+            angle_x[idx+1] = np.sqrt(1 - xx[ii]**2) * np.cos(-np.arccos(yy[jj]))
+            angle_y[idx] = np.sqrt(1 - xx[ii]**2) * np.sin(np.arccos(yy[jj]))
+            angle_y[idx+1] = np.sqrt(1 - xx[ii]**2) * np.sin(-np.arccos(yy[jj]))
+            angle_w[idx:idx+2] = wx[ii] * wy[jj]
             idx += 2
-    w, eta, xi = _ordering_xy_angles(w[mu > 0] / np.sum(w[mu > 0]), \
-                                        eta[mu > 0], xi[mu > 0], bc)
-    # Convert to naming convention
-    angle_w = w.copy()
-    angle_x = eta.copy()
-    angle_y = xi.copy()
-    if rewrite:
-        params["angles"] = len(angle_x)
-    return angle_x, angle_y, angle_w
+    # Take only positive angle_z values
+    angle_x = angle_x[angle_z > 0].copy()
+    angle_y = angle_y[angle_z > 0].copy()
+    angle_w = angle_w[angle_z > 0] / np.sum(angle_w[angle_z > 0])
+    # Order for reflected surfaces and return
+    return _ordering_angles_xy(angle_x, angle_y, angle_w, bc_x, bc_y)
 
-def _ordering_xy_angles(w, nx, ny, bc):
-    angles = np.vstack((w, nx, ny))
-    if np.sum(bc) == 1:
-        if bc[0] == [0, 1]:
-            angles = angles[:,angles[1].argsort()[::-1]]
-        elif bc[0] == [1, 0]:
-            angles = angles[:,angles[1].argsort()]
-        elif bc[1] == [0, 1]:
-            angles = angles[:,angles[2].argsort()[::-1]]
-        elif bc[1] == [1, 0]:
-            angles = angles[:,angles[2].argsort()]
-    elif np.sum(bc) == 2:
-        if bc[0] == [0, 1] and bc[1] == [0, 1]:
-            angles = angles[:,angles[1].argsort()]
-            angles = angles[:,angles[2].argsort(kind="mergesort")[::-1]]
-        elif bc[0] == [1, 0] and bc[1] == [0, 1]:
-            angles = angles[:,angles[1].argsort()[::-1]]
-            angles = angles[:,angles[2].argsort(kind="mergesort")[::-1]]
-        elif bc[0] == [0, 1] and bc[1] == [1, 0]:
-            angles = angles[:,angles[1].argsort()[::-1]]
-            angles = angles[:,angles[2].argsort(kind="mergesort")]
-        elif bc[0] == [1, 0] and bc[1] == [1, 0]:
-            angles = angles[:,angles[1].argsort()]
-            angles = angles[:,angles[2].argsort(kind="mergesort")]
-    elif np.sum(bc) > 2:
-        message = ("There must only be one reflected boundary "
-                    "in each direction")
-        warnings.warn(message)
-    return angles
+
+def _ordering_angles_xy(angle_x, angle_y, angle_w, bc_x, bc_y):
+    # Get number of discrete ordinates
+    angles = int(np.sqrt(angle_x.shape[0]))
+    # Get only positive angles
+    matrix = np.fabs(np.round(np.vstack((angle_x, angle_y, angle_w)), 12))
+    # Get unique combinations and convert to size N**2
+    matrix = np.repeat(np.unique(matrix, axis=1), 4, axis=1)
+    # signs for [angle_x, angle_y, angle_w]
+    directions = np.array([[1, -1, 1, -1], [1, 1, -1, -1], [1, 1, 1, 1]])
+    # Only one reflected surface
+    if (bc_x == [0, 0] or bc_x == [0, 1]) and bc_y == [0, 0]:
+        idx = [0, 1, 2, 3]
+    elif bc_x == [0, 0] and bc_y == [1, 0]:
+        idx = [2, 0, 3, 1]
+    elif bc_x == [0, 0] and bc_y == [0, 1]:
+        idx = [0, 2, 1, 3]
+    elif bc_x == [1, 0] and bc_y == [0, 0]:
+        idx = [1, 0, 3, 2]
+    directions = np.tile(directions[:,idx], int(angles**2 / 4))
+    return matrix * directions
 
 
 # def _energy_grid(groups, grid):

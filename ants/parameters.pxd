@@ -91,6 +91,9 @@ cdef struct params:
 
 cdef params _to_params(dict pydic)
 
+########################################################################
+# One-dimensional functions
+########################################################################
 cdef int _check_fixed1d_source_iteration(params info, int xs_length) except -1
 
 cdef int _check_timed1d_backward_euler(params info, int xs_length) except -1
@@ -102,3 +105,10 @@ cdef int _check_critical1d_nearby_power(params info) except -1
 cdef int _check_hybrid1d_bdf1_uncollided(params info, int xs_length) except -1
 
 cdef int _check_hybrid1d_bdf1_collided(params info, int xs_length) except -1
+
+########################################################################
+# Two-dimensional functions
+########################################################################
+cdef int _check_fixed2d_source_iteration(params info, int xs_length) except -1
+
+cdef int _check_critical2d_power_iteration(params info) except -1

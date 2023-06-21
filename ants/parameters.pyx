@@ -52,6 +52,10 @@ cdef params _to_params(dict pydic):
     return info
 
 
+########################################################################
+# One-dimensional functions
+########################################################################
+
 cdef int _check_fixed1d_source_iteration(params info, int xs_length) except -1:
     assert info.angles % 2 == 0, "Need an even number of angles"
     assert info.materials == xs_length, "Incorrect number of materials"
@@ -100,4 +104,23 @@ cdef int _check_hybrid1d_bdf1_collided(params info, int xs_length) except -1:
     assert info.qdim == 2, "Need (I x G) fixed source"
     assert info.angular == False, "Scalar Flux is returned"
     assert info.bcdim_x == 1, "No Boundary conditions"
+    return 0
+
+########################################################################
+# Two-dimensional functions
+########################################################################
+
+cdef int _check_fixed2d_source_iteration(params info, int xs_length) except -1:
+    assert info.angles % 2 == 0, "Need an even number of angles"
+    assert info.materials == xs_length, "Incorrect number of materials"
+    if info.angular:
+        assert info.qdim == 3, "Need (I x J x N x G) fixed source"
+    return 0
+
+cdef int _check_critical2d_power_iteration(params info) except -1:
+    assert info.angles % 2 == 0, "Need an even number of angles"
+    assert info.qdim == 2, "Need (I x J x G) source term"
+    assert info.edges == 0, "Cannot currently use cell edges"
+    assert info.bcdim_x == 1, "No boundary conditions"
+    assert info.bcdim_y == 1, "No boundary conditions"
     return 0
