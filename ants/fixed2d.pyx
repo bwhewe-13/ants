@@ -5,7 +5,7 @@
 #                     / ___ |/ /|  / / /  ___/ / 
 #                    /_/  |_/_/ |_/ /_/  /____/  
 #
-# One-Dimensional Fixed Source Multigroup Neutron Transport Problems
+# Two-Dimensional Fixed Source Multigroup Neutron Transport Problems
 #
 ########################################################################
 
@@ -42,14 +42,16 @@ def source_iteration(double[:,:] xs_total, double[:,:,:] xs_scatter, \
     flux = mg.source_iteration(flux_old, xs_total, xs_scatter, external, \
                             boundary_x, boundary_y, medium_map, delta_x, \
                             delta_y, angle_x, angle_y, angle_w, info)
-    # if info.angular:
-    #     # Create (sigma_s + sigma_f) * phi + external function
-    #     source = tools.array_1d((info.cells_x + info.edges) * info.angles \
-    #                 * (info.cells_y + info.edges) * info.angles * info.groups)
-    #     tools._source_total(source, flux, xs_scatter, medium_map, external, info)
-    #     # Solve for angular flux using scalar flux
-    #     angular_flux = mg._known_source(xs_total, source, boundary_x, \
-    #                         medium_map, delta_x, angle_x, angle_w, info)
-    #     return np.asarray(angular_flux)
+    if info.angular:
+        # Create (sigma_s + sigma_f) * phi + external function
+        source = tools.array_1d((info.cells_x + info.edges) \
+                                * (info.cells_y + info.edges) \
+                                * info.angles * info.angles * info.groups)
+        tools._source_total(source, flux, xs_scatter, medium_map, external, info)
+        # Solve for angular flux using scalar flux
+        angular_flux = mg._known_source(xs_total, source, boundary_x, \
+                                        boundary_y, medium_map, delta_x, \
+                                        delta_y, angle_x, angle_y, info)
+        return np.asarray(angular_flux)
     # Convert to numpy array
     return np.asarray(flux)

@@ -18,7 +18,7 @@ def solution_mms_01(centers_x, centers_y, angle_x, angle_y):
     """ One material, no scattering """
     angles = angle_x.shape[0]
     x, y = np.meshgrid(centers_x, centers_y)
-    flux = np.ones(x.shape + (angles,1))
+    flux = np.zeros(x.shape + (angles, 1))
     for n, mu in enumerate(angle_x):
         # Add x direction
         if mu > 0.0:

@@ -132,7 +132,6 @@ cdef void _source_total(double[:]& source, double[:,:,:]& flux, \
             mat = medium_map[ii,jj]
             for nn in range(NN):
                 for og in range(info.groups):
-                    # loc = og + info.groups * (nn + ii * info.angles * info.angles)
                     loc = og + info.groups * (nn + NN * (jj + ii * info.cells_y))
                     for ig in range(info.groups):
                         source[loc] += flux[ii,jj,ig] * xs_matrix[mat,og,ig]

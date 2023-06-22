@@ -21,7 +21,7 @@
 
 from libc.math cimport isnan, isinf
 
-from ants.spatial_sweep_2d cimport discrete_ordinates #, _known_sweep
+from ants.spatial_sweep_2d cimport discrete_ordinates, _known_sweep
 from ants cimport cytools_2d as tools
 from ants.parameters cimport params
 from ants.constants import *
@@ -29,7 +29,7 @@ from ants.constants import *
 
 cdef double[:,:,:] source_iteration(double[:,:,:]& flux_guess, \
         double[:,:]& xs_total, double[:,:,:]& xs_scatter, double[:]& external, \
-        double [:]& boundary_x, double [:]& boundary_y, int[:,:]& medium_map, \
+        double[:]& boundary_x, double[:]& boundary_y, int[:,:]& medium_map, \
         double[:]& delta_x, double[:]& delta_y, double[:]& angle_x, \
         double[:]& angle_y, double[:]& angle_w, params info):
     # Initialize components
@@ -69,3 +69,29 @@ cdef double[:,:,:] source_iteration(double[:,:,:]& flux_guess, \
         count += 1
         flux_old[:,:,:] = flux[:,:,:]
     return flux[:,:,:]
+
+
+cdef double[:,:,:,:] _known_source(double[:,:]& xs_total, double[:]& source, \
+        double[:]& boundary_x, double[:]& boundary_y, int[:,:]& medium_map, \
+        double[:]& delta_x, double[:]& delta_y, double[:]& angle_x, \
+        double[:]& angle_y, params info):
+    # source = flux * xs_scatter + external source
+    # Initialize components
+    cdef int gg, q1, qq2, bcx1, bcx2, bcy1, bcy2
+    # Set indexing
+    qq2 = 1 if info.qdim == 1 else info.groups
+    bcx2 = 1 if info.bcdim_x <= 2 else info.groups
+    bcy2 = 1 if info.bcdim_y <= 2  else info.groups
+    # Initialize angular flux
+    angular_flux = tools.array_4d(info.cells_x + info.edges, \
+                                  info.cells_y + info.edges, \
+                                  info.angles * info.angles, info.groups)
+    for gg in range(info.groups):
+        qq1 = 0 if info.qdim == 1 else gg
+        bcx1 = 0 if info.bcdim_x <= 2 else gg
+        bcy1 = 0 if info.bcdim_y <= 2 else gg
+        _known_sweep(angular_flux[:,:,:,gg], xs_total[:,gg], source[qq1::qq2], \
+                boundary_x[bcx1::bcx2], boundary_y[bcy1::bcy2], medium_map, \
+                delta_x, delta_y, angle_x, angle_y, info)
+    return angular_flux[:,:,:,:]
+

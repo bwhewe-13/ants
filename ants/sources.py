@@ -100,10 +100,10 @@ def _generate_uranium_hydride(enrichment):
     return total, scatter, fission
 
 ########################################################################
-# External Sources
+# External Sources - 1D
 ########################################################################
 
-__externals1d = ("reeds", "mms-03", "mms-04", "mms-05", "ambe", "mms-01-2d")
+__externals1d = ("reeds", "mms-03", "mms-04", "mms-05", "ambe")
 
 def externals1d(name, shape, **kw):
     external = np.zeros(shape)
@@ -212,7 +212,22 @@ def _external_1d_ambe(external, groups, edges_x):
     return external
 
 ########################################################################
-# Boundary Conditions
+# External Sources - 2D
+########################################################################
+
+__externals2d = ()
+
+def externals2d(name, shape, **kw):
+    external = np.zeros(shape)
+    if isinstance(name, float):
+        external[(...)] = name
+        return external
+    warnings.warn("External Source not populated, use float")
+    # warnings.warn("External Source not populated, use {}".format(__externals2d))
+    return external
+
+########################################################################
+# Boundary Conditions - 1D
 ########################################################################
 
 __boundaries1d = ("14.1-mev", "mms-03", "mms-04", "mms-05")
@@ -250,3 +265,42 @@ def _boundary_1d_mms_04_05(boundary, name):
     elif name == "mms-05":
         boundary[1] = width**3
     return boundary
+
+########################################################################
+# Boundary Conditions - 2D
+########################################################################
+
+__boundaries2d = ("mms-01")
+
+def boundaries2d(name, shape_x, shape_y, **kw):
+    # location is list, 0: x = 0, 1: x = X
+    boundary_x = np.zeros(shape_x)
+    boundary_y = np.zeros(shape_y)
+    if isinstance(name, float):
+        boundary_x = name
+        boundary_y = name
+        return boundary_x, boundary_y
+    if name == "mms-01":
+        assert "angle_x" in kw, "Need angle_x for boundary condition"
+        assert "angle_y" in kw, "Need angle_y for boundary condition"
+        assert "centers_x" in kw, "Need centers_x for boundary condition"
+        return _boundary_2d_mms_01(boundary_x, boundary_y, kw["angle_x"], \
+                                   kw["angle_y"], kw["centers_x"])
+    warnings.warn("Boundary condition not populated, use {}".format(__boundaries2d))
+    return boundary_x, boundary_y
+
+def _boundary_2d_mms_01(boundary_x, boundary_y, angle_x, angle_y, centers_x):
+    for nn, (mu, eta) in enumerate(zip(angle_x, angle_y)):
+        if mu > 0.0 and eta > 0.0:
+            boundary_x[0,:,nn,0] = 1.5
+            boundary_y[0,:,nn,0] = 0.5 + np.exp(-centers_x / mu)
+        elif mu > 0.0 and eta < 0.0:
+            boundary_x[0,:,nn,0] = 1.5
+            boundary_y[1,:,nn,0] = 0.5 + np.exp(-centers_x / mu)
+        elif mu < 0.0 and eta > 0.0:
+            boundary_x[1,:,nn,0] = 1.5
+            boundary_y[0,:,nn,0] = 0.5 + np.exp((1 - centers_x) / mu)
+        elif mu < 0.0 and eta < 0.0:
+            boundary_x[1,:,nn,0] = 1.5
+            boundary_y[1,:,nn,0] = 0.5 + np.exp((1 - centers_x) / mu)
+    return boundary_x, boundary_y

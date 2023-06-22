@@ -50,8 +50,6 @@ cdef void square_ordinates(double[:,:]& flux, double[:,:]& flux_old, \
     qq2 = 1 if info.qdim != 3 else info.angles * info.angles
     bcx2 = 1 if info.bcdim_x != 4 else info.angles * info.angles
     bcy2 = 1 if info.bcdim_y != 4 else info.angles * info.angles
-    # Initialize unknown cell edge
-    cdef double edge = 0.0
     # Add reflector array
     known_y = tools.array_1d(info.cells_x)
     known_x = tools.array_1d(info.cells_y)
@@ -228,3 +226,49 @@ cdef double square_backward_x(double[:]& flux, double[:]& flux_old, \
             edge_x = 2 * center - edge_x
             edge_y[ii] = 2 * center - edge_y[ii]
     return edge_x
+
+
+########################################################################
+# Known Source Spatial Sweeps
+########################################################################
+
+cdef void _known_sweep(double[:,:,:]& flux, double[:]& xs_total, \
+        double[:]& source, double[:]& boundary_x, double[:]& boundary_y, \
+        int[:,:]& medium_map, double[:]& delta_x, double[:]& delta_y, \
+        double[:]& angle_x, double[:]& angle_y, params info):
+    # Rectangular spatial cells
+    if info.geometry == 1:
+        _known_square(flux, xs_total, source, boundary_x, boundary_y, \
+                    medium_map, delta_x, delta_y, angle_x, angle_y, info)
+
+
+cdef void _known_square(double[:,:,:]& flux, double[:]& xs_total, \
+        double[:]& source, double[:]& boundary_x, double[:]& boundary_y, \
+        int[:,:]& medium_map, double[:]& delta_x, double[:]& delta_y, \
+        double[:]& angle_x, double[:]& angle_y, params info):
+    # Initialize indices etc
+    cdef int nn, qq1, qq2, bcx1, bcx2, bcy1, bcy2
+    # Set indexing
+    qq2 = 1 if info.qdim != 3 else info.angles * info.angles
+    bcx2 = 1 if info.bcdim_x != 4 else info.angles * info.angles
+    bcy2 = 1 if info.bcdim_y != 4 else info.angles * info.angles
+    # Add reflector array
+    known_y = tools.array_1d(info.cells_x)
+    known_x = tools.array_1d(info.cells_y)
+    # Add zero placeholder
+    zero_2d = tools.array_2d(info.cells_x, info.cells_y)
+    zero_1d = tools.array_1d(info.materials)
+    for nn in range(info.angles * info.angles):
+        # Determine dimensions of external and boundary sources
+        qq1 = 0 if info.qdim != 3 else nn
+        bcx1 = 0 if info.bcdim_x != 4 else nn
+        bcy1 = 0 if info.bcdim_y != 4 else nn
+        # Initialize known x and y
+        tools._initialize_edge_y(known_y, boundary_y[bcy1::bcy2], \
+                                 angle_y, angle_x, nn, info)
+        tools._initialize_edge_x(known_x, boundary_x[bcx1::bcx2], \
+                                 angle_x, angle_y, nn, info)
+        # Perform spatial sweep
+        square_sweep(flux[:,:,nn], zero_2d, xs_total, zero_1d, zero_2d, \
+                source[qq1::qq2], known_x, known_y, medium_map, delta_x, \
+                delta_y, angle_x[nn], angle_y[nn], 1.0, info)

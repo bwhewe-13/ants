@@ -9,13 +9,14 @@
 #
 ########################################################################
 
-import ants
-from ants.critical2d import power_iteration as power
-from ants.utils import dimensions
-# from tests import tools
 
 import pytest
 import numpy as np
+
+import ants
+from ants.critical2d import power_iteration as power
+from ants.utils import dimensions
+
 
 @pytest.mark.slab2d
 @pytest.mark.power_iteration
