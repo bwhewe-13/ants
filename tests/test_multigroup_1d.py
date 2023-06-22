@@ -47,8 +47,8 @@ def sphere_01(ptype):
     xs_total, xs_scatter, xs_fission = ants.materials(groups, materials)
 
     # External and boundary sources
-    external = ants.externals(0.0, (cells * angles * groups,))
-    boundary_x = ants.boundaries("14.1-mev", (2, groups), [1], \
+    external = ants.externals1d(0.0, (cells * angles * groups,))
+    boundary_x = ants.boundaries1d("14.1-mev", (2, groups), [1], \
                                  energy_grid=edges_g).flatten()
 
     info = {

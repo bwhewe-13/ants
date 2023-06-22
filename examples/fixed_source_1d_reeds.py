@@ -65,7 +65,7 @@ xs_scatter = np.array([[[0.9]], [[0.0]], [[0.0]], [[0.0]]])
 xs_fission = np.array([[[0.0]], [[0.0]], [[0.0]], [[0.0]]])
 
 # External and boundary sources
-external = ants.externals("reeds", (cells, angles, groups), \
+external = ants.externals1d("reeds", (cells, angles, groups), \
                           edges_x=edges_x, bc=info["bc_x"]).flatten()
 boundary_x = np.zeros((2,))
 

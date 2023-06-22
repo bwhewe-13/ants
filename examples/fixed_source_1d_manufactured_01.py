@@ -49,8 +49,8 @@ xs_total = np.array([[1.0]])
 xs_scatter = np.array([[[0.0]]])
 xs_fission = np.array([[[0.0]]])
 
-external = ants.externals(1.0, (cells * angles * groups,))
-boundary_x = ants.boundaries(1.0, (2, angles, groups), [0]).flatten()
+external = ants.externals1d(1.0, (cells * angles * groups,))
+boundary_x = ants.boundaries1d(1.0, (2, angles, groups), [0]).flatten()
 
 angle_x, angle_w = ants.angular_x(info)
 medium_map = np.zeros((cells), dtype=np.int32)

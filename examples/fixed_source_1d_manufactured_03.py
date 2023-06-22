@@ -52,9 +52,9 @@ xs_total = np.array([[1.0]])
 xs_scatter = np.array([[[0.9]]])
 xs_fission = np.array([[[0.0]]])
 
-external = ants.externals("mms-03", (cells, angles, groups), \
+external = ants.externals1d("mms-03", (cells, angles, groups), \
                           centers_x=centers_x, angle_x=angle_x).flatten()
-boundary_x = ants.boundaries("mms-03", (2, angles), [0, 1], \
+boundary_x = ants.boundaries1d("mms-03", (2, angles), [0, 1], \
                            angle_x=angle_x).flatten()
 
 

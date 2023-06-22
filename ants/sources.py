@@ -103,9 +103,9 @@ def _generate_uranium_hydride(enrichment):
 # External Sources
 ########################################################################
 
-__externals = ("reeds", "mms-03", "mms-04", "mms-05", "ambe", "mms-01-2d")
+__externals1d = ("reeds", "mms-03", "mms-04", "mms-05", "ambe", "mms-01-2d")
 
-def externals(name, shape, **kw):
+def externals1d(name, shape, **kw):
     external = np.zeros(shape)
     if isinstance(name, float):
         external[(...)] = name
@@ -118,16 +118,16 @@ def externals(name, shape, **kw):
         assert "centers_x" in kw, "Need centers_x for external source"
         assert "angle_x" in kw, "Need angle_x for external source"
         if name == "mms-03":
-            return _external_mms_03(external, kw["centers_x"], kw["angle_x"])
+            return _external_1d_mms_03(external, kw["centers_x"], kw["angle_x"])
         elif name == "mms-04":
-            return _external_mms_04(external, kw["centers_x"], kw["angle_x"])
+            return _external_1d_mms_04(external, kw["centers_x"], kw["angle_x"])
         elif name == "mms-05":
-            return _external_mms_05(external, kw["centers_x"], kw["angle_x"])
+            return _external_1d_mms_05(external, kw["centers_x"], kw["angle_x"])
     elif name == "ambe":
         assert "edges_x" in kw, "Need edges_x for external source"
         assert "groups" in kw, "Need groups for external source"
-        return _external_ambe(external, kw["groups"], kw["edges_x"])
-    warnings.warn("External Source not populated, use {}".format(__externals))
+        return _external_1d_ambe(external, kw["groups"], kw["edges_x"])
+    warnings.warn("External Source not populated, use {}".format(__externals1d))
     return external
 
 def _external_reeds(external, edges_x, bc):
@@ -146,7 +146,7 @@ def _external_reeds(external, edges_x, bc):
         external[bounds[ii]] = source_values[ii]
     return external
 
-def _external_mms_03(external, centers_x, angle_x):
+def _external_1d_mms_03(external, centers_x, angle_x):
     cc1 = 0.5
     cc2 = 0.25
     def dependence(mu):
@@ -157,7 +157,7 @@ def _external_mms_03(external, centers_x, angle_x):
         external[:,n] = dependence(mu)[:,None]
     return external
 
-def _external_mms_04(external, centers_x, angle_x):
+def _external_1d_mms_04(external, centers_x, angle_x):
     width = 2.
     def quasi(x, mu):
         c = 0.3
@@ -174,7 +174,7 @@ def _external_mms_04(external, centers_x, angle_x):
         external[idx,n] = scatter(centers_x[idx], mu)
     return external
 
-def _external_mms_05(external, centers_x, angle_x):
+def _external_1d_mms_05(external, centers_x, angle_x):
     width = 2.
     def quasi(x, mu):
         c = 0.3
@@ -194,15 +194,15 @@ def _external_mms_05(external, centers_x, angle_x):
         external[idx,n] = scatter(centers_x[idx], mu)
     return external
 
-def _external_ambe(external, groups, edges_x):
+def _external_1d_ambe(external, groups, edges_x):
     AmBe = np.load(DATA_PATH + "external/AmBe_source_050G.npz")
-    edges_gg = "energy/G{}_energy_grid.npy".format(str(groups).zfill(3))
-    edges_gg = np.load(DATA_PATH + edges_gg)
+    edges_g = "energy/G{}_energy_grid.npy".format(str(groups).zfill(3))
+    edges_g = np.load(DATA_PATH + edges_g)
     # Convert to MeV
-    if np.max(edges_gg) > 20.0:
-        edges_gg *= 1E-6
-    centers_gg = 0.5 * (edges_gg[1:] + edges_gg[:-1])
-    locs = lambda x1, x2: np.argwhere((centers_gg > x1) & (centers_gg <= x2)).flatten()
+    if np.max(edges_g) > 20.0:
+        edges_g *= 1E-6
+    centers_g = 0.5 * (edges_g[1:] + edges_g[:-1])
+    locs = lambda x1, x2: np.argwhere((centers_g > x1) & (centers_g <= x2)).flatten()
     center = 0.5 * max(edges_x)
     center_idx = np.where(abs(edges_x - center) == abs(edges_x - center).min())[0]
     for ii in range(len(AmBe["magnitude"])):
@@ -215,9 +215,9 @@ def _external_ambe(external, groups, edges_x):
 # Boundary Conditions
 ########################################################################
 
-__boundaries = ("14.1-mev", "mms-03", "mms-04", "mms-05")
+__boundaries1d = ("14.1-mev", "mms-03", "mms-04", "mms-05")
 
-def boundaries(name, shape, location, **kw):
+def boundaries1d(name, shape, location, **kw):
     # location is list, 0: x = 0, 1: x = X
     boundary = np.zeros(shape)
     if isinstance(name, float):
@@ -230,20 +230,20 @@ def boundaries(name, shape, location, **kw):
         return boundary
     elif name == "mms-03":
         assert "angle_x" in kw, "Need angle_x for boundary condition"
-        return _boundary_mms_03(boundary, kw["angle_x"])
+        return _boundary_1d_mms_03(boundary, kw["angle_x"])
     elif name in ["mms-04", "mms-05"]:
-        return _boundary_mms_04_05(boundary, name)
-    warnings.warn("Boundary condition not populated, use {}".format(__boundaries))
+        return _boundary_1d_mms_04_05(boundary, name)
+    warnings.warn("Boundary condition not populated, use {}".format(__boundaries1d))
     return boundary
 
-def _boundary_mms_03(boundary, angle_x):
+def _boundary_1d_mms_03(boundary, angle_x):
     const1 = 0.5
     const2 = 0.25
     boundary[0] = const1
     boundary[1] = const1 + const2 * np.exp(angle_x)
     return boundary
 
-def _boundary_mms_04_05(boundary, name):
+def _boundary_1d_mms_04_05(boundary, name):
     width = 2.
     if name == "mms-04":
         boundary[1] = 0.5 * width**2 + 0.125 * width

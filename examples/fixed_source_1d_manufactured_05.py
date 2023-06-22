@@ -51,9 +51,9 @@ xs_total = np.array([[1.0], [1.0]])
 xs_scatter = np.array([[[0.3]], [[0.9]]])
 xs_fission = np.array([[[0.0]], [[0.0]]])
 
-external = ants.externals("mms-05", (cells, angles), \
+external = ants.externals1d("mms-05", (cells, angles), \
                           centers_x=centers_x, angle_x=angle_x).flatten()
-boundary_x = ants.boundaries("mms-05", (2, angles), [0, 1], \
+boundary_x = ants.boundaries1d("mms-05", (2, angles), [0, 1], \
                            angle_x=angle_x).flatten()
 
 flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
