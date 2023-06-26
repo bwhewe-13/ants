@@ -300,7 +300,7 @@ cdef void sphere_forward(double[:]& flux, double[:]& flux_old, \
     cdef double edge1 = half_angle[0]
     # Determine flux edge
     if info.edges:
-        flux[0] = weight * edge1
+        flux[0] += weight * edge1
     # Initialize surface area on cell edges, cell volume, flux center
     cdef double area1, area2, center, volume
     # Iterate over cells from 0 -> I (center to edge)
@@ -348,7 +348,7 @@ cdef void sphere_backward(double[:]& flux, double[:]& flux_old, \
     cdef double edge1 = boundary_x
     # Determine flux edge
     if info.edges:
-        flux[info.cells_x] = weight * edge1
+        flux[info.cells_x] += weight * edge1
     # Initialize surface area on cell edges, cell volume, flux center
     cdef double area1, area2, center, volume
     # Iterate over cells from I -> 0 (edge to center)

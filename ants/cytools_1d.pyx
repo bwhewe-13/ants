@@ -99,15 +99,15 @@ cdef void _off_scatter(double[:,:]& flux, double[:,:]& flux_old, \
         int[:]& medium_map, double[:,:,:]& xs_matrix, \
         double[:]& off_scatter, params info, int group):
     # Initialize iterables
-    cdef int cell, mat, og
+    cdef int ii, mat, og
     # Zero out previous values
     off_scatter[:] = 0.0
-    for cell in range(info.cells_x):
-        mat = medium_map[cell]
+    for ii in range(info.cells_x):
+        mat = medium_map[ii]
         for og in range(0, group):
-            off_scatter[cell] += xs_matrix[mat,group,og] * flux[cell,og]
+            off_scatter[ii] += xs_matrix[mat,group,og] * flux[ii,og]
         for og in range(group + 1, info.groups):
-            off_scatter[cell] += xs_matrix[mat,group,og] * flux_old[cell,og]
+            off_scatter[ii] += xs_matrix[mat,group,og] * flux_old[ii,og]
 
 
 cdef void _source_total(double[:]& source, double[:,:]& flux, \
