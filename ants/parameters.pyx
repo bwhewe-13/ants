@@ -59,7 +59,7 @@ cdef params _to_params(dict pydic):
 cdef int _check_fixed1d_source_iteration(params info, int xs_length) except -1:
     assert info.angles % 2 == 0, "Need an even number of angles"
     assert info.materials == xs_length, "Incorrect number of materials"
-    if info.angular:
+    if info.angular or info.edges:
         assert info.qdim == 3, "Need (I x N x G) fixed source"
     return 0
 
@@ -113,7 +113,7 @@ cdef int _check_hybrid1d_bdf1_collided(params info, int xs_length) except -1:
 cdef int _check_fixed2d_source_iteration(params info, int xs_length) except -1:
     assert info.angles % 2 == 0, "Need an even number of angles"
     assert info.materials == xs_length, "Incorrect number of materials"
-    if info.angular:
+    if info.angular or info.edges:
         assert info.qdim == 3, "Need (I x J x N x G) fixed source"
     return 0
 

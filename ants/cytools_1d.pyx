@@ -62,11 +62,11 @@ cdef double group_convergence(double[:,:]& arr1, double[:,:]& arr2, params info)
     cdef int ii, gg
     cdef double change = 0.0
     for gg in range(info.groups):
-        for ii in range(info.cells_x + info.edges):
+        for ii in range(info.cells_x):
             if arr1[ii,gg] == 0.0:
                 continue
             change += pow((arr1[ii,gg] - arr2[ii,gg]) / arr1[ii,gg] \
-                            / info.cells_x, 2)
+                          / info.cells_x, 2)
     change = sqrt(change)
     return change
 
@@ -75,7 +75,7 @@ cdef double angle_convergence(double[:]& arr1, double[:]& arr2, params info):
     # Calculate the L2 convergence of the scalar flux in the ordinates loop
     cdef int ii
     cdef double change = 0.0
-    for ii in range(info.cells_x + info.edges):
+    for ii in range(info.cells_x):
         if arr1[ii] == 0.0:
             continue
         change += pow((arr1[ii] - arr2[ii]) / arr1[ii] / info.cells_x, 2)
@@ -108,12 +108,6 @@ cdef void _off_scatter(double[:,:]& flux, double[:,:]& flux_old, \
             off_scatter[cell] += xs_matrix[mat,group,og] * flux[cell,og]
         for og in range(group + 1, info.groups):
             off_scatter[cell] += xs_matrix[mat,group,og] * flux_old[cell,og]
-    if info.edges:
-        mat = medium_map[info.cells_x]
-        for og in range(0, group):
-            off_scatter[info.cells_x] += xs_matrix[mat,group,og] * flux[info.cells_x,og]
-        for og in range(group + 1, info.groups):
-            off_scatter[info.cells_x] += xs_matrix[mat,group,og] * flux_old[info.cells_x,og]
 
 
 cdef void _source_total(double[:]& source, double[:,:]& flux, \
@@ -141,7 +135,7 @@ cdef double[:,:] _angular_to_scalar(double[:,:,:]& angular_flux,
     # Initialize scalar flux term
     scalar_flux = array_2d(info.cells_x + info.edges, info.groups)
     # Iterate over all spatial cells, angles, energy groups
-    for ii in range(info.cells_x):
+    for ii in range(info.cells_x + info.edges):
         for nn in range(info.angles):
             for gg in range(info.groups):
                 scalar_flux[ii,gg] += angular_flux[ii,nn,gg] * angle_w[nn]

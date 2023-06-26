@@ -25,6 +25,7 @@ from ants cimport cytools_1d as tools
 from ants.parameters cimport params
 from ants.constants import *
 
+
 cdef double[:,:] source_iteration(double[:,:]& flux_guess, double[:,:]& xs_total, \
         double[:,:,:]& xs_scatter, double[:]& external, double [:]& boundary_x, \
         int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
@@ -35,14 +36,14 @@ cdef double[:,:] source_iteration(double[:,:]& flux_guess, double[:,:]& xs_total
     qq2 = 1 if info.qdim == 1 else info.groups
     bc2 = 1 if info.bcdim_x == 1 else info.groups
     # Initialize flux
-    flux = tools.array_2d(info.cells_x + info.edges, info.groups)
+    flux = tools.array_2d(info.cells_x, info.groups)
     flux_old = flux_guess.copy()
-    flux_1g = tools.array_1d(info.cells_x + info.edges)
+    flux_1g = tools.array_1d(info.cells_x)
     # Create off-scattering term
-    off_scatter = tools.array_1d(info.cells_x + info.edges)
+    off_scatter = tools.array_1d(info.cells_x)
     # Set convergence limits
     cdef bint converged = False
-    cdef size_t count = 1
+    cdef int count = 1
     cdef double change = 0.0
     # Iterate until energy group convergence
     while not (converged):

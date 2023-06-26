@@ -43,7 +43,7 @@ def solution_mms_04(x, angle_x):
     width = 2
     flux = np.zeros((len(x), len(angle_x)))
     for n, mu in enumerate(angle_x):
-        flux[x < 1,n] = -2 * x[x < 1]**2 + 2 * width * x[x < 1]
+        flux[x <= 1,n] = -2 * x[x <= 1]**2 + 2 * width * x[x <= 1]
         flux[x > 1,n] = 0.25 * x[x > 1] - 0.125 * width + 0.5 * width**2
     return flux
 
@@ -52,6 +52,6 @@ def solution_mms_05(x, angle_x):
     width = 2
     flux = np.zeros((len(x), len(angle_x)))
     for n, mu in enumerate(angle_x):
-        flux[x < 1,n] = -2 * np.exp(mu) * x[x < 1]**2 + 2 * width**2 * x[x < 1]
+        flux[x <= 1,n] = -2 * np.exp(mu) * x[x <= 1]**2 + 2 * width**2 * x[x <= 1]
         flux[x > 1,n] = width * np.exp(mu) * x[x > 1] + width**2 * (width - np.exp(mu))
     return flux

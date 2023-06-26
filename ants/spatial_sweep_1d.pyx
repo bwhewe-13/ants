@@ -59,7 +59,7 @@ cdef void slab_ordinates(double[:]& flux, double[:]& flux_old, \
     reflector = tools.array_1d(info.angles)
     # Set convergence limits
     cdef bint converged = False
-    cdef size_t count = 1
+    cdef int count = 1
     cdef double change = 0.0
     # Iterate over angles until converged
     while not (converged):
@@ -126,7 +126,7 @@ cdef double slab_forward(double[:]& flux, double[:]& flux_old, \
     cdef float const2 = 1.0 if info.spatial == 1 else 0.5
     # Determine flux edge
     if info.edges:
-        flux[0] = angle_w * edge1
+        flux[0] += angle_w * edge1
     # Iterate over cells from 0 -> I, edge1 is known
     for ii in range(info.cells_x):
         # For determining the material cross sections
@@ -155,7 +155,7 @@ cdef double slab_backward(double[:]& flux, double[:]& flux_old, double[:]& xs_to
         double edge1, int[:]& medium_map, double[:]& delta_x, double angle_x, \
         double angle_w, params info):
     # Initialize cell and material iterables
-    cdef int ii, mat
+    cdef int ii, mat, shift
     # Initialize unknown cell edges
     cdef double edge2 = 0.0
     # Initialize discretization constants
@@ -163,7 +163,7 @@ cdef double slab_backward(double[:]& flux, double[:]& flux_old, double[:]& xs_to
     cdef float const2 = 1.0 if info.spatial == 1 else 0.5
     # Determine flux edge
     if info.edges:
-        flux[info.cells_x] = angle_w * edge1
+        flux[info.cells_x] += angle_w * edge1
     # Iterate over cells from I -> 0, edge1 is known
     for ii in range(info.cells_x-1, -1, -1):
         # For determining the material cross sections
@@ -426,7 +426,7 @@ cdef void _known_slab(double[:,:]& flux, double[:]& xs_total, \
     # Add reflector array initialized to zero
     reflector = tools.array_1d(info.angles)
     # Add zero placeholder
-    zero = tools.array_1d(info.cells_x)
+    zero = tools.array_1d(info.cells_x + info.edges)
     for nn in range(info.angles):
         # Determine dimensions of external and boundary sources
         qq1 = 0 if info.qdim != 3 else nn
