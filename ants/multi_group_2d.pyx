@@ -39,12 +39,11 @@ cdef double[:,:,:] source_iteration(double[:,:,:]& flux_guess, \
     bcx2 = 1 if info.bcdim_x <= 2 else info.groups
     bcy2 = 1 if info.bcdim_y <= 2  else info.groups
     # Initialize flux
-    flux = tools.array_3d(info.cells_x + info.edges, info.cells_y \
-                          + info.edges, info.groups)
+    flux = tools.array_3d(info.cells_x, info.cells_y, info.groups)
     flux_old = flux_guess.copy()
-    flux_1g = tools.array_2d(info.cells_x + info.edges, info.cells_y + info.edges)
+    flux_1g = tools.array_2d(info.cells_x, info.cells_y)
     # Create off-scattering term
-    off_scatter = tools.array_2d(info.cells_x + info.edges, info.cells_y + info.edges)
+    off_scatter = tools.array_2d(info.cells_x, info.cells_y)
     # Set convergence limits
     cdef bint converged = False
     cdef int count = 1
@@ -83,9 +82,8 @@ cdef double[:,:,:,:] _known_source(double[:,:]& xs_total, double[:]& source, \
     bcx2 = 1 if info.bcdim_x <= 2 else info.groups
     bcy2 = 1 if info.bcdim_y <= 2  else info.groups
     # Initialize angular flux
-    angular_flux = tools.array_4d(info.cells_x + info.edges, \
-                                  info.cells_y + info.edges, \
-                                  info.angles * info.angles, info.groups)
+    angular_flux = tools.array_4d(info.cells_x + info.edges, info.cells_y \
+                        + info.edges, info.angles * info.angles, info.groups)
     for gg in range(info.groups):
         qq1 = 0 if info.qdim == 1 else gg
         bcx1 = 0 if info.bcdim_x <= 2 else gg

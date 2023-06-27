@@ -215,15 +215,39 @@ def _external_1d_ambe(external, groups, edges_x):
 # External Sources - 2D
 ########################################################################
 
-__externals2d = ()
+__externals2d = ("mms-03", "mms-04")
 
 def externals2d(name, shape, **kw):
     external = np.zeros(shape)
     if isinstance(name, float):
         external[(...)] = name
         return external
+    assert "angle_x" in kw, "Need angle_x for external source"
+    assert "angle_y" in kw, "Need angle_y for external source"
+    if name == "mms-03":
+        return _external_2d_mms_03(external, kw["angle_x"], kw["angle_y"])
+    elif name == "mms-04":
+        assert "centers_x" in kw, "Need centers_x for external source"
+        assert "centers_y" in kw, "Need centers_y for external source"
+        return _external_2d_mms_04(external, kw["angle_x"], kw["angle_y"], \
+                                    kw["centers_x"], kw["centers_y"])
     warnings.warn("External Source not populated, use float")
     # warnings.warn("External Source not populated, use {}".format(__externals2d))
+    return external
+
+def _external_2d_mms_03(external, angle_x, angle_y):
+    for nn, (mu, eta) in enumerate(zip(angle_x, angle_y)):
+        external[:,:,nn,0] = 0.5 * (np.exp(-1) - np.exp(1)) + np.exp(mu) + np.exp(eta)
+    return external
+
+def _external_2d_mms_04(external, angle_x, angle_y, centers_x, centers_y):
+    x, y = np.meshgrid(centers_x, centers_y)
+    for nn, (mu, eta) in enumerate(zip(angle_x, angle_y)):
+        external[:,:,nn,0] = 1 + 0.1 * np.exp(mu) * x**2 \
+                             + 0.1 * np.exp(eta) * y**2 + 0.025 * np.exp(-1) \
+                             * (-20 * np.exp(1) + x**2 + y**2 - np.exp(2) \
+                             * (x**2 + y**2)) + 0.2 * (mu * x * np.exp(mu) \
+                             + eta * y * np.exp(eta))
     return external
 
 ########################################################################
@@ -270,7 +294,7 @@ def _boundary_1d_mms_04_05(boundary, name):
 # Boundary Conditions - 2D
 ########################################################################
 
-__boundaries2d = ("mms-01")
+__boundaries2d = ("mms-01", "mms-02", "mms-03", "mms-04")
 
 def boundaries2d(name, shape_x, shape_y, **kw):
     # location is list, 0: x = 0, 1: x = X
@@ -280,12 +304,24 @@ def boundaries2d(name, shape_x, shape_y, **kw):
         boundary_x = name
         boundary_y = name
         return boundary_x, boundary_y
+    assert "angle_x" in kw, "Need angle_x for boundary condition"
+    assert "angle_y" in kw, "Need angle_y for boundary condition"
     if name == "mms-01":
-        assert "angle_x" in kw, "Need angle_x for boundary condition"
-        assert "angle_y" in kw, "Need angle_y for boundary condition"
         assert "centers_x" in kw, "Need centers_x for boundary condition"
         return _boundary_2d_mms_01(boundary_x, boundary_y, kw["angle_x"], \
                                    kw["angle_y"], kw["centers_x"])
+    elif name == "mms-02":
+        assert "centers_x" in kw, "Need centers_x for boundary condition"
+        assert "centers_y" in kw, "Need centers_y for boundary condition"
+        return _boundary_2d_mms_02(boundary_x, boundary_y, kw["angle_x"], \
+                        kw["angle_y"], kw["centers_x"], kw["centers_y"])
+    elif name == "mms-03":
+        return _boundary_2d_mms_03(boundary_x, boundary_y, kw["angle_x"], kw["angle_y"])
+    elif name == "mms-04":
+        assert "centers_x" in kw, "Need centers_x for boundary condition"
+        assert "centers_y" in kw, "Need centers_y for boundary condition"
+        return _boundary_2d_mms_04(boundary_x, boundary_y, kw["angle_x"], \
+                        kw["angle_y"], kw["centers_x"], kw["centers_y"])
     warnings.warn("Boundary condition not populated, use {}".format(__boundaries2d))
     return boundary_x, boundary_y
 
@@ -303,4 +339,54 @@ def _boundary_2d_mms_01(boundary_x, boundary_y, angle_x, angle_y, centers_x):
         elif mu < 0.0 and eta < 0.0:
             boundary_x[1,:,nn,0] = 1.5
             boundary_y[1,:,nn,0] = 0.5 + np.exp((1 - centers_x) / mu)
+    return boundary_x, boundary_y
+
+def _boundary_2d_mms_02(boundary_x, boundary_y, angle_x, angle_y, centers_x, \
+        centers_y):
+    for nn, (mu, eta) in enumerate(zip(angle_x, angle_y)):
+        if mu > 0.0 and eta > 0.0:
+            boundary_x[0,:,nn,0] = 1.5 + 0.5 * np.exp(-centers_y / eta)
+            boundary_y[0,:,nn,0] = 1.5 + 0.5 * np.exp(-centers_x / mu)
+        elif mu > 0.0 and eta < 0.0:
+            boundary_x[0,:,nn,0] = 1.5 + 0.5 * np.exp((1 - centers_y) / eta)
+            boundary_y[1,:,nn,0] = 1.5 + 0.5 * np.exp(-centers_x / mu)
+        elif mu < 0.0 and eta > 0.0:
+            boundary_x[1,:,nn,0] = 1.5 + 0.5 * np.exp(-centers_y / eta)
+            boundary_y[0,:,nn,0] = 1.5 + 0.5 * np.exp((1 - centers_x) / mu)
+        elif mu < 0.0 and eta < 0.0:
+            boundary_x[1,:,nn,0] = 1.5 + 0.5 * np.exp((1 - centers_y) / eta)
+            boundary_y[1,:,nn,0] = 1.5 + 0.5 * np.exp((1 - centers_x) / mu)
+    return boundary_x, boundary_y
+
+def _boundary_2d_mms_03(boundary_x, boundary_y, angle_x, angle_y):
+    for nn, (mu, eta) in enumerate(zip(angle_x, angle_y)):
+        if mu > 0.0 and eta > 0.0:
+            boundary_x[0,:,nn,0] = np.exp(mu) + np.exp(eta)
+            boundary_y[0,:,nn,0] = np.exp(mu) + np.exp(eta)
+        elif mu > 0.0 and eta < 0.0:
+            boundary_x[0,:,nn,0] = np.exp(mu) + np.exp(eta)
+            boundary_y[1,:,nn,0] = np.exp(mu) + np.exp(eta)
+        elif mu < 0.0 and eta > 0.0:
+            boundary_x[1,:,nn,0] = np.exp(mu) + np.exp(eta)
+            boundary_y[0,:,nn,0] = np.exp(mu) + np.exp(eta)
+        elif mu < 0.0 and eta < 0.0:
+            boundary_x[1,:,nn,0] = np.exp(mu) + np.exp(eta)
+            boundary_y[1,:,nn,0] = np.exp(mu) + np.exp(eta)
+    return boundary_x, boundary_y
+
+def _boundary_2d_mms_04(boundary_x, boundary_y, angle_x, angle_y, centers_x, \
+        centers_y):
+    for nn, (mu, eta) in enumerate(zip(angle_x, angle_y)):
+        if mu > 0.0 and eta > 0.0:
+            boundary_x[0,:,nn,0] = 1 + 0.1 * np.exp(eta) * centers_y**2
+            boundary_y[0,:,nn,0] = 1 + 0.1 * np.exp(mu) * centers_x**2
+        elif mu > 0.0 and eta < 0.0:
+            boundary_x[0,:,nn,0] = 1 + 0.1 * np.exp(eta) * centers_y**2
+            boundary_y[1,:,nn,0] = 1 + 0.4 * np.exp(eta) + 0.1 * np.exp(mu) * centers_x**2
+        elif mu < 0.0 and eta > 0.0:
+            boundary_x[1,:,nn,0] = 1 + 0.4 * np.exp(mu) + 0.1 * np.exp(eta) * centers_y**2
+            boundary_y[0,:,nn,0] = 1 + 0.1 * np.exp(mu) * centers_x**2
+        elif mu < 0.0 and eta < 0.0:
+            boundary_x[1,:,nn,0] = 1 + 0.4 * np.exp(mu) + 0.1 * np.exp(eta) * centers_y**2
+            boundary_y[1,:,nn,0] = 1 + 0.4 * np.exp(eta) + 0.1 * np.exp(mu) * centers_x**2
     return boundary_x, boundary_y
