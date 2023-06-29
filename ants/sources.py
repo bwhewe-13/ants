@@ -241,14 +241,16 @@ def _external_2d_mms_03(external, angle_x, angle_y):
     return external
 
 def _external_2d_mms_04(external, angle_x, angle_y, centers_x, centers_y):
-    x, y = np.meshgrid(centers_x, centers_y)
+    x, y = np.meshgrid(centers_x, centers_y, indexing="ij")
     for nn, (mu, eta) in enumerate(zip(angle_x, angle_y)):
         external[:,:,nn,0] = 1 + 0.1 * np.exp(mu) * x**2 \
-                             + 0.1 * np.exp(eta) * y**2 + 0.025 * np.exp(-1) \
-                             * (-20 * np.exp(1) + x**2 + y**2 - np.exp(2) \
-                             * (x**2 + y**2)) + 0.2 * (mu * x * np.exp(mu) \
-                             + eta * y * np.exp(eta))
+                     + 0.1 * np.exp(eta) * y**2 + 0.025 * np.exp(-1) \
+                     * (-20 * np.exp(1) + x**2 + y**2 - np.exp(2) \
+                     * (x**2 + y**2)) + 0.2 * (mu * x * np.exp(mu) \
+                     + eta * y * np.exp(eta))
+    external = np.transpose(external, (1, 0, 2, 3))
     return external
+
 
 ########################################################################
 # Boundary Conditions - 1D

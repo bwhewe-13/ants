@@ -8,7 +8,6 @@
 ########################################################################
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 import ants
 from ants.timed2d import backward_euler

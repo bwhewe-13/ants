@@ -10,14 +10,12 @@
 #
 ########################################################################
 
-# import ants
-
 import numpy as np
 
 def solution_mms_01(centers_x, centers_y, angle_x, angle_y):
     """ One material, no scattering """
     angles = angle_x.shape[0]
-    x, y = np.meshgrid(centers_x, centers_y)
+    x, y = np.meshgrid(centers_x, centers_y, indexing="ij")
     flux = np.zeros(x.shape + (angles, 1))
     for n, mu in enumerate(angle_x):
         # Add x direction
@@ -30,7 +28,7 @@ def solution_mms_01(centers_x, centers_y, angle_x, angle_y):
 def solution_mms_02(centers_x, centers_y, angle_x, angle_y):
     """ One material, no scattering """
     angles = angle_x.shape[0]
-    x, y = np.meshgrid(centers_x, centers_y)
+    x, y = np.meshgrid(centers_x, centers_y, indexing="ij")
     flux = np.ones(x.shape + (angles,1))
     for n, (mu, eta) in enumerate(zip(angle_x, angle_y)):
         # Add x direction
@@ -48,7 +46,7 @@ def solution_mms_02(centers_x, centers_y, angle_x, angle_y):
 def solution_mms_03(centers_x, centers_y, angle_x, angle_y):
     """ One material, scattering """
     angles = angle_x.shape[0]
-    y, x = np.meshgrid(centers_x, centers_y)
+    y, x = np.meshgrid(centers_x, centers_y, indexing="ij")
     flux = np.zeros(x.shape + (angles,1))
     for n, (mu, eta) in enumerate(zip(angle_x, angle_y)):
         flux[:,:,n,0] = np.exp(mu) + np.exp(eta)
@@ -57,7 +55,7 @@ def solution_mms_03(centers_x, centers_y, angle_x, angle_y):
 def solution_mms_04(centers_x, centers_y, angle_x, angle_y):
     """ One material, scattering """
     angles = angle_x.shape[0]
-    x, y = np.meshgrid(centers_x, centers_y)
+    x, y = np.meshgrid(centers_x, centers_y, indexing="ij")
     flux = np.zeros(x.shape + (angles,1))
     for n, (mu, eta) in enumerate(zip(angle_x, angle_y)):
         flux[:,:,n,0] = 1 + 0.1 * x**2 * np.exp(mu) + 0.1 * y**2 * np.exp(eta)

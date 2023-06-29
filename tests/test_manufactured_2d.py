@@ -64,9 +64,6 @@ def test_manufactured_01(angular, spatial):
     # Rearrange dimensions
     if not angular:
         exact = np.sum(exact * angle_w[None,None,:,None], axis=2)
-        flux = np.transpose(flux, axes=(1, 0, 2))
-    else:
-        flux = np.transpose(flux, axes=(1, 0, 2, 3))
     # Evaluate
     atol = 1e-5 if spatial == 2 else 5e-3
     assert np.isclose(flux[(..., 0)], exact[(..., 0)], atol=atol).all(), \
@@ -119,9 +116,6 @@ def test_manufactured_02(angular, spatial):
     # Rearrange dimensions
     if not angular:
         exact = np.sum(exact * angle_w[None,None,:,None], axis=2)
-        flux = np.transpose(flux, axes=(1, 0, 2))
-    else:
-        flux = np.transpose(flux, axes=(1, 0, 2, 3))
     # Evaluate
     atol = 1e-5 if spatial == 2 else 5e-3
     assert np.isclose(flux[(..., 0)], exact[(..., 0)], atol=atol).all(), \
@@ -173,9 +167,6 @@ def test_manufactured_03(angular, spatial):
     # Rearrange dimensions
     if not angular:
         exact = np.sum(exact * angle_w[None,None,:,None], axis=2)
-        flux = np.transpose(flux, axes=(1, 0, 2))
-    else:
-        flux = np.transpose(flux, axes=(1, 0, 2, 3))
     # Evaluate
     atol = 1e-5 if spatial == 2 else 5e-3
     assert np.isclose(flux[(..., 0)], exact[(..., 0)], atol=atol).all(), \
@@ -231,9 +222,6 @@ def test_manufactured_04(angular, spatial):
     # Rearrange dimensions
     if not angular:
         exact = np.sum(exact * angle_w[None,None,:,None], axis=2)
-        flux = np.transpose(flux, axes=(1, 0, 2))
-    else:
-        flux = np.transpose(flux, axes=(1, 0, 2, 3))
     # Evaluate
     atol = 1e-5 if spatial == 2 else 5e-3
     assert np.isclose(flux[(..., 0)], exact[(..., 0)], atol=atol).all(), \
