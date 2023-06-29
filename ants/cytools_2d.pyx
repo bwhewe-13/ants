@@ -19,7 +19,7 @@
 # cython: profile=True
 # distutils: language = c++
 
-from libc.math cimport sqrt, pow
+from libc.math cimport sqrt, pow, erfc, ceil
 from cython.view cimport array as cvarray
 
 from ants.parameters cimport params
@@ -104,14 +104,12 @@ cdef void _off_scatter(double[:,:,:]& flux, double[:,:,:]& flux_old, \
         int[:,:]& medium_map, double[:,:,:]& xs_matrix, \
         double[:,:]& off_scatter, params info, int group):
     # Initialize iterables
-    cdef int ii, jj, mat, mii, mjj, og
+    cdef int ii, jj, mat, og
     # Zero out previous values
     off_scatter[:,:] = 0.0
-    for ii in range(info.cells_x + info.edges):
-        for jj in range(info.cells_y + info.edges):
-            mii = ii - 1 if ii == info.cells_x else ii
-            mjj = jj - 1 if jj == info.cells_y else jj
-            mat = medium_map[mii,mjj]
+    for ii in range(info.cells_x):
+        for jj in range(info.cells_y):
+            mat = medium_map[ii,jj]
             for og in range(0, group):
                 off_scatter[ii,jj] += xs_matrix[mat,group,og] * flux[ii,jj,og]
             for og in range(group + 1, info.groups):
@@ -146,8 +144,8 @@ cdef double[:,:,:] _angular_to_scalar(double[:,:,:,:]& angular_flux,
     scalar_flux = array_3d(info.cells_x + info.edges, info.cells_y \
                             + info.edges, info.groups)
     # Iterate over all spatial cells, angles, energy groups
-    for ii in range(info.cells_x):
-        for jj in range(info.cells_y):
+    for ii in range(info.cells_x + info.edges):
+        for jj in range(info.cells_y + info.edges):
             for nn in range(info.angles * info.angles):
                 for gg in range(info.groups):
                     scalar_flux[ii,jj,gg] += angular_flux[ii,jj,nn,gg] * angle_w[nn]
@@ -158,44 +156,183 @@ cdef void _initialize_edge_y(double[:]& known_y, double[:]& boundary_y, \
         double[:]& angle_y, double[:]& angle_x, int nn, params info):
     # This is for adding boundary conditions to known edge x
     # Initialize location
-    cdef int loc
+    cdef int loc, width
     # Keep flux from previous
     if (angle_y[nn] == -angle_y[nn-1]) and (angle_x[nn] == angle_x[nn-1]) \
             and (nn > 0) and (((angle_y[nn] > 0.0) and (info.bc_y[0] == 1)) \
             or ((angle_y[nn] < 0.0) and (info.bc_y[1] == 1))):
-        pass
+        return
+    # Zero out flux
+    known_y[:] = 0.0
+    # Pick left / right location
+    loc = 0 if angle_y[nn] > 0.0 else 1
+    # Populate known edge value
+    if info.bcdim_y == 1:
+        known_y[:] = boundary_y[loc]
     else:
-        # Zero out flux
-        known_y[:] = 0.0
-        # Pick left / right location
-        loc = 0 if angle_y[nn] > 0.0 else 1
-        # Populate known edge value
-        if info.bcdim_y == 1:
-            known_y[:] = boundary_y[loc]
-        else:
-            known_y[:] = boundary_y[loc*info.cells_x:(loc+1)*info.cells_x]
+        width = info.cells_x + info.edges
+        known_y[:] = boundary_y[loc * width:(loc+1) * width]
 
 
 cdef void _initialize_edge_x(double[:]& known_x, double[:]& boundary_x, \
         double[:]& angle_x, double[:]& angle_y, int nn, params info):
     # This is for adding boundary conditions to known edge x
     # Initialize location
-    cdef int loc
+    cdef int loc, width
     # Keep flux from previous
     if (angle_x[nn] == -angle_x[nn-1]) and (angle_y[nn] == angle_y[nn-1]) \
             and (nn > 0) and (((angle_x[nn] > 0.0) and (info.bc_x[0] == 1)) \
             or ((angle_x[nn] < 0.0) and (info.bc_x[1] == 1))):
-        pass
+        return
+    # Zero out flux
+    known_x[:] = 0.0
+    # Pick left / right location
+    loc = 0 if angle_x[nn] > 0.0 else 1
+    # Populate known edge value
+    if info.bcdim_x == 1:
+        known_x[:] = boundary_x[loc]
     else:
-        # Zero out flux
-        known_x[:] = 0.0
-        # Pick left / right location
-        loc = 0 if angle_x[nn] > 0.0 else 1
-        # Populate known edge value
-        if info.bcdim_x == 1:
-            known_x[:] = boundary_x[loc]
+        width = info.cells_y + info.edges
+        known_x[:] = boundary_x[loc * width:(loc+1) * width]
+
+
+########################################################################
+# Time Dependent functions
+########################################################################
+
+cdef void _total_velocity(double[:,:]& xs_total, double[:]& velocity, params info):
+    # Create sigma_t + 1 / (v * dt)
+    cdef int mm, gg
+    for gg in range(info.groups):
+        for mm in range(info.materials):
+            xs_total[mm,gg] += 1 / (velocity[gg] * info.dt)
+
+
+cdef void _time_source_total(double[:]& source, double[:,:,:]& scalar_flux, \
+        double[:,:,:,:]& angular_flux, double[:,:,:]& xs_matrix, \
+        double[:]& velocity, int[:,:]& medium_map, double[:]& external, \
+        params info):
+    # Create (sigma_s + sigma_f) * phi + external + 1/(v*dt) * psi function
+    # Initialize iterables
+    cdef int ii, jj, nn, NN, ig, og, mat, loc
+    NN = info.angles * info.angles
+    # Zero out previous values
+    source[:] = 0.0
+    for ii in range(info.cells_x):
+        for jj in range(info.cells_y):
+            mat = medium_map[ii, jj]
+            for nn in range(NN):
+                for og in range(info.groups):
+                    loc = og + info.groups * (nn + NN * (jj + ii * info.cells_y))
+                    for ig in range(info.groups):
+                        source[loc] += scalar_flux[ii,jj,ig] * xs_matrix[mat,og,ig]
+                    source[loc] += external[loc] + angular_flux[ii,jj,nn,og] \
+                                    * 1 / (velocity[og] * info.dt)
+
+
+cdef void _time_source_star(double[:,:,:,:]& angular_flux, double[:]& q_star, \
+        double[:]& external, double[:]& velocity, params info):
+    # Combining the source (I x J x N^2 x G) with the angular flux (I x J x N^2 x G)
+    # Initialize iterables
+    cdef int ii, jj, nn, NN, gg, loc
+    NN = info.angles * info.angles
+    # Zero out previous values
+    q_star[:] = 0.0
+    for gg in range(info.groups):
+        for nn in range(NN):
+            for jj in range(info.cells_y):
+                for ii in range(info.cells_x):
+                    loc = gg + info.groups * (nn + NN * (jj + ii * info.cells_y))
+                    q_star[loc] = external[loc] + angular_flux[ii,jj,nn,gg] \
+                                    * 1 / (velocity[gg] * info.dt)
+
+
+cdef void boundary_decay(double[:]& boundary_x, double[:]& boundary_y, \
+        int step, params info):
+    # Calculate elapsed time
+    cdef double t = info.dt * step
+    # Cycle through different decay processes for x boundaries
+    if info.bcdecay_x == 0: # Do nothing
+        pass
+    elif info.bcdecay_x == 1: # Turn off after one step
+        _decay_x_01(boundary_x, step, info)
+    elif info.bcdecay_x == 2: # Step decay
+        _decay_x_02(boundary_x, t, info)
+    # Cycle through different decay processes for y boundaries
+    if info.bcdecay_y == 0: # Do nothing
+        pass
+    elif info.bcdecay_y == 1: # Turn off after one step
+        _decay_y_01(boundary_y, step, info)
+    elif info.bcdecay_y == 2: # Step decay
+        _decay_y_02(boundary_y, t, info)
+
+
+cdef int _boundary_length(int bcdim, int cells, params info):
+    # Initialize boundary length
+    cdef int bc_length
+    if bcdim == 1:
+        bc_length = 2
+    elif bcdim == 2:
+        bc_length = 2 * cells
+    elif bcdim == 3:
+        bc_length = 2 * cells * info.groups
+    elif bcdim == 3:
+        bc_length = 2 * cells * info.angles * info.angles * info.groups
+    return bc_length
+
+
+cdef void _decay_x_01(double[:]& boundary_x, int step, params info):
+    cdef int cell, bc_length
+    bc_length = _boundary_length(info.bcdim_x, info.cells_y, info)
+    cdef double magnitude = 0.0 if step > 0 else 1.0
+    for cell in range(bc_length):
+        if boundary_x[cell] == 0.0:
+            continue
         else:
-            known_x[:] = boundary_x[loc*info.cells_y:(loc+1)*info.cells_y]
+            boundary_x[cell] = magnitude
+
+
+cdef void _decay_x_02(double[:]& boundary_x, double t, params info):
+    cdef int cell, bc_length
+    bc_length = _boundary_length(info.bcdim_x, info.cells_y, info)
+    cdef double k, err_arg
+    t *= 1e6 # Convert elapsed time
+    for cell in range(bc_length):
+        if boundary_x[cell] == 0.0:
+            continue
+        if t < 0.2:
+            boundary_x[cell] = 1.
+        else:
+            k = ceil((t - 0.2) / 0.1)
+            err_arg = (t - 0.1 * (1 + k)) / (0.01)
+            boundary_x[cell] = pow(0.5, k) * (1 + 2 * erfc(err_arg))
+
+
+cdef void _decay_y_01(double[:]& boundary_y, int step, params info):
+    cdef int cell, bc_length
+    bc_length = _boundary_length(info.bcdim_y, info.cells_x, info)
+    cdef double magnitude = 0.0 if step > 0 else 1.0
+    for cell in range(bc_length):
+        if boundary_y[cell] == 0.0:
+            continue
+        else:
+            boundary_y[cell] = magnitude
+
+
+cdef void _decay_y_02(double[:]& boundary_y, double t, params info):
+    cdef int cell, bc_length
+    bc_length = _boundary_length(info.bcdim_y, info.cells_x, info)
+    cdef double k, err_arg
+    t *= 1e6 # Convert elapsed time
+    for cell in range(bc_length):
+        if boundary_y[cell] == 0.0:
+            continue
+        if t < 0.2:
+            boundary_y[cell] = 1.
+        else:
+            k = ceil((t - 0.2) / 0.1)
+            err_arg = (t - 0.1 * (1 + k)) / (0.01)
+            boundary_y[cell] = pow(0.5, k) * (1 + 2 * erfc(err_arg))
 
 
 ########################################################################

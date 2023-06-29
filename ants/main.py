@@ -86,7 +86,6 @@ def _ordering_angles_xy(angle_x, angle_y, angle_w, bc_x, bc_y):
     return matrix * directions
 
 
-# def _energy_grid(groups, grid):
 def energy_grid(groups, grid):
     """
     Calculate energy grid bounds (MeV) and index for coarsening
@@ -112,8 +111,22 @@ def energy_grid(groups, grid):
     return edges_g, edges_gidx
 
 
-# def _medium_map(materials, edges_x, key=False):
-def spatial_map(materials, edges_x, key=False):
+def energy_velocity(groups, edges_g=None):
+    """ Convert energy edges to speed at cell centers, Relative Physics
+    Arguments:
+        groups: Number of energy groups
+        edges_g: energy grid bounds
+    Returns:
+        speeds at cell centers (cm/s)   """
+    if np.all(edges_g == None):
+        return np.ones((groups,))
+    centers_gg = 0.5 * (edges_g[1:] + edges_g[:-1])
+    gamma = (EV_TO_JOULES * centers_gg) / (MASS_NEUTRON * LIGHT_SPEED**2) + 1
+    velocity = LIGHT_SPEED / gamma * np.sqrt(gamma**2 - 1) * 100
+    return velocity
+
+
+def spatial1d(materials, edges_x, key=False):
     # materials is list of list with each element [idx, material, width]
     material_key = {}
     medium_map = np.ones((len(edges_x) - 1)) * -1
@@ -132,17 +145,142 @@ def spatial_map(materials, edges_x, key=False):
     return medium_map
 
 
-# def _velocity(groups, edges_g=None):
-def energy_velocity(groups, edges_g=None):
-    """ Convert energy edges to speed at cell centers, Relative Physics
-    Arguments:
-        groups: Number of energy groups
-        edges_g: energy grid bounds
-    Returns:
-        speeds at cell centers (cm/s)   """
-    if np.all(edges_g == None):
-        return np.ones((groups,))
-    centers_gg = 0.5 * (edges_g[1:] + edges_g[:-1])
-    gamma = (EV_TO_JOULES * centers_gg) / (MASS_NEUTRON * LIGHT_SPEED**2) + 1
-    velocity = LIGHT_SPEED / gamma * np.sqrt(gamma**2 - 1) * 100
-    return velocity
+def spatial2d(materials, edges_x, edges_y, key=False):
+    ...
+#     # materials is list of list with each element [idx, material, width]
+#     material_key = {}
+#     medium_map = np.ones((len(edges_x) - 1)) * -1
+#     for material in materials:
+#         material_key[material[0]] = material[1]
+#         for region in material[2].split(","):
+#             start, stop = region.split("-")
+#             idx1 = np.argmin(np.fabs(float(start) - edges_x))
+#             idx2 = np.argmin(np.fabs(float(stop) - edges_x))
+#             medium_map[idx1:idx2] = material[0]
+#     # Verify all cells are filled
+#     assert np.all(medium_map != -1)
+#     medium_map = medium_map.astype(np.int32)
+#     if key:
+#         return medium_map, material_key
+#     return medium_map
+
+
+def cylinder2d(radii, xs_total, xs_scatter, xs_fission, delta_x, delta_y, \
+        bc_x, bc_y, weight_map=None):
+    """ Convert cartesian squares into an approximate cylindrical shape
+    """
+    # Calculate outer radius 
+    radius = max(radii)[1]
+    # Set the center of the medium
+    center = (radius, radius)
+    # Calculate the percentage of each material in each cell
+    if weight_map is None:
+        weight_map = _mc_weight_matrix(delta_x, delta_y, center, radii)
+    # Convert the weights into distinct materials
+    cells_x = delta_x.shape[0]
+    cells_y = delta_y.shape[0]
+    data = _weight_to_material(weight_map, xs_total, xs_scatter, \
+                               xs_fission, cells_x, cells_y)
+    quarter, xs_total, xs_scatter, xs_fission = data
+    # Calculate the correct size of the cylinder (originally in +,+ quadrant)
+    medium_map = _cylinder_medium_map(quarter, bc_x, bc_y)
+    return medium_map, xs_total, xs_scatter, xs_fission, weight_map
+
+
+def _mc_weight_matrix(delta_x, delta_y, center, radii, samples=100000):
+    # Calculate the fraction of each material inside and outside radii
+    weight_map = []
+    # Global spatial grid edges
+    np.random.seed(42)
+    edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
+    edges_y = np.round(np.insert(np.cumsum(delta_y), 0, 0), 12)
+    # Set local grid points
+    grid_x = edges_x[(edges_x >= center[0]) & (edges_x <= center[0] \
+                        + max(radii)[1])] - center[0]
+    grid_y = edges_y[(edges_y >= center[1]) & (edges_y <= center[1] \
+                        + max(radii)[1])] - center[1]
+    # Calculate all samples
+    samples_x = np.random.uniform(0, max(radii)[1], samples)
+    samples_y = np.random.uniform(0, max(radii)[1], samples)
+    # Iterate over spatial grid
+    for yy in range(len(grid_y) - 1):
+        for xx in range(len(grid_x) - 1):
+            weight_map.append(_weight_grid_cell(samples_x, samples_y, radii, \
+                        grid_x[xx], grid_x[xx+1], grid_y[yy], grid_y[yy+1]))
+            # print(grid_x[xx], grid_x[xx+1])
+    return weight_map / np.sum(weight_map, axis=1)[:,None]
+
+
+def _weight_grid_cell(x, y, radii, x1, x2, y1, y2):
+    ppr = []
+    for iir, oor in radii:
+        # Collect particles in circle
+        idx = np.argwhere(((x**2 + y**2) > iir**2) & ((x**2 + y**2) <= oor**2))
+        temp_x = x[idx].copy()
+        ppr.append(len(temp_x[np.where((temp_x >= x1) & (temp_x < x2) \
+                                    & (y[idx] >= y1) & (y[idx] < y2))]))
+    # Collect particles outside circle
+    temp_x = x[(x**2 + y**2) > max(radii)[1]**2]
+    temp_y = y[(x**2 + y**2) > max(radii)[1]**2]
+    ppr.append(len(temp_x[np.where((temp_x >= x1) & (temp_x < x2) \
+                                    & (temp_y >= y1) & (temp_y < y2))]))
+    return ppr
+
+
+def _weight_to_material(weight_map, xs_total, xs_scatter, xs_fission, \
+        cells_x, cells_y):
+    # Convert cross sections to weight map
+    cy_xs_total = []
+    cy_xs_scatter = []
+    cy_xs_fission = []
+    if weight_map.shape[0] != (cells_x * cells_y):
+        cells_x = int(0.5 * cells_x)
+        cells_y = int(0.5 * cells_y)
+    medium_map = np.zeros((cells_x * cells_y), dtype=np.int32)
+    for mat, weight in enumerate(np.unique(weight_map, axis=0)):
+        cy_xs_total.append(np.sum(xs_total * weight[:,None], axis=0))
+        cy_xs_scatter.append(np.sum(xs_scatter * weight[:,None,None], axis=0))
+        cy_xs_fission.append(np.sum(xs_fission * weight[:,None,None], axis=0))
+        medium_map[np.where(np.all(weight_map == weight, axis=1))] = mat
+    medium_map = medium_map.reshape(cells_x, cells_y)
+    cy_xs_total = np.array(cy_xs_total)
+    cy_xs_scatter = np.array(cy_xs_scatter)
+    cy_xs_fission = np.array(cy_xs_fission)
+    return medium_map, cy_xs_total, cy_xs_scatter, cy_xs_fission
+
+
+def _cylinder_medium_map(quad1, bc_x, bc_y):
+    # quadrants=[1,2,3,4]):
+    """ Gets correct shape of the medium map to account for all quadrants
+    (Default quarant is I)
+          +
+      II  |  I   
+    ------------- +
+      III |  IV
+    """
+    quad2 = np.flip(quad1, axis=1).copy()
+    quad3 = np.flip(quad1, axis=(1,0)).copy()
+    quad4 = np.flip(quad1, axis=0).copy()
+    if bc_y == [0, 0]:
+        # Full circle
+        if bc_x == [0, 0]:
+            medium_map = np.block([[quad3, quad4], [quad2, quad1]])
+        elif bc_x == [0, 1]:
+            medium_map = np.block([[quad3], [quad2]])
+        elif bc_x == [1, 0]:
+            medium_map = np.block([[quad4], [quad1]])
+    elif bc_y == [1, 0]:
+        if bc_x == [0, 0]:
+            medium_map = np.block([quad2, quad1])
+        elif bc_x == [0, 1]:
+            medium_map = np.block([quad2])
+        elif bc_x == [1, 0]:
+            medium_map = np.block([quad1])
+    elif bc_y == [0, 1]:
+        if bc_x == [0, 0]:
+            medium_map = np.block([quad3, quad4])
+        elif bc_x == [0, 1]:
+            medium_map = np.block([quad3])
+        elif bc_x == [1, 0]:
+            medium_map = np.block([quad4])
+    return medium_map

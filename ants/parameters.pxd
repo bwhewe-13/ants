@@ -57,8 +57,12 @@ cdef struct params:
     # :param dt: Time step width
     # :type dt: double
 
-    # :param bcdecay: Type of boundary source decay
-    # :type bcdecay: int
+    # :param bcdecay_x: Type of boundary source decay
+    # :type bcdecay_x: int
+
+    # :param bcdecay_y: Type of boundary source decay
+    # :type bcdecay_y: int
+
     # """
     # Collect Spatial cells, angles, energy groups
     int cells_x
@@ -80,7 +84,8 @@ cdef struct params:
     # Time dependent parameters
     int steps
     double dt
-    int bcdecay
+    int bcdecay_x
+    int bcdecay_y
     # Angular flux option
     bint angular
     # Adjoint option
@@ -110,5 +115,7 @@ cdef int _check_hybrid1d_bdf1_collided(params info, int xs_length) except -1
 # Two-dimensional functions
 ########################################################################
 cdef int _check_fixed2d_source_iteration(params info, int xs_length) except -1
+
+cdef int _check_timed2d_backward_euler(params info, int xs_length) except -1
 
 cdef int _check_critical2d_power_iteration(params info) except -1

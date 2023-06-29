@@ -62,6 +62,22 @@ cdef void _initialize_edge_x(double[:]& known_x, double[:]& boundary_x, \
         double[:]& angle_x, double[:]& angle_y, int nn, params info)
 
 ########################################################################
+# Time Dependent functions
+########################################################################
+cdef void _total_velocity(double[:,:]& xs_total, double[:]& velocity, params info)
+
+cdef void _time_source_total(double[:]& source, double[:,:,:]& scalar_flux, \
+        double[:,:,:,:]& angular_flux, double[:,:,:]& xs_matrix, \
+        double[:]& velocity, int[:,:]& medium_map, double[:]& external, \
+        params info)
+
+cdef void _time_source_star(double[:,:,:,:]& angular_flux, double[:]& q_star, \
+        double[:]& external, double[:]& velocity, params info)
+
+cdef void boundary_decay(double[:]& boundary_x, double[:]& boundary_y, \
+        int step, params info)
+
+########################################################################
 # Criticality functions
 ########################################################################
 cdef void _normalize_flux(double[:,:,:]& flux, params info)

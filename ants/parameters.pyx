@@ -42,7 +42,8 @@ cdef params _to_params(dict pydic):
     # Time dependent parameters
     info.steps = pydic.get("steps", 0)
     info.dt = pydic.get("dt", 1.0)
-    info.bcdecay = pydic.get("bcdecay", 0)
+    info.bcdecay_x = pydic.get("bcdecay_x", 0)
+    info.bcdecay_y = pydic.get("bcdecay_y", 0)
     # Angular flux option
     info.angular = pydic.get("angular", False)
     # Adjoint option, cross section matrices must be transposed
@@ -116,6 +117,16 @@ cdef int _check_fixed2d_source_iteration(params info, int xs_length) except -1:
     if info.angular or info.edges:
         assert info.qdim == 3, "Need (I x J x N x G) fixed source"
     return 0
+
+
+cdef int _check_timed2d_backward_euler(params info, int xs_length) except -1:
+    assert info.angles % 2 == 0, "Need an even number of angles"
+    assert info.materials == xs_length, "Incorrect number of materials"
+    assert info.qdim == 3, "Need (I x J x N x G) fixed source"
+    assert info.steps > 0, "Need at least 1 time step"
+    assert info.angular == False, "Scalar flux is returned"
+    return 0
+
 
 cdef int _check_critical2d_power_iteration(params info) except -1:
     assert info.angles % 2 == 0, "Need an even number of angles"
