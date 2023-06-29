@@ -110,7 +110,7 @@ def test_one_group_slab_plutonium_02a():
     delta_x = np.repeat(length / info["cells_x"], info["cells_x"])
     materials = [[0, "fuel", "0 - 2.956802"], \
                 [1, "moderator", "2.956802 - 6.020527"]]
-    medium_map = ants.spatial_map(materials, edges_x)
+    medium_map = ants.spatial1d(materials, edges_x)
     flux, keff = power(xs_total, xs_scatter, xs_fission,  medium_map, \
                         delta_x, angle_x, angle_w, info)
     assert abs(keff - 1.) < 2e-3, str(keff) + " not critical"
@@ -130,7 +130,7 @@ def test_one_group_slab_plutonium_02b():
     delta_x = np.repeat(length / info["cells_x"], info["cells_x"])
     materials = [[0, "fuel", "1.531863 - 4.167525"], \
                 [1, "moderator", "0 - 1.531863, 4.167525 - 5.699388"]]
-    medium_map = ants.spatial_map(materials, edges_x)
+    medium_map = ants.spatial1d(materials, edges_x)
     flux, keff = power(xs_total, xs_scatter, xs_fission,  medium_map, \
                         delta_x, angle_x, angle_w, info)
     assert abs(keff - 1.) < 2e-3, str(keff) + " not critical"

@@ -74,7 +74,7 @@ def test_slab_01_backward_euler(angles_c, groups_c):
     # Medium Map
     materials = [[0, "stainless-steel-440", "0-4, 6-10"], \
                  [1, "uranium-%20%", "4-6"]]
-    medium_map = ants.spatial_map(materials, edges_x)
+    medium_map = ants.spatial1d(materials, edges_x)
     # Cross Sections
     materials = np.array(materials)[:,1]
     xs_total, xs_scatter, xs_fission = ants.materials(groups_u, materials)

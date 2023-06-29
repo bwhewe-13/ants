@@ -138,7 +138,7 @@ def test_manufactured_04(angular, spatial, edges):
     boundary = ants.boundaries1d("mms-04", (2, info["angles"]), [0, 1], \
                                angle_x=angle_x).flatten()
     materials = [[0, "quasi", "0-1"], [1, "scatter", "1-2"]]
-    medium_map = ants.spatial_map(materials, edges_x)
+    medium_map = ants.spatial1d(materials, edges_x)
     flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
                             boundary, medium_map, delta_x, angle_x, \
                             angle_w, info)
@@ -172,7 +172,7 @@ def test_manufactured_05(angular, spatial, edges):
     boundary = ants.boundaries1d("mms-05", (2, info["angles"]), [0, 1], \
                                angle_x=angle_x).flatten()
     materials = [[0, "quasi", "0-1"], [1, "scatter", "1-2"]]
-    medium_map = ants.spatial_map(materials, edges_x)
+    medium_map = ants.spatial1d(materials, edges_x)
     flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
                             boundary, medium_map, delta_x, angle_x, \
                             angle_w, info)

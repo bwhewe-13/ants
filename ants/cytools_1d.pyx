@@ -190,7 +190,19 @@ cdef void _time_source_star(double[:,:,:]& angular_flux, double[:]& q_star, \
 
 
 cdef void boundary_decay(double[:]& boundary_x, int step, params info):
+    # Calculate elapsed time
     cdef double t = info.dt * step
+    # Cycle through different decay processes
+    if info.bcdecay_x == 0: # Do nothing
+        pass
+    elif info.bcdecay_x == 1: # Turn off after one step
+        _decay_01(boundary_x, step, info)
+    elif info.bcdecay_x == 2: # Step decay
+        _decay_02(boundary_x, t, info)
+
+
+cdef int _boundary_length(params info):
+    # Initialize boundary length
     cdef int bc_length
     if info.bcdim_x == 1:
         bc_length = 2
@@ -198,24 +210,20 @@ cdef void boundary_decay(double[:]& boundary_x, int step, params info):
         bc_length = 2 * info.groups
     elif info.bcdim_x == 3:
         bc_length = 2 * info.groups * info.angles
-    # Cycle through different decay processes
-    if info.bcdecay == 0: # Do nothing
-        pass
-    elif info.bcdecay == 1: # Turn off after one step
-        _decay_01(boundary_x, bc_length, step)
-    elif info.bcdecay == 2: # Step decay
-        _decay_02(boundary_x, bc_length, t)
+    return bc_length
 
 
-cdef void _decay_01(double[:]& boundary_x, int bc_length, int step):
-    cdef int cell
+cdef void _decay_01(double[:]& boundary_x, int step, params info):
+    cdef int cell, bc_length
+    bc_length = _boundary_length(info)
     cdef double magnitude = 0.0 if step > 0 else 1.0
     for cell in range(bc_length):
         boundary_x[cell] = magnitude
 
 
-cdef void _decay_02(double[:]& boundary_x, int bc_length, double t):
-    cdef int cell
+cdef void _decay_02(double[:]& boundary_x, double t, params info):
+    cdef int cell, bc_length
+    bc_length = _boundary_length(info)
     cdef double k, err_arg
     t *= 1e6 # Convert elapsed time
     for cell in range(bc_length):

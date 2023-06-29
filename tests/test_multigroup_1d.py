@@ -40,7 +40,7 @@ def sphere_01(ptype):
     # Medium Map
     materials = [[0, "uranium-%20%", "0-4"], [1, "uranium-%0%", "4-6"], \
                  [2, "stainless-steel-440", "6-10"]]
-    medium_map = ants.spatial_map(materials, edges_x)
+    medium_map = ants.spatial1d(materials, edges_x)
 
     # Cross Sections
     materials = np.array(materials)[:,1]
