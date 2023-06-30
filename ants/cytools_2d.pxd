@@ -42,7 +42,8 @@ cdef double angle_convergence(double[:,:]& arr1, double[:,:]& arr2, params info)
 ########################################################################
 # Multigroup functions
 ########################################################################
-cdef void _xs_matrix(double[:,:,:]& mat1, double[:,:,:]& mat2, params info)
+cdef void _xs_matrix(double[:,:,:]& mat1, double[:,:,:]& mat2, \
+    double[:,:,:]& mat3, params info)
 
 cdef void _off_scatter(double[:,:,:]& flux, double[:,:,:]& flux_old, \
         int[:,:]& medium_map, double[:,:,:]& xs_matrix, \
@@ -87,3 +88,17 @@ cdef void _fission_source(double[:,:,:] flux, double[:,:,:] xs_fission, \
 
 cdef double _update_keffective(double[:,:,:] flux_new, double[:,:,:] flux_old, \
         double[:,:,:] xs_fission, int[:,:] medium_map, params info, double keff)
+
+########################################################################
+# Hybrid Method Time Dependent Problems
+########################################################################
+cdef void _hybrid_source_collided(double[:,:,:]& flux, double[:,:,:]& xs_scatter, \
+        double[:]& source_c, int[:,:]& medium_map, int[:]& index_c, \
+        params info_u, params info_c)
+
+cdef void _hybrid_source_total(double[:,:,:]& flux_t, double[:,:,:]& flux_u, \
+        double[:,:,:]& xs_matrix, double[:]& source, int[:,:]& medium_map, \
+        int[:]& index_u, double[:]& factor_u, params info_u, params info_c)
+
+cdef void _expand_hybrid_source(double[:,:,:]& flux_t, double[:,:,:]& flux_c, \
+        int[:]& index_u, double[:]& factor_u, params info_u, params info_c)

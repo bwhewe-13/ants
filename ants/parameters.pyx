@@ -135,3 +135,22 @@ cdef int _check_critical2d_power_iteration(params info) except -1:
     assert info.bcdim_x == 1, "No boundary conditions"
     assert info.bcdim_y == 1, "No boundary conditions"
     return 0
+
+
+cdef int _check_hybrid2d_bdf1_uncollided(params info, int xs_length) except -1:
+    assert info.angles % 2 == 0, "Need an even number of angles"
+    assert info.materials == xs_length, "Incorrect number of materials"
+    assert info.qdim == 3, "Need (I x J x N^2 x G) fixed source"
+    assert info.steps > 0, "Need at least 1 time step"
+    assert info.angular == False, "Scalar flux is returned"
+    return 0
+
+
+cdef int _check_hybrid2d_bdf1_collided(params info, int xs_length) except -1:
+    assert info.angles % 2 == 0, "Need an even number of angles"
+    assert info.materials == xs_length, "Incorrect number of materials"
+    assert info.qdim == 2, "Need (I x J x G) fixed source"
+    assert info.angular == False, "Scalar Flux is returned"
+    assert info.bcdim_x == 1, "No Boundary conditions"
+    assert info.bcdim_y == 1, "No Boundary conditions"
+    return 0
