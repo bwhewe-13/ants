@@ -41,7 +41,8 @@ cdef double angle_convergence(double[:]& arr1, double[:]& arr2, params info)
 ########################################################################
 # Multigroup functions
 ########################################################################
-cdef void _xs_matrix(double[:,:,:]& mat1, double[:,:,:]& mat2, params info)
+cdef void _xs_matrix(double[:,:,:]& mat1, double[:,:,:]& mat2, \
+    double[:,:,:]& mat3, params info)
 
 cdef void _off_scatter(double[:,:]& flux, double[:,:]& flux_old, \
         int[:]& medium_map, double[:,:,:]& xs_matrix, \

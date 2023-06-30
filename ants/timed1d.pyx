@@ -18,13 +18,13 @@
 # cython: profile=True
 # distutils: language = c++
 
+import numpy as np
+from tqdm import tqdm
+
 from ants cimport multi_group_1d as mg
 from ants cimport cytools_1d as tools
 from ants.parameters cimport params
 from ants cimport parameters
-
-import numpy as np
-from tqdm import tqdm
 
 
 def backward_euler(double[:,:] xs_total, double[:,:,:] xs_scatter, \
@@ -34,16 +34,17 @@ def backward_euler(double[:,:] xs_total, double[:,:,:] xs_scatter, \
     # Covert dictionary to type params
     info = parameters._to_params(params_dict)
     parameters._check_timed1d_backward_euler(info, xs_total.shape[0])
+    # Do not overwrite variables
+    xs_total_v = tools.array_2d(info.materials, info.groups)
+    xs_total_v[:,:] = xs_total[:,:]
     # Combine fission and scattering
-    tools._xs_matrix(xs_scatter, xs_fission, info)
+    xs_matrix = tools.array_3d(info.materials, info.groups, info.groups)
+    tools._xs_matrix(xs_matrix, xs_scatter, xs_fission, info)
     # Create sigma_t + 1 / (v * dt)
-    # xs_total_v = memoryview(np.zeros((info.materials, info.groups)))
-    # tools._total_velocity(xs_total_v, xs_total, velocity, info)
-    # xs_total_v = memoryview(np.zeros((info.materials, info.groups)))
-    tools._total_velocity(xs_total, velocity, info)
+    tools._total_velocity(xs_total_v, velocity, info)
     # Run Backward Euler
-    flux = multigroup_bdf1(xs_total, xs_scatter, velocity, external, \
-                boundary_x, medium_map, delta_x, angle_x, angle_w, info)
+    flux = multigroup_bdf1(xs_total_v, xs_matrix, velocity, external, \
+                boundary_x.copy(), medium_map, delta_x, angle_x, angle_w, info)
     return np.asarray(flux)
 
 

@@ -33,14 +33,15 @@ def source_iteration(double[:,:] xs_total, double[:,:,:] xs_scatter, \
     info = parameters._to_params(params_dict)
     parameters._check_fixed1d_source_iteration(info, xs_total.shape[0])
     # Add fission matrix to scattering
-    tools._xs_matrix(xs_scatter, xs_fission, info)
+    xs_matrix = tools.array_3d(info.materials, info.groups, info.groups)
+    tools._xs_matrix(xs_matrix, xs_scatter, xs_fission, info)
     # Save edge value and solve for center
     cdef int edge_default = info.edges
     info.edges = 0
     # Initialize flux_old to zeros
     flux_old = tools.array_2d(info.cells_x, info.groups)
     # Run source iteration
-    flux = mg.source_iteration(flux_old, xs_total, xs_scatter, external, \
+    flux = mg.source_iteration(flux_old, xs_total, xs_matrix, external, \
                 boundary_x, medium_map, delta_x, angle_x, angle_w, info)
     # Reset edge value
     info.edges = edge_default
@@ -49,7 +50,7 @@ def source_iteration(double[:,:] xs_total, double[:,:,:] xs_scatter, \
         return np.asarray(flux)
     # Create (sigma_s + sigma_f) * phi + external function
     source = tools.array_1d(info.cells_x * info.angles * info.groups)
-    tools._source_total(source, flux, xs_scatter, medium_map, external, info)
+    tools._source_total(source, flux, xs_matrix, medium_map, external, info)
     # Solve for angular flux using scalar flux
     angular_flux = mg._known_source(xs_total, source, boundary_x, \
                             medium_map, delta_x, angle_x, angle_w, info)

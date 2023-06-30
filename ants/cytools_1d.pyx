@@ -86,13 +86,14 @@ cdef double angle_convergence(double[:]& arr1, double[:]& arr2, params info):
 # Multigroup functions
 ########################################################################
 
-cdef void _xs_matrix(double[:,:,:]& mat1, double[:,:,:]& mat2, params info):
+cdef void _xs_matrix(double[:,:,:]& mat1, double[:,:,:]& mat2, \
+    double[:,:,:]& mat3, params info):
     # Initialize iterables
     cdef int ig, og, mat
     for mat in range(info.materials):
         for og in range(info.groups):
             for ig in range(info.groups):
-                mat1[mat,og,ig] += mat2[mat,og,ig]
+                mat1[mat,og,ig] = (mat2[mat,og,ig] + mat3[mat,og,ig])
 
 
 cdef void _off_scatter(double[:,:]& flux, double[:,:]& flux_old, \

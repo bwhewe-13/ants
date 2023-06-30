@@ -45,21 +45,25 @@ def backward_euler(double[:,:] xs_total_u, double[:,:,:] xs_scatter_u, \
     # Convert collided dictionary to type params
     info_c = parameters._to_params(params_dict_c)
     parameters._check_hybrid1d_bdf1_collided(info_c, xs_total_u.shape[0])
+    # Do not overwrite variables
+    xs_total_vu = tools.array_2d(info_u.materials, info_u.groups)
+    xs_total_vu[:,:] = xs_total_u[:,:]
     # Combine fission and scattering
-    tools._xs_matrix(xs_scatter_u, xs_fission_u, info_u)
+    xs_matrix_u = tools.array_3d(info_u.materials, info_u.groups, info_u.groups)
+    tools._xs_matrix(xs_matrix_u, xs_scatter_u, xs_fission_u, info_u)
     # Create collided cross sections and velocity
-    xs_total_c, xs_scatter_c, velocity_c = hybrid_coarsen(xs_total_u, \
-                        xs_scatter_u, velocity_u, edges_g, edges_gidx)
+    xs_total_c, xs_matrix_c, velocity_c = hybrid_coarsen(xs_total_vu, \
+                        xs_matrix_u, velocity_u, edges_g, edges_gidx)
     # Create sigma_t + 1 / (v * dt)
-    tools._total_velocity(xs_total_u, velocity_u, info_u)
+    tools._total_velocity(xs_total_vu, velocity_u, info_u)
     tools._total_velocity(xs_total_c, velocity_c, info_c)
     # Indexing Parameters
     coarse_idx, fine_idx, factor = hybrid_index(info_u.groups, \
                                     info_c.groups, edges_g, edges_gidx)
     # Run Backward Euler
-    flux = multigroup_bdf1(xs_total_u, xs_scatter_u, velocity_u, external_u, \
-                boundary_u, medium_map, delta_x, angle_xu, angle_wu, \
-                xs_total_c, xs_scatter_c, velocity_c, angle_xc, angle_wc, \
+    flux = multigroup_bdf1(xs_total_vu, xs_matrix_u, velocity_u, external_u, \
+                boundary_u.copy(), medium_map, delta_x, angle_xu, angle_wu, \
+                xs_total_c, xs_matrix_c, velocity_c, angle_xc, angle_wc, \
                 fine_idx, coarse_idx, factor, info_u, info_c)
     return np.asarray(flux)
 
