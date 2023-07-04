@@ -23,22 +23,22 @@ groups = 1
 
 # Different boundary conditions
 bc = [0, 0]
-materials = [[0, "scattering", "0-4, 12-16"], [1, "vacuum", "4-5, 11-12"], \
-             [2, "absorber", "5-6, 10-11"], [3, "source", "6-10"]]
+layout = [[0, "scattering", "0-4, 12-16"], [1, "vacuum", "4-5, 11-12"], \
+          [2, "absorber", "5-6, 10-11"], [3, "source", "6-10"]]
 
 # bc = [0, 1]
-# materials = [[0, "scattering", "0-4"], [1, "vacuum", "4-5"], \
-#              [2, "absorber", "5-6"], [3, "source", "6-8"]]
+# layout = [[0, "scattering", "0-4"], [1, "vacuum", "4-5"], \
+#           [2, "absorber", "5-6"], [3, "source", "6-8"]]
 
 # bc = [1, 0]
-# materials = [[0, "scattering", "4-8"], [1, "vacuum", "3-4"], \
-#              [2, "absorber", "2-3"], [3, "source", "0-2"]]
+# layout = [[0, "scattering", "4-8"], [1, "vacuum", "3-4"], \
+#           [2, "absorber", "2-3"], [3, "source", "0-2"]]
 
 info = {
             "cells_x": cells,
             "angles": angles, 
             "groups": groups, 
-            "materials": len(materials),
+            "materials": len(layout),
             "geometry": 1, 
             "spatial": 2, 
             "qdim": 3, 
@@ -54,7 +54,8 @@ edges_x = np.linspace(0, length, cells+1)
 centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
 
 # Medium Map
-medium_map = ants.spatial_map(materials, edges_x)
+materials = np.array(layout)[:,1]
+medium_map = ants.spatial1d(layout, edges_x)
 
 # Angular
 angle_x, angle_w = ants.angular_x(info)

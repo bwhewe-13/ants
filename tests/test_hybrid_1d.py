@@ -20,7 +20,7 @@ from ants import hybrid1d
 PATH = "data/references_multigroup/"
 
 @pytest.mark.slab1d
-@pytest.mark.hybrid1d
+@pytest.mark.hybrid
 @pytest.mark.backward_euler
 @pytest.mark.multigroup1d
 @pytest.mark.parametrize(("angles_c", "groups_c"), [(8, 87), (2, 87), \
@@ -44,7 +44,7 @@ def test_slab_01_backward_euler(angles_c, groups_c):
             "bcdim_x": 2,
             "steps": steps,
             "dt": 1e-8,
-            "bcdecay": 2
+            "bcdecay_x": 2
             }
     # Collided flux dictionary
     info_c = {
@@ -59,7 +59,7 @@ def test_slab_01_backward_euler(angles_c, groups_c):
             "bcdim_x": 1,
             "steps": steps,
             "dt": 1e-8,
-            "bcdecay": 2
+            "bcdecay_x": 2
             }
     # Spatial
     length = 10.

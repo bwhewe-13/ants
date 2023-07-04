@@ -22,7 +22,7 @@ info = {
             "bcdim_x": 2,
             "steps": steps, 
             "dt": 1e-8,
-            "bcdecay": 2
+            "bcdecay_x": 2
         }
 
 # Spatial

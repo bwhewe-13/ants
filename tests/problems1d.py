@@ -4,20 +4,73 @@
 #                      / /| | /  |/ / / /  \__ \
 #                     / ___ |/ /|  / / /  ___/ /
 #                    /_/  |_/_/ |_/ /_/  /____/
-#
-# Tests for large multigroup problems (G >= 87) and focuses on fixed
-# source, time dependent, and criticality problems.
-#
+# 
+# Default Problems for Testing
+# 
 ########################################################################
 
-import pytest
 import numpy as np
 
 import ants
-from ants import timed1d, fixed1d, critical1d
 
 # Path for reference solutions
 PATH = "data/references_multigroup/"
+
+def reeds(boundary):
+    # General conditions
+    cells = 160
+    angles = 4
+    groups = 1
+
+    # Different boundary conditions
+    if boundary == [0, 0]:
+        layout = [[0, "scattering", "0-4, 12-16"], [1, "vacuum", "4-5, 11-12"], \
+                  [2, "absorber", "5-6, 10-11"], [3, "source", "6-10"]]
+    elif boundary == [0, 1]:
+        layout = [[0, "scattering", "0-4"], [1, "vacuum", "4-5"], \
+                  [2, "absorber", "5-6"], [3, "source", "6-8"]]
+    elif boundary == [1, 0]:
+        layout = [[0, "scattering", "4-8"], [1, "vacuum", "3-4"], \
+                  [2, "absorber", "2-3"], [3, "source", "0-2"]]
+
+    info = {
+            "cells_x": cells,
+            "angles": angles, 
+            "groups": groups, 
+            "materials": 4,
+            "geometry": 1, 
+            "spatial": 2, 
+            "qdim": 3, 
+            "bc_x": boundary,
+            "bcdim_x": 1,
+            "angular": False
+            }
+
+    # Spatial
+    length = 8. if np.sum(boundary) > 0.0 else 16.
+    delta_x = np.repeat(length / cells, cells)
+    edges_x = np.linspace(0, length, cells+1)
+    centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
+
+    # Medium Map
+    materials = np.array(layout)[:,1]
+    medium_map = ants.spatial1d(layout, edges_x)
+
+    # Angular
+    angle_x, angle_w = ants.angular_x(info)
+
+    # Cross Sections
+    xs_total = np.array([[1.0], [0.0], [5.0], [50.0]])
+    xs_scatter = np.array([[[0.9]], [[0.0]], [[0.0]], [[0.0]]])
+    xs_fission = np.array([[[0.0]], [[0.0]], [[0.0]], [[0.0]]])
+
+    # External and boundary sources
+    external = ants.externals1d("reeds", (cells, angles, groups), \
+                              edges_x=edges_x, bc=info["bc_x"]).flatten()
+    boundary_x = np.zeros((2,))
+    return xs_total, xs_scatter, xs_fission, external, boundary_x, \
+        medium_map, delta_x, angle_x, angle_w, info, PATH
+
 
 def sphere_01(ptype):
     # ptype can be "timed", "fixed", or "critical"
@@ -69,47 +122,16 @@ def sphere_01(ptype):
     if ptype == "timed":
         info["steps"] = 5
         info["dt"] = 1e-8
-        info["bcdecay"] = 2
+        info["bcdecay_x"] = 2
         return xs_total, xs_scatter, xs_fission, velocity, external, \
-            boundary_x, medium_map, delta_x, angle_x, angle_w, info
+            boundary_x, medium_map, delta_x, angle_x, angle_w, info, PATH
 
     elif ptype == "fixed":
         return xs_total, xs_scatter, xs_fission, external, \
-            boundary_x, medium_map, delta_x, angle_x, angle_w, info
+            boundary_x, medium_map, delta_x, angle_x, angle_w, info, PATH
 
     elif ptype == "critical":
         info["bcdim_x"] = 1
         info["qdim"] = 2
         return xs_total, xs_scatter, xs_fission, medium_map, \
-            delta_x, angle_x, angle_w, info
-
-
-@pytest.mark.sphere1d
-@pytest.mark.source_iteration
-@pytest.mark.multigroup1d
-def test_sphere_01_source_iteration():
-    flux = fixed1d.source_iteration(*sphere_01("fixed"))
-    reference = np.load(PATH + "uranium_sphere_source_iteration_flux.npy")
-    assert np.isclose(flux, reference).all()
-
-
-@pytest.mark.sphere1d
-@pytest.mark.backward_euler
-@pytest.mark.multigroup1d
-def test_sphere_01_backward_euler():
-    info = sphere_01("timed")[-1]
-    flux = timed1d.backward_euler(*sphere_01("timed"))
-    reference = np.load(PATH + "uranium_sphere_backward_euler_flux.npy")
-    for tt in range(info["steps"]):
-        assert np.isclose(flux[tt], reference[tt]).all()
-
-
-@pytest.mark.sphere1d
-@pytest.mark.power_iteration
-@pytest.mark.multigroup1d
-def test_sphere_01_power_iteration():
-    flux, keff = critical1d.power_iteration(*sphere_01("critical"))
-    reference_flux = np.load(PATH + "uranium_sphere_power_iteration_flux.npy")
-    reference_keff = np.load(PATH + "uranium_sphere_power_iteration_keff.npy")
-    assert np.isclose(flux, reference_flux).all()
-    assert np.fabs(keff - reference_keff) < 1e-05
+            delta_x, angle_x, angle_w, info, PATH
