@@ -428,9 +428,8 @@ def test_two_group_sphere_uranium_reactor_01():
 @pytest.mark.power_iteration
 @pytest.mark.multigroup1d
 def test_sphere_01_power_iteration():
-    PATH = problems1d.sphere_01("critical")[-1]
-    flux, keff = power_iteration(*problems1d.sphere_01("critical")[:-1])
-    reference_flux = np.load(PATH + "uranium_sphere_power_iteration_flux.npy")
-    reference_keff = np.load(PATH + "uranium_sphere_power_iteration_keff.npy")
+    flux, keff = power_iteration(*problems1d.sphere_01("critical"))
+    reference_flux = np.load(problems1d.PATH + "uranium_sphere_power_iteration_flux.npy")
+    reference_keff = np.load(problems1d.PATH + "uranium_sphere_power_iteration_keff.npy")
     assert np.isclose(flux, reference_flux).all()
     assert np.fabs(keff - reference_keff) < 1e-05
