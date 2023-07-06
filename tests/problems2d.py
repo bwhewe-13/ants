@@ -1,32 +1,27 @@
 ########################################################################
 #                        ___    _   _____________
 #                       /   |  / | / /_  __/ ___/
-#                      / /| | /  |/ / / /  \__ \ 
-#                     / ___ |/ /|  / / /  ___/ / 
-#                    /_/  |_/_/ |_/ /_/  /____/  
+#                      / /| | /  |/ / / /  \__ \
+#                     / ___ |/ /|  / / /  ___/ /
+#                    /_/  |_/_/ |_/ /_/  /____/
 # 
-# Method of Manufactured Solutions for Two Dimensional Slabs
-#
+# Default Problems for Testing Two-dimensional problems
+# 
 ########################################################################
 
-import pytest
 import numpy as np
 
 import ants
-from ants.fixed2d import source_iteration
-from ants.utils import manufactured_2d as mms
+
+# Path for reference solutions
+PATH = "data/references_multigroup/"
 
 
-@pytest.mark.smoke
-@pytest.mark.slab2d
-@pytest.mark.source_iteration
-@pytest.mark.parametrize(("angular", "spatial"), [(True, 1), (True, 2), \
-                         (False, 1), (False, 2)])
-def test_manufactured_01(angular, spatial):
-    info = {"cells_x": 200, "cells_y": 200, "angles": 2, "groups": 1, 
-            "materials": 1, "geometry": 1, "spatial": spatial, "qdim": 3, 
+def manufactured_01(cells, angles):
+    info = {"cells_x": cells, "cells_y": cells, "angles": angles, "groups": 1, 
+            "materials": 1, "geometry": 1, "spatial": 2, "qdim": 3, 
             "bc_x": [0, 0], "bcdim_x": 4, "bc_y": [0, 0], "bcdim_y": 4,
-            "angular": angular}
+            "angular": False}
     # Spatial dimension x
     length_x = 1.
     delta_x = np.repeat(length_x / info["cells_x"], info["cells_x"])
@@ -56,29 +51,17 @@ def test_manufactured_01(angular, spatial):
                                         centers_x=centers_x)
     boundary_x = boundary_x.flatten()
     boundary_y = boundary_y.flatten()
-    # Run Source Iteration 
-    flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
-                            boundary_x, boundary_y, medium_map, delta_x, \
-                            delta_y, angle_x, angle_y, angle_w, info)
-    exact = mms.solution_mms_01(centers_x, centers_y, angle_x, angle_y)
-    # Rearrange dimensions
-    if not angular:
-        exact = np.sum(exact * angle_w[None,None,:,None], axis=2)
-    # Evaluate
-    atol = 1e-5 if spatial == 2 else 5e-3
-    assert np.isclose(flux[(..., 0)], exact[(..., 0)], atol=atol).all(), \
-            "Incorrect flux" 
+
+    return xs_total, xs_scatter, xs_fission, external, boundary_x, \
+        boundary_y, medium_map, delta_x, delta_y, angle_x, angle_y, \
+        angle_w, info, centers_x, centers_y
 
 
-@pytest.mark.slab2d
-@pytest.mark.source_iteration
-@pytest.mark.parametrize(("angular", "spatial"), [(True, 1), (True, 2), \
-                         (False, 1), (False, 2)])
-def test_manufactured_02(angular, spatial):
-    info = {"cells_x": 200, "cells_y": 200, "angles": 2, "groups": 1, 
-            "materials": 1, "geometry": 1, "spatial": spatial, "qdim": 3, 
+def manufactured_02(cells, angles):
+    info = {"cells_x": cells, "cells_y": cells, "angles": angles, "groups": 1, 
+            "materials": 1, "geometry": 1, "spatial": 2, "qdim": 3, 
             "bc_x": [0, 0], "bcdim_x": 4, "bc_y": [0, 0], "bcdim_y": 4,
-            "angular": angular}
+            "angular": False}
     # Spatial dimension x
     length_x = 1.
     delta_x = np.repeat(length_x / info["cells_x"], info["cells_x"])
@@ -108,29 +91,17 @@ def test_manufactured_02(angular, spatial):
                                     centers_x=centers_x, centers_y=centers_y)
     boundary_x = boundary_x.flatten()
     boundary_y = boundary_y.flatten()
-    # Run Source Iteration 
-    flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
-                            boundary_x, boundary_y, medium_map, delta_x, \
-                            delta_y, angle_x, angle_y, angle_w, info)
-    exact = mms.solution_mms_02(centers_x, centers_y, angle_x, angle_y)
-    # Rearrange dimensions
-    if not angular:
-        exact = np.sum(exact * angle_w[None,None,:,None], axis=2)
-    # Evaluate
-    atol = 1e-5 if spatial == 2 else 5e-3
-    assert np.isclose(flux[(..., 0)], exact[(..., 0)], atol=atol).all(), \
-            "Incorrect flux"
+
+    return xs_total, xs_scatter, xs_fission, external, boundary_x, \
+        boundary_y, medium_map, delta_x, delta_y, angle_x, angle_y, \
+        angle_w, info, centers_x, centers_y
 
 
-@pytest.mark.slab2d
-@pytest.mark.source_iteration
-@pytest.mark.parametrize(("angular", "spatial"), [(True, 1), (True, 2), \
-                         (False, 1), (False, 2)])
-def test_manufactured_03(angular, spatial):
-    info = {"cells_x": 200, "cells_y": 200, "angles": 4, "groups": 1, 
-        "materials": 1, "geometry": 1, "spatial": spatial, "qdim": 3, 
+def manufactured_03(cells, angles):
+    info = {"cells_x": cells, "cells_y": cells, "angles": angles, "groups": 1, 
+        "materials": 1, "geometry": 1, "spatial": 2, "qdim": 3, 
         "bc_x": [0, 0], "bcdim_x": 4, "bc_y": [0, 0], "bcdim_y": 4,
-        "angular": angular}
+        "angular": False}
     # Spatial dimension x
     length_x = 2.
     delta_x = np.repeat(length_x / info["cells_x"], info["cells_x"])
@@ -159,29 +130,17 @@ def test_manufactured_03(angular, spatial):
                                     angle_x=angle_x, angle_y=angle_y)
     boundary_x = boundary_x.flatten()
     boundary_y = boundary_y.flatten()
-    # Run Source Iteration 
-    flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
-                        boundary_x, boundary_y, medium_map, delta_x, \
-                        delta_y, angle_x, angle_y, angle_w, info)
-    exact = mms.solution_mms_03(centers_x, centers_y, angle_x, angle_y)
-    # Rearrange dimensions
-    if not angular:
-        exact = np.sum(exact * angle_w[None,None,:,None], axis=2)
-    # Evaluate
-    atol = 1e-5 if spatial == 2 else 5e-3
-    assert np.isclose(flux[(..., 0)], exact[(..., 0)], atol=atol).all(), \
-            "Incorrect flux"
+
+    return xs_total, xs_scatter, xs_fission, external, boundary_x, \
+        boundary_y, medium_map, delta_x, delta_y, angle_x, angle_y, \
+        angle_w, info, centers_x, centers_y
 
 
-@pytest.mark.slab2d
-@pytest.mark.source_iteration
-@pytest.mark.parametrize(("angular", "spatial"), [(True, 1), (True, 2), \
-                         (False, 1), (False, 2)])
-def test_manufactured_04(angular, spatial):
-    info = {"cells_x": 200, "cells_y": 200, "angles": 4, "groups": 1, 
-        "materials": 1, "geometry": 1, "spatial": spatial, "qdim": 3, 
+def manufactured_04(cells, angles):
+    info = {"cells_x": cells, "cells_y": cells, "angles": angles, "groups": 1, 
+        "materials": 1, "geometry": 1, "spatial": 2, "qdim": 3, 
         "bc_x": [0, 0], "bcdim_x": 4, "bc_y": [0, 0], "bcdim_y": 4,
-        "angular": angular}
+        "angular": False}
     # Spatial dimension x
     length_x = 2.
     delta_x = np.repeat(length_x / info["cells_x"], info["cells_x"])
@@ -213,16 +172,7 @@ def test_manufactured_04(angular, spatial):
                                     centers_x=centers_x, centers_y=centers_y)
     boundary_x = boundary_x.flatten()
     boundary_y = boundary_y.flatten()
-    # Run Source Iteration 
-    flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
-                        boundary_x, boundary_y, medium_map, delta_x, \
-                        delta_y, angle_x, angle_y, angle_w, info)
 
-    exact = mms.solution_mms_04(centers_x, centers_y, angle_x, angle_y)
-    # Rearrange dimensions
-    if not angular:
-        exact = np.sum(exact * angle_w[None,None,:,None], axis=2)
-    # Evaluate
-    atol = 1e-5 if spatial == 2 else 5e-3
-    assert np.isclose(flux[(..., 0)], exact[(..., 0)], atol=atol).all(), \
-            "Incorrect flux"
+    return xs_total, xs_scatter, xs_fission, external, boundary_x, \
+        boundary_y, medium_map, delta_x, delta_y, angle_x, angle_y, \
+        angle_w, info, centers_x, centers_y
