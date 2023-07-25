@@ -145,26 +145,6 @@ def spatial1d(materials, edges_x, key=False):
     return medium_map
 
 
-def spatial2d(materials, edges_x, edges_y, key=False):
-    ...
-#     # materials is list of list with each element [idx, material, width]
-#     material_key = {}
-#     medium_map = np.ones((len(edges_x) - 1)) * -1
-#     for material in materials:
-#         material_key[material[0]] = material[1]
-#         for region in material[2].split(","):
-#             start, stop = region.split("-")
-#             idx1 = np.argmin(np.fabs(float(start) - edges_x))
-#             idx2 = np.argmin(np.fabs(float(stop) - edges_x))
-#             medium_map[idx1:idx2] = material[0]
-#     # Verify all cells are filled
-#     assert np.all(medium_map != -1)
-#     medium_map = medium_map.astype(np.int32)
-#     if key:
-#         return medium_map, material_key
-#     return medium_map
-
-
 def cylinder2d(radii, xs_total, xs_scatter, xs_fission, delta_x, delta_y, \
         bc_x, bc_y, weight_map=None):
     """ Convert cartesian squares into an approximate cylindrical shape
@@ -284,3 +264,31 @@ def _cylinder_medium_map(quad1, bc_x, bc_y):
         elif bc_x == [1, 0]:
             medium_map = np.block([quad4])
     return medium_map
+
+
+def location2d(matrix, value, coordinates, edges_x, edges_y):
+    """ Populating areas of 2D matrices easily (medium_map, sources)
+    Arguments:
+        matrix: (I x J x ...): At least a 2D array, where the value 
+        value: (int) or array depending on additional dimensions of matrix
+        coordinates: list of [(starting index), x_length, y_length] or
+                list of triangle coordinates [(x1, y1), (x2, y2), (x3, y3)]
+        edges_x: (array of size I + 1)
+        edges_y: (array of size J + 1)
+    Returns:
+        matrix populated with value
+    """
+    # This is for triangular grid cells (not ready yet)
+    if isinstance(coordinates[0][1], tuple):
+        pass
+    # For rectangular grids
+    for index, span_x, span_y in coordinates:
+        # Get starting locations
+        idx_x1 = np.argwhere(edges_x == index[0])[0, 0]
+        idx_y1 = np.argwhere(edges_y == index[1])[0, 0]
+        # Get widths of rectangular cells
+        idx_x2 = np.argwhere(edges_x == index[0] + span_x)[0, 0]
+        idx_y2 = np.argwhere(edges_y == index[1] + span_y)[0, 0]
+        # Populate with value
+        matrix[idx_x1:idx_x2, idx_y1:idx_y2] = value
+    return matrix

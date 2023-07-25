@@ -13,6 +13,7 @@ import numpy as np
 import pkg_resources
 import warnings
 
+import ants
 from ants.constants import *
 
 DATA_PATH = pkg_resources.resource_filename("ants","sources/")
@@ -215,22 +216,33 @@ def _external_1d_ambe(external, groups, edges_x):
 # External Sources - 2D
 ########################################################################
 
-__externals2d = ("mms-03", "mms-04")
+__externals2d = ("mms-03", "mms-04", "ambe")
 
 def externals2d(name, shape, **kw):
     external = np.zeros(shape)
     if isinstance(name, float):
         external[(...)] = name
         return external
-    assert "angle_x" in kw, "Need angle_x for external source"
-    assert "angle_y" in kw, "Need angle_y for external source"
+
     if name == "mms-03":
+        variables = ["angle_x", "angle_y"]
+        assert (np.sort(list(kw.keys())) == np.sort(variables)).all(), \
+            "Need {} for external source".format(variables)
         return _external_2d_mms_03(external, kw["angle_x"], kw["angle_y"])
+
     elif name == "mms-04":
-        assert "centers_x" in kw, "Need centers_x for external source"
-        assert "centers_y" in kw, "Need centers_y for external source"
+        variables = ["angle_x", "angle_y", "centers_x", "centers_y"]
+        assert (np.sort(list(kw.keys())) == np.sort(variables)).all(), \
+            "Need {} for MMS - 04 source".format(variables)
         return _external_2d_mms_04(external, kw["angle_x"], kw["angle_y"], \
                                     kw["centers_x"], kw["centers_y"])
+
+    elif name == "ambe":
+        variables = ["edges_g", "coordinates", "edges_x", "edges_y"]
+        assert (np.sort(list(kw.keys())) == np.sort(variables)).all(), \
+            "Need {} for AmBe source".format(variables)
+        return _external_2d_ambe(external, kw["edges_g"], kw["coordinates"], \
+                                 kw["edges_x"], kw["edges_y"])
     warnings.warn("External Source not populated, use float")
     # warnings.warn("External Source not populated, use {}".format(__externals2d))
     return external
@@ -250,6 +262,18 @@ def _external_2d_mms_04(external, angle_x, angle_y, centers_x, centers_y):
                      + eta * y * np.exp(eta))
     external = np.transpose(external, (1, 0, 2, 3))
     return external
+
+def _external_2d_ambe(external, edges_g, coordinates, edges_x, edges_y):
+    AmBe = np.load(DATA_PATH + "external/AmBe_source_050G.npz")
+    # Convert to MeV
+    if np.max(edges_g) > 20.0:
+        edges_g *= 1E-6
+    # Get energy spectra of AmBe source
+    value = resize_array_1d(edges_g, AmBe["edges"], AmBe["magnitude"])
+    # Put in location
+    external = ants.location2d(external, value, coordinates, edges_x, edges_y)
+    return external
+
 
 
 ########################################################################
@@ -392,3 +416,100 @@ def _boundary_2d_mms_04(boundary_x, boundary_y, angle_x, angle_y, centers_x, \
             boundary_x[1,:,nn,0] = 1 + 0.4 * np.exp(mu) + 0.1 * np.exp(eta) * centers_y**2
             boundary_y[1,:,nn,0] = 1 + 0.4 * np.exp(eta) + 0.1 * np.exp(mu) * centers_x**2
     return boundary_x, boundary_y
+
+########################################################################
+# Meshing Different Energy Grids
+########################################################################
+
+def _concatenate_edges_1d(fine, coarse, value):
+    # Combine the edges for both the coarse and fine grid
+    new_edges = np.sort(np.unique(np.concatenate((coarse, fine))))
+    # Create new array for values
+    new_value = np.zeros((new_edges.shape[0] - 1))
+    # Iterate over fine edges
+    for cc, (gg1, gg2) in enumerate(zip(fine[:-1], fine[1:])):
+        idx1 = np.argmin(np.fabs(gg1 - new_edges))
+        idx2 = np.argmin(np.fabs(gg2 - new_edges))
+        for gg in range(idx1, idx2):
+            new_value[gg] = value[cc]
+    return new_edges, new_value
+
+def resize_array_1d(fine, coarse, value):
+    """ Coarsen array for difference energy grids where (G hat) < (G)
+    Arguments:
+        fine (float [G + 1]): fine energy edges
+        coarse (float [G hat + 1]): coarse energy edges
+        value (float [G] or [G hat]): values of grid values
+    Returns:
+        resized (float [G hat] or [G]): values of resized grid
+    """
+    # Combine edges
+    if (value.shape[0] + 1 == coarse.shape[0]):
+        fine, coarse = coarse.copy(), fine.copy()
+    fine, value = _concatenate_edges_1d(fine, coarse, value)
+    # Create coarse array
+    shrink = np.zeros((coarse.shape[0] - 1))
+    # Iterate over all coarse bins
+    for cc, (gg1, gg2) in enumerate(zip(coarse[:-1], coarse[1:])):
+        # Find indices for edge locations
+        idx1 = np.argmin(np.fabs(gg1 - fine))
+        idx2 = np.argmin(np.fabs(gg2 - fine))
+        # Estimate magnitude
+        magnitude = np.sum(value[idx1:idx2] * np.diff(fine[idx1:idx2+1]))
+        magnitude /= (gg2 - gg1)
+        # Populate coarsened array
+        shrink[cc] = magnitude
+    return shrink
+
+
+def _concatenate_edges_2d(fine, coarse, value):
+    # Combine the edges for both the coarse and fine grid
+    new_edges = np.sort(np.unique(np.concatenate((coarse, fine))))
+    # Create new array for values
+    new_value = np.zeros((new_edges.shape[0] - 1, new_edges.shape[0] - 1))
+    # Iterate over fine edges
+    for cc1, (gg1, gg2) in enumerate(zip(fine[:-1], fine[1:])):
+        idx1 = np.argmin(np.fabs(gg1 - new_edges))
+        idx2 = np.argmin(np.fabs(gg2 - new_edges))
+        for cc2, (gg3, gg4) in enumerate(zip(fine[:-1], fine[1:])):
+            idx3 = np.argmin(np.fabs(gg3 - new_edges))
+            idx4 = np.argmin(np.fabs(gg4 - new_edges))
+            for gg1 in range(idx1, idx2):
+                for gg2 in range(idx3, idx4):
+                    new_value[gg1,gg2] = value[cc1,cc2]
+    return new_edges, new_value
+
+
+def resize_array_2d(fine, coarse, value):
+    """ Coarsen array for difference energy grids where (G hat) < (G)
+    Arguments:
+        fine (float [G + 1]): fine energy edges
+        coarse (float [G hat + 1]): coarse energy edges
+        value (float [G x G] or [G hat x G hat]): values of grid values
+    Returns:
+        resized (float [G hat x G hat] or [G x G]): values of resized grid
+    """
+    # Combine edges
+    if (value.shape[0] + 1 == coarse.shape[0]):
+        fine, coarse = coarse.copy(), fine.copy()
+    fine, value = _concatenate_edges_2d(fine, coarse, value)
+    # return value
+    # Create coarse array
+    shrink = np.zeros((coarse.shape[0] - 1, coarse.shape[0] - 1))
+    # Iterate over all coarse bins
+    for cc1, (gg1, gg2) in enumerate(zip(coarse[:-1], coarse[1:])):
+        # Find indices for edge locations
+        idx1 = np.argmin(np.fabs(gg1 - fine))
+        idx2 = np.argmin(np.fabs(gg2 - fine))
+        for cc2, (gg3, gg4) in enumerate(zip(coarse[:-1], coarse[1:])):
+            # Find indices for edge locations
+            idx3 = np.argmin(np.fabs(gg3 - fine))
+            idx4 = np.argmin(np.fabs(gg4 - fine))
+            # Estimate magnitude
+            magnitude = np.sum(value[idx1:idx2,idx3:idx4] \
+                                * (np.diff(fine[idx1:idx2+1])[:,None] \
+                                @ np.diff(fine[idx3:idx4+1])[None,:]))
+            magnitude /= ((gg2 - gg1) * (gg4 - gg3))
+            # Populate coarsened array
+            shrink[cc1, cc2] = magnitude
+    return shrink
