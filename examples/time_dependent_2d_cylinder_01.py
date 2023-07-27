@@ -21,16 +21,17 @@ groups = 1
 steps = 1000
 
 # Spatial Layout
-radii = [(0.0, 4.279960)]
-radius = max(radii)[1]
+radius = 4.279960
+coordinates = [(radius, radius), [radius]]
 
-delta_x = np.repeat(radius * 2 / cells_x, cells_x)
-edges_x = np.linspace(0, radius * 2, cells_x+1)
-centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
+length_x = length_y = 2 * radius
 
-delta_y = np.repeat(radius * 2 / cells_y, cells_y)
-edges_y = np.linspace(0, radius * 2, cells_y+1)
-centers_y = 0.5 * (edges_y[1:] + edges_y[:-1])
+# Spatial Dimensions
+delta_x = np.repeat(length_x / cells_x, cells_x)
+delta_y = np.repeat(length_y / cells_y, cells_y)
+
+edges_x = np.linspace(0, length_x, cells_x + 1)
+edges_y = np.linspace(0, length_y, cells_y + 1)
 
 # Boundary conditions
 bc_x = [0, 0]
@@ -41,13 +42,9 @@ xs_total = np.array([[0.32640], [0.0]])
 xs_scatter = np.array([[[0.225216]], [[0.0]]])
 xs_fission = np.array([[[2.84*0.0816]], [[0.0]]])
 
-# weight_map = np.load("time_dependent_2d_cylinder_01_weight_map.npy")
-
-# Update cross sections for cylinder
-medium_map, xs_total, xs_scatter, xs_fission, weight_map \
-    = ants.cylinder2d(radii, xs_total, xs_scatter, xs_fission, delta_x, \
-                      delta_y, bc_x, bc_y)#, weight_map=weight_map)
-np.save("time_dependent_2d_cylinder_01_weight_map", weight_map)
+weight_matrix = ants.weight_cylinder2d(coordinates, edges_x, edges_y)
+medium_map, xs_total, xs_scatter, xs_fission \
+    = ants.weight_spatial2d(weight_matrix, xs_total, xs_scatter, xs_fission)
 
 info = {
             "cells_x": cells_x,

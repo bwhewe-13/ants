@@ -16,7 +16,7 @@ import numpy as np
 import ants
 from ants.critical2d import power_iteration
 
-PATH = "data/weight_maps_2d/"
+PATH = "data/weight_matrix_2d/"
 
 @pytest.mark.slab2d
 @pytest.mark.power_iteration
@@ -103,24 +103,23 @@ def test_two_group_infinite(finite, spatial):
 @pytest.mark.power_iteration
 def test_two_group_twigl():
     # Material Properties
-    cells_x = 80; length_x = 80
-    cells_y = 80; length_y = 80
+    cells_x = 160; length_x = 160
+    cells_y = 160; length_y = 160
     groups = 2
     angles = 4
-    medium_map = np.ones((cells_x, cells_y), dtype=np.int32) * 2
-    xx = int(cells_x / length_x)
-    yy = int(cells_y / length_y)
-    medium_map[24*yy:56*yy, 0:24*xx] = 1
-    medium_map[0:24*yy, 24*xx:56*xx] = 1
-    medium_map[24*yy:56*yy, 24*xx:56*xx] = 0
-    # Orient the medium map correctly
-    medium_map = np.block([[np.flip(medium_map, axis=(1,0)), \
-                            np.flip(medium_map, axis=0)], \
-                    [np.flip(medium_map, axis=1), medium_map]])
-    cells_x *= 2; length_x = 80 * 2
-    cells_y *= 2; length_y = 80 * 2
+    # Spatial Dimensions
     delta_x = np.repeat(length_x / cells_x, cells_x)
     delta_y = np.repeat(length_y / cells_y, cells_y)
+    edges_x = np.linspace(0, length_x, cells_x + 1)
+    edges_y = np.linspace(0, length_y, cells_y + 1)
+    # Medium Map
+    medium_map = 2 * np.ones((cells_x, cells_y), dtype=np.int32)
+    coords_mat0 = [[(24, 24), 32, 32], [(24, 104), 32, 32], 
+                   [(104, 24), 32, 32], [(104, 104), 32, 32]]
+    coords_mat1 = [[(24, 56), 32, 48], [(56, 24), 48, 32], 
+                   [(104, 56), 32, 48], [(56, 104), 48, 32]]
+    medium_map = ants.spatial2d(medium_map, 0, coords_mat0, edges_x, edges_y)
+    medium_map = ants.spatial2d(medium_map, 1, coords_mat1, edges_x, edges_y)
     # Boundary conditions
     bc_x = [0, 0]
     bc_y = [0, 0]
@@ -159,16 +158,19 @@ def test_two_group_twigl():
 @pytest.mark.power_iteration
 def test_cylinder_two_material():
     # Material Parameters
-    cells_x = 50
-    cells_y = 50
+    cells_x = cells_y = 50
     angles = 6
     groups = 1
     # Spatial layout
-    radii = [(0.0, 4.279960)]
-    radius = max(radii)[1]
-    center = (radius, radius)
-    delta_x = np.repeat(radius * 2 / cells_x, cells_x)
-    delta_y = np.repeat(radius * 2 / cells_y, cells_y)
+    radius = 4.279960
+    coordinates = [(radius, radius), [radius]]
+    # Inscribed inside circle
+    length_x = length_y = 2 * radius
+    # Spatial Dimensions
+    delta_x = np.repeat(length_x / cells_x, cells_x)
+    delta_y = np.repeat(length_y / cells_y, cells_y)
+    edges_x = np.linspace(0, length_x, cells_x + 1)
+    edges_y = np.linspace(0, length_y, cells_y + 1)
     # Boundary Conditions
     bc_x = [0, 0]
     bc_y = [0, 0]
@@ -177,10 +179,11 @@ def test_cylinder_two_material():
     xs_scatter = np.array([[[0.225216]], [[0.0]]])
     xs_fission = np.array([[[2.84*0.0816]], [[0.0]]])
     # Update cross sections for cylinder
-    weight_map = np.load(PATH + "cylinder_two_material.npy")
-    medium_map, xs_total, xs_scatter, xs_fission, weight_map \
-        = ants.cylinder2d(radii, xs_total, xs_scatter, xs_fission, delta_x, \
-                          delta_y, bc_x, bc_y, weight_map=weight_map)
+    # weight_matrix = ants.weight_cylinder2d(coordinates, edges_x, edges_y, N=250_000)
+    # np.save(PATH + "cylinder_two_material", weight_matrix)
+    weight_matrix = np.load(PATH + "cylinder_two_material.npy")
+    medium_map, xs_total, xs_scatter, xs_fission \
+        = ants.weight_spatial2d(weight_matrix, xs_total, xs_scatter, xs_fission)
     # Collect problem dictionary
     info = {"cells_x": cells_x, "cells_y": cells_y, "angles": angles, \
             "groups": groups, "materials": len(xs_total), "geometry": 1, \
@@ -195,22 +198,23 @@ def test_cylinder_two_material():
 
 @pytest.mark.cylinder2d
 @pytest.mark.power_iteration
-@pytest.mark.parametrize(("layer"), ["small"]) #, "large"])
+@pytest.mark.parametrize(("layer"), ["small", "large"])
 def test_cylinder_three_material(layer):
-    if layer == "small":
-        radii = [(0, 15.396916), (15.396916, 15.396916 + 1.830563)]
-    elif layer == "large":
-        radii = [(0, 14.606658), (14.606658, 14.606658 + 18.30563)]
+    # Radii
+    radius01 = 15.396916 if layer == "small" else 14.606658
+    radius02 = radius01 + 1.830563 if layer == "small" else radius01 + 18.30563
+    coordinates = [(radius02, radius02), [radius01, radius02]]
     # Material Parameters
-    cells_x = 100
-    cells_y = 100
+    cells_x = cells_y = 100
     angles = 4
     groups = 1
-    # Spatial layout
-    radius = max(radii)[1]
-    center = (radius, radius)
-    delta_x = np.repeat(radius * 2 / cells_x, cells_x)
-    delta_y = np.repeat(radius * 2 / cells_y, cells_y)
+    # Inscribed inside circle
+    length_x = length_y = 2 * radius02
+    # Spatial Dimensions
+    delta_x = np.repeat(length_x / cells_x, cells_x)
+    delta_y = np.repeat(length_y / cells_y, cells_y)
+    edges_x = np.linspace(0, length_x, cells_x + 1)
+    edges_y = np.linspace(0, length_y, cells_y + 1)
     # Boundary Conditions
     bc_x = [0, 0]
     bc_y = [0, 0]
@@ -219,10 +223,11 @@ def test_cylinder_three_material(layer):
     xs_scatter = np.array([[[0.464338]], [[0.491652]], [[0.0]]])
     xs_fission = np.array([[[1.70*0.054628]], [[0.0]], [[0.0]]])
     # Update cross sections for cylinder
-    weight_map = np.load(PATH + f"cylinder_three_material_{layer}.npy")
-    medium_map, xs_total, xs_scatter, xs_fission, weight_map \
-        = ants.cylinder2d(radii, xs_total, xs_scatter, xs_fission, delta_x, \
-                          delta_y, bc_x, bc_y, weight_map=weight_map)
+    # weight_matrix = ants.weight_cylinder2d(coordinates, edges_x, edges_y, N=500_000)
+    # np.save(PATH + f"cylinder_three_material_{layer}", weight_matrix)
+    weight_matrix = np.load(PATH + f"cylinder_three_material_{layer}.npy")
+    medium_map, xs_total, xs_scatter, xs_fission \
+        = ants.weight_spatial2d(weight_matrix, xs_total, xs_scatter, xs_fission)
     # Collect problem dictionary
     info = {"cells_x": cells_x, "cells_y": cells_y, "angles": angles, \
             "groups": groups, "materials": len(xs_total), "geometry": 1, \

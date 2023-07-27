@@ -16,21 +16,20 @@ import ants
 from ants.fixed2d import source_iteration
 
 # Path for reference solutions
-PATH = "data/weight_maps_2d/"
+PATH = "data/weight_matrix_2d/"
 
 def cylinder_01():
     # Problem parameters
-    cells_x = 50
-    cells_y = 50
+    cells_x = cells_y = 50
     angles = 4
     groups = 1
 
     # Spatial Layout
-    radii = [(0.0, 4.279960)]
-    radius = max(radii)[1]
+    radius = 4.279960
+    coordinates = [(radius, radius), [radius]]
 
     delta_x = np.repeat(radius * 2 / cells_x, cells_x)
-    edges_x = np.linspace(0, radius * 2, cells_x+1)
+    edges_x = np.linspace(0, radius * 2, cells_x + 1)
     centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
 
     delta_y = np.repeat(radius * 2 / cells_y, cells_y)
@@ -44,11 +43,11 @@ def cylinder_01():
     xs_scatter = np.array([[[0.225216]], [[0.0]]])
     xs_fission = np.array([[[2.84*0.0816]], [[0.0]]])
     # Update cross sections for cylinder
-    weight_map = np.load(PATH + "cylinder_two_material.npy")
-    medium_map, xs_total, xs_scatter, xs_fission, weight_map \
-        = ants.cylinder2d(radii, xs_total, xs_scatter, xs_fission, delta_x, \
-                          delta_y, bc_x, bc_y, weight_map=weight_map)
-    # np.save(PATH + "cylinder_two_material", weight_map)
+    # weight_matrix = ants.weight_cylinder2d(coordinates, edges_x, \
+    #                                          edges_y, N=250_000)
+    weight_matrix = np.load(PATH + "cylinder_two_material.npy")
+    medium_map, xs_total, xs_scatter, xs_fission \
+        = ants.weight_spatial2d(weight_matrix, xs_total, xs_scatter, xs_fission)
     # Collect problem dictionary
     info = {
                 "cells_x": cells_x,
