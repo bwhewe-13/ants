@@ -271,7 +271,7 @@ def _external_2d_ambe(external, edges_g, coordinates, edges_x, edges_y):
     # Get energy spectra of AmBe source
     value = resize_array_1d(edges_g, AmBe["edges"], AmBe["magnitude"])
     # Put in location
-    external = ants.location2d(external, value, coordinates, edges_x, edges_y)
+    external = ants.spatial2d(external, value, coordinates, edges_x, edges_y)
     return external
 
 

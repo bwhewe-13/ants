@@ -18,6 +18,7 @@ from ants.utils.hybrid import energy_coarse_index
 
 DATA_PATH = pkg_resources.resource_filename("ants","sources/energy/")
 
+np.random.seed(42)
 
 def angular_x(info):
     angle_x, angle_w = np.polynomial.legendre.leggauss(info["angles"])
@@ -145,142 +146,18 @@ def spatial1d(materials, edges_x, key=False):
     return medium_map
 
 
-def cylinder2d(radii, xs_total, xs_scatter, xs_fission, delta_x, delta_y, \
-        bc_x, bc_y, weight_map=None):
-    """ Convert cartesian squares into an approximate cylindrical shape
-    """
-    # Calculate outer radius 
-    radius = max(radii)[1]
-    # Set the center of the medium
-    center = (radius, radius)
-    # Calculate the percentage of each material in each cell
-    if weight_map is None:
-        weight_map = _mc_weight_matrix(delta_x, delta_y, center, radii)
-    # Convert the weights into distinct materials
-    cells_x = delta_x.shape[0]
-    cells_y = delta_y.shape[0]
-    data = _weight_to_material(weight_map, xs_total, xs_scatter, \
-                               xs_fission, cells_x, cells_y)
-    quarter, xs_total, xs_scatter, xs_fission = data
-    # Calculate the correct size of the cylinder (originally in +,+ quadrant)
-    medium_map = _cylinder_medium_map(quarter, bc_x, bc_y)
-    return medium_map, xs_total, xs_scatter, xs_fission, weight_map
-
-
-def _mc_weight_matrix(delta_x, delta_y, center, radii, samples=100000):
-    # Calculate the fraction of each material inside and outside radii
-    weight_map = []
-    # Global spatial grid edges
-    np.random.seed(42)
-    edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
-    edges_y = np.round(np.insert(np.cumsum(delta_y), 0, 0), 12)
-    # Set local grid points
-    grid_x = edges_x[(edges_x >= center[0]) & (edges_x <= center[0] \
-                        + max(radii)[1])] - center[0]
-    grid_y = edges_y[(edges_y >= center[1]) & (edges_y <= center[1] \
-                        + max(radii)[1])] - center[1]
-    # Calculate all samples
-    samples_x = np.random.uniform(0, max(radii)[1], samples)
-    samples_y = np.random.uniform(0, max(radii)[1], samples)
-    # Iterate over spatial grid
-    for yy in range(len(grid_y) - 1):
-        for xx in range(len(grid_x) - 1):
-            weight_map.append(_weight_grid_cell(samples_x, samples_y, radii, \
-                        grid_x[xx], grid_x[xx+1], grid_y[yy], grid_y[yy+1]))
-            # print(grid_x[xx], grid_x[xx+1])
-    return weight_map / np.sum(weight_map, axis=1)[:,None]
-
-
-def _weight_grid_cell(x, y, radii, x1, x2, y1, y2):
-    ppr = []
-    for iir, oor in radii:
-        # Collect particles in circle
-        idx = np.argwhere(((x**2 + y**2) > iir**2) & ((x**2 + y**2) <= oor**2))
-        temp_x = x[idx].copy()
-        ppr.append(len(temp_x[np.where((temp_x >= x1) & (temp_x < x2) \
-                                    & (y[idx] >= y1) & (y[idx] < y2))]))
-    # Collect particles outside circle
-    temp_x = x[(x**2 + y**2) > max(radii)[1]**2]
-    temp_y = y[(x**2 + y**2) > max(radii)[1]**2]
-    ppr.append(len(temp_x[np.where((temp_x >= x1) & (temp_x < x2) \
-                                    & (temp_y >= y1) & (temp_y < y2))]))
-    return ppr
-
-
-def _weight_to_material(weight_map, xs_total, xs_scatter, xs_fission, \
-        cells_x, cells_y):
-    # Convert cross sections to weight map
-    cy_xs_total = []
-    cy_xs_scatter = []
-    cy_xs_fission = []
-    if weight_map.shape[0] != (cells_x * cells_y):
-        cells_x = int(0.5 * cells_x)
-        cells_y = int(0.5 * cells_y)
-    medium_map = np.zeros((cells_x * cells_y), dtype=np.int32)
-    for mat, weight in enumerate(np.unique(weight_map, axis=0)):
-        cy_xs_total.append(np.sum(xs_total * weight[:,None], axis=0))
-        cy_xs_scatter.append(np.sum(xs_scatter * weight[:,None,None], axis=0))
-        cy_xs_fission.append(np.sum(xs_fission * weight[:,None,None], axis=0))
-        medium_map[np.where(np.all(weight_map == weight, axis=1))] = mat
-    medium_map = medium_map.reshape(cells_x, cells_y)
-    cy_xs_total = np.array(cy_xs_total)
-    cy_xs_scatter = np.array(cy_xs_scatter)
-    cy_xs_fission = np.array(cy_xs_fission)
-    return medium_map, cy_xs_total, cy_xs_scatter, cy_xs_fission
-
-
-def _cylinder_medium_map(quad1, bc_x, bc_y):
-    # quadrants=[1,2,3,4]):
-    """ Gets correct shape of the medium map to account for all quadrants
-    (Default quarant is I)
-          +
-      II  |  I   
-    ------------- +
-      III |  IV
-    """
-    quad2 = np.flip(quad1, axis=1).copy()
-    quad3 = np.flip(quad1, axis=(1,0)).copy()
-    quad4 = np.flip(quad1, axis=0).copy()
-    if bc_y == [0, 0]:
-        # Full circle
-        if bc_x == [0, 0]:
-            medium_map = np.block([[quad3, quad4], [quad2, quad1]])
-        elif bc_x == [0, 1]:
-            medium_map = np.block([[quad3], [quad2]])
-        elif bc_x == [1, 0]:
-            medium_map = np.block([[quad4], [quad1]])
-    elif bc_y == [1, 0]:
-        if bc_x == [0, 0]:
-            medium_map = np.block([quad2, quad1])
-        elif bc_x == [0, 1]:
-            medium_map = np.block([quad2])
-        elif bc_x == [1, 0]:
-            medium_map = np.block([quad1])
-    elif bc_y == [0, 1]:
-        if bc_x == [0, 0]:
-            medium_map = np.block([quad3, quad4])
-        elif bc_x == [0, 1]:
-            medium_map = np.block([quad3])
-        elif bc_x == [1, 0]:
-            medium_map = np.block([quad4])
-    return medium_map
-
-
-def location2d(matrix, value, coordinates, edges_x, edges_y):
-    """ Populating areas of 2D matrices easily (medium_map, sources)
+def spatial2d(matrix, value, coordinates, edges_x, edges_y):
+    """ Populating areas of 2D matrices easily (medium_map, sources) with
+    rectangular geometries
     Arguments:
         matrix: (I x J x ...): At least a 2D array, where the value 
         value: (int) or array depending on additional dimensions of matrix
-        coordinates: list of [(starting index), x_length, y_length] or
-                list of triangle coordinates [(x1, y1), (x2, y2), (x3, y3)]
+        coordinates: list of [(starting index), x_length, y_length]
         edges_x: (array of size I + 1)
         edges_y: (array of size J + 1)
     Returns:
         matrix populated with value
     """
-    # This is for triangular grid cells (not ready yet)
-    if isinstance(coordinates[0][1], tuple):
-        pass
     # For rectangular grids
     for index, span_x, span_y in coordinates:
         # Get starting locations
@@ -292,6 +169,104 @@ def location2d(matrix, value, coordinates, edges_x, edges_y):
         # Populate with value
         matrix[idx_x1:idx_x2, idx_y1:idx_y2] = value
     return matrix
+
+
+def weight_spatial2d(weight_matrix, xs_total, xs_scatter, xs_fission):
+    """ Estimate non-rectangular shapes in cartesian coordinates and 
+    create appropriate cross sections. materials are the original materials
+    used while materials* are the reweighted values.
+
+    Arguments:
+        weight_matrix (float [cells_x, cells_y, materials]): weight matrix
+            needed for estimating the percentage of each material in each
+            spatial cell
+        xs_total (float [materials, groups]): list of total cross sections, 
+            must be ordered correctly
+        xs_scatter (float [materials, groups, groups]): list of scatter 
+            cross sections, must be ordered correctly
+        xs_fission (float [materials, groups, groups]): list of fission 
+            cross sections, must be ordered correctly
+    Returns:
+        medium_map (int [cells_x, cells_y]): identifier of material layout
+        new_xs_total (float [materials*, groups]): list of total cross 
+            sections, where the materials* index corresponds to a specific 
+            location on the medium_map
+        new_xs_scatter (float [materials*, groups, groups]): list of 
+            scatter cross sections, where the materials* index corresponds 
+            to a specific location on the medium_map
+        new_xs_fission (float [materials*, groups, groups]): list of 
+            fission cross sections, where the materials* index corresponds 
+            to a specific location on the medium_map
+    """
+    # Convert cross sections to weight map
+    new_xs_total = []
+    new_xs_scatter = []
+    new_xs_fission = []
+    cells_x, cells_y = weight_matrix.shape[:2]
+    medium_map = np.zeros((cells_x, cells_y), dtype=np.int32)
+    # Get the unique number of material weights    
+    weights = np.unique(weight_matrix.reshape(-1, weight_matrix.shape[2]), axis=0)
+    # Iterate over all weights
+    for mat, weight in enumerate(weights):
+        # print(weight.shape)
+        new_xs_total.append(np.sum(xs_total * weight[:,None], axis=0))
+        new_xs_scatter.append(np.sum(xs_scatter * weight[:,None,None], axis=0))
+        new_xs_fission.append(np.sum(xs_fission * weight[:,None,None], axis=0))
+        # Identify location on map
+        medium_map[np.where(np.all(weight_matrix == weight, axis=2))] = mat
+    # Return adjusted cross sections and arrays
+    return medium_map, np.array(new_xs_total), np.array(new_xs_scatter), \
+        np.array(new_xs_fission)
+
+
+def _cylinder_symmetric(weight_matrix):
+    half_x = int(0.5 * weight_matrix.shape[0])
+    half_y = int(0.5 * weight_matrix.shape[1])
+    # Divide into quarters
+    quarters = np.stack((weight_matrix[:half_x, :half_y].copy(), 
+                         weight_matrix[half_x:, :half_y][::-1].copy(), 
+                         weight_matrix[:half_x, half_y:][:,::-1].copy(),
+                         weight_matrix[half_x:, half_y:][::-1, ::-1].copy()))
+    quarters = np.mean(quarters, axis=0)
+    # Repopulate matrix
+    weight_matrix[:half_x, :half_y] = quarters.copy()
+    weight_matrix[half_x:, :half_y][::-1] = quarters.copy()
+    weight_matrix[:half_x, half_y:][:,::-1] = quarters.copy()
+    weight_matrix[half_x:, half_y:][::-1,::-1] = quarters.copy()
+    assert np.round(np.sum(weight_matrix, axis=2), 10).all() == 1.
+    return weight_matrix
+
+
+def weight_cylinder2d(coordinates, edges_x, edges_y, N=100_000):
+    """ Creating weight matrix for circles in cartesian coordinates
+    Arguments:
+        coordinates (list [tuple, list]): tuple is vertices (x, y) of circle 
+            center and the list is comprised of all the radii
+        edges_x (float [cells_x + 1]): Spatial cell edge values in x direction
+        edges_y (float [cells_y + 1]): Spatial cell edge values in y direction
+        N (int): Optional, number of MC samples, default = 100_000
+    Returns:
+        weight_matrix (float [cells)x, cells_y, len(radii) + 1]): Normalized 
+            weight matrix for percent inside and outside each circle
+    """
+    # Unpack coordinates
+    center, radii = coordinates
+    # Create uniform samples
+    samples = np.random.uniform(size=(N, 2), low=[0, 0], \
+                                high=[np.max(edges_x), np.max(edges_y)])
+    # Create weight matrix (ii x jj x inside/outside bins)
+    weight_matrix = np.zeros((edges_x.shape[0] - 1, edges_y.shape[0] - 1, len(radii) + 1))
+    # Iterate over samples
+    for x, y in zip(samples[:,0], samples[:,1]):
+        idx_x = np.digitize(x, edges_x) - 1
+        idx_y = np.digitize(y, edges_y) - 1
+        where = np.digitize(np.sqrt((x - center[0])**2 + (y - center[1])**2), radii)
+        weight_matrix[idx_x, idx_y, where] += 1
+    # Normalize
+    weight_matrix /= np.sum(weight_matrix, axis=2)[:,:,None]
+    # Make symmetric circle
+    weight_matrix = _cylinder_symmetric(weight_matrix)
+    return weight_matrix
 
 
 def _triangle_transform(x, y, v1, v2, v3):
@@ -315,8 +290,8 @@ def _triangle_transform(x, y, v1, v2, v3):
     return np.min([xi, eta, 1 - xi - eta])
 
 
-def weight_matrix_triangle(v1, v2, v3, edges_x, edges_y, N=100_000):
-    """ Calculating weight matrix for triangle
+def weight_triangle2d(v1, v2, v3, edges_x, edges_y, N=100_000):
+    """ Creating weight matrix for a triangle in cartesian coordinates
     Arguments:
         v1, v2, v3 (tuple [float, float]): vertices (x, y) of triangle
         edges_x (float [cells_x + 1]): Spatial cell edge values in x direction
