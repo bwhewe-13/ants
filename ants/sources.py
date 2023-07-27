@@ -24,7 +24,7 @@ DATA_PATH = pkg_resources.resource_filename("ants","sources/")
 
 __enrichment_materials = ("uranium", "uranium-hydride", "plutonium")
 
-__nonenrichment_materials = ("stainless-steel-440", \
+__nonenrichment_materials = ("stainless-steel-440", "hydrogen", \
         "high-density-polyethyene-618", "high-density-polyethyene-087", \
         "carbon", "uranium-235", "uranium-238", "water-uranium-dioxide", \
         "plutonium-239", "plutonium-240", "vacuum")

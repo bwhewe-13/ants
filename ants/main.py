@@ -292,3 +292,51 @@ def location2d(matrix, value, coordinates, edges_x, edges_y):
         # Populate with value
         matrix[idx_x1:idx_x2, idx_y1:idx_y2] = value
     return matrix
+
+
+def _triangle_transform(x, y, v1, v2, v3):
+    """ Using Finite Element theory to see if point is inside triangle
+    Based off of http://www.alternatievewiskunde.nl/sunall/suna57.htm
+    Arguments:
+        x, y (float): x, y coordinates to test
+        v1, v2, v3 (tuple [float, float]): vertices (x, y) of triangle 
+    Returns:
+        Minimum of transformation, where min >= 0 is inside the triangle
+    """
+    # Unpack vertices
+    x1, y1 = v1
+    x2, y2 = v2
+    x3, y3 = v3
+    # Perform transformation
+    determinant = (x2 - x1) * (y3 - y1) - (x3 - x1) * (y2 - y1)
+    xi = ((y3 - y1) * (x - x1) - (x3 - x1) * (y - y1)) / determinant
+    eta = ((x2 - x1) * (y - y1) - (y2 - y1) * (x - x1)) / determinant
+    # Return minimum
+    return np.min([xi, eta, 1 - xi - eta])
+
+
+def weight_matrix_triangle(v1, v2, v3, edges_x, edges_y, N=100_000):
+    """ Calculating weight matrix for triangle
+    Arguments:
+        v1, v2, v3 (tuple [float, float]): vertices (x, y) of triangle
+        edges_x (float [cells_x + 1]): Spatial cell edge values in x direction
+        edges_y (float [cells_y + 1]): Spatial cell edge values in y direction
+        N (int): Optional, number of MC samples, default = 100_000
+    Returns:
+        weight_matrix (float [cells)x, cells_y, 2]): Normalized weight
+            matrix for percent inside and outside the triangle
+    """
+    # Create uniform samples
+    samples = np.random.uniform(size=(N, 2), low=[0, 0], \
+                                high=[np.max(edges_x), np.max(edges_y)])
+    # Create weight matrix (ii x jj x inside/outside)
+    weight_matrix = np.zeros((edges_x.shape[0] - 1, edges_y.shape[0] - 1, 2))
+    # Iterate over samples
+    for x, y in zip(samples[:,0], samples[:,1]):
+        idx_x = np.digitize(x, edges_x) - 1
+        idx_y = np.digitize(y, edges_y) - 1
+        where = 0 if _triangle_transform(x, y, v1, v2, v3) >= 0 else 1
+        weight_matrix[idx_x, idx_y, where] += 1
+    # Normalize
+    weight_matrix /= np.sum(weight_matrix, axis=2)[:,:,None]
+    return weight_matrix
