@@ -14,9 +14,9 @@ from ants.main import angular_x, angular_xy
 from ants.main import energy_velocity, energy_grid
 
 # Creating medium maps
-from ants.main import spatial1d, spatial2d, weight_spatial2d
+from ants.main import spatial1d, spatial2d, weight_spatial2d, weight_matrix2d
 
-# Creating Weight matrices
+# To remove later
 from ants.main import weight_triangle2d, weight_cylinder2d
 
 # Creating sources

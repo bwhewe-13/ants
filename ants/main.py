@@ -159,22 +159,22 @@ def spatial2d(matrix, value, coordinates, edges_x, edges_y):
         matrix populated with value
     """
     # For rectangular grids
-    for index, span_x, span_y in coordinates:
+    for [(x1, y1), span_x, span_y] in coordinates:
         # Get starting locations
-        idx_x1 = np.argwhere(edges_x == index[0])[0, 0]
-        idx_y1 = np.argwhere(edges_y == index[1])[0, 0]
+        idx_x1 = np.argwhere(edges_x == x1)[0, 0]
+        idx_y1 = np.argwhere(edges_y == y1)[0, 0]
         # Get widths of rectangular cells
-        idx_x2 = np.argwhere(edges_x == index[0] + span_x)[0, 0]
-        idx_y2 = np.argwhere(edges_y == index[1] + span_y)[0, 0]
+        idx_x2 = np.argwhere(edges_x == x1 + span_x)[0, 0]
+        idx_y2 = np.argwhere(edges_y == y1 + span_y)[0, 0]
         # Populate with value
         matrix[idx_x1:idx_x2, idx_y1:idx_y2] = value
     return matrix
 
 
 def weight_spatial2d(weight_matrix, xs_total, xs_scatter, xs_fission):
-    """ Estimate non-rectangular shapes in cartesian coordinates and 
-    create appropriate cross sections. materials are the original materials
-    used while materials* are the reweighted values.
+    """ Convert weight matrices to medium maps and create appropriate 
+    cross sections. materials are the original materials used while 
+    materials* are the reweighted values.
 
     Arguments:
         weight_matrix (float [cells_x, cells_y, materials]): weight matrix
@@ -218,6 +218,112 @@ def weight_spatial2d(weight_matrix, xs_total, xs_scatter, xs_fission):
     return medium_map, np.array(new_xs_total), np.array(new_xs_scatter), \
         np.array(new_xs_fission)
 
+
+def weight_matrix2d(rectangles, triangles, circles, edges_x, edges_y, N=100_000):
+    """ Creating weight matrix for a triangle in cartesian coordinates
+    Arguments:
+        rectangles (list [(x1, y1), dx, dy]): list of all rectangles 
+            staring vertices and widths (in cm), put None if shape not needed
+        triangles (list [(x1, y1), (x2, y2), (x3, y3)]): list of all triangle
+            vertices (in cm), put None if shape not needed
+        circles (list [(x1, y1), (r1, r2)]): list of all circle centers and
+            inside and outside radii
+        edges_x (float [cells_x + 1]): Spatial cell edge values in x direction
+        edges_y (float [cells_y + 1]): Spatial cell edge values in y direction
+        N (int): Optional, number of MC samples, default = 100_000
+    Returns:
+        weight_matrix (float [cells_x, cells_y]): Normalized weight
+            matrix for percent inside material shapes
+    """
+    # Create uniform samples
+    samples = np.random.uniform(size=(N, 2), low=[0, 0], \
+                                high=[np.max(edges_x), np.max(edges_y)])
+    # Create weight matrix (ii x jj x outside, inside)
+    weight_matrix = np.zeros((edges_x.shape[0] - 1, edges_y.shape[0] - 1, 2))
+    # Iterate over samples
+    for x, y in zip(samples[:,0], samples[:,1]):
+        idx_x = np.digitize(x, edges_x) - 1
+        idx_y = np.digitize(y, edges_y) - 1
+        # Check different shapes
+        where1 = _inside_triangle(x, y, triangles)
+        where2 = _inside_rectangle(x, y, rectangles)
+        where3 = _inside_circle(x, y, circles)
+        weight_matrix[idx_x, idx_y, where1 + where2 + where3] += 1
+
+    # Normalize and return percentage inside
+    return weight_matrix[:,:,1] / np.sum(weight_matrix, axis=2)
+
+
+def _inside_triangle(x, y, triangles):
+    """ Using Finite Element theory to see if point is inside triangle
+    Based off of http://www.alternatievewiskunde.nl/sunall/suna57.htm
+    Arguments:
+        x, y (float): x, y coordinates to test
+        triangles (list [(x1, y1), (x2, y2), (x3, y3)]): list of all triangle
+            vertices (in cm), put None if shape not needed
+    Returns:
+        True/False integer if point is inside triangle
+    """
+    # Check if exist
+    if triangles is None:
+        return 0
+    # Create checker for each triangle
+    all_triangles = np.zeros((len(triangles)))
+    # Iterate through triangles
+    for ii, triangle in enumerate(triangles):
+        # Unpack vertices
+        (x1, y1), (x2, y2), (x3, y3) = triangle
+        # Perform transformation
+        determinant = (x2 - x1) * (y3 - y1) - (x3 - x1) * (y2 - y1)
+        xi = ((y3 - y1) * (x - x1) - (x3 - x1) * (y - y1)) / determinant
+        eta = ((x2 - x1) * (y - y1) - (y2 - y1) * (x - x1)) / determinant
+        all_triangles[ii] = np.min([xi, eta, 1 - xi - eta])
+    return int(np.any(all_triangles >= 0))
+
+
+def _inside_rectangle(x, y, rectangles):
+    """ Checking if point is inside rectangle
+    Arguments:
+        x, y (float): x, y coordinates to test
+        rectangles (list [(x1, y1), dx, dy]): list of all rectangles 
+            staring vertices and widths (in cm), put None if shape not needed
+    Returns:
+        True/False integer if point is inside rectangle
+    """
+    # Check if exist
+    if rectangles is None:
+        return 0
+    # Create checker for each rectangle
+    all_rectangles = np.zeros((len(rectangles)))
+    # Iterate through rectangles
+    for ii, [(x1, y1), dx, dy] in enumerate(rectangles):
+        all_rectangles[ii] = (x1 <= x <= (x1 + dx)) and (y1 <= y < (y1 + dy))
+    return int(np.any(all_rectangles))
+
+
+def _inside_circle(x, y, circles):
+    """ Checking if point is inside circle
+    Arguments:
+        x, y (float): x, y coordinates to test
+        circles (list [(x1, y1), (r1, r2)]): list of all circle centers and
+            inside and outside radii
+    Returns:
+        True/False integer if point is inside circle
+    """
+    # Check if exist
+    if circles is None:
+        return 0
+    # Create checker for each rectangle
+    all_circles = np.zeros((len(circles)))
+    for ii, [(x1, y1), (r1, r2)] in enumerate(circles):
+        radius = np.sqrt((x - x1)**2 + (y - y1)**2)
+        all_circles[ii] = (r1 <= radius <= r2)
+    return int(np.any(all_circles))
+
+
+########################################################################
+# To Remove later
+########################################################################
 
 def _cylinder_symmetric(weight_matrix):
     half_x = int(0.5 * weight_matrix.shape[0])

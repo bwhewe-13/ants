@@ -320,7 +320,7 @@ def _boundary_1d_mms_04_05(boundary, name):
 # Boundary Conditions - 2D
 ########################################################################
 
-__boundaries2d = ("mms-01", "mms-02", "mms-03", "mms-04")
+__boundaries2d = ("14.1-mev", "mms-01", "mms-02", "mms-03", "mms-04")
 
 def boundaries2d(name, shape_x, shape_y, **kw):
     # location is list, 0: x = 0, 1: x = X
@@ -330,24 +330,45 @@ def boundaries2d(name, shape_x, shape_y, **kw):
         boundary_x = name
         boundary_y = name
         return boundary_x, boundary_y
-    assert "angle_x" in kw, "Need angle_x for boundary condition"
-    assert "angle_y" in kw, "Need angle_y for boundary condition"
+
     if name == "mms-01":
-        assert "centers_x" in kw, "Need centers_x for boundary condition"
+        variables = ["angle_x", "angle_y", "centers_x"]
+        assert (np.sort(list(kw.keys())) == np.sort(variables)).all(), \
+            "Need {} for MMS - 01 boundary".format(variables)
         return _boundary_2d_mms_01(boundary_x, boundary_y, kw["angle_x"], \
                                    kw["angle_y"], kw["centers_x"])
+
     elif name == "mms-02":
-        assert "centers_x" in kw, "Need centers_x for boundary condition"
-        assert "centers_y" in kw, "Need centers_y for boundary condition"
+        variables = ["angle_x", "angle_y", "centers_x", "centers_y"]
+        assert (np.sort(list(kw.keys())) == np.sort(variables)).all(), \
+            "Need {} for MMS - 02 boundary".format(variables)
         return _boundary_2d_mms_02(boundary_x, boundary_y, kw["angle_x"], \
                         kw["angle_y"], kw["centers_x"], kw["centers_y"])
+
     elif name == "mms-03":
+        variables = ["angle_x", "angle_y"]
+        assert (np.sort(list(kw.keys())) == np.sort(variables)).all(), \
+            "Need {} for MMS - 03 boundary".format(variables)
         return _boundary_2d_mms_03(boundary_x, boundary_y, kw["angle_x"], kw["angle_y"])
+
     elif name == "mms-04":
-        assert "centers_x" in kw, "Need centers_x for boundary condition"
-        assert "centers_y" in kw, "Need centers_y for boundary condition"
+        variables = ["angle_x", "angle_y", "centers_x", "centers_y"]
+        assert (np.sort(list(kw.keys())) == np.sort(variables)).all(), \
+            "Need {} for MMS - 04 boundary".format(variables)
         return _boundary_2d_mms_04(boundary_x, boundary_y, kw["angle_x"], \
                         kw["angle_y"], kw["centers_x"], kw["centers_y"])
+
+    elif name == "14.1-mev":
+        loc_x = kw["loc_x"] if "loc_x" in kw.keys() else -1
+        loc_y = kw["loc_y"] if "loc_y" in kw.keys() else -1
+        assert "energy_grid" in kw, "Need edges_g for 14.1-MeV boundary"
+        group = np.argmin(abs(kw["energy_grid"] - 14.1E6))
+        if loc_x >= 0:
+            boundary_x[(loc_x, ..., group)] = 1.0
+        if loc_y >= 0:
+            boundary_y[(loc_y, ..., group)] = 1.0
+        return boundary_x, boundary_y
+
     warnings.warn("Boundary condition not populated, use {}".format(__boundaries2d))
     return boundary_x, boundary_y
 
