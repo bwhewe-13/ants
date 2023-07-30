@@ -19,7 +19,7 @@
 # distutils: language = c++
 
 import numpy as np
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from ants import angular_xy
 from ants cimport multi_group_2d as mg
@@ -97,7 +97,7 @@ cdef double[:,:,:,:] multigroup_bdf1(double[:,:]& xs_total_u, \
     # Initialize collided boundary
     cdef double[2] boundary_c = [0.0, 0.0]
     # Iterate over time steps
-    for step in tqdm(range(info_u.steps)):
+    for step in tqdm(range(info_u.steps), desc="Time Steps", position=1, ascii=True):
     # for step in range(info_u.steps):
         # Adjust boundary condition
         tools.boundary_decay(boundary_xu, boundary_yu, step, info_u)
@@ -128,4 +128,5 @@ cdef double[:,:,:,:] multigroup_bdf1(double[:,:]& xs_total_u, \
                                      delta_y, angle_xu, angle_yu, info_u)
         # Step 5: Update and repeat
         flux_time[step] = tools._angular_to_scalar(flux_last, angle_wu, info_u)
+    print()
     return flux_time[:,:,:,:]

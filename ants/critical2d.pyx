@@ -76,9 +76,9 @@ cdef double[:,:,:] multigroup_power(double[:,:,:]& flux_guess, \
                                            medium_map, info, keff[0])
         tools._normalize_flux(flux, info)
         change = tools.group_convergence(flux, flux_old, info)
-        print("Count {}\tKeff {}".format(str(count).zfill(3), keff[0]), end="\r")
+        print("Count: {:>3}\tKeff: {:.8f}".format(str(count).zfill(3), keff[0]), end="\r")
         converged = (change < EPSILON_POWER) or (count >= MAX_POWER)
         count += 1
         flux_old[:,:,:] = flux[:,:,:]
-    print("\nConvergence:", change)
+    print("\nConvergence: {:2.6e}".format(change))
     return flux[:,:,:]

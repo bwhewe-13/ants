@@ -19,7 +19,7 @@
 # distutils: language = c++
 
 import numpy as np
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from ants cimport multi_group_2d as mg
 from ants cimport cytools_2d as tools
@@ -68,7 +68,7 @@ cdef double[:,:,:,:] multigroup_bdf1(double[:,:]& xs_total, \
     # Initialize array with all scalar flux time steps
     flux_time = tools.array_4d(info.steps, info.cells_x, info.cells_y, info.groups)
     # Iterate over time steps
-    for step in tqdm(range(info.steps)):
+    for step in tqdm(range(info.steps), desc="Time Steps", position=1, ascii=True):
         # Adjust boundary condition
         tools.boundary_decay(boundary_x, boundary_y, step, info)
         # Update q_star as external + 1/(v*dt) * psi
@@ -77,7 +77,6 @@ cdef double[:,:,:,:] multigroup_bdf1(double[:,:]& xs_total, \
         flux_time[step] = mg.source_iteration(scalar_flux, xs_total, xs_scatter, \
                                 q_star, boundary_x, boundary_y, medium_map, \
                                 delta_x, delta_y, angle_x, angle_y, angle_w, info)
-
         # Update previous time step
         scalar_flux[:,:,:] = flux_time[step,:,:,:]
         # Create (sigma_s + sigma_f) * phi^{\ell} + external + 1/(v*dt) * psi^{\ell-1}
@@ -87,5 +86,6 @@ cdef double[:,:,:,:] multigroup_bdf1(double[:,:]& xs_total, \
         flux_last = mg._known_source(xs_total, q_star, boundary_x, \
                                      boundary_y, medium_map, delta_x, \
                                      delta_y, angle_x, angle_y, info)
+    print()
     return flux_time[:,:,:,:]
 
