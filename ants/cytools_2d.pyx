@@ -252,20 +252,29 @@ cdef void boundary_decay(double[:]& boundary_x, double[:]& boundary_y, \
         int step, params info):
     # Calculate elapsed time
     cdef double t = info.dt * step
+    cdef bint switch = True
     # Cycle through different decay processes for x boundaries
     if info.bcdecay_x == 0: # Do nothing
         pass
     elif info.bcdecay_x == 1: # Turn off after one step
-        _decay_x_01(boundary_x, step, info)
+        switch = (step > 0)
+        _decay_x_switch(boundary_x, switch, info)
     elif info.bcdecay_x == 2: # Step decay
         _decay_x_02(boundary_x, t, info)
+    elif info.bcdecay_x == 3: # Turn off after 10 microseconds
+        switch = (t > 10e-6)
+        _decay_x_switch(boundary_x, switch, info)
     # Cycle through different decay processes for y boundaries
     if info.bcdecay_y == 0: # Do nothing
         pass
     elif info.bcdecay_y == 1: # Turn off after one step
-        _decay_y_01(boundary_y, step, info)
+        switch = (step > 0)
+        _decay_y_switch(boundary_y, switch, info)
     elif info.bcdecay_y == 2: # Step decay
         _decay_y_02(boundary_y, t, info)
+    elif info.bcdecay_y == 3: # Turn off after 10 microseconds
+        switch = (t > 10e-6)
+        _decay_y_switch(boundary_y, switch, info)
 
 
 cdef int _boundary_length(int bcdim, int cells, params info):
@@ -282,10 +291,10 @@ cdef int _boundary_length(int bcdim, int cells, params info):
     return bc_length
 
 
-cdef void _decay_x_01(double[:]& boundary_x, int step, params info):
+cdef void _decay_x_switch(double[:]& boundary_x, bint switch, params info):
     cdef int cell, bc_length
     bc_length = _boundary_length(info.bcdim_x, info.cells_y, info)
-    cdef double magnitude = 0.0 if step > 0 else 1.0
+    cdef double magnitude = 0.0 if switch else 1.0
     for cell in range(bc_length):
         if boundary_x[cell] == 0.0:
             continue
@@ -309,10 +318,10 @@ cdef void _decay_x_02(double[:]& boundary_x, double t, params info):
             boundary_x[cell] = pow(0.5, k) * (1 + 2 * erfc(err_arg))
 
 
-cdef void _decay_y_01(double[:]& boundary_y, int step, params info):
+cdef void _decay_y_switch(double[:]& boundary_y, bint switch, params info):
     cdef int cell, bc_length
     bc_length = _boundary_length(info.bcdim_y, info.cells_x, info)
-    cdef double magnitude = 0.0 if step > 0 else 1.0
+    cdef double magnitude = 0.0 if switch else 1.0
     for cell in range(bc_length):
         if boundary_y[cell] == 0.0:
             continue
