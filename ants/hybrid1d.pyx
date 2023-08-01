@@ -102,8 +102,9 @@ cdef double[:,:,:] multigroup_bdf1(double[:,:]& xs_total_u, \
         # Update q_star as external + 1/(v*dt) * psi
         tools._time_source_star(flux_last, q_star, external_u, velocity_u, info_u)
         # Step 1: Solve Uncollided Equation known_source (I x N x G) -> (I x G)
-        flux_u = tools._angular_to_scalar(mg._known_source(xs_total_u, q_star, boundary_u, \
-                        medium_map, delta_x, angle_xu, angle_wu, info_u), angle_wu, info_u)
+        tools._angular_to_scalar(mg._known_source(xs_total_u, q_star, \
+                boundary_u, medium_map, delta_x, angle_xu, angle_wu, info_u), \
+                flux_u, angle_wu, info_u)
         # Step 2: Compute collided source (I x G')
         tools._hybrid_source_collided(flux_u, xs_scatter_u, source_c, \
                                 medium_map, coarse_idx, info_u, info_c)
@@ -119,5 +120,5 @@ cdef double[:,:,:] multigroup_bdf1(double[:,:]& xs_total_u, \
         flux_last = mg._known_source(xs_total_u, q_star, boundary_u, \
                         medium_map, delta_x, angle_xu, angle_wu, info_u)
         # Step 5: Update and repeat
-        flux_time[step] = tools._angular_to_scalar(flux_last, angle_wu, info_u)
+        tools._angular_to_scalar(flux_last, flux_time[step], angle_wu, info_u)
     return flux_time[:,:,:]

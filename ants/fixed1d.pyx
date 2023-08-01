@@ -55,7 +55,8 @@ def source_iteration(double[:,:] xs_total, double[:,:,:] xs_scatter, \
     angular_flux = mg._known_source(xs_total, source, boundary_x, \
                             medium_map, delta_x, angle_x, angle_w, info)
     if info.angular == False:
-        scalar_flux = tools._angular_to_scalar(angular_flux, angle_w, info)
+        scalar_flux = tools.array_2d(info.cells_x + info.edges, info.groups)
+        tools._angular_to_scalar(angular_flux, scalar_flux, angle_w, info)
         return np.asarray(scalar_flux)
     return np.asarray(angular_flux)
 
