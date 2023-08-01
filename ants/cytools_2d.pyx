@@ -137,20 +137,19 @@ cdef void _source_total(double[:]& source, double[:,:,:]& flux, \
                     source[loc] += external[loc]
 
 
-cdef double[:,:,:] _angular_to_scalar(double[:,:,:,:]& angular_flux,
-        double[:]& angle_w, params info):
+cdef void _angular_to_scalar(double[:,:,:,:]& angular_flux, \
+        double[:,:,:]& scalar_flux, double[:]& angle_w, params info):
     # Initialize iterables
     cdef int ii, jj, nn, gg
-    # Initialize scalar flux term
-    scalar_flux = array_3d(info.cells_x + info.edges, info.cells_y \
-                            + info.edges, info.groups)
+    # Zero out scalar flux term
+    scalar_flux[:,:,:] = 0.0
     # Iterate over all spatial cells, angles, energy groups
-    for ii in range(info.cells_x + info.edges):
-        for jj in range(info.cells_y + info.edges):
+    for ii in range(info.cells_x):
+        for jj in range(info.cells_y):
             for nn in range(info.angles * info.angles):
                 for gg in range(info.groups):
                     scalar_flux[ii,jj,gg] += angular_flux[ii,jj,nn,gg] * angle_w[nn]
-    return scalar_flux
+    # return scalar_flux
 
 
 cdef void _initialize_edge_y(double[:]& known_y, double[:]& boundary_y, \
@@ -407,33 +406,17 @@ cdef void _hybrid_source_collided(double[:,:,:]& flux, double[:,:,:]& xs_scatter
         double[:]& source_c, int[:,:]& medium_map, int[:]& index_c, \
         params info_u, params info_c):
     # Initialize iterables
-    cdef int ii, jj, mat, og, ig
-    # Create scalar flux scattering rate density
-    scatter_rate = array_3d(info_u.cells_x, info_u.cells_y, info_u.groups)
+    cdef int ii, jj, mat, og, ig, loc
+    # Zero out previous source
+    source_c[:] = 0.0
     # Iterate over all spatial cells
     for ii in range(info_u.cells_x):
         for jj in range(info_u.cells_y):
             mat = medium_map[ii,jj]
             for og in range(info_u.groups):
+                loc = index_c[og] + info_c.groups * (jj + ii * info_c.cells_y)
                 for ig in range(info_u.groups):
-                    scatter_rate[ii,jj,og] += flux[ii,jj,ig] * xs_scatter[mat,og,ig]
-    # Shrink to size G hat
-    _reduce_hybrid_source(scatter_rate, source_c, index_c, info_u, info_c)
-
-
-# Big to small
-cdef void _reduce_hybrid_source(double[:,:,:]& scatter_rate, double[:]& source_c, \
-        int[:]& index_c, params info_u, params info_c):
-    # Initialize iterables
-    cdef int ii, jj, gg, loc
-    # Zero out previous source
-    source_c[:] = 0.0
-    for ii in range(info_u.cells_x):
-        for jj in range(info_u.cells_y):
-            for gg in range(info_u.groups):
-                # loc = index_c[gg] + ii * info_c.groups
-                loc = index_c[gg] + info_c.groups * (jj + ii * info_c.cells_y)
-                source_c[loc] += scatter_rate[ii,jj,gg]
+                    source_c[loc] += flux[ii,jj,ig] * xs_scatter[mat,og,ig]
 
 
 cdef void _hybrid_source_total(double[:,:,:]& flux_t, double[:,:,:]& flux_u, \

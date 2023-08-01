@@ -31,12 +31,13 @@ def energy_coarse_index(fine, coarse):
     return np.cumsum(np.insert(index, 0, 0), dtype=np.int32)
 
 
-def hybrid_coarsen(xs_total, xs_scatter, velocity, edges_g, edges_gidx):
+def hybrid_coarsen_materials(xs_total, xs_scatter, xs_fission, edges_g, \
+        edges_gidx):
     """ Coarsen (materials x groups) arrays to (materials x groups')
     Arguments:
         xs_total (float [materials x groups]): Total cross section
         xs_scatter (float [materials x groups x groups]): scatter cross section
-        velocity (float [groups]): velocity
+        xs_fission (float [materials x groups x groups]): fission cross section
         edges_g (float [groups + 1]): Energy group bounds
         edges_gidx (int [groups' + 1]): Index of energy group bounds for
                                         new energy grid
@@ -44,12 +45,13 @@ def hybrid_coarsen(xs_total, xs_scatter, velocity, edges_g, edges_gidx):
         coarse_total (float [materials x groups']): Coarsened total cross section
         coarse_scatter (float [materials x groups' x groups']): Coarsened
                     scatter cross section
-        coarse_velocity (float [groups']): Coarsened velocity
+        coarse_fission (float [materials x groups' x groups']): Coarsened
+                    fission cross section
     """
     coarse_total = _xs_vector_coarsen(xs_total, edges_g, edges_gidx)
     coarse_scatter = _xs_matrix_coarsen(xs_scatter, edges_g, edges_gidx)
-    coarse_velocity = _velocity_mean_coarsen(velocity, edges_gidx)
-    return coarse_total, coarse_scatter, coarse_velocity
+    coarse_fission = _xs_matrix_coarsen(xs_fission, edges_g, edges_gidx)
+    return coarse_total, coarse_scatter, coarse_fission
 
 
 def _xs_vector_coarsen(vector, edges_g, edges_gidx):
@@ -108,7 +110,7 @@ def _xs_matrix_coarsen(matrix, edges_g, edges_gidx):
     return coarse
 
 
-def _velocity_mean_coarsen(vector, edges_gidx):
+def hybrid_coarsen_velocity(vector, edges_gidx):
     """ Coarsen (groups) vector to (groups')
     Arguments:
         vector (float [groups]): Array to coarsen

@@ -38,3 +38,8 @@ There are also verification procedures to ensure both the code and solutions are
 ### Verification
 - [ ] Method of Manufactured Solutions (MMS)
 - [ ] Method of Nearby Problems (MNP)
+
+
+## Possible Areas of Speedup (2D)
+- [ ] Remove 4d array calls in `multi_group_2d.source_iteration`
+- [ ] Add scalar flux version of  `multi_group_2d._known_source` 

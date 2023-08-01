@@ -53,8 +53,8 @@ cdef void _source_total(double[:]& source, double[:,:,:]& flux, \
         double[:,:,:]& xs_matrix, int[:,:]& medium_map, \
         double[:]& external, params info)
 
-cdef double[:,:,:] _angular_to_scalar(double[:,:,:,:]& angular_flux,
-        double[:]& angle_w, params info)
+cdef void _angular_to_scalar(double[:,:,:,:]& angular_flux, \
+        double[:,:,:]& scalar_flux, double[:]& angle_w, params info)
 
 cdef void _initialize_edge_y(double[:]& known_y, double[:]& boundary_y, \
         double[:]& angle_y, double[:]& angle_x, int nn, params info)
