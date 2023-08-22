@@ -66,11 +66,11 @@ class CubicHermite:
         self._generate_coefs()
 
     def _generate_coefs(self):
-        self.dpsi_dx = first_derivative(self.psi, self.knots_x)
+        dpsi_dx = first_derivative(self.psi, self.knots_x)
         delta_x = self.knots_x[1:] - self.knots_x[:-1]
         control = np.array([self.psi[:-1], self.psi[1:], \
-                            self.dpsi_dx[:-1] * delta_x, \
-                            self.dpsi_dx[1:] * delta_x])
+                            dpsi_dx[:-1] * delta_x, \
+                            dpsi_dx[1:] * delta_x])
         self.coefs = CubicHermite.basis @ control
 
     def _find_zone(self, n):
@@ -156,14 +156,14 @@ class QuinticHermite:
         self._generate_coefs()
 
     def _generate_coefs(self):
-        self.dpsi_dx = first_derivative(self.psi, self.knots_x)
-        self.d2psi_dx2 = second_derivative(self.psi, self.knots_x)
+        dpsi_dx = first_derivative(self.psi, self.knots_x)
+        d2psi_dx2 = second_derivative(self.psi, self.knots_x)
         delta_x = self.knots_x[1:] - self.knots_x[:-1]
         control = np.array([self.psi[:-1], self.psi[1:], \
-                            self.dpsi_dx[:-1] * delta_x, \
-                            self.dpsi_dx[1:] * delta_x,
-                            self.d2psi_dx2[:-1] * delta_x**2, \
-                            self.d2psi_dx2[1:] * delta_x**2])
+                            dpsi_dx[:-1] * delta_x, \
+                            dpsi_dx[1:] * delta_x,
+                            d2psi_dx2[:-1] * delta_x**2, \
+                            d2psi_dx2[1:] * delta_x**2])
         self.coefs = QuinticHermite.basis @ control
 
     def _find_zone(self, n):
