@@ -65,6 +65,9 @@ cdef double[:,:,:] source_iteration(double[:,:,:]& flux_guess, \
         if isnan(change) or isinf(change):
             change = 0.5
         converged = (change < EPSILON_ENERGY) or (count >= MAX_ENERGY)
+        if info.steps > 0:
+            print("\rSource Iteration, Count: {:>2},".format(count) \
+                  + " Tolerance: {:2.6e}".format(change), end="\r")
         count += 1
         flux_old[:,:,:] = flux[:,:,:]
     return flux[:,:,:]

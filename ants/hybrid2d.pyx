@@ -19,20 +19,23 @@
 # distutils: language = c++
 
 import numpy as np
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from ants import angular_xy
+from ants.utils.hybrid import hybrid_coarsen_velocity, hybrid_index
+
 from ants cimport multi_group_2d as mg
 from ants cimport cytools_2d as tools
 from ants.parameters cimport params
 from ants cimport parameters
-from ants.utils.hybrid import hybrid_coarsen, hybrid_index
 
 # Uncollided is fine grid (N^2 x G)
 # Collided is coarse grid (N'^2 x G')
 
 def backward_euler(double[:,:] xs_total_u, double[:,:,:] xs_scatter_u, \
-        double[:,:,:] xs_fission_u, double[:] velocity_u, double[:] external_u, \
+        double[:,:,:] xs_fission_u, double[:,:] xs_total_c, \
+        double[:,:,:] xs_scatter_c, double[:,:,:] xs_fission_c, \
+        double[:] velocity_u, double[:] external_u, \
         double[:] boundary_xu, double[:] boundary_yu, int[:,:] medium_map, \
         double[:] delta_x, double[:] delta_y, double[:] edges_g, \
         int[:] edges_gidx, dict params_dict_u, dict params_dict_c):
@@ -48,21 +51,25 @@ def backward_euler(double[:,:] xs_total_u, double[:,:,:] xs_scatter_u, \
     # Do not overwrite variables
     xs_total_vu = tools.array_2d(info_u.materials, info_u.groups)
     xs_total_vu[:,:] = xs_total_u[:,:]
-    # Combine fission and scattering
+    xs_total_vc = tools.array_2d(info_c.materials, info_c.groups)
+    xs_total_vc[:,:] = xs_total_c[:,:]
+    # Combine fission and scattering - Uncollided groups
     xs_matrix_u = tools.array_3d(info_u.materials, info_u.groups, info_u.groups)
     tools._xs_matrix(xs_matrix_u, xs_scatter_u, xs_fission_u, info_u)
-    # Create collided cross sections and velocity
-    xs_total_c, xs_matrix_c, velocity_c = hybrid_coarsen(xs_total_vu, \
-                        xs_matrix_u, velocity_u, edges_g, edges_gidx)
+    # Combine fission and scattering - Collided groups
+    xs_matrix_c = tools.array_3d(info_c.materials, info_c.groups, info_c.groups)
+    tools._xs_matrix(xs_matrix_c, xs_scatter_c, xs_fission_c, info_c)
+    # Create collided velocity
+    velocity_c = hybrid_coarsen_velocity(velocity_u, edges_gidx)
     # Create sigma_t + 1 / (v * dt)
     tools._total_velocity(xs_total_vu, velocity_u, info_u)
-    tools._total_velocity(xs_total_c, velocity_c, info_c)
+    tools._total_velocity(xs_total_vc, velocity_c, info_c)
     # Indexing Parameters
     coarse_idx, fine_idx, factor = hybrid_index(info_u.groups, info_c.groups, \
                                                 edges_g, edges_gidx)
-    flux = multigroup_bdf1(xs_total_u, xs_matrix_u, velocity_u, external_u, \
+    flux = multigroup_bdf1(xs_total_vu, xs_matrix_u, velocity_u, external_u, \
                 boundary_xu.copy(), boundary_yu.copy(), medium_map, delta_x, \
-                delta_y, angle_xu, angle_yu, angle_wu, xs_total_c, \
+                delta_y, angle_xu, angle_yu, angle_wu, xs_total_vc, \
                 xs_matrix_c, velocity_c, angle_xc, angle_yc, angle_wc, \
                 fine_idx, coarse_idx, factor, info_u, info_c)
     return np.asarray(flux)
@@ -97,16 +104,16 @@ cdef double[:,:,:,:] multigroup_bdf1(double[:,:]& xs_total_u, \
     # Initialize collided boundary
     cdef double[2] boundary_c = [0.0, 0.0]
     # Iterate over time steps
-    for step in tqdm(range(info_u.steps)):
+    for step in tqdm(range(info_u.steps), desc="Time Steps", position=1, ascii=True):
     # for step in range(info_u.steps):
         # Adjust boundary condition
         tools.boundary_decay(boundary_xu, boundary_yu, step, info_u)
         # Update q_star as external + 1/(v*dt) * psi
         tools._time_source_star(flux_last, q_star, external_u, velocity_u, info_u)
         # Step 1: Solve Uncollided Equation known_source (I x N x G) -> (I x G)
-        flux_u = tools._angular_to_scalar(mg._known_source(xs_total_u, q_star, \
-                        boundary_xu, boundary_yu, medium_map, delta_x, delta_y, \
-                        angle_xu, angle_yu, info_u), angle_wu, info_u)
+        tools._angular_to_scalar(mg._known_source(xs_total_u, q_star, boundary_xu, \
+            boundary_yu, medium_map, delta_x, delta_y, angle_xu, angle_yu, \
+            info_u), flux_u, angle_wu, info_u)
         # print(step, "uncollided flux", np.sum(flux_u))
         # Step 2: Compute collided source (I x G')
         tools._hybrid_source_collided(flux_u, xs_scatter_u, source_c, \
@@ -127,5 +134,7 @@ cdef double[:,:,:,:] multigroup_bdf1(double[:,:]& xs_total_u, \
                                      boundary_yu, medium_map, delta_x, \
                                      delta_y, angle_xu, angle_yu, info_u)
         # Step 5: Update and repeat
-        flux_time[step] = tools._angular_to_scalar(flux_last, angle_wu, info_u)
+        # flux_time[step] = tools._angular_to_scalar(flux_last, angle_wu, info_u)
+        tools._angular_to_scalar(flux_last, flux_time[step], angle_wu, info_u)
+    print()
     return flux_time[:,:,:,:]
