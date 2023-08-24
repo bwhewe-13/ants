@@ -67,6 +67,7 @@ def backward_euler(double[:,:] xs_total_u, double[:,:,:] xs_scatter_u, \
     # Indexing Parameters
     coarse_idx, fine_idx, factor = hybrid_index(info_u.groups, info_c.groups, \
                                                 edges_g, edges_gidx)
+    # Run Backward Euler
     flux = multigroup_bdf1(xs_total_vu, xs_matrix_u, velocity_u, external_u, \
                 boundary_xu.copy(), boundary_yu.copy(), medium_map, delta_x, \
                 delta_y, angle_xu, angle_yu, angle_wu, xs_total_vc, \

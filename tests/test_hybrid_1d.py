@@ -15,6 +15,7 @@ import numpy as np
 
 import ants
 from ants import hybrid1d
+from ants.utils.hybrid import hybrid_coarsen_materials as coarsen
 
 # Path for reference solutions
 PATH = "data/references_multigroup/"
@@ -72,20 +73,24 @@ def test_slab_01_backward_euler(angles_c, groups_c):
     # Angular
     angle_x, angle_w = ants.angular_x(info_u)
     # Medium Map
-    materials = [[0, "stainless-steel-440", "0-4, 6-10"], \
+    layers = [[0, "stainless-steel-440", "0-4, 6-10"], \
                  [1, "uranium-%20%", "4-6"]]
-    medium_map = ants.spatial1d(materials, edges_x)
-    # Cross Sections
-    materials = np.array(materials)[:,1]
-    xs_total, xs_scatter, xs_fission = ants.materials(groups_u, materials)
+    medium_map = ants.spatial1d(layers, edges_x)
+    # Cross Sections - Uncollided
+    materials = np.array(layers)[:,1]
+    xs_total_u, xs_scatter_u, xs_fission_u = ants.materials(groups_u, materials)
+    # Cross Sections - Collided
+    xs_total_c, xs_scatter_c, xs_fission_c = coarsen(xs_total_u, \
+                        xs_scatter_u, xs_fission_u, edges_g, edges_gidx)
     # External and boundary sources
     external = ants.externals1d(0.0, (cells * angles_u * groups_u,))
     boundary_x = ants.boundaries1d("14.1-mev", (2, groups_u), [0], \
                                  energy_grid=edges_g).flatten()
     # Run Hybrid Method
-    flux = hybrid1d.backward_euler(xs_total, xs_scatter, xs_fission, \
-                velocity, external, boundary_x, medium_map, delta_x, \
-                edges_g, edges_gidx, info_u, info_c)
+    flux = hybrid1d.backward_euler(xs_total_u, xs_scatter_u, xs_fission_u, \
+                        xs_total_c, xs_scatter_c, xs_fission_c, velocity, \
+                        external, boundary_x, medium_map, delta_x, edges_g, \
+                        edges_gidx, info_u, info_c)
     # Load Reference flux
     params = f"g87g{groups_c}_n8n{angles_c}_flux.npy"
     reference = np.load(PATH + "hybrid_uranium_slab_backward_euler_" + params)
