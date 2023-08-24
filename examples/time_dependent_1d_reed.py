@@ -40,9 +40,9 @@ velocity = np.ones((groups,))
 angle_x, angle_w = ants.angular_x(info)
 
 # Medium Map
-materials = [[0, "scatter", "0-4, 12-16"], [1, "vacuum", "4-5, 11-12"],
+layers = [[0, "scatter", "0-4, 12-16"], [1, "vacuum", "4-5, 11-12"],
              [2, "absorber", "5-6, 10-11"], [3, "source", "6-10"]]
-medium_map = ants.spatial_map(materials, edges_x)
+medium_map = ants.spatial1d(layers, edges_x)
 
 # Material Cross Sections
 xs_total = np.array([[1.0], [0.0], [5.0], [50.0]])

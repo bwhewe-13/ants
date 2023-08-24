@@ -44,8 +44,8 @@ info = {
         }
 
 angle_x, angle_w = ants.angular_x(info)
-materials = [[0, "quasi", "0-1"], [1, "scatter", "1-2"]]
-medium_map = ants.spatial_map(materials, edges_x)
+layers = [[0, "quasi", "0-1"], [1, "scatter", "1-2"]]
+medium_map = ants.spatial1d(layers, edges_x)
 
 xs_total = np.array([[1.0], [1.0]])
 xs_scatter = np.array([[[0.3]], [[0.9]]])

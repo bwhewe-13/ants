@@ -57,23 +57,27 @@ velocity = ants.energy_velocity(groups_u, None)
 angle_x, angle_w = ants.angular_x(info_u)
 
 # Medium Map
-materials = [[0, "scatter", "0-4, 12-16"], [1, "vacuum", "4-5, 11-12"],
+layers = [[0, "scatter", "0-4, 12-16"], [1, "vacuum", "4-5, 11-12"],
              [2, "absorber", "5-6, 10-11"], [3, "source", "6-10"]]
-medium_map = ants.spatial_map(materials, edges_x)
+medium_map = ants.spatial1d(layers, edges_x)
 
 # Material Cross Sections
-xs_total = np.array([[1.0], [0.0], [5.0], [50.0]])
-xs_scatter = np.array([[[0.9]], [[0.0]], [[0.0]], [[0.0]]])
-xs_fission = np.array([[[0.0]], [[0.0]], [[0.0]], [[0.0]]])
+xs_total_u = np.array([[1.0], [0.0], [5.0], [50.0]])
+xs_scatter_u = np.array([[[0.9]], [[0.0]], [[0.0]], [[0.0]]])
+xs_fission_u = np.array([[[0.0]], [[0.0]], [[0.0]], [[0.0]]])
+# Collided cross sections
+xs_total_c = xs_total_u.copy()
+xs_scatter_c = xs_scatter_u.copy()
+xs_fission_c = xs_fission_u.copy()
 
 # External Source and Boundary
 external = ants.externals1d("reeds", (cells, angles_u, groups_u), \
                           edges_x=edges_x, bc=[0,0]).flatten()
 boundary_x = np.zeros((2,))
 
-flux = backward_euler(xs_total, xs_scatter, xs_fission, velocity, \
-                external, boundary_x, medium_map, delta_x, edges_g, \
-                edges_gidx, info_u, info_c)
+flux = backward_euler(xs_total_u, xs_scatter_u, xs_fission_u, xs_total_c, \
+            xs_scatter_c, xs_fission_c, velocity, external, boundary_x, \
+            medium_map, delta_x, edges_g, edges_gidx, info_u, info_c)
 
 
 fig, ax = plt.subplots()

@@ -35,12 +35,12 @@ edges_g, edges_gidx = ants.energy_grid(groups, 87)
 angle_x, angle_w = ants.angular_x(info)
 
 # Medium Map
-materials = [[0, "uranium-%20%", "0-4"], [1, "uranium-%0%", "4-6"], \
+layers = [[0, "uranium-%20%", "0-4"], [1, "uranium-%0%", "4-6"], \
              [2, "stainless-steel-440", "6-10"]]
-medium_map = ants.spatial_map(materials, edges_x)
+medium_map = ants.spatial1d(layers, edges_x)
 
 # Cross Sections
-materials = np.array(materials)[:,1]
+materials = np.array(layers)[:,1]
 xs_total, xs_scatter, xs_fission = ants.materials(groups, materials)
 
 # External and boundary sources

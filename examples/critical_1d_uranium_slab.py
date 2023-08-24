@@ -33,13 +33,13 @@ enrich = "20"
 angle_x, angle_w = ants.angular_x(info)
 
 # Medium Map
-materials = [[0, "high-density-polyethyene-087", "0-45"],
+layers = [[0, "high-density-polyethyene-087", "0-45"],
              [1, "uranium-hydride-%{}%".format(enrich), "45-80"],
              [2, "uranium-hydride-%0%", "80-100"]]
-medium_map = ants.spatial_map(materials, edges_x)
+medium_map = ants.spatial1d(layers, edges_x)
 
 # Cross Sections
-materials = np.array(materials)[:,1]
+materials = np.array(layers)[:,1]
 xs_total, xs_scatter, xs_fission = ants.materials(groups, materials)
 
 flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \

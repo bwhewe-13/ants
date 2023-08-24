@@ -127,17 +127,17 @@ def energy_velocity(groups, edges_g=None):
     return velocity
 
 
-def spatial1d(materials, edges_x, key=False):
-    # materials is list of list with each element [idx, material, width]
+def spatial1d(layers, edges_x, key=False):
+    # layers is list of list with each element [idx, material, width]
     material_key = {}
     medium_map = np.ones((len(edges_x) - 1)) * -1
-    for material in materials:
-        material_key[material[0]] = material[1]
-        for region in material[2].split(","):
+    for layer in layers:
+        material_key[layer[0]] = layer[1]
+        for region in layer[2].split(","):
             start, stop = region.split("-")
             idx1 = np.argmin(np.fabs(float(start) - edges_x))
             idx2 = np.argmin(np.fabs(float(stop) - edges_x))
-            medium_map[idx1:idx2] = material[0]
+            medium_map[idx1:idx2] = layer[0]
     # Verify all cells are filled
     assert np.all(medium_map != -1)
     medium_map = medium_map.astype(np.int32)

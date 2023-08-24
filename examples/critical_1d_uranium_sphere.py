@@ -6,7 +6,7 @@ from ants.critical1d import power_iteration
 
 # General conditions
 cells = 1000
-angles = 16
+angles = 8
 groups = 87
 
 info = {
@@ -18,7 +18,7 @@ info = {
             "spatial": 2,
             "qdim": 2,
             "bc_x": [1, 0],
-            "bcdim_x": 1,
+            "bcdim_x": 1
         }
 
 # Spatial
@@ -31,14 +31,15 @@ centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
 angle_x, angle_w = ants.angular_x(info)
 
 # Medium Map
-materials = [[0, "uranium-%20%", "0-4"], [1, "uranium-%0%", "4-6"], \
+layers = [[0, "uranium-%20%", "0-4"], [1, "uranium-%0%", "4-6"], \
              [2, "stainless-steel-440", "6-10"]]
-medium_map = ants.spatial_map(materials, edges_x)
+medium_map = ants.spatial1d(layers, edges_x)
 
 # Cross Sections
-materials = np.array(materials)[:,1]
+materials = np.array(layers)[:,1]
 xs_total, xs_scatter, xs_fission = ants.materials(groups, materials)
 
 flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
                              delta_x, angle_x, angle_w, info)
+
 # np.save("critical_uranium_sphere", flux)

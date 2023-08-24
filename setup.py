@@ -14,17 +14,16 @@ from setuptools import setup, find_packages
 ext = Extension("ants/*", sources=["ants/*.pyx"], 
                 extra_compile_args=["-fopenmp"], 
 				extra_link_args=["-fopenmp"])
-# setup(ext_modules=cythonize(ext, language_level = "3"))
 
 setup(  
         name='ants',
         description=
-        """Accelerated Neutron Transport Solution (ANTS) calculates
-        the neutron flux for both criticality and fixed source problems
-        of one dimensional slabs and spheres and two dimensional slabs
+        """A Neutron Transport Solution (ANTS) calculates the neutron 
+        flux for both criticality and fixed source problems of one 
+        dimensional slabs and spheres and two dimensional slabs
         using the discrete ordinates method. It looks to combine machine
         learning with collision based hybrid methods and speedup through
-        Numba, Cython, and C-functions.""",
+        Cython.""",
         version='1.0',
         author='Ben Whewell',
         author_email='ben.whewell@pm.me',

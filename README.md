@@ -1,45 +1,42 @@
 
-# Accelerated Neutron Transport Solution (ANTS)
+# A Neutron Transport Solution (ANTS)
 
-Accelerated Neutron Transport Solution (ANTS) calculates the neutron flux for both criticality and fixed source problems of one dimensional slabs and spheres and two dimensional slabs using the discrete ordinates method and written in Cython. 
+A Neutron Transport Solution (ANTS) calculates the neutron flux for both criticality and fixed source problems of one dimensional slabs and spheres and two dimensional slabs using the discrete ordinates method and written in Cython. 
 
 There are a number of different acceleration methods used including a collision-based hybrid method, machine learning DJINN models to predict matrix-vector multiplication, dynamic mode decomposition, and synthetic diffusion acceleration (DSA).
 
 There are also verification procedures to ensure both the code and solutions are correct. For code verification, manufactured solutions are used for one- and two-dimenisonal slab problems to ensure proper discretization. Solution verification uses the method of nearby problems, which uses one spatial grid. 
 
+&nbsp;
 
-### Spatial Discretization
-- [ ] One Dimensional
-	- [x] Step Method
-	- [x] Diamond Difference
-	- [ ] Step Characteristic Method	
-	- [ ] Discontinuous Galerkin
-- [ ] Two Dimensional
-	- [x] Square Diamond Difference
-	- [x] Square Step Method
-	- [ ] Square Step Characteristic
+## One Dimensional Features
+| Spatial Discretization    | Temporal Discretization   | Multigroup Solve          | K-Eigenvalue Solve      |
+|---------------------------|---------------------------|---------------------------|-------------------------|
+| &#9745; Step Method       | &#9745; Backward Euler    | &#9745; Source Iteration  | &#9745; Power Iteration |
+| &#9745; Diamond Difference    | &#9744; BDF2          | &#9744; DSA               | &#9744; DJINN           |
+| &#9744; Step Characteristic   | &#9744; TR - BDF2     | &#9744; CMFD              | &#9744; DMD             |
+| &#9744; Discontinuous Galerkin|                       | &#9744; GMRES             | &#9744; Davidson Method |
 
-### Temporal Discretization
-- [x] Backward Euler (BDF1)
-- [ ] Backward differentiation formula 2 (BDF2)
-- [ ] Trapezoidal Rule BDF2 (TR-BDF2)
+&nbsp;
 
-### Solution Techniques
-- [x] Source Iteration
-- [x] Power Iteration
-- [ ] Machine Learning (DJINN)
-- [ ] Machine Learning (Auto-DJINN)
-- [ ] Collision-Based Hybrid Method
-- [ ] Dynamic Mode Decomposition (DMD)
-- [ ] Synthetic Diffusion Acceleration (DSA)
-- [ ] Generalized Minimal Residual Method (GMRES)
-- [ ] Coarse Mesh Finite Difference (CMFD)
+## Two Dimensional Features
+| Spatial Discretization    | Temporal Discretization   | Multigroup Solve          | K-Eigenvalue Solve      |
+|---------------------------|---------------------------|---------------------------|-------------------------|
+| &#9745; Step Method       | &#9745; Backward Euler    | &#9745; Source Iteration  | &#9745; Power Iteration |
+| &#9745; Diamond Difference    | &#9744; BDF2          | &#9744; DSA               | &#9744; DMD             |
+| &#9744; Step Characteristic   | &#9744; TR - BDF2     | &#9744; CMFD              | &#9744; Davidson Method |
+| &#9744; Discontinuous Galerkin|                       | &#9744; GMRES             |                         |
 
-### Verification
+&nbsp;
+
+## Verification
 - [ ] Method of Manufactured Solutions (MMS)
 - [ ] Method of Nearby Problems (MNP)
 
+&nbsp;
 
-## Possible Areas of Speedup (2D)
-- [ ] Remove 4d array calls in `multi_group_2d.source_iteration`
-- [ ] Add scalar flux version of  `multi_group_2d._known_source` 
+### To Do 
+- [ ] 1D / 2D Diffusion Equation
+- [ ] Correct for Ray Effects (2D)
+- [ ] (Speed up) Remove 4d array calls in `multi_group_2d.source_iteration`
+- [ ] (Speed up) Add scalar flux version of  `multi_group_2d._known_source` 
