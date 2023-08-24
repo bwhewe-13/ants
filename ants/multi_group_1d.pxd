@@ -27,6 +27,13 @@ cdef double[:,:] source_iteration(double[:,:]& flux_guess, double[:,:]& xs_total
         double[:]& angle_w, params info)
 
 
-cdef double[:,:,:] _known_source(double[:,:]& xs_total, double[:]& source, \
-        double [:]& boundary, int[:]& medium_map, double[:]& delta_x, \
-        double[:]& angle_x, double[:]& angle_w, params info)
+cdef double[:,:,:] _known_source_angular(double[:,:]& xs_total, \
+        double[:]& source, double [:]& boundary_x, int[:]& medium_map, \
+        double[:]& delta_x, double[:]& angle_x, double[:]& angle_w, \
+        params info)
+
+
+cdef double[:,:] _known_source_scalar(double[:,:]& xs_total, \
+        double[:]& source, double [:]& boundary_x, int[:]& medium_map, \
+        double[:]& delta_x, double[:]& angle_x, double[:]& angle_w, \
+        params info)

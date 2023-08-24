@@ -399,23 +399,23 @@ cdef double cell_volume(double rho_plus, double rho_minus):
 ########################################################################
 
 cdef void _known_sweep(double[:,:]& flux, double[:]& xs_total, \
-        double[:]& source, double[:]& boundary_x, int[:]& medium_map, \
-        double[:]& delta_x, double[:]& angle_x, double[:]& angle_w, \
-        params info):
+        double[:]& zero, double[:]& source, double[:]& boundary_x, \
+        int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
+        double[:]& angle_w, params info):
     # One-dimensional slab
     if info.geometry == 1:
-        _known_slab(flux, xs_total, source, boundary_x, medium_map, \
+        _known_slab(flux, xs_total, zero, source, boundary_x, medium_map, \
                     delta_x, angle_x, angle_w, info)
     # One-dimensional sphere
     elif info.geometry == 2:
-        _known_sphere(flux, xs_total, source, boundary_x, medium_map, \
+        _known_sphere(flux, xs_total, zero, source, boundary_x, medium_map, \
                       delta_x, angle_x, angle_w, info)
 
 
 cdef void _known_slab(double[:,:]& flux, double[:]& xs_total, \
-        double[:]& source, double[:]& boundary_x, int[:]& medium_map, \
-        double[:]& delta_x, double[:]& angle_x, double[:]& angle_w, \
-        params info):
+        double[:]& zero, double[:]& source, double[:]& boundary_x, \
+        int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
+        double[:]& angle_w, params info):
     # Initialize external and boundary indices, iterables
     cdef int nn, qq1, qq2, bc1, bc2
     # Set indexing for external and boundary sources
@@ -423,16 +423,23 @@ cdef void _known_slab(double[:,:]& flux, double[:]& xs_total, \
     bc2 = 1 if info.bcdim_x != 3 else info.angles
     # Initialize unknown cell edge
     cdef double edge = 0.0
+    # Add dummy dimension to run both (I x N) and (I) fluxes
+    cdef int xdim = flux.shape[1]
     # Add reflector array initialized to zero
     reflector = tools.array_1d(info.angles)
-    # Add zero placeholder
-    zero = tools.array_1d(info.cells_x + info.edges)
+    # Iterate over all the discrete ordinates
     for nn in range(info.angles):
         # Determine dimensions of external and boundary sources
         qq1 = 0 if info.qdim != 3 else nn
         bc1 = 0 if info.bcdim_x != 3 else nn
-        # Perform spatial sweep
-        edge = slab_sweep(flux[:,nn], zero, xs_total, zero, zero, \
+        # Perform spatial sweep on scalar flux
+        if (xdim == 1):
+            edge = slab_sweep(flux[:,0], zero, xs_total, zero, zero, \
+                    source[qq1::qq2], boundary_x[bc1::bc2], medium_map, \
+                    delta_x, angle_x[nn], angle_w[nn], reflector[nn], info)
+        # Perform spatial sweep on angular flux
+        else:
+            edge = slab_sweep(flux[:,nn], zero, xs_total, zero, zero, \
                     source[qq1::qq2], boundary_x[bc1::bc2], medium_map, \
                     delta_x, angle_x[nn], 1.0, reflector[nn], info)
         # Update reflected direction
@@ -440,9 +447,9 @@ cdef void _known_slab(double[:,:]& flux, double[:]& xs_total, \
 
 
 cdef void _known_sphere(double[:,:]& flux, double[:]& xs_total, \
-        double[:]& source, double[:]& boundary_x, int[:]& medium_map, \
-        double[:]& delta_x, double[:]& angle_x, double[:]& angle_w, \
-        params info):
+        double[:]& zero, double[:]& source, double[:]& boundary_x, \
+        int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
+        double[:]& angle_w, params info):
     # Initialize external and boundary indices, iterables
     cdef int nn, qq1, qq2, bc1, bc2
     # Set indexing for external and boundary sources
@@ -456,8 +463,6 @@ cdef void _known_sphere(double[:,:]& flux, double[:]& xs_total, \
     angle_minus = -1.0
     # Initialize the angular differencing coefficient
     alpha_minus = 0.0
-    # Zero out the flux
-    zero = tools.array_1d(info.cells_x)
     # Calculate the initial half angle
     initialize_half_angle(zero, half_angle, xs_total, zero, zero, \
                           source[0::qq2], medium_map, delta_x, \

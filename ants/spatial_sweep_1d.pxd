@@ -29,6 +29,6 @@ cdef void discrete_ordinates(double[:]& flux, double[:]& flux_old, \
 
 
 cdef void _known_sweep(double[:,:]& flux, double[:]& xs_total, \
-        double[:]& source, double[:]& boundary_x, int[:]& medium_map, \
-        double[:]& delta_x, double[:]& angle_x, double[:]& angle_w, \
-        params info)
+        double[:]& zero, double[:]& source, double[:]& boundary_x, \
+        int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
+        double[:]& angle_w, params info)

@@ -55,14 +55,13 @@ cdef double[:,:,:] multigroup_bdf1(double[:,:]& xs_total, \
     # Initialize time step
     cdef int step
     # Combine last time step and source term
-    q_star = tools.array_1d((info.cells_x + info.edges) * info.angles * info.groups)
+    q_star = tools.array_1d(info.cells_x * info.angles * info.groups)
     # Initialize scalar flux for previous time step
-    scalar_flux = tools.array_2d(info.cells_x + info.edges, info.groups)
+    scalar_flux = tools.array_2d(info.cells_x, info.groups)
     # Create angular flux of previous time step
-    flux_last = tools.array_3d(info.cells_x + info.edges, info.angles, \
-                                  info.groups)
+    flux_last = tools.array_3d(info.cells_x, info.angles, info.groups)
     # Initialize array with all scalar flux time steps
-    flux_time = tools.array_3d(info.steps, info.cells_x + info.edges, info.groups)
+    flux_time = tools.array_3d(info.steps, info.cells_x, info.groups)
     # Iterate over time steps
     for step in tqdm(range(info.steps)):
         # Adjust boundary condition
@@ -79,6 +78,6 @@ cdef double[:,:,:] multigroup_bdf1(double[:,:]& xs_total, \
         tools._time_source_total(q_star, scalar_flux, flux_last, xs_scatter, \
                                  velocity, medium_map, external, info)
         # Solve for angular flux of previous time step
-        flux_last = mg._known_source(xs_total, q_star, boundary_x, \
+        flux_last = mg._known_source_angular(xs_total, q_star, boundary_x, \
                             medium_map, delta_x, angle_x, angle_w, info)
     return flux_time[:,:,:]
