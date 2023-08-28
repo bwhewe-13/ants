@@ -112,30 +112,25 @@ cdef double[:,:,:,:] multigroup_bdf1(double[:,:]& xs_total_u, \
         # Update q_star as external + 1/(v*dt) * psi
         tools._time_source_star(flux_last, q_star, external_u, velocity_u, info_u)
         # Step 1: Solve Uncollided Equation known_source (I x N x G) -> (I x G)
-        tools._angular_to_scalar(mg._known_source(xs_total_u, q_star, boundary_xu, \
-            boundary_yu, medium_map, delta_x, delta_y, angle_xu, angle_yu, \
-            info_u), flux_u, angle_wu, info_u)
-        # print(step, "uncollided flux", np.sum(flux_u))
+        flux_u = mg._known_source_scalar(xs_total_u, q_star, boundary_xu, \
+                            boundary_yu, medium_map, delta_x, delta_y, \
+                            angle_xu, angle_yu, angle_wu, info_u)
         # Step 2: Compute collided source (I x G')
         tools._hybrid_source_collided(flux_u, xs_scatter_u, source_c, \
                                 medium_map, coarse_idx, info_u, info_c)
-        # print(step, "collided source", np.sum(source_c))
         # Step 3: Solve Collided Equation (I x G')
         flux_c = mg.source_iteration(flux_c, xs_total_c, xs_scatter_c, \
                         source_c, boundary_c, boundary_c, medium_map, delta_x, \
                         delta_y, angle_xc, angle_yc, angle_wc, info_c)
-        # print(step, "collided flux", np.sum(flux_c))
         # Step 4: Create a new source and solve for angular flux
         tools._expand_hybrid_source(flux_t, flux_c, fine_idx, factor, info_u, info_c)
-        # print(step, "expanded flux", np.sum(flux_t))
         tools._hybrid_source_total(flux_t, flux_u, xs_scatter_u, q_star, \
                             medium_map, fine_idx, factor, info_u, info_c)
         # Solve for angular flux of time step
-        flux_last = mg._known_source(xs_total_u, q_star, boundary_xu, \
-                                     boundary_yu, medium_map, delta_x, \
-                                     delta_y, angle_xu, angle_yu, info_u)
+        flux_last = mg._known_source_angular(xs_total_u, q_star, boundary_xu, \
+                                boundary_yu, medium_map, delta_x, delta_y, \
+                                angle_xu, angle_yu, angle_wu, info_u)
         # Step 5: Update and repeat
-        # flux_time[step] = tools._angular_to_scalar(flux_last, angle_wu, info_u)
         tools._angular_to_scalar(flux_last, flux_time[step], angle_wu, info_u)
     print()
     return flux_time[:,:,:,:]

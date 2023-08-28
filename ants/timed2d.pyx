@@ -83,9 +83,9 @@ cdef double[:,:,:,:] multigroup_bdf1(double[:,:]& xs_total, \
         tools._time_source_total(q_star, scalar_flux, flux_last, xs_scatter, \
                                  velocity, medium_map, external, info)
         # Solve for angular flux of previous time step
-        flux_last = mg._known_source(xs_total, q_star, boundary_x, \
-                                     boundary_y, medium_map, delta_x, \
-                                     delta_y, angle_x, angle_y, info)
+        flux_last = mg._known_source_angular(xs_total, q_star, boundary_x, \
+                                boundary_y, medium_map, delta_x, delta_y, \
+                                angle_x, angle_y, angle_w, info)
     print()
     return flux_time[:,:,:,:]
 
