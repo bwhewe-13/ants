@@ -220,7 +220,12 @@ __externals2d = ("mms-03", "mms-04", "ambe")
 
 def externals2d(name, shape, **kw):
     external = np.zeros(shape)
-    if isinstance(name, float):
+
+    if isinstance(name, float) and "coordinates" in kw:
+        external = ants.spatial2d(external, name, kw["coordinates"], \
+                                  kw["edges_x"], kw["edges_y"])
+        return external
+    elif isinstance(name, float):
         external[(...)] = name
         return external
 

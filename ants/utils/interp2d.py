@@ -93,8 +93,10 @@ def _integral_1_spline(func, lim_x, knots_x, lim_y, knots_y, coefs):
     # Calculate integral of flux
     int_psi = tx.T @ coefs @ ty
     # Calculate integral of derivative of flux
-    int_dpsi = dtx.T @ coefs @ dty
-    return int_psi, int_dpsi
+    # int_dpsi = dtx.T @ coefs @ dty
+    int_dxpsi = dtx.T @ coefs @ ty
+    int_dypsi = tx.T @ coefs @ dty
+    return int_psi, int_dxpsi, int_dypsi
 
 
 def _integral_2_splines_x(func, lim_x, knots_x, lim_y, knots_y, coefs):
@@ -110,8 +112,10 @@ def _integral_2_splines_x(func, lim_x, knots_x, lim_y, knots_y, coefs):
     # Calculate integral of flux
     int_psi = (tx1.T @ coefs[:,:,0] @ ty1) + (tx2.T @ coefs[:,:,1] @ ty2)
     # Calculate integral of derivative of flux
-    int_dpsi = (dtx1.T @ coefs[:,:,0] @ dty1) + (dtx2.T @ coefs[:,:,1] @ dty2)
-    return int_psi, int_dpsi
+    # int_dpsi = (dtx1.T @ coefs[:,:,0] @ dty1) + (dtx2.T @ coefs[:,:,1] @ dty2)
+    int_dxpsi = (dtx1.T @ coefs[:,:,0] @ ty1) + (dtx2.T @ coefs[:,:,1] @ ty2)
+    int_dypsi = (tx1.T @ coefs[:,:,0] @ dty1) + (tx2.T @ coefs[:,:,1] @ dty2)
+    return int_psi, int_dxpsi, int_dypsi
 
 
 def _integral_2_splines_y(func, lim_x, knots_x, lim_y, knots_y, coefs):
@@ -127,8 +131,10 @@ def _integral_2_splines_y(func, lim_x, knots_x, lim_y, knots_y, coefs):
     # Calculate integral of flux
     int_psi = (tx1.T @ coefs[:,:,0] @ ty1) + (tx2.T @ coefs[:,:,1] @ ty2)
     # Calculate integral of derivative of flux
-    int_dpsi = (dtx1.T @ coefs[:,:,0] @ dty1) + (dtx2.T @ coefs[:,:,1] @ dty2)
-    return int_psi, int_dpsi
+    # int_dpsi = (dtx1.T @ coefs[:,:,0] @ dty1) + (dtx2.T @ coefs[:,:,1] @ dty2)
+    int_dxpsi = (dtx1.T @ coefs[:,:,0] @ ty1) + (dtx2.T @ coefs[:,:,1] @ ty2)
+    int_dypsi = (tx1.T @ coefs[:,:,0] @ dty1) + (tx2.T @ coefs[:,:,1] @ dty2)
+    return int_psi, int_dxpsi, int_dypsi
 
 
 def _integral_4_splines(func, lim_x, knots_x, lim_y, knots_y, coefs):
@@ -149,9 +155,13 @@ def _integral_4_splines(func, lim_x, knots_x, lim_y, knots_y, coefs):
     int_psi = (tx1.T @ coefs[:,:,0,0] @ ty1) + (tx2.T @ coefs[:,:,1,0] @ ty2) \
             + (tx3.T @ coefs[:,:,1,1] @ ty3) + (tx4.T @ coefs[:,:,0,1] @ ty4)
     # Calculate integral of derivative of flux
-    int_dpsi = (dtx1.T @ coefs[:,:,0,0] @ dty1) + (dtx2.T @ coefs[:,:,1,0] @ dty2) \
-            + (dtx3.T @ coefs[:,:,1,1] @ dty3) + (dtx4.T @ coefs[:,:,0,1] @ dty4)
-    return int_psi, int_dpsi
+    # int_dpsi = (dtx1.T @ coefs[:,:,0,0] @ dty1) + (dtx2.T @ coefs[:,:,1,0] @ dty2) \
+    #         + (dtx3.T @ coefs[:,:,1,1] @ dty3) + (dtx4.T @ coefs[:,:,0,1] @ dty4)
+    int_dxpsi = (dtx1.T @ coefs[:,:,0,0] @ ty1) + (dtx2.T @ coefs[:,:,1,0] @ ty2) \
+              + (dtx3.T @ coefs[:,:,1,1] @ ty3) + (dtx4.T @ coefs[:,:,0,1] @ ty4)
+    int_dypsi = (tx1.T @ coefs[:,:,0,0] @ dty1) + (tx2.T @ coefs[:,:,1,0] @ dty2) \
+              + (tx3.T @ coefs[:,:,1,1] @ dty3) + (tx4.T @ coefs[:,:,0,1] @ dty4)
+    return int_psi, int_dxpsi, int_dypsi
 
 
 class CubicHermite:
@@ -230,8 +240,10 @@ class CubicHermite:
         dty[0] = 0.0
         # Calculate splines
         int_psi = np.einsum("xi, ijxy, jy -> xy", tx.T, self.coefs, ty)
-        int_dpsi = np.einsum("xi, ijxy, jy -> xy", dtx.T, self.coefs, dty)
-        return int_psi, int_dpsi
+        # int_dpsi = np.einsum("xi, ijxy, jy -> xy", dtx.T, self.coefs, dty)
+        int_dxpsi = np.einsum("xi, ijxy, jy -> xy", dtx.T, self.coefs, ty)
+        int_dypsi = np.einsum("xi, ijxy, jy -> xy", tx.T, self.coefs, dty)
+        return int_psi, int_dxpsi, int_dypsi
 
     def _one_integral(a, b, k0, k1):
         # Integral of psi between a and b with knots k0 and k1
@@ -257,7 +269,8 @@ class CubicHermite:
         Nx = self.knots_x.shape[0]
         Ny = self.knots_y.shape[0]
         int_psi = np.zeros((Nx, Ny))
-        int_dpsi = np.zeros((Nx, Ny))
+        int_dxpsi = np.zeros((Nx, Ny))
+        int_dypsi = np.zeros((Nx, Ny))
         # Interate over spatial cells
         for ii, (xa, xb) in enumerate(zip(limits_x[:-1], limits_x[1:])):
             for jj, (ya, yb) in enumerate(zip(limits_y[:-1], limits_y[1:])):
@@ -267,7 +280,8 @@ class CubicHermite:
                     idx_y = [0, 1] if jj == 0 else [-2, -1]
                     ix = 0 if ii == 0 else -1
                     jy = 0 if jj == 0 else -1
-                    _psi, _dpsi = _integral_1_spline(CubicHermite._integrals, \
+                    _psi, _dxpsi, _dypsi = _integral_1_spline( \
+                                    CubicHermite._integrals, \
                                     limits_x[idx_x], self.knots_x[idx_x], \
                                     limits_y[idx_y], self.knots_y[idx_y], \
                                     self.coefs[:,:,ix,jy])
@@ -275,7 +289,8 @@ class CubicHermite:
                 elif (ii == 0) or (ii == (Nx - 1)):
                     idx_x = [0, 1] if ii == 0 else [-2, -1]
                     ix = 0 if ii == 0 else -1
-                    _psi, _dpsi = _integral_2_splines_x(CubicHermite._integrals, \
+                    _psi, _dxpsi, _dypsi = _integral_2_splines_x( \
+                                    CubicHermite._integrals, \
                                     limits_x[idx_x], self.knots_x[idx_x], \
                                     (ya, yb), self.knots_y[jj-1:jj+2], \
                                     self.coefs[:,:,ix,jj-1:jj+1])
@@ -283,19 +298,22 @@ class CubicHermite:
                 elif (jj == 0) or (jj == (Ny - 1)):
                     idx_y = [0, 1] if jj == 0 else [-2, -1]
                     jy = 0 if jj == 0 else -1
-                    _psi, _dpsi = _integral_2_splines_y(CubicHermite._integrals, \
+                    _psi, _dxpsi, _dypsi = _integral_2_splines_y( \
+                                    CubicHermite._integrals, \
                                     (xa, xb), self.knots_x[ii-1:ii+2], \
                                     limits_y[idx_y], self.knots_y[idx_y], \
                                     self.coefs[:,:,ii-1:ii+1,jy])
                 # Center cells - 4 splines
                 else:
-                    _psi, _dpsi = _integral_4_splines(CubicHermite._integrals,
+                    _psi, _dxpsi, _dypsi = _integral_4_splines( \
+                                        CubicHermite._integrals, \
                                         (xa, xb), self.knots_x[ii-1:ii+2], \
                                         (ya, yb), self.knots_y[jj-1:jj+2], \
                                         self.coefs[:,:,ii-1:ii+1,jj-1:jj+1])
-                int_psi[ii,jj] = _psi
-                int_dpsi[ii,jj] = _dpsi
-        return int_psi, int_dpsi
+                int_psi[ii,jj] = _psi.copy()
+                int_dxpsi[ii,jj] = _dxpsi.copy()
+                int_dypsi[ii,jj] = _dypsi.copy()
+        return int_psi, int_dxpsi, int_dypsi
 
 
 class QuinticHermite:
@@ -393,8 +411,10 @@ class QuinticHermite:
         dty[0] = 0.0
         # Calculate splines
         int_psi = np.einsum("xi, ijxy, jy -> xy", tx.T, self.coefs, ty)
-        int_dpsi = np.einsum("xi, ijxy, jy -> xy", dtx.T, self.coefs, dty)
-        return int_psi, int_dpsi
+        # int_dpsi = np.einsum("xi, ijxy, jy -> xy", dtx.T, self.coefs, dty)
+        int_dxpsi = np.einsum("xi, ijxy, jy -> xy", dtx.T, self.coefs, ty)
+        int_dypsi = np.einsum("xi, ijxy, jy -> xy", tx.T, self.coefs, dty)
+        return int_psi, int_dxpsi, int_dypsi
 
     def _one_integral(a, b, k0, k1):
         # Integral of psi between a and b with knots k0 and k1
@@ -426,7 +446,8 @@ class QuinticHermite:
         Nx = self.knots_x.shape[0]
         Ny = self.knots_y.shape[0]
         int_psi = np.zeros((Nx, Ny))
-        int_dpsi = np.zeros((Nx, Ny))
+        int_dxpsi = np.zeros((Nx, Ny))
+        int_dypsi = np.zeros((Nx, Ny))
         # Interate over spatial cells
         for ii, (xa, xb) in enumerate(zip(limits_x[:-1], limits_x[1:])):
             for jj, (ya, yb) in enumerate(zip(limits_y[:-1], limits_y[1:])):
@@ -436,7 +457,8 @@ class QuinticHermite:
                     idx_y = [0, 1] if jj == 0 else [-2, -1]
                     ix = 0 if ii == 0 else -1
                     jy = 0 if jj == 0 else -1
-                    _psi, _dpsi = _integral_1_spline(QuinticHermite._integrals, \
+                    _psi, _dxpsi, _dypsi = _integral_1_spline( \
+                                    QuinticHermite._integrals, \
                                     limits_x[idx_x], self.knots_x[idx_x], \
                                     limits_y[idx_y], self.knots_y[idx_y], \
                                     self.coefs[:,:,ix,jy])
@@ -444,7 +466,8 @@ class QuinticHermite:
                 elif (ii == 0) or (ii == (Nx - 1)):
                     idx_x = [0, 1] if ii == 0 else [-2, -1]
                     ix = 0 if ii == 0 else -1
-                    _psi, _dpsi = _integral_2_splines_x(QuinticHermite._integrals, \
+                    _psi, _dxpsi, _dypsi = _integral_2_splines_x( \
+                                    QuinticHermite._integrals, \
                                     limits_x[idx_x], self.knots_x[idx_x], \
                                     (ya, yb), self.knots_y[jj-1:jj+2], \
                                     self.coefs[:,:,ix,jj-1:jj+1])
@@ -452,16 +475,19 @@ class QuinticHermite:
                 elif (jj == 0) or (jj == (Ny - 1)):
                     idx_y = [0, 1] if jj == 0 else [-2, -1]
                     jy = 0 if jj == 0 else -1
-                    _psi, _dpsi = _integral_2_splines_y(QuinticHermite._integrals, \
+                    _psi, _dxpsi, _dypsi = _integral_2_splines_y( \
+                                    QuinticHermite._integrals, \
                                     (xa, xb), self.knots_x[ii-1:ii+2], \
                                     limits_y[idx_y], self.knots_y[idx_y], \
                                     self.coefs[:,:,ii-1:ii+1,jy])
                 # Center cells - 4 splines
                 else:
-                    _psi, _dpsi = _integral_4_splines(QuinticHermite._integrals,
+                    _psi, _dxpsi, _dypsi = _integral_4_splines( \
+                                        QuinticHermite._integrals,
                                         (xa, xb), self.knots_x[ii-1:ii+2], \
                                         (ya, yb), self.knots_y[jj-1:jj+2], \
                                         self.coefs[:,:,ii-1:ii+1,jj-1:jj+1])
-                int_psi[ii,jj] = _psi
-                int_dpsi[ii,jj] = _dpsi
-        return int_psi, int_dpsi
+                int_psi[ii,jj] = _psi.copy()
+                int_dxpsi[ii,jj] = _dxpsi.copy()
+                int_dypsi[ii,jj] = _dypsi.copy()
+        return int_psi, int_dxpsi, int_dypsi
