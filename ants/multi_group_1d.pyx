@@ -113,6 +113,6 @@ cdef double[:,:] _known_source_scalar(double[:,:]& xs_total, \
         qq1 = 0 if info.qdim == 1 else gg
         bc1 = 0 if info.bcdim_x == 1 else gg
         _known_sweep(scalar_flux[:,gg], xs_total[:,gg], zero, \
-            source[qq1::qq2], boundary_x[bc1::bc2], medium_map, delta_x, \
-            angle_x, angle_w, info)
+                     source[qq1::qq2], boundary_x[bc1::bc2], medium_map, \
+                     delta_x, angle_x, angle_w, info)
     return scalar_flux[:,:,0]

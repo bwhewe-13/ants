@@ -126,6 +126,8 @@ cdef void _source_total(double[:]& source, double[:,:]& flux, \
                 loc = og + info.groups * (nn + ii * info.angles)
                 for ig in range(info.groups):
                     source[loc] += flux[ii,ig] * xs_matrix[mat,og,ig]
+                # if (info.qdim == 2):
+                #     loc = og + info.groups * ii
                 source[loc] += external[loc]
 
 
@@ -285,6 +287,24 @@ cdef double _update_keffective(double[:,:] flux_new, double[:,:] flux_old, \
                 rate_new += flux_new[ii,ig] * xs_fission[mat,og,ig]
                 rate_old += flux_old[ii,ig] * xs_fission[mat,og,ig]
     return (rate_new * keff) / rate_old
+
+
+cdef void _source_total_critical(double[:]& source, double[:,:]& flux, \
+        double[:,:,:]& xs_scatter, double[:,:,:]& xs_fission, \
+        int[:]& medium_map, double keff, params info):
+    # Create (sigma_s + sigma_f) * phi + external function
+    # Initialize iterables
+    cdef int ii, ig, og, mat, loc
+    # Zero out previous values
+    source[:] = 0.0
+    for ii in range(info.cells_x):
+        mat = medium_map[ii]
+        for og in range(info.groups):
+            loc = og + info.groups * ii
+            for ig in range(info.groups):
+                source[loc] += (flux[ii,ig] * xs_fission[mat,og,ig]) / keff \
+                             + (flux[ii,ig] * xs_scatter[mat,og,ig])
+
 
 ########################################################################
 # Nearby Problems Criticality functions

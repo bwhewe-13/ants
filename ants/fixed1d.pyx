@@ -35,7 +35,7 @@ def source_iteration(double[:,:] xs_total, double[:,:,:] xs_scatter, \
     # Add fission matrix to scattering
     xs_matrix = tools.array_3d(info.materials, info.groups, info.groups)
     tools._xs_matrix(xs_matrix, xs_scatter, xs_fission, info)
-    # Save edge value and solve for center
+    # Solve for cell center first
     info.edges = 0
     # Initialize flux_old to zeros
     flux_old = tools.array_2d(info.cells_x, info.groups)
@@ -67,5 +67,5 @@ def known_source_calculation(double[:,:] flux, double[:,:] xs_total, \
     # Solve for angular flux 
     angular_flux = mg._known_source_angular(xs_total, source, boundary_x, \
                             medium_map, delta_x, angle_x, angle_w, info)
-    # Return angular flux (either edges or center)
+    # Return angular flux (either edges or centers)
     return np.asarray(angular_flux)

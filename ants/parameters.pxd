@@ -101,6 +101,10 @@ cdef params _to_params(dict pydic)
 ########################################################################
 cdef int _check_fixed1d_source_iteration(params info, int xs_length) except -1
 
+cdef int _check_nearby1d_fixed_source(params info, int xs_length) except -1
+
+cdef int _check_nearby1d_criticality(params info) except -1
+
 cdef int _check_timed1d_backward_euler(params info, int xs_length) except -1
 
 cdef int _check_critical1d_power_iteration(params info) except -1

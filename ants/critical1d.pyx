@@ -42,7 +42,11 @@ def power_iteration(double[:,:] xs_total, double[:,:,:] xs_scatter, \
     # Solve using the power iteration
     flux = multigroup_power(flux_old, xs_total, xs_scatter, xs_fission, \
                         medium_map, delta_x, angle_x, angle_w, info, keff)
-    return np.asarray(flux), keff[0]
+    if (info.angular == False) and (params_dict.get("edges", 0) == 0):
+        return np.asarray(flux), keff[0]
+    # For returning angular flux or flux at cell edges
+    return known_source_calculation(flux, xs_total, xs_scatter, xs_fission, \
+        medium_map, delta_x, angle_x, angle_w, keff[0], params_dict), keff[0]
 
 
 cdef double[:,:] multigroup_power(double[:,:]& flux_guess, double[:,:]& xs_total, \
@@ -80,6 +84,30 @@ cdef double[:,:] multigroup_power(double[:,:]& flux_guess, double[:,:]& xs_total
         flux_old[:,:] = flux[:,:]
     print("\nConvergence: {:2.6e}".format(change))
     return flux[:,:]
+
+
+def known_source_calculation(double[:,:] flux, double[:,:] xs_total, \
+        double[:,:,:] xs_scatter, double[:,:,:] xs_fission, \
+        int[:] medium_map, double[:] delta_x, double[:] angle_x, \
+        double[:] angle_w, double keff, dict params_dict):
+    # Covert dictionary to type params
+    info = parameters._to_params(params_dict)
+    # Create (sigma_s + sigma_f) * phi + external function
+    source = tools.array_1d(info.cells_x * info.groups)
+    tools._source_total_critical(source, flux, xs_scatter, xs_fission, \
+                                 medium_map, keff, info)
+    # Need zero array for boundary
+    boundary_x = tools.array_1d(2)
+    # Return scalar flux cell edges
+    if (info.angular == False) and (info.edges == 1):
+        scalar_flux = mg._known_source_scalar(xs_total, source, boundary_x, \
+                            medium_map, delta_x, angle_x, angle_w, info)
+        return np.asarray(scalar_flux)
+    # Solve for angular flux 
+    angular_flux = mg._known_source_angular(xs_total, source, boundary_x, \
+                            medium_map, delta_x, angle_x, angle_w, info)
+    # Return angular flux (either edges or centers)
+    return np.asarray(angular_flux)
 
 
 def nearby_power(double[:,:] xs_total, double[:,:,:] xs_scatter, \
