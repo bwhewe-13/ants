@@ -63,7 +63,7 @@ cdef double[:,:,:] multigroup_bdf1(double[:,:]& xs_total, \
     # Initialize array with all scalar flux time steps
     flux_time = tools.array_3d(info.steps, info.cells_x, info.groups)
     # Iterate over time steps
-    for step in tqdm(range(info.steps)):
+    for step in tqdm(range(info.steps), desc="Time Steps", position=1, ascii=True):
         # Adjust boundary condition
         tools.boundary_decay(boundary_x, step, info)
         # Update q_star as external + 1/(v*dt) * psi
@@ -80,4 +80,5 @@ cdef double[:,:,:] multigroup_bdf1(double[:,:]& xs_total, \
         # Solve for angular flux of previous time step
         flux_last = mg._known_source_angular(xs_total, q_star, boundary_x, \
                             medium_map, delta_x, angle_x, angle_w, info)
+    print()
     return flux_time[:,:,:]

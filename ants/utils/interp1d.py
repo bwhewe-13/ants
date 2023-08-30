@@ -61,8 +61,8 @@ class CubicHermite:
                       [-3, 3, -2, -1], [2, -2, 1, 1]])
 
     def __init__(self, psi, knots_x):
-        self.psi = psi
-        self.knots_x = knots_x
+        self.psi = np.asarray(psi)
+        self.knots_x = np.asarray(knots_x)
         self._generate_coefs()
 
     def _generate_coefs(self):
@@ -80,6 +80,9 @@ class CubicHermite:
         return idx
 
     def interpolate(self, n):
+        if isinstance(n, float):
+            n = np.array([n])
+        n = np.asarray(n)
         idx = self._find_zone(n)
         # Normalize input
         t = (n - self.knots_x[idx]) / (self.knots_x[idx+1] - self.knots_x[idx])
@@ -151,8 +154,8 @@ class QuinticHermite:
                       [15, -15, 8, 7, 1.5, -1], [-6, 6, -3, -3, -0.5, 0.5]])
 
     def __init__(self, psi, knots_x):
-        self.psi = psi
-        self.knots_x = knots_x
+        self.psi = np.asarray(psi)
+        self.knots_x = np.asarray(knots_x)
         self._generate_coefs()
 
     def _generate_coefs(self):
@@ -167,12 +170,17 @@ class QuinticHermite:
         self.coefs = QuinticHermite.basis @ control
 
     def _find_zone(self, n):
+        if isinstance(n, float):
+            n = np.array([n])
         idx = np.digitize(n, bins=self.knots_x) - 1
         idx[idx == len(self.knots_x) - 1] = len(self.knots_x) - 2
         idx[idx == -1] = 0
         return idx
 
     def interpolate(self, n):
+        if isinstance(n, float):
+            n = np.array([n])
+        n = np.asarray(n)
         idx = self._find_zone(n)
         # Normalize input
         t = (n - self.knots_x[idx]) / (self.knots_x[idx+1] - self.knots_x[idx])
@@ -183,8 +191,22 @@ class QuinticHermite:
             inside = np.argwhere(idx == ii).flatten()
             splines_psi[inside] = t[:,inside].T @ self.coefs[:,ii]
         return splines_psi
-    
-    # Integral of X - edges
+
+    # Integral of X - single cell
+    def integrate_edge(self, x0, x1):
+        # Take integral integral of derivative
+        delta_x = x1 - x0
+        idx = self._find_zone(0.5 * (x1 + x0))
+        t = np.array([delta_x, 0.5 * delta_x, 1/3. * delta_x, 0.25 * delta_x, \
+                      0.2 * delta_x, 1/6. * delta_x])
+        dt = np.ones((6,))
+        dt[0] = 0.0
+        # Calculate splines
+        int_psi = t.T @ self.coefs[:,idx]
+        int_dpsi = dt.T @ self.coefs[:,idx]
+        return int_psi, int_dpsi
+
+    # Integral of X - edges as knots
     def integrate_edges(self):
         # Take integral integral of derivative
         delta_x = self.knots_x[1:] - self.knots_x[:-1]
@@ -217,7 +239,7 @@ class QuinticHermite:
         dt = np.array([0, dt2, dt3, dt4, dt5, dt6])
         return t, dt
 
-    # Integral of X - centers
+    # Integral of X - centers as knots
     def integrate_centers(self, limits_x):
         N = self.knots_x.shape[0]
         int_psi = np.zeros((N,))

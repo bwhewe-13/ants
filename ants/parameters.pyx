@@ -65,6 +65,21 @@ cdef int _check_fixed1d_source_iteration(params info, int xs_length) except -1:
     return 0
 
 
+cdef int _check_nearby1d_fixed_source(params info, int xs_length) except -1:
+    assert info.angles % 2 == 0, "Need an even number of angles"
+    assert info.materials == xs_length, "Incorrect number of materials"
+    assert info.qdim == 3, "Need (I x N x G) source for analysis"
+    assert info.bcdim_x == 3, "Need (2 x N x G) boundary for analysis"
+    assert info.angular == True, "Need angular flux for analysis"
+    return 0
+
+cdef int _check_nearby1d_criticality(params info) except -1:
+    assert info.angles % 2 == 0, "Need an even number of angles"
+    assert info.qdim == 3, "Need (I x N x G) source term"
+    assert info.bcdim_x == 1, "No boundary conditions"
+    # assert info.angular == True, "Need angular flux for analysis"
+    return 0
+
 cdef int _check_timed1d_backward_euler(params info, int xs_length) except -1:
     assert info.angles % 2 == 0, "Need an even number of angles"
     assert info.materials == xs_length, "Incorrect number of materials"
@@ -85,7 +100,7 @@ cdef int _check_critical1d_power_iteration(params info) except -1:
 cdef int _check_critical1d_nearby_power(params info) except -1:
     assert info.angles % 2 == 0, "Need an even number of angles"
     assert info.qdim == 3, "Need (I x N x G) source term"
-    assert info.edges == 0, "Cannot currentl use cell edges"
+    assert info.edges == 0, "Cannot currently use cell edges"
     assert info.bcdim_x == 1, "No boundary conditions"
     return 0
 
