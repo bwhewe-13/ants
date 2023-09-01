@@ -89,7 +89,7 @@ cdef void _source_total_critical(double[:]& source, double[:,:]& flux, \
 # Nearby Problems Criticality functions
 ########################################################################
 cdef void _nearby_fission_source(double[:,:]& flux, double[:,:,:]& xs_fission, \
-        double[:]& source, double[:]& n_source, int[:]& medium_map, \
+        double[:]& source, double[:]& residual, int[:]& medium_map, \
         params info, double keff)
 
 cdef double _nearby_keffective(double[:,:]& flux, double rate, params info)

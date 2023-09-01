@@ -311,7 +311,7 @@ cdef void _source_total_critical(double[:]& source, double[:,:]& flux, \
 ########################################################################
 
 cdef void _nearby_fission_source(double[:,:]& flux, double[:,:,:]& xs_fission, \
-        double[:]& source, double[:]& n_source, int[:]& medium_map, \
+        double[:]& source, double[:]& residual, int[:]& medium_map, \
         params info, double keff):
     # Initialize iterables
     cdef int ii, mat, nn, ig, og, loc
@@ -321,12 +321,11 @@ cdef void _nearby_fission_source(double[:,:]& flux, double[:,:,:]& xs_fission, \
         mat = medium_map[ii]
         for nn in range(info.angles):
             for og in range(info.groups):
+                loc = og + info.groups * (nn + ii * info.angles)
                 for ig in range(info.groups):
-                    loc = og + info.groups * (nn + ii * info.angles)
                     source[loc] += flux[ii,ig] * xs_fission[mat,og,ig] / keff
                 # Add nearby residual
-                loc = ig + info.groups * (nn + ii * info.angles)
-                source[loc] += n_source[loc]
+                source[loc] += residual[loc]
 
 
 cdef double _nearby_keffective(double[:,:]& flux, double rate, params info):

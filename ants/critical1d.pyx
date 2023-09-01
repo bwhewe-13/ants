@@ -78,7 +78,8 @@ cdef double[:,:] multigroup_power(double[:,:]& flux_guess, double[:,:]& xs_total
         tools._normalize_flux(flux, info)
         # Check for convergence
         change = tools.group_convergence(flux, flux_old, info)
-        print("Count: {:>3}\tKeff: {:.8f}".format(str(count).zfill(3), keff[0]), end="\r")
+        print("Count: {:>3}\tKeff: {:.8f}".format(str(count).zfill(3), \
+                keff[0]), end="\r")
         converged = (change < EPSILON_POWER) or (count >= MAX_POWER)
         count += 1
         flux_old[:,:] = flux[:,:]
@@ -111,7 +112,7 @@ def known_source_calculation(double[:,:] flux, double[:,:] xs_total, \
 
 
 def nearby_power(double[:,:] xs_total, double[:,:,:] xs_scatter, \
-        double[:,:,:] xs_fission, double[:] n_source, int[:] medium_map, \
+        double[:,:,:] xs_fission, double[:] residual, int[:] medium_map, \
         double[:] delta_x, double[:] angle_x, double[:] angle_w, \
         double n_rate, dict params_dict):
     # Convert dictionary to type params1d
@@ -125,13 +126,13 @@ def nearby_power(double[:,:] xs_total, double[:,:,:] xs_scatter, \
     keff[0] = tools._nearby_keffective(flux_old, n_rate, info)
     # Solve using the modified power iteration
     flux = multigroup_nearby(flux_old, xs_total, xs_scatter, xs_fission, \
-                             n_source, medium_map, delta_x, angle_x, \
+                             residual, medium_map, delta_x, angle_x, \
                              angle_w, info, keff)
     return np.asarray(flux), keff[0]
 
 
 cdef double[:,:] multigroup_nearby(double[:,:]& flux_guess, double[:,:]& xs_total, \
-        double[:,:,:]& xs_scatter, double[:,:,:]& xs_fission, double[:]& n_source, \
+        double[:,:,:]& xs_scatter, double[:,:,:]& xs_fission, double[:]& residual, \
         int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
         double[:]& angle_w, params info, double[:]& keff):
     # Initialize flux
@@ -148,7 +149,7 @@ cdef double[:,:] multigroup_nearby(double[:,:]& flux_guess, double[:,:]& xs_tota
     while not (converged):
         # Update nearby power source term
         tools._nearby_fission_source(flux_old, xs_fission, source, \
-                                     n_source, medium_map, info, keff[0])
+                                     residual, medium_map, info, keff[0])
         # Solve for scalar flux
         flux = mg.source_iteration(flux_old, xs_total, xs_scatter, source, \
                     boundary_x, medium_map, delta_x, angle_x, angle_w, info)
@@ -159,9 +160,10 @@ cdef double[:,:] multigroup_nearby(double[:,:]& flux_guess, double[:,:]& xs_tota
         tools._normalize_flux(flux, info)
         # Check for convergence
         change = tools.group_convergence(flux, flux_old, info)
-        print("Count {}\tKeff {}".format(str(count).zfill(3), keff[0]), end="\r")
+        print("Count: {:>3}\tKeff: {:.8f}".format(str(count).zfill(3), \
+                keff[0]), end="\r")
         converged = (change < EPSILON_POWER) or (count >= MAX_POWER)
         count += 1
         flux_old[:,:] = flux[:,:]
-    print("\nConvergence:", change)
+    print("\nConvergence: {:2.6e}".format(change))
     return flux[:,:]
