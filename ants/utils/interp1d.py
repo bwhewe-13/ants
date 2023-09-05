@@ -5,10 +5,13 @@
 #                     / ___ |/ /|  / / /  ___/ / 
 #                    /_/  |_/_/ |_/ /_/  /____/  
 #
+# Used for the curve fit approximation with the Method of Nearby
+# Problems. Includes the first and second derivative approximation
+# (second order), Cubic Hermite splines, and Quintic Hermite splines.
+#
 ########################################################################
 
 import numpy as np
-from scipy.integrate import quad
 
 
 def first_derivative(psi, x):
