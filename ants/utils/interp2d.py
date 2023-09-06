@@ -9,75 +9,58 @@
 
 import numpy as np
 
-from ants.utils import interp1d
+from ants.utils import interp1d, pytools
 
 
 def first_derivative(psi, x, y):
     assert (x.shape[0], y.shape[0]) == psi.shape, "Need to be the same size"
     assert x.shape[0] > 2 and y.shape[0] > 2, "Need to be at least 3 knots"
-    # Initialize dpsi/dx
-    dpsi_x = np.zeros((psi.shape))
+    # Initialize derivatives
+    d_dx = np.zeros((psi.shape))
+    d_dy = np.zeros((psi.shape))
     # Iterate over every row for dpsi/dx
     for jj in range(y.shape[0]):
-        dpsi_x[:,jj] = interp1d.first_derivative(psi[:,jj], x)
-    # Initialize dpsi/dy
-    dpsi_y = np.zeros((psi.shape))
+        d_dx[:,jj] = interp1d.first_derivative(psi[:,jj], x)
     # Iterate over every column for dpsi/dy
     for ii in range(x.shape[0]):
-        dpsi_y[ii] = interp1d.first_derivative(psi[ii], y)
-    return dpsi_x, dpsi_y
+        d_dy[ii] = interp1d.first_derivative(psi[ii], y)
+    return d_dx, d_dy
 
 
 def second_derivative(psi, x, y):
     assert (x.shape[0], y.shape[0]) == psi.shape, "Need to be the same size"
     assert x.shape[0] > 2 and y.shape[0] > 2, "Need to be at least 3 knots"
-    # Initialize d2psi/dx2
-    d2_dxdx = np.zeros((psi.shape))
-    # Iterate over every row for d2psi/dx2
-    for jj in range(y.shape[0]):
-        d2_dxdx[:,jj] = interp1d.second_derivative(psi[:,jj], x)
-    # Initialize d2psi/dy2
-    d2_dydy = np.zeros((psi.shape))
-    # Iterate over every row for d2psi/dy2
-    for ii in range(x.shape[0]):
-        d2_dydy[ii] = interp1d.second_derivative(psi[ii], y)
-    # Initialize d2psi/dxdy
+    # Initialize derivatives
+    d2_dx2 = np.zeros((psi.shape))
+    d2_dy2 = np.zeros((psi.shape))
     d2_dxdy = np.zeros((psi.shape))
-    # Take first derivative in dx
+    # Take derivative in x direction
     for jj in range(y.shape[0]):
+        d2_dx2[:,jj] = interp1d.second_derivative(psi[:,jj], x)
         d2_dxdy[:,jj] = interp1d.first_derivative(psi[:,jj], x)
-    # Take first derivative in dy
+    # Take derivative in y direction
     for ii in range(x.shape[0]):
+        d2_dy2[ii] = interp1d.second_derivative(psi[ii], y)
         d2_dxdy[ii] = interp1d.first_derivative(d2_dxdy[ii], y)
-    return d2_dxdx, d2_dxdy, d2_dydy
+    return d2_dx2, d2_dxdy, d2_dy2
 
 
 def higher_order_derivative(psi, x, y):
     assert (x.shape[0], y.shape[0]) == psi.shape, "Need to be the same size"
     assert x.shape[0] > 2 and y.shape[0] > 2, "Need to be at least 3 knots"
-    # Initialize d3psi/dx2dy
+    # Initialize derivatives
     d3_dx2dy = np.zeros((psi.shape))
-    # Iterate over every row for d2psi/dx2
+    d3_dxdy2 = np.zeros((psi.shape))
+    d4_dx2dy2 = np.zeros((psi.shape))
+    # Take derivative in x direction
     for jj in range(y.shape[0]):
         d3_dx2dy[:,jj] = interp1d.second_derivative(psi[:,jj], x)
-    # Take first derivative in dy
+        d3_dxdy2[:,jj] = interp1d.first_derivative(psi[:,jj], x)
+        d4_dx2dy2[:,jj] = interp1d.second_derivative(psi[:,jj], x)
+    # Take derivative in y direction
     for ii in range(x.shape[0]):
         d3_dx2dy[ii] = interp1d.first_derivative(d3_dx2dy[ii], y)
-    # Initialize d3psi/dxdy2
-    d3_dxdy2 = np.zeros((psi.shape))
-    # Iterate over every row for d2psi/dy2
-    for ii in range(x.shape[0]):
-        d3_dxdy2[ii] = interp1d.second_derivative(psi[ii], y)
-    # Take first derivative in dx
-    for jj in range(y.shape[0]):
-        d3_dxdy2[:,jj] = interp1d.first_derivative(d3_dxdy2[:,jj], x)
-    # Initialize d4psi/dx2dy2
-    d4_dx2dy2 = np.zeros((psi.shape))
-    # Iterate over every row for d2psi/dx2
-    for jj in range(y.shape[0]):
-        d4_dx2dy2[:,jj] = interp1d.second_derivative(psi[:,jj], x)
-    # Iterate over every row for d2psi/dy2
-    for ii in range(x.shape[0]):
+        d3_dxdy2[ii] = interp1d.second_derivative(d3_dxdy2[ii], y)
         d4_dx2dy2[ii] = interp1d.second_derivative(d4_dx2dy2[ii], y)
     return d3_dx2dy, d3_dxdy2, d4_dx2dy2
 
@@ -94,9 +77,9 @@ def _integral_1_spline(func, lim_x, knots_x, lim_y, knots_y, coefs):
     int_psi = tx.T @ coefs @ ty
     # Calculate integral of derivative of flux
     # int_dpsi = dtx.T @ coefs @ dty
-    int_dxpsi = dtx.T @ coefs @ ty
-    int_dypsi = tx.T @ coefs @ dty
-    return int_psi, int_dxpsi, int_dypsi
+    int_dx = dtx.T @ coefs @ ty
+    int_dy = tx.T @ coefs @ dty
+    return int_psi, int_dx, int_dy
 
 
 def _integral_2_splines_x(func, lim_x, knots_x, lim_y, knots_y, coefs):
@@ -113,9 +96,9 @@ def _integral_2_splines_x(func, lim_x, knots_x, lim_y, knots_y, coefs):
     int_psi = (tx1.T @ coefs[:,:,0] @ ty1) + (tx2.T @ coefs[:,:,1] @ ty2)
     # Calculate integral of derivative of flux
     # int_dpsi = (dtx1.T @ coefs[:,:,0] @ dty1) + (dtx2.T @ coefs[:,:,1] @ dty2)
-    int_dxpsi = (dtx1.T @ coefs[:,:,0] @ ty1) + (dtx2.T @ coefs[:,:,1] @ ty2)
-    int_dypsi = (tx1.T @ coefs[:,:,0] @ dty1) + (tx2.T @ coefs[:,:,1] @ dty2)
-    return int_psi, int_dxpsi, int_dypsi
+    int_dx = (dtx1.T @ coefs[:,:,0] @ ty1) + (dtx2.T @ coefs[:,:,1] @ ty2)
+    int_dy = (tx1.T @ coefs[:,:,0] @ dty1) + (tx2.T @ coefs[:,:,1] @ dty2)
+    return int_psi, int_dx, int_dy
 
 
 def _integral_2_splines_y(func, lim_x, knots_x, lim_y, knots_y, coefs):
@@ -132,9 +115,9 @@ def _integral_2_splines_y(func, lim_x, knots_x, lim_y, knots_y, coefs):
     int_psi = (tx1.T @ coefs[:,:,0] @ ty1) + (tx2.T @ coefs[:,:,1] @ ty2)
     # Calculate integral of derivative of flux
     # int_dpsi = (dtx1.T @ coefs[:,:,0] @ dty1) + (dtx2.T @ coefs[:,:,1] @ dty2)
-    int_dxpsi = (dtx1.T @ coefs[:,:,0] @ ty1) + (dtx2.T @ coefs[:,:,1] @ ty2)
-    int_dypsi = (tx1.T @ coefs[:,:,0] @ dty1) + (tx2.T @ coefs[:,:,1] @ dty2)
-    return int_psi, int_dxpsi, int_dypsi
+    int_dx = (dtx1.T @ coefs[:,:,0] @ ty1) + (dtx2.T @ coefs[:,:,1] @ ty2)
+    int_dy = (tx1.T @ coefs[:,:,0] @ dty1) + (tx2.T @ coefs[:,:,1] @ dty2)
+    return int_psi, int_dx, int_dy
 
 
 def _integral_4_splines(func, lim_x, knots_x, lim_y, knots_y, coefs):
@@ -157,11 +140,11 @@ def _integral_4_splines(func, lim_x, knots_x, lim_y, knots_y, coefs):
     # Calculate integral of derivative of flux
     # int_dpsi = (dtx1.T @ coefs[:,:,0,0] @ dty1) + (dtx2.T @ coefs[:,:,1,0] @ dty2) \
     #         + (dtx3.T @ coefs[:,:,1,1] @ dty3) + (dtx4.T @ coefs[:,:,0,1] @ dty4)
-    int_dxpsi = (dtx1.T @ coefs[:,:,0,0] @ ty1) + (dtx2.T @ coefs[:,:,1,0] @ ty2) \
+    int_dx = (dtx1.T @ coefs[:,:,0,0] @ ty1) + (dtx2.T @ coefs[:,:,1,0] @ ty2) \
               + (dtx3.T @ coefs[:,:,1,1] @ ty3) + (dtx4.T @ coefs[:,:,0,1] @ ty4)
-    int_dypsi = (tx1.T @ coefs[:,:,0,0] @ dty1) + (tx2.T @ coefs[:,:,1,0] @ dty2) \
+    int_dy = (tx1.T @ coefs[:,:,0,0] @ dty1) + (tx2.T @ coefs[:,:,1,0] @ dty2) \
               + (tx3.T @ coefs[:,:,1,1] @ dty3) + (tx4.T @ coefs[:,:,0,1] @ dty4)
-    return int_psi, int_dxpsi, int_dypsi
+    return int_psi, int_dx, int_dy
 
 
 class CubicHermite:
@@ -175,9 +158,10 @@ class CubicHermite:
         self._generate_coefs()
 
     def _generate_coefs(self):
-        dpsi_dx, dpsi_dy = first_derivative(self.psi, self.knots_x, self.knots_y)
-        _, d2psi_dxdy, _ = second_derivative(self.psi, self.knots_x, self.knots_y)
-
+        # Estimate derivatives
+        d_dx, d_dy = first_derivative(self.psi, self.knots_x, self.knots_y)
+        _, d2_dxdy, _ = second_derivative(self.psi, self.knots_x, self.knots_y)
+        # Find knot width
         delta_x = self.knots_x[1:] - self.knots_x[:-1]
         delta_y = self.knots_y[1:] - self.knots_y[:-1]
         # Delta matrix
@@ -188,12 +172,12 @@ class CubicHermite:
         control = np.zeros((4, 4, delta_x.shape[0], delta_y.shape[0]))
         control[:2,:2] = np.array([[self.psi[:-1,:-1], self.psi[:-1,1:]], \
                                    [self.psi[1:,:-1], self.psi[1:,1:]]])
-        control[2:,:2] = np.array([[dpsi_dx[:-1,:-1], dpsi_dx[:-1,1:]], \
-                                   [dpsi_dx[1:,:-1], dpsi_dx[1:,1:]]])
-        control[:2,2:] = np.array([[dpsi_dy[:-1,:-1], dpsi_dy[:-1,1:]], \
-                                   [dpsi_dy[1:,:-1], dpsi_dy[1:,1:]]])
-        control[2:,2:] = np.array([[d2psi_dxdy[:-1,:-1], d2psi_dxdy[:-1,1:]], \
-                                   [d2psi_dxdy[1:,:-1], d2psi_dxdy[1:,1:]]])
+        control[2:,:2] = np.array([[d_dx[:-1,:-1], d_dx[:-1,1:]], \
+                                   [d_dx[1:,:-1], d_dx[1:,1:]]])
+        control[:2,2:] = np.array([[d_dy[:-1,:-1], d_dy[:-1,1:]], \
+                                   [d_dy[1:,:-1], d_dy[1:,1:]]])
+        control[2:,2:] = np.array([[d2_dxdy[:-1,:-1], d2_dxdy[:-1,1:]], \
+                                   [d2_dxdy[1:,:-1], d2_dxdy[1:,1:]]])
         # Create coefficient matrix
         self.coefs = np.einsum('ij,jk...,kl->il...', CubicHermite.basis, \
                                control * delta, CubicHermite.basis.T)
@@ -204,20 +188,22 @@ class CubicHermite:
         idx[idx == -1] = 0
         return idx
 
+    def _normalize_input(self, n, bins):
+        idx = self._find_zone(n, bins)
+        t = (n - bins[idx]) / (bins[idx+1] - bins[idx])
+        t = np.array([[1] * len(n), t, t**2, t**3])
+        return t, idx
+
     def interpolate(self, nx, ny):
         # Normalize x input
-        idx_x = self._find_zone(nx, self.knots_x)
-        tx = (nx - self.knots_x[idx_x]) / (self.knots_x[idx_x+1] - self.knots_x[idx_x])
-        tx = np.array([[1] * len(nx), tx, tx**2, tx**3])
+        tx, idx_x = self._normalize_input(nx, self.knots_x)
         # Normalize y input
-        idx_y = self._find_zone(ny, self.knots_y)
-        ty = (ny - self.knots_y[idx_y]) / (self.knots_y[idx_y+1] - self.knots_y[idx_y])
-        ty = np.array([[1] * len(ny), ty, ty**2, ty**3])
+        ty, idx_y = self._normalize_input(ny, self.knots_y)
         # Iterate over each zone
         splines_psi = np.zeros((nx.shape[0], ny.shape[0]))
         for ii in np.unique(np.sort(idx_x)):
             loc_x = np.argwhere(idx_x == ii).flatten()
-            ix = loc_x[:,None]
+            ix = loc_x[:,None] 
             for jj in np.unique(np.sort(idx_y)):
                 loc_y = np.argwhere(idx_y == jj).flatten()
                 iy = loc_y[None,:]
@@ -240,10 +226,9 @@ class CubicHermite:
         dty[0] = 0.0
         # Calculate splines
         int_psi = np.einsum("xi, ijxy, jy -> xy", tx.T, self.coefs, ty)
-        # int_dpsi = np.einsum("xi, ijxy, jy -> xy", dtx.T, self.coefs, dty)
-        int_dxpsi = np.einsum("xi, ijxy, jy -> xy", dtx.T, self.coefs, ty)
-        int_dypsi = np.einsum("xi, ijxy, jy -> xy", tx.T, self.coefs, dty)
-        return int_psi, int_dxpsi, int_dypsi
+        int_dx = np.einsum("xi, ijxy, jy -> xy", dtx.T, self.coefs, ty)
+        int_dy = np.einsum("xi, ijxy, jy -> xy", tx.T, self.coefs, dty)
+        return int_psi, int_dx, int_dy
 
     def _one_integral(a, b, k0, k1):
         # Integral of psi between a and b with knots k0 and k1
@@ -269,8 +254,8 @@ class CubicHermite:
         Nx = self.knots_x.shape[0]
         Ny = self.knots_y.shape[0]
         int_psi = np.zeros((Nx, Ny))
-        int_dxpsi = np.zeros((Nx, Ny))
-        int_dypsi = np.zeros((Nx, Ny))
+        int_dx = np.zeros((Nx, Ny))
+        int_dy = np.zeros((Nx, Ny))
         # Interate over spatial cells
         for ii, (xa, xb) in enumerate(zip(limits_x[:-1], limits_x[1:])):
             for jj, (ya, yb) in enumerate(zip(limits_y[:-1], limits_y[1:])):
@@ -311,9 +296,9 @@ class CubicHermite:
                                         (ya, yb), self.knots_y[jj-1:jj+2], \
                                         self.coefs[:,:,ii-1:ii+1,jj-1:jj+1])
                 int_psi[ii,jj] = _psi.copy()
-                int_dxpsi[ii,jj] = _dxpsi.copy()
-                int_dypsi[ii,jj] = _dypsi.copy()
-        return int_psi, int_dxpsi, int_dypsi
+                int_dx[ii,jj] = _dxpsi.copy()
+                int_dy[ii,jj] = _dypsi.copy()
+        return int_psi, int_dx, int_dy
 
 
 class QuinticHermite:
@@ -328,10 +313,12 @@ class QuinticHermite:
         self._generate_coefs()
 
     def _generate_coefs(self):
+        # Estimate derivatives
         d_dx, d_dy = first_derivative(self.psi, self.knots_x, self.knots_y)
-        d2_dx2, d2_dxdy, d2_dy2 = second_derivative(self.psi, self.knots_x, self.knots_y)
-        d3_dx2dy, d3_dxdy2, d4_dx2dy2 = higher_order_derivative(self.psi, self.knots_x, self.knots_y)
-
+        d2_dx2, d2_dxdy, d2_dy2 = second_derivative(self.psi, self.knots_x, \
+                                                    self.knots_y)
+        d3_dx2dy, d3_dxdy2, d4_dx2dy2 = higher_order_derivative(self.psi, \
+                                                self.knots_x, self.knots_y)
         delta_x = self.knots_x[1:] - self.knots_x[:-1]
         delta_y = self.knots_y[1:] - self.knots_y[:-1]
         # Delta matrix
@@ -412,9 +399,9 @@ class QuinticHermite:
         # Calculate splines
         int_psi = np.einsum("xi, ijxy, jy -> xy", tx.T, self.coefs, ty)
         # int_dpsi = np.einsum("xi, ijxy, jy -> xy", dtx.T, self.coefs, dty)
-        int_dxpsi = np.einsum("xi, ijxy, jy -> xy", dtx.T, self.coefs, ty)
-        int_dypsi = np.einsum("xi, ijxy, jy -> xy", tx.T, self.coefs, dty)
-        return int_psi, int_dxpsi, int_dypsi
+        int_dx = np.einsum("xi, ijxy, jy -> xy", dtx.T, self.coefs, ty)
+        int_dy = np.einsum("xi, ijxy, jy -> xy", tx.T, self.coefs, dty)
+        return int_psi, int_dx, int_dy
 
     def _one_integral(a, b, k0, k1):
         # Integral of psi between a and b with knots k0 and k1
@@ -446,8 +433,8 @@ class QuinticHermite:
         Nx = self.knots_x.shape[0]
         Ny = self.knots_y.shape[0]
         int_psi = np.zeros((Nx, Ny))
-        int_dxpsi = np.zeros((Nx, Ny))
-        int_dypsi = np.zeros((Nx, Ny))
+        int_dx = np.zeros((Nx, Ny))
+        int_dy = np.zeros((Nx, Ny))
         # Interate over spatial cells
         for ii, (xa, xb) in enumerate(zip(limits_x[:-1], limits_x[1:])):
             for jj, (ya, yb) in enumerate(zip(limits_y[:-1], limits_y[1:])):
@@ -488,6 +475,82 @@ class QuinticHermite:
                                         (ya, yb), self.knots_y[jj-1:jj+2], \
                                         self.coefs[:,:,ii-1:ii+1,jj-1:jj+1])
                 int_psi[ii,jj] = _psi.copy()
-                int_dxpsi[ii,jj] = _dxpsi.copy()
-                int_dypsi[ii,jj] = _dypsi.copy()
-        return int_psi, int_dxpsi, int_dypsi
+                int_dx[ii,jj] = _dxpsi.copy()
+                int_dy[ii,jj] = _dypsi.copy()
+        return int_psi, int_dx, int_dy
+
+
+class BlockInterpolation:
+
+    def __init__(self, Splines, psi, knots_x, knots_y, medium_map):
+        self.Splines = Splines
+        self.psi = psi
+        self.knots_x = knots_x
+        self.knots_y = knots_y
+        self.medium_map = medium_map
+        # Determine knot splits
+        self.x_splits, self.y_splits = pytools._to_block(self.medium_map)
+        
+
+    def interpolate(self, nx, ny):
+        # Determine global medium map, splits
+        n_medium_map = pytools._global_splits(self.medium_map, nx, ny)
+        nx_splits, ny_splits = pytools._to_block(n_medium_map)
+        # Initialize splines
+        splines_psi = np.zeros((nx.shape[0], ny.shape[0]))
+        # Iterate over each block
+        for (x1, x2, nx1, nx2) in zip(self.x_splits[:-1], self.x_splits[1:], \
+                                      nx_splits[:-1], nx_splits[1:]):
+            for (y1, y2, ny1, ny2) in zip(self.y_splits[:-1], self.y_splits[1:], \
+                                          ny_splits[:-1], ny_splits[1:]):
+                # Initialize new spline section
+                approx = self.Splines(self.psi[x1:x2,y1:y2], \
+                                self.knots_x[x1:x2], self.knots_y[y1:y2])
+                # Interpolate on block
+                block = approx.interpolate(nx[nx1:nx2], ny[ny1:ny2])
+                splines_psi[nx1:nx2,ny1:ny2] = block.copy()
+        return splines_psi
+
+
+   # Integral of X/Y - edges
+    def integrate_edges(self):
+        # Initialize full matrices
+        Nx = self.knots_x.shape[0] - 1
+        Ny = self.knots_y.shape[0] - 1
+        int_psi = np.zeros((Nx, Ny))
+        int_dx = np.zeros((Nx, Ny))
+        int_dy = np.zeros((Nx, Ny))
+        # Iterate over each block
+        for (x1, x2) in zip(self.x_splits[:-1], self.x_splits[1:]):
+            for (y1, y2) in zip(self.y_splits[:-1], self.y_splits[1:]):
+                # Initialize new spline section
+                approx = self.Splines(self.psi[x1:x2+1,y1:y2+1], \
+                                self.knots_x[x1:x2+1], self.knots_y[y1:y2+1])
+                # Interpolate on block
+                b_int_psi, b_int_dx, b_int_dy = approx.integrate_edges()
+                int_psi[x1:x2,y1:y2] = b_int_psi.copy()
+                int_dx[x1:x2,y1:y2] = b_int_dx.copy()
+                int_dy[x1:x2,y1:y2] = b_int_dy.copy()
+        return int_psi, int_dx, int_dy
+
+
+    # Integral of X/Y - centers
+    def integrate_centers(self, limits_x, limits_y):
+        Nx = self.knots_x.shape[0]
+        Ny = self.knots_y.shape[0]
+        int_psi = np.zeros((Nx, Ny))
+        int_dx = np.zeros((Nx, Ny))
+        int_dy = np.zeros((Nx, Ny))
+        # Iterate over each block
+        for (x1, x2) in zip(self.x_splits[:-1], self.x_splits[1:]):
+            for (y1, y2) in zip(self.y_splits[:-1], self.y_splits[1:]):
+                # Initialize new spline section
+                approx = self.Splines(self.psi[x1:x2,y1:y2], \
+                                self.knots_x[x1:x2], self.knots_y[y1:y2])
+                # Interpolate on block
+                b_int_psi, b_int_dx, b_int_dy = approx.integrate_centers(\
+                                    limits_x[x1:x2+1], limits_y[y1:y2+1])
+                int_psi[x1:x2,y1:y2] = b_int_psi.copy()
+                int_dx[x1:x2,y1:y2] = b_int_dx.copy()
+                int_dy[x1:x2,y1:y2] = b_int_dy.copy()
+        return int_psi, int_dx, int_dy
