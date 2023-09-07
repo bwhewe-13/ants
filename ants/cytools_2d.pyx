@@ -61,10 +61,10 @@ cdef double group_convergence(double[:,:,:]& arr1, double[:,:,:]& arr2, \
         params info):
     # Calculate the L2 convergence of the scalar flux in the energy loop
     cdef int ii, jj, gg
-    cdef int cells = (info.cells_x + info.edges) * (info.cells_y + info.edges)
+    cdef int cells = info.cells_x * info.cells_y
     cdef double change = 0.0
-    for ii in range(info.cells_x + info.edges):
-        for jj in range(info.cells_y + info.edges):
+    for ii in range(info.cells_x):
+        for jj in range(info.cells_y):
             for gg in range(info.groups):
                 if arr1[ii,jj,gg] == 0.0:
                     continue
@@ -77,10 +77,10 @@ cdef double group_convergence(double[:,:,:]& arr1, double[:,:,:]& arr2, \
 cdef double angle_convergence(double[:,:]& arr1, double[:,:]& arr2, params info):
     # Calculate the L2 convergence of the scalar flux in the ordinates loop
     cdef int ii, jj
-    cdef int cells = (info.cells_x + info.edges) * (info.cells_y + info.edges)
+    cdef int cells = info.cells_x * info.cells_y
     cdef double change = 0.0
-    for ii in range(info.cells_x + info.edges):
-        for jj in range(info.cells_y + info.edges):
+    for ii in range(info.cells_x):
+        for jj in range(info.cells_y):
             if arr1[ii,jj] == 0.0:
                 continue
             change += pow((arr1[ii,jj] - arr2[ii,jj]) / arr1[ii,jj] / cells, 2)
@@ -397,6 +397,57 @@ cdef double _update_keffective(double[:,:,:] flux_new, double[:,:,:] flux_old, \
                     rate_old += flux_old[ii,jj,ig] * xs_fission[mat,og,ig]
     return (rate_new * keff) / rate_old
 
+
+cdef void _source_total_critical(double[:]& source, double[:,:,:]& flux, \
+        double[:,:,:]& xs_scatter, double[:,:,:]& xs_fission, \
+        int[:,:]& medium_map, double keff, params info):
+    # Create (sigma_s + sigma_f) * phi + external function
+    # Initialize iterables
+    cdef int ii, jj, ig, og, mat, loc
+    # Zero out previous values
+    source[:] = 0.0
+    for ii in range(info.cells_x):
+        for jj in range(info.cells_y):
+            mat = medium_map[ii,jj]
+            for og in range(info.groups):
+                loc = og + info.groups * (jj + ii * info.cells_y)
+                for ig in range(info.groups):
+                    source[loc] += (flux[ii,jj,ig] * xs_fission[mat,og,ig]) / keff \
+                                 + (flux[ii,jj,ig] * xs_scatter[mat,og,ig])
+
+########################################################################
+# Nearby Problems Criticality functions
+########################################################################
+
+cdef void _nearby_fission_source(double[:,:,:]& flux, \
+        double[:,:,:]& xs_fission, double[:]& source, double[:]& residual, \
+        int[:,:]& medium_map, params info, double keff):
+    # Initialize iterables
+    cdef int ii, jj, mat, nn, NN, ig, og, loc
+    NN = info.angles * info.angles
+    # Zero out previous power iteration
+    source[:] = 0.0
+    for ii in range(info.cells_x):
+        for jj in range(info.cells_y):
+            mat = medium_map[ii,jj]
+            for nn in range(NN):
+                for og in range(info.groups):
+                    loc = og + info.groups * (nn + NN * (jj + ii * info.cells_y))
+                    for ig in range(info.groups):
+                        source[loc] += flux[ii,jj,ig] / keff \
+                                        * xs_fission[mat,og,ig]
+                    # Add nearby residual
+                    source[loc] += residual[loc]
+
+
+cdef double _nearby_keffective(double[:,:,:]& flux, double rate, params info):
+    cdef int ii, jj, gg
+    cdef double keff = 0.0
+    for gg in range(info.groups):
+        for ii in range(info.cells_x):
+            for jj in range(info.cells_y):
+                keff += rate * flux[ii,jj,gg]
+    return keff
 
 ########################################################################
 # Hybrid Method Time Dependent Problems

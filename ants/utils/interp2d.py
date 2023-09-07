@@ -484,15 +484,21 @@ class BlockInterpolation:
 
     def __init__(self, Splines, psi, knots_x, knots_y, medium_map):
         self.Splines = Splines
-        self.psi = psi
-        self.knots_x = knots_x
-        self.knots_y = knots_y
-        self.medium_map = medium_map
+        self.psi = np.asarray(psi)
+        self.knots_x = np.asarray(knots_x)
+        self.knots_y = np.asarray(knots_y)
+        self.medium_map = np.asarray(medium_map)
         # Determine knot splits
         self.x_splits, self.y_splits = pytools._to_block(self.medium_map)
         
 
     def interpolate(self, nx, ny):
+        if isinstance(nx, float):
+            nx = np.array([nx])
+        nx = np.asarray(nx)
+        if isinstance(ny, float):
+            ny = np.array([ny])
+        ny = np.asarray(ny)
         # Determine global medium map, splits
         n_medium_map = pytools._global_splits(self.medium_map, nx, ny)
         nx_splits, ny_splits = pytools._to_block(n_medium_map)

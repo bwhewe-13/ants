@@ -89,6 +89,19 @@ cdef void _fission_source(double[:,:,:] flux, double[:,:,:] xs_fission, \
 cdef double _update_keffective(double[:,:,:] flux_new, double[:,:,:] flux_old, \
         double[:,:,:] xs_fission, int[:,:] medium_map, params info, double keff)
 
+cdef void _source_total_critical(double[:]& source, double[:,:,:]& flux, \
+        double[:,:,:]& xs_scatter, double[:,:,:]& xs_fission, \
+        int[:,:]& medium_map, double keff, params info)
+
+########################################################################
+# Nearby Problems Criticality functions
+########################################################################
+cdef void _nearby_fission_source(double[:,:,:]& flux, \
+        double[:,:,:]& xs_fission, double[:]& source, double[:]& residual, \
+        int[:,:]& medium_map, params info, double keff)
+
+cdef double _nearby_keffective(double[:,:,:]& flux, double rate, params info)
+
 ########################################################################
 # Hybrid Method Time Dependent Problems
 ########################################################################
