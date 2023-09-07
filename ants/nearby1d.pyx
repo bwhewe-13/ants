@@ -29,13 +29,13 @@ from ants cimport parameters
 from ants.parameters cimport params
 
 
-def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x, 
+def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x, \
         medium_map, delta_x, knots_x, angle_x, angle_w, params_dict):
     # Convert dictionary to type params
     info = parameters._to_params(params_dict)
     parameters._check_nearby1d_fixed_source(info, xs_total.shape[0])
     # Create boundaries for each material
-    splits = _material_index(medium_map, info)
+    splits = tools._material_index(medium_map, info)
     # Run Numerical Solution
     numerical_flux = fixed1d.source_iteration(xs_total, xs_scatter, \
                         xs_fission, external.flatten(), boundary_x.flatten(), \
@@ -72,24 +72,7 @@ def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x,
     return numerical_flux, curve_fit_flux, nearby_flux
 
 
-cdef int[:] _material_index(int[:] medium_map, params info):
-    # Initialize iterable
-    cdef int ii
-    # Initialize placeholder
-    cdef int index = 1
-    # Create splits of type int32
-    cdef int[:] splits = medium_map[:].copy()
-    # Add first edge
-    medium_map[0] = 0
-    # Iterate over medium map
-    for ii in range(1, info.cells_x):
-        if (medium_map[ii] != medium_map[ii-1]):
-            splits[index] = ii
-            index += 1
-    # Add final edge
-    splits[index] = info.cells_x
-    # Return only necessary values
-    return splits[:index+1]
+
 
 
 cdef void _curve_fit_centers(double[:,:,:]& flux, double[:,:,:]& curve_fit, \
@@ -182,7 +165,8 @@ cdef void _residual_integral(double[:,:,:]& residual, double[:,:,:]& psi, \
             for og in range(info.groups):
                 off_scatter = 0.0
                 for ig in range(info.groups):
-                    off_scatter += phi[ii,ig] * (xs_scatter[mat,og,ig] + xs_fission[mat,og,ig])
+                    off_scatter += phi[ii,ig] * (xs_scatter[mat,og,ig] \
+                                    + xs_fission[mat,og,ig])
                 residual[ii,nn,og] = (angle_x[nn] * dpsi[ii,nn,og] \
                         + psi[ii,nn,og] * xs_total[mat,og]) - off_scatter \
                         - external[ii,nn,og] * delta_x[ii]
@@ -194,14 +178,14 @@ def criticality(xs_total, xs_scatter, xs_fission, medium_map, delta_x, \
     info = parameters._to_params(params_dict)
     parameters._check_nearby1d_criticality(info)
     # Create boundaries for each material
-    splits = _material_index(medium_map, info)
+    splits = tools._material_index(medium_map, info)
     # Run Numerical Solution
     info.qdim = 2
     numerical_flux, numerical_keff = critical1d.power_iteration(xs_total, \
                     xs_scatter, xs_fission, medium_map, delta_x, angle_x, \
                     angle_w, info)
     # Initialize curve fit
-    curve_fit_boundary_x = np.zeros((2, info.angles, info.groups))
+    curve_fit_boundary_x = tools.array_3d(2, info.angles, info.groups)
     curve_fit_flux = tools.array_3d(info.cells_x, info.angles, info.groups)
     # Initialize curve fit integrals
     psi = tools.array_3d(info.cells_x, info.angles, info.groups)
@@ -210,12 +194,12 @@ def criticality(xs_total, xs_scatter, xs_fission, medium_map, delta_x, \
     # Calculate curve fit at knots
     # Knots at cell centers
     if knots_x.shape[0] == info.cells_x:
-        edges_x = np.insert(np.cumsum(delta_x), 0, 0)
+        edges_x = memoryview(np.insert(np.cumsum(delta_x), 0, 0))
         _curve_fit_centers(numerical_flux, curve_fit_flux, curve_fit_boundary_x, \
                     psi, dpsi, phi, splits, knots_x, edges_x, angle_w, info)
     # Knots at cell edges
     else:
-        centers_x = 0.5 * (knots_x[1:] + knots_x[:-1])
+        centers_x = memoryview(0.5 * (knots_x[1:] + knots_x[:-1]))
         _curve_fit_edges(numerical_flux, curve_fit_flux, curve_fit_boundary_x, \
                     psi, dpsi, phi, splits, knots_x, centers_x, angle_w, info)
     # Create curve fit source, curve fit keff, nearby reaction rate
@@ -233,8 +217,9 @@ def criticality(xs_total, xs_scatter, xs_fission, medium_map, delta_x, \
     info.edges = 0
     info.qdim = 3
     info.angular = False
+    residual = memoryview(residual.flatten())
     nearby_scalar, nearby_keff = critical1d.nearby_power(xs_total, xs_scatter, \
-                    xs_fission, residual.flatten(), medium_map, delta_x, \
+                    xs_fission, residual, medium_map, delta_x, \
                     angle_x, angle_w, nearby_rate, info)
     # Convert numerical_flux to scalar flux
     numerical_scalar = tools.array_2d(info.cells_x, info.groups)
@@ -264,6 +249,7 @@ cdef (double, double) _curve_fit_fission_source(double[:,:,:]& psi, \
     cdef double left_hand = 0.0
     cdef double right_hand = 0.0
     cdef double left_hand_off, right_hand_off, rate_temp
+    fission_source[:,:] = 0.0
     # Iterate over cells
     for ii in range(info.cells_x):
         mat = medium_map[ii]

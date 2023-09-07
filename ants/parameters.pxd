@@ -120,9 +120,13 @@ cdef int _check_hybrid1d_bdf1_collided(params info, int xs_length) except -1
 ########################################################################
 cdef int _check_fixed2d_source_iteration(params info, int xs_length) except -1
 
+cdef int _check_nearby2d_fixed_source(params info, int xs_length) except -1
+
 cdef int _check_timed2d_backward_euler(params info, int xs_length) except -1
 
 cdef int _check_critical2d_power_iteration(params info) except -1
+
+cdef int _check_critical2d_nearby_power(params info) except -1
 
 cdef int _check_hybrid2d_bdf1_uncollided(params info, int xs_length) except -1
 

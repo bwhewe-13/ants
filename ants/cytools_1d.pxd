@@ -39,6 +39,11 @@ cdef double group_convergence(double[:,:]& arr1, double[:,:]& arr2, params info)
 cdef double angle_convergence(double[:]& arr1, double[:]& arr2, params info)
 
 ########################################################################
+# Material Interface functions
+########################################################################
+cdef int[:] _material_index(int[:] medium_map, params info)
+
+########################################################################
 # Multigroup functions
 ########################################################################
 cdef void _xs_matrix(double[:,:,:]& mat1, double[:,:,:]& mat2, \

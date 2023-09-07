@@ -83,6 +83,29 @@ cdef double angle_convergence(double[:]& arr1, double[:]& arr2, params info):
     return change
 
 ########################################################################
+# Material Interface functions
+########################################################################
+
+cdef int[:] _material_index(int[:] medium_map, params info):
+    # Initialize iterable
+    cdef int ii
+    # Initialize placeholder
+    cdef int index = 1
+    # Create splits of type int32
+    cdef int[:] splits = medium_map[:].copy()
+    # Add first edge
+    splits[0] = 0
+    # Iterate over medium map
+    for ii in range(1, info.cells_x):
+        if (medium_map[ii] != medium_map[ii-1]):
+            splits[index] = ii
+            index += 1
+    # Add final edge
+    splits[index] = info.cells_x
+    # Return only necessary values
+    return splits[:index+1]
+
+########################################################################
 # Multigroup functions
 ########################################################################
 
