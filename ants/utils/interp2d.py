@@ -487,34 +487,55 @@ class BlockInterpolation:
         self.psi = np.asarray(psi)
         self.knots_x = np.asarray(knots_x)
         self.knots_y = np.asarray(knots_y)
-        self.medium_map = np.asarray(medium_map)
         # Determine knot splits
-        self.x_splits, self.y_splits = pytools._to_block(self.medium_map)
-        
+        self.x_splits, self.y_splits = pytools._to_block(np.asarray(medium_map))
+        self._generate_coefs()
+
+
+    def _generate_coefs(self):
+        # Create 2D list of Interpolations
+        self.splines = []
+        for (x1, x2) in zip(self.x_splits[:-1], self.x_splits[1:]):
+            one_col = []
+            for (y1, y2) in zip(self.y_splits[:-1], self.y_splits[1:]):
+                # Initialize new spline section
+                one_col.append(self.Splines(self.psi[x1:x2,y1:y2], \
+                               self.knots_x[x1:x2], self.knots_y[y1:y2]))
+            self.splines.append(one_col)
+
 
     def interpolate(self, nx, ny):
         if isinstance(nx, float):
             nx = np.array([nx])
-        nx = np.asarray(nx)
         if isinstance(ny, float):
             ny = np.array([ny])
+        nx = np.asarray(nx)
         ny = np.asarray(ny)
-        # Determine global medium map, splits
-        n_medium_map = pytools._global_splits(self.medium_map, nx, ny)
-        nx_splits, ny_splits = pytools._to_block(n_medium_map)
         # Initialize splines
         splines_psi = np.zeros((nx.shape[0], ny.shape[0]))
-        # Iterate over each block
-        for (x1, x2, nx1, nx2) in zip(self.x_splits[:-1], self.x_splits[1:], \
-                                      nx_splits[:-1], nx_splits[1:]):
-            for (y1, y2, ny1, ny2) in zip(self.y_splits[:-1], self.y_splits[1:], \
-                                          ny_splits[:-1], ny_splits[1:]):
-                # Initialize new spline section
-                approx = self.Splines(self.psi[x1:x2,y1:y2], \
-                                self.knots_x[x1:x2], self.knots_y[y1:y2])
+        # Iterate over x blocks
+        for ii, (x1, x2) in enumerate(zip(self.x_splits[:-1], self.x_splits[1:])):
+            # Find correct x block
+            if ii == 0:
+                idx_x = np.argwhere(nx < self.knots_x[x2]).flatten()
+            elif ii == (self.x_splits.shape[0] - 2):
+                idx_x = np.argwhere(nx >= self.knots_x[x1]).flatten()
+            else:
+                idx_x = np.argwhere((nx >= self.knots_x[x1]) \
+                                    & (nx < self.knots_x[x2])).flatten()
+            # Iterate over y block
+            for jj, (y1, y2) in enumerate(zip(self.y_splits[:-1], self.y_splits[1:])):
+                # Find correct y block
+                if jj == 0:
+                    idx_y = np.argwhere(ny < self.knots_y[y2]).flatten()
+                elif jj == (self.y_splits.shape[0] - 2):
+                    idx_y = np.argwhere(ny >= self.knots_y[y1]).flatten()
+                else:
+                    idx_y = np.argwhere((ny >= self.knots_y[y1]) \
+                                    & (ny < self.knots_y[y2])).flatten()
                 # Interpolate on block
-                block = approx.interpolate(nx[nx1:nx2], ny[ny1:ny2])
-                splines_psi[nx1:nx2,ny1:ny2] = block.copy()
+                mesh_x, mesh_y = np.meshgrid(idx_x, idx_y, indexing="ij")
+                splines_psi[mesh_x,mesh_y] = self.splines[ii][jj].interpolate(nx[idx_x], ny[idx_y])
         return splines_psi
 
 
@@ -542,6 +563,8 @@ class BlockInterpolation:
 
     # Integral of X/Y - centers
     def integrate_centers(self, limits_x, limits_y):
+        limits_x = np.asarray(limits_x)
+        limits_y = np.asarray(limits_y)
         Nx = self.knots_x.shape[0]
         Ny = self.knots_y.shape[0]
         int_psi = np.zeros((Nx, Ny))
@@ -554,7 +577,7 @@ class BlockInterpolation:
                 approx = self.Splines(self.psi[x1:x2,y1:y2], \
                                 self.knots_x[x1:x2], self.knots_y[y1:y2])
                 # Interpolate on block
-                b_int_psi, b_int_dx, b_int_dy = approx.integrate_centers(\
+                b_int_psi, b_int_dx, b_int_dy = approx.integrate_centers( \
                                     limits_x[x1:x2+1], limits_y[y1:y2+1])
                 int_psi[x1:x2,y1:y2] = b_int_psi.copy()
                 int_dx[x1:x2,y1:y2] = b_int_dx.copy()

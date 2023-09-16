@@ -11,6 +11,98 @@
 
 import numpy as np
 
+
+########################################################################
+# Manufactured Solutions and Accuracy
+########################################################################
+def _spatial_error(approx, reference, ndims=1):
+    """ Calculating the spatial error between an approximation and the
+    reference solution
+    Arguments:
+        approx (array double): approximate flux
+        reference (array double): Reference flux
+        ndims (int): Number of spatial dimensions for flux (1 or 2)
+    Returns:
+        L2 error normalized for the number of spatial cells
+    """
+    assert approx.shape == reference.shape, "Not the same array shape"
+    if ndims == 1:
+        normalized = (approx.shape[0])**(-0.5)
+    elif ndims == 2:
+        normalized = (approx.shape[0] * approx.shape[1])**(-0.5)
+    return normalized * np.linalg.norm(approx - reference)
+
+
+def _spatial_accuracy(error1, error2, ratio):
+    """ Finding the order of accuracy between errors on different spatial
+    grids, where error2 is the refined grid
+    Arguments:
+        error1 (double): Error between an approximate solution and the
+            reference solution on the same grid
+        error2 (double): Error between an approximate solution and the
+            reference solution on a more refined grid
+        ratio (double): Ratio between the spatial cell width of the error1
+            grid and the error2 grid (delta x1 / delta x2)
+    Returns:
+        Order of accuracy
+    """
+    return np.log(error1 / error2) / np.log(ratio)
+
+
+def _wynn_epsilon(lst, rank):
+    """ Perform Wynn Epsilon Convergence Algorithm
+    Arguments:
+        lst: list of values for convergence
+        rank: rank of system
+    Returns:
+        2D Array where diagonal is convergence
+    """
+    N = 2 * rank + 1
+    error = np.zeros((N + 1, N + 1))
+    for ii in range(1, N + 1):
+        error[ii, 1] = lst[ii - 1]
+    for ii in range(3, N + 2):
+        for jj in range(3, ii + 1):
+            if (error[ii-1,jj-2] - error[ii-2,jj-2]) == 0.0:
+                error[ii-1,jj-1] = error[ii-2,jj-3]
+            else:
+                error[ii-1,jj-1] = error[ii-2,jj-3] \
+                            + 1 / (error[ii-1,jj-2] - error[ii-2,jj-2])
+    return abs(error[-1,-1])
+
+
+def _flux_coarsen_2d(fine_flux, fine_edges_x, fine_edges_y, coarse_edges_x, \
+        coarse_edges_y, ratio):
+    # Set coarse grid cells
+    cells_x = coarse_edges_x.shape[0] - 1
+    cells_y = coarse_edges_y.shape[0] - 1
+    # Initialize coarse flux
+    coarse_flux = np.zeros(((cells_x, cells_y,) + fine_flux.shape[2:]))
+    # Iterate over x cells
+    count_x = 0
+    for ii in range(cells_x):
+        # Keep track of x bounds
+        idx_x = np.argwhere((fine_edges_x < coarse_edges_x[ii+1]) \
+                        & (fine_edges_x >= coarse_edges_x[ii]))
+        count_x += len(idx_x)
+        count_y = 0
+        # Iterate over y cells
+        for jj in range(cells_y):
+            # Keep track of y bounds
+            idx_y = np.argwhere((fine_edges_y < coarse_edges_y[jj+1]) \
+                            & (fine_edges_y >= coarse_edges_y[jj]))
+            count_y += len(idx_y)
+            coarse_flux[ii,jj] = np.sum(fine_flux[idx_x,idx_y], axis=(0,1)) * ratio
+        # Make sure we got all columns
+        assert count_y == fine_flux.shape[1], "Not including all y cells"
+    # Make sure we got all rows
+    assert count_x == fine_flux.shape[0], "Not including all x cells"
+    return coarse_flux
+
+
+########################################################################
+# Two Dimensional Nearby Problems
+########################################################################
 def _material_index(medium_map):
     """ Finding index of one-dimensional medium map
     Arguments:
@@ -46,21 +138,3 @@ def _to_block(medium_map):
     y_splits = np.unique([ii for lst in y_splits for ii in lst])
     # Return two arrays (might be different lengths)
     return x_splits, y_splits
-
-def _global_splits(medium_map, nx, ny):
-    """ Convert 2D medium map of size (I x J) to size (Nx x Ny)
-    Arguments:
-        medium_map (int [cells_x, cells_y]): two-dimensional array of 
-            materials where each different number represents a new material
-        nx (double [nx]): one-dimensional array of points to interpolate 
-            in x direction
-        ny (double [ny]): one-dimensional array of points to interpolate 
-            in y direction
-    Returns:
-        n_medium_map (int [nx, ny])
-    """
-    ratio_x = int(nx.shape[0] / medium_map.shape[0])
-    ratio_y = int(ny.shape[0] / medium_map.shape[1])
-    n_medium_map = np.repeat(medium_map, ratio_x, axis=0)
-    n_medium_map = np.repeat(n_medium_map, ratio_y, axis=1)
-    return n_medium_map

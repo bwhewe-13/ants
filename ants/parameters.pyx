@@ -140,9 +140,18 @@ cdef int _check_nearby2d_fixed_source(params info, int xs_length) except -1:
     assert info.angles % 2 == 0, "Need an even number of angles"
     assert info.materials == xs_length, "Incorrect number of materials"
     assert info.qdim == 3, "Need (I x J x N x G) source for analysis"
-    assert info.bcdim_x == 3, "Need (2 x J x N x G) boundary for analysis"
-    assert info.bcdim_y == 3, "Need (2 x I x N x G) boundary for analysis"
+    assert info.bcdim_x == 4, "Need (2 x J x N x G) boundary for analysis"
+    assert info.bcdim_y == 4, "Need (2 x I x N x G) boundary for analysis"
     assert info.angular == True, "Need angular flux for analysis"
+    return 0
+
+
+cdef int _check_nearby2d_criticality(params info) except -1:
+    assert info.angles % 2 == 0, "Need an even number of angles"
+    assert info.qdim == 3, "Need (I x J x N x G) source for analysis"
+    assert info.bcdim_x == 1, "No boundary conditions"
+    assert info.bcdim_y == 1, "No boundary conditions"
+    # assert info.angular == True, "Need angular flux for analysis"
     return 0
 
 

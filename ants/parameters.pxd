@@ -122,6 +122,8 @@ cdef int _check_fixed2d_source_iteration(params info, int xs_length) except -1
 
 cdef int _check_nearby2d_fixed_source(params info, int xs_length) except -1
 
+cdef int _check_nearby2d_criticality(params info) except -1
+
 cdef int _check_timed2d_backward_euler(params info, int xs_length) except -1
 
 cdef int _check_critical2d_power_iteration(params info) except -1
