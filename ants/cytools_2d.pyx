@@ -263,6 +263,9 @@ cdef void boundary_decay(double[:]& boundary_x, double[:]& boundary_y, \
     elif info.bcdecay_x == 3: # Turn off after 10 microseconds
         switch = (t > 10e-6)
         _decay_x_switch(boundary_x, switch, info)
+    elif info.bcdecay_x == 4: # Turn off after 5 microseconds
+        switch = (t > 5e-6)
+        _decay_x_switch(boundary_x, switch, info)        
     # Cycle through different decay processes for y boundaries
     if info.bcdecay_y == 0: # Do nothing
         pass
@@ -273,6 +276,9 @@ cdef void boundary_decay(double[:]& boundary_x, double[:]& boundary_y, \
         _decay_y_02(boundary_y, t, info)
     elif info.bcdecay_y == 3: # Turn off after 10 microseconds
         switch = (t > 10e-6)
+        _decay_y_switch(boundary_y, switch, info)
+    elif info.bcdecay_y == 4: # Turn off after 5 microseconds
+        switch = (t > 5e-6)
         _decay_y_switch(boundary_y, switch, info)
 
 

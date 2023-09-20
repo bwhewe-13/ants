@@ -243,13 +243,15 @@ cdef void _known_sweep(double[:,:,:]& flux, double[:]& xs_total, \
     # Rectangular spatial cells
     if info.geometry == 1:
         _known_square(flux, xs_total, source, boundary_x, boundary_y, \
-                    medium_map, delta_x, delta_y, angle_x, angle_y, info)
+                      medium_map, delta_x, delta_y, angle_x, angle_y, \
+                      angle_w, info)
 
 
 cdef void _known_square(double[:,:,:]& flux, double[:]& xs_total, \
         double[:]& source, double[:]& boundary_x, double[:]& boundary_y, \
         int[:,:]& medium_map, double[:]& delta_x, double[:]& delta_y, \
-        double[:]& angle_x, double[:]& angle_y, params info):
+        double[:]& angle_x, double[:]& angle_y, double[:]& angle_w, \
+        params info):
     # Initialize indices etc
     cdef int nn, qq1, qq2, bcx1, bcx2, bcy1, bcy2
     # Set indexing

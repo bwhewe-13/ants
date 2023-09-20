@@ -10,10 +10,15 @@
 from distutils.core import Extension, setup
 from Cython.Build import cythonize
 from setuptools import setup, find_packages
+import platform
 
-ext = Extension("ants/*", sources=["ants/*.pyx"], 
-                extra_compile_args=["-fopenmp"], 
-				extra_link_args=["-fopenmp"])
+
+if platform.system() == "Darwin":
+    ext = Extension("ants/*", sources=["ants/*.pyx"])
+else:
+    ext = Extension("ants/*", sources=["ants/*.pyx"], 
+                    extra_compile_args=["-fopenmp"], 
+                    extra_link_args=["-fopenmp"])
 
 setup(  
         name='ants',

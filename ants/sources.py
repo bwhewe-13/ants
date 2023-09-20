@@ -325,7 +325,8 @@ def _boundary_1d_mms_04_05(boundary, name):
 # Boundary Conditions - 2D
 ########################################################################
 
-__boundaries2d = ("14.1-mev", "mms-01", "mms-02", "mms-03", "mms-04")
+__boundaries2d = ("14.1-mev", "2.5-mev", "mms-01", "mms-02", "mms-03", \
+                  "mms-04")
 
 def boundaries2d(name, shape_x, shape_y, **kw):
     # location is list, 0: x = 0, 1: x = X
@@ -368,6 +369,16 @@ def boundaries2d(name, shape_x, shape_y, **kw):
         loc_y = kw["loc_y"] if "loc_y" in kw.keys() else -1
         assert "energy_grid" in kw, "Need edges_g for 14.1-MeV boundary"
         group = np.argmin(abs(kw["energy_grid"] - 14.1E6))
+        if loc_x >= 0:
+            boundary_x[(loc_x, ..., group)] = 1.0
+        if loc_y >= 0:
+            boundary_y[(loc_y, ..., group)] = 1.0
+
+    elif name == "2.5-mev":
+        loc_x = kw["loc_x"] if "loc_x" in kw.keys() else -1
+        loc_y = kw["loc_y"] if "loc_y" in kw.keys() else -1
+        assert "energy_grid" in kw, "Need edges_g for 2.5-MeV boundary"
+        group = np.argmin(abs(kw["energy_grid"] - 2.5E6))
         if loc_x >= 0:
             boundary_x[(loc_x, ..., group)] = 1.0
         if loc_y >= 0:

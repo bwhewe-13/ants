@@ -103,12 +103,13 @@ def energy_grid(groups, grid):
     else:
         edges_g = np.arange(groups + 1, dtype=float)
     # Calculate the indicies for the specific grid
-    if groups == 361:
-        label = str(self.groups).zfill(3)
+    if grid == 361:
+        label = str(groups).zfill(3)
         edges_gidx = np.load(DATA_PATH + "G361_grid_index.npz")
         edges_gidx = edges_gidx[label]
     else:
         edges_gidx = energy_coarse_index(len(edges_g)-1, groups)
+    edges_gidx = edges_gidx.astype(np.int32)
     return edges_g, edges_gidx
 
 
