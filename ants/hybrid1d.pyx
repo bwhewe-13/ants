@@ -100,15 +100,12 @@ cdef double[:,:,:] multigroup_bdf1(double[:,:]& xs_total_u, \
     # Initialize collided boundary
     cdef double[2] boundary_c = [0.0, 0.0]
     # Iterate over time steps
-    for step in tqdm(range(info_u.steps)):
+    for step in tqdm(range(info_u.steps), desc="Time Steps", ascii=True):
         # Adjust boundary condition
-        tools.boundary_decay(boundary_u, step, info_u)
+        tools.boundary_decay(boundary_u, step + 1, info_u)
         # Update q_star as external + 1/(v*dt) * psi
         tools._time_source_star(flux_last, q_star, external_u, velocity_u, info_u)
         # Step 1: Solve Uncollided Equation known_source (I x N x G) -> (I x G)
-        # tools._angular_to_scalar(mg._known_source(xs_total_u, q_star, \
-        #         boundary_u, medium_map, delta_x, angle_xu, angle_wu, info_u), \
-        #         flux_u, angle_wu, info_u)
         flux_u = mg._known_source_scalar(xs_total_u, q_star, boundary_u, \
                         medium_map, delta_x, angle_xu, angle_wu, info_u)
         # Step 2: Compute collided source (I x G')

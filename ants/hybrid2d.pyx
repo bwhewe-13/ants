@@ -108,7 +108,7 @@ cdef double[:,:,:,:] multigroup_bdf1(double[:,:]& xs_total_u, \
     for step in tqdm(range(info_u.steps), desc="Time Steps", position=1, ascii=True):
     # for step in range(info_u.steps):
         # Adjust boundary condition
-        tools.boundary_decay(boundary_xu, boundary_yu, step, info_u)
+        tools.boundary_decay(boundary_xu, boundary_yu, step + 1, info_u)
         # Update q_star as external + 1/(v*dt) * psi
         tools._time_source_star(flux_last, q_star, external_u, velocity_u, info_u)
         # Step 1: Solve Uncollided Equation known_source (I x N x G) -> (I x G)
