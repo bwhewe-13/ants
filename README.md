@@ -38,5 +38,3 @@ There are also verification procedures to ensure both the code and solutions are
 ### To Do 
 - [ ] 1D / 2D Diffusion Equation
 - [ ] Correct for Ray Effects (2D)
-- [ ] (Speed up) Remove 4d array calls in `multi_group_2d.source_iteration`
-- [ ] (Speed up) Add scalar flux version of  `multi_group_2d._known_source` 

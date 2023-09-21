@@ -22,7 +22,7 @@ import numpy as np
 from tqdm.auto import tqdm
 
 from ants import angular_xy
-from ants.utils.hybrid import hybrid_coarsen_velocity, hybrid_index
+from ants.utils.hybrid import coarsen_velocity, indexing
 
 from ants cimport multi_group_2d as mg
 from ants cimport cytools_2d as tools
@@ -60,12 +60,12 @@ def backward_euler(double[:,:] xs_total_u, double[:,:,:] xs_scatter_u, \
     xs_matrix_c = tools.array_3d(info_c.materials, info_c.groups, info_c.groups)
     tools._xs_matrix(xs_matrix_c, xs_scatter_c, xs_fission_c, info_c)
     # Create collided velocity
-    velocity_c = hybrid_coarsen_velocity(velocity_u, edges_gidx)
+    velocity_c = coarsen_velocity(velocity_u, edges_gidx)
     # Create sigma_t + 1 / (v * dt)
     tools._total_velocity(xs_total_vu, velocity_u, info_u)
     tools._total_velocity(xs_total_vc, velocity_c, info_c)
     # Indexing Parameters
-    coarse_idx, fine_idx, factor = hybrid_index(info_u.groups, info_c.groups, \
+    coarse_idx, fine_idx, factor = indexing(info_u.groups, info_c.groups, \
                                                 edges_g, edges_gidx)
     # Run Backward Euler
     flux = multigroup_bdf1(xs_total_vu, xs_matrix_u, velocity_u, external_u, \

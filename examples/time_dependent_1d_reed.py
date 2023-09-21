@@ -1,6 +1,6 @@
 
 import ants
-from ants.timed1d import backward_euler
+from ants.timed1d import bdf1
 from ants.fixed1d import source_iteration
 
 import numpy as np
@@ -55,7 +55,7 @@ external = ants.externals1d("reeds", (cells, angles, groups), \
 boundary_x = np.zeros((2,))
 
 # Time Dependent
-dependent = backward_euler(xs_total, xs_scatter, xs_fission, velocity, external, \
+dependent = bdf1(xs_total, xs_scatter, xs_fission, velocity, external, \
                 boundary_x, medium_map, delta_x, angle_x, angle_w, info)
 
 # Time Independent

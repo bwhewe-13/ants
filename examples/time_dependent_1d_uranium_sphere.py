@@ -2,7 +2,7 @@
 import numpy as np
 
 import ants
-from ants.timed1d import backward_euler
+from ants.timed1d import bdf1
 
 # General conditions
 cells = 1000
@@ -52,6 +52,6 @@ external = ants.externals1d(0.0, (cells * angles * groups,))
 boundary_x = ants.boundaries1d("14.1-mev", (2, groups), [1], \
                              energy_grid=edges_g).flatten()
 
-flux = backward_euler(xs_total, xs_scatter, xs_fission, velocity, external, \
+flux = bdf1(xs_total, xs_scatter, xs_fission, velocity, external, \
             boundary_x, medium_map, delta_x, angle_x, angle_w, info)
 # np.save("time_dependent_uranium_sphere", flux)

@@ -171,15 +171,48 @@ cdef void _angular_to_scalar(double[:,:,:]& angular_flux, \
 # Time Dependent functions
 ########################################################################
 
-cdef void _total_velocity(double[:,:]& xs_total, double[:]& velocity, params info):
-    # Create sigma_t + 1 / (v * dt)
+cdef void _total_velocity(double[:,:]& xs_total, double[:]& velocity, \
+        double constant, params info):
+    # Create sigma_t + constant / (v * dt)
     cdef int mm, gg
     for gg in range(info.groups):
         for mm in range(info.materials):
-            xs_total[mm,gg] += 1 / (velocity[gg] * info.dt)
+            xs_total[mm,gg] += constant / (velocity[gg] * info.dt)
 
 
-cdef void _time_source_total(double[:]& source, double[:,:]& scalar_flux, \
+cdef void _time_source_star_bdf1(double[:,:,:]& flux, double[:]& q_star, \
+        double[:]& external, double[:]& velocity, params info):
+    # Combining the source (I x N x G) with the angular flux (I x N x G)
+    # Initialize iterables
+    cdef int ii, nn, gg, loc
+    # Zero out previous values
+    q_star[:] = 0.0
+    for gg in range(info.groups):
+        for nn in range(info.angles):
+            for ii in range(info.cells_x):
+                loc = gg + info.groups * (nn + ii * info.angles)
+                q_star[loc] = external[loc] + flux[ii,nn,gg] \
+                                * 1 / (velocity[gg] * info.dt)
+
+
+cdef void _time_source_star_bdf2(double[:,:,:]& flux_1, \
+        double[:,:,:]& flux_2, double[:]& q_star, double[:]& external, \
+        double[:]& velocity, params info):
+    # Combining the source (I x N x G) with the angular flux (I x N x G)
+    # Initialize iterables
+    cdef int ii, nn, gg, loc
+    # Zero out previous values
+    q_star[:] = 0.0
+    for gg in range(info.groups):
+        for nn in range(info.angles):
+            for ii in range(info.cells_x):
+                loc = gg + info.groups * (nn + ii * info.angles)
+                q_star[loc] = external[loc] \
+                            + flux_1[ii,nn,gg] * 2 / (velocity[gg] * info.dt) \
+                            - flux_2[ii,nn,gg] * 1 / (2 * velocity[gg] * info.dt)
+
+
+cdef void _time_source_total_bdf1(double[:]& source, double[:,:]& scalar_flux, \
         double[:,:,:]& angular_flux, double[:,:,:]& xs_matrix, \
         double[:]& velocity, int[:]& medium_map, double[:]& external, \
         params info):
@@ -199,19 +232,25 @@ cdef void _time_source_total(double[:]& source, double[:,:]& scalar_flux, \
                                 * 1 / (velocity[og] * info.dt)
 
 
-cdef void _time_source_star(double[:,:,:]& angular_flux, double[:]& q_star, \
-        double[:]& external, double[:]& velocity, params info):
-    # Combining the source (I x N x G) with the angular flux (I x N x G)
+cdef void _time_source_total_bdf2(double[:]& source, double[:,:]& scalar_flux, \
+        double[:,:,:]& angular_flux_1, double[:,:,:]& angular_flux_2, \
+        double[:,:,:]& xs_matrix, double[:]& velocity, int[:]& medium_map, \
+        double[:]& external, params info):
+    # Create (sigma_s + sigma_f) * phi + external + 1/(v*dt) * psi function
     # Initialize iterables
-    cdef int ii, nn, gg, loc
+    cdef int ii, nn, ig, og, mat, loc
     # Zero out previous values
-    q_star[:] = 0.0
-    for gg in range(info.groups):
+    source[:] = 0.0
+    for ii in range(info.cells_x):
+        mat = medium_map[ii]
         for nn in range(info.angles):
-            for ii in range(info.cells_x):
-                loc = gg + info.groups * (nn + ii * info.angles)
-                q_star[loc] = external[loc] + angular_flux[ii,nn,gg] \
-                                * 1 / (velocity[gg] * info.dt)
+            for og in range(info.groups):
+                loc = og + info.groups * (nn + ii * info.angles)
+                for ig in range(info.groups):
+                    source[loc] += scalar_flux[ii,ig] * xs_matrix[mat,og,ig]
+                source[loc] += external[loc] \
+                        + angular_flux_1[ii,nn,og] * 2 / (velocity[og] * info.dt) \
+                        - angular_flux_2[ii,nn,og] * 1 / (2 * velocity[og] * info.dt)
 
 
 cdef void boundary_decay(double[:]& boundary_x, int step, params info):

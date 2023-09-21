@@ -105,7 +105,9 @@ cdef int _check_nearby1d_fixed_source(params info, int xs_length) except -1
 
 cdef int _check_nearby1d_criticality(params info) except -1
 
-cdef int _check_timed1d_backward_euler(params info, int xs_length) except -1
+cdef int _check_timed1d_bdf1(params info, int xs_length) except -1
+
+cdef int _check_timed1d_bdf2(params info, int xs_length) except -1
 
 cdef int _check_critical1d_power_iteration(params info) except -1
 
@@ -114,6 +116,10 @@ cdef int _check_critical1d_nearby_power(params info) except -1
 cdef int _check_hybrid1d_bdf1_uncollided(params info, int xs_length) except -1
 
 cdef int _check_hybrid1d_bdf1_collided(params info, int xs_length) except -1
+
+cdef int _check_hybrid1d_bdf2_uncollided(params info, int xs_length) except -1
+
+cdef int _check_hybrid1d_bdf2_collided(params info, int xs_length) except -1
 
 ########################################################################
 # Two-dimensional functions

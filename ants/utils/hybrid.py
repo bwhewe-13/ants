@@ -31,7 +31,7 @@ def energy_coarse_index(fine, coarse):
     return np.cumsum(np.insert(index, 0, 0), dtype=np.int32)
 
 
-def hybrid_coarsen_materials(xs_total, xs_scatter, xs_fission, edges_g, \
+def coarsen_materials(xs_total, xs_scatter, xs_fission, edges_g, \
         edges_gidx):
     """ Coarsen (materials x groups) arrays to (materials x groups')
     Arguments:
@@ -110,7 +110,7 @@ def _xs_matrix_coarsen(matrix, edges_g, edges_gidx):
     return coarse
 
 
-def hybrid_coarsen_velocity(vector, edges_gidx):
+def coarsen_velocity(vector, edges_gidx):
     """ Coarsen (groups) vector to (groups')
     Arguments:
         vector (float [groups]): Array to coarsen
@@ -130,7 +130,7 @@ def hybrid_coarsen_velocity(vector, edges_gidx):
 # Indexing for Hybrid Methods
 ########################################################################
 
-def hybrid_index(groups_fine, groups_coarse, edges_g, edges_gidx):
+def indexing(groups_fine, groups_coarse, edges_g, edges_gidx):
     """ Calculate the variables needed for refining and coarsening fluxes
     Arguments:
         groups_fine (int): Number of fine energy groups
@@ -146,15 +146,15 @@ def hybrid_index(groups_fine, groups_coarse, edges_g, edges_gidx):
         factor (float [groups_fine]): Fine energy bin width / coarse energy
                             bin width for specific location
     """
-    coarse_idx = _collided_index(groups_fine, edges_gidx)
     fine_idx = _uncollided_index(groups_coarse, edges_gidx)
+    coarse_idx = _collided_index(groups_fine, edges_gidx)
     # Convert from memoryview
     edges_g = np.asarray(edges_g)
     # Calculate energy bin widths
     delta_fine = np.diff(edges_g)
     delta_coarse = np.diff(edges_g[edges_gidx])
     factor = _hybrid_factor(delta_fine, delta_coarse, edges_gidx)
-    return coarse_idx, fine_idx, factor
+    return fine_idx, coarse_idx, factor
 
 
 def _collided_index(groups_fine, edges_gidx):

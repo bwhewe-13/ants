@@ -2,8 +2,8 @@
 import numpy as np
 
 import ants
-from ants.hybrid1d import backward_euler
-from ants.utils.hybrid import hybrid_coarsen_materials as coarsen
+from ants.hybrid1d import bdf1
+from ants.utils.hybrid import coarsen_materials as coarsen
 
 # General conditions
 cells = 1000
@@ -77,7 +77,7 @@ external = ants.externals1d(0.0, (cells * angles_u * groups_u,))
 boundary_x = ants.boundaries1d("14.1-mev", (2, groups_u), [0], \
                              energy_grid=edges_g).flatten()
 
-flux = backward_euler(xs_total_u, xs_scatter_u, xs_fission_u, xs_total_c, \
+flux = bdf1(xs_total_u, xs_scatter_u, xs_fission_u, xs_total_c, \
             xs_scatter_c, xs_fission_c, velocity, external, boundary_x, \
             medium_map, delta_x, edges_g, edges_gidx, info_u, info_c)
 

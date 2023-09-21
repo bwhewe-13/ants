@@ -1,6 +1,6 @@
 
 import ants
-from ants.hybrid1d import backward_euler
+from ants.hybrid1d import bdf1
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -75,7 +75,7 @@ external = ants.externals1d("reeds", (cells, angles_u, groups_u), \
                           edges_x=edges_x, bc=[0,0]).flatten()
 boundary_x = np.zeros((2,))
 
-flux = backward_euler(xs_total_u, xs_scatter_u, xs_fission_u, xs_total_c, \
+flux = bdf1(xs_total_u, xs_scatter_u, xs_fission_u, xs_total_c, \
             xs_scatter_c, xs_fission_c, velocity, external, boundary_x, \
             medium_map, delta_x, edges_g, edges_gidx, info_u, info_c)
 

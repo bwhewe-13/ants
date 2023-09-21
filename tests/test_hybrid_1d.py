@@ -15,18 +15,19 @@ import numpy as np
 
 import ants
 from ants import hybrid1d
-from ants.utils.hybrid import hybrid_coarsen_materials as coarsen
+from ants.utils import hybrid as hytools
+# import hybrid_coarsen_materials as coarsen
 
 # Path for reference solutions
 PATH = "data/references_multigroup/"
 
 @pytest.mark.slab1d
 @pytest.mark.hybrid
-@pytest.mark.backward_euler
+@pytest.mark.bdf1
 @pytest.mark.multigroup1d
 @pytest.mark.parametrize(("angles_c", "groups_c"), [(8, 87), (2, 87), \
                         (8, 43), (2, 43)])
-def test_slab_01_backward_euler(angles_c, groups_c):
+def test_slab_01_bdf1(angles_c, groups_c):
     # General Parameters
     cells = 1000
     angles_u = 8
@@ -69,9 +70,11 @@ def test_slab_01_backward_euler(angles_c, groups_c):
     centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
     # Energy Grid
     edges_g, edges_gidx = ants.energy_grid(groups_c, 87)
-    velocity = ants.energy_velocity(groups_u, edges_g)
+    velocity_u = ants.energy_velocity(groups_u, edges_g)
+    velocity_c = hytools.coarsen_velocity(velocity_u, edges_gidx)
     # Angular
-    angle_x, angle_w = ants.angular_x(info_u)
+    angle_xu, angle_wu = ants.angular_x(info_u)
+    angle_xc, angle_wc = ants.angular_x(info_c)
     # Medium Map
     layers = [[0, "stainless-steel-440", "0-4, 6-10"], \
                  [1, "uranium-%20%", "4-6"]]
@@ -80,17 +83,20 @@ def test_slab_01_backward_euler(angles_c, groups_c):
     materials = np.array(layers)[:,1]
     xs_total_u, xs_scatter_u, xs_fission_u = ants.materials(groups_u, materials)
     # Cross Sections - Collided
-    xs_total_c, xs_scatter_c, xs_fission_c = coarsen(xs_total_u, \
-                        xs_scatter_u, xs_fission_u, edges_g, edges_gidx)
+    xs_total_c, xs_scatter_c, xs_fission_c = hytools.coarsen_materials( \
+            xs_total_u, xs_scatter_u, xs_fission_u, edges_g, edges_gidx)
     # External and boundary sources
     external = ants.externals1d(0.0, (cells * angles_u * groups_u,))
     boundary_x = ants.boundaries1d("14.1-mev", (2, groups_u), [0], \
                                  energy_grid=edges_g).flatten()
+    # Indexing Parameters
+    fine_idx, coarse_idx, factor = hytools.indexing(groups_u, groups_c, \
+                                                    edges_g, edges_gidx)
     # Run Hybrid Method
-    flux = hybrid1d.backward_euler(xs_total_u, xs_scatter_u, xs_fission_u, \
-                        xs_total_c, xs_scatter_c, xs_fission_c, velocity, \
-                        external, boundary_x, medium_map, delta_x, edges_g, \
-                        edges_gidx, info_u, info_c)
+    flux = hybrid1d.bdf1(xs_total_u, xs_scatter_u, xs_fission_u, xs_total_c, \
+                xs_scatter_c, xs_fission_c, velocity_u, velocity_c, external, \
+                boundary_x, medium_map, delta_x, angle_xu, angle_wu, angle_xc, \
+                angle_wc, fine_idx, coarse_idx, factor, info_u, info_c)
     # Load Reference flux
     params = f"g87g{groups_c}_n8n{angles_c}_flux.npy"
     reference = np.load(PATH + "hybrid_uranium_slab_backward_euler_" + params)
