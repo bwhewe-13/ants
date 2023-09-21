@@ -72,9 +72,6 @@ def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x, \
     return numerical_flux, curve_fit_flux, nearby_flux
 
 
-
-
-
 cdef void _curve_fit_centers(double[:,:,:]& flux, double[:,:,:]& curve_fit, \
         double[:,:,:]& boundary_x, double[:,:,:]& integral, \
         double[:,:,:]& dintegral, double[:,:]& sintegral, int[:]& splits, \

@@ -19,7 +19,7 @@
 # distutils: language = c++
 
 import numpy as np
-
+from tqdm.auto import tqdm
 
 from ants import fixed2d, critical2d
 from ants.utils.interp2d import BlockInterpolation as Block
@@ -54,7 +54,7 @@ def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x, \
     int_dy = tools.array_4d(info.cells_x, info.cells_y, NN, info.groups)
     int_phi = tools.array_3d(info.cells_x, info.cells_y, info.groups)
     # Calculate curve fit at knots
-    print("Calculating Analytical Solution...", end="\r")
+    print("Calculating Analytical Solution...")
     # Knots at cell centers
     if knots_x.shape[0] == info.cells_x:
         edges_x = np.insert(np.cumsum(delta_x), 0, 0)
@@ -69,15 +69,17 @@ def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x, \
         _curve_fit_edges(numerical_flux, curve_fit_flux, curve_fit_boundary_x, \
                 curve_fit_boundary_y, int_psi, int_dx, int_dy, int_phi, \
                 medium_map, knots_x, knots_y, centers_x, centers_y, angle_w, info)
-    print("Calculating Residual...", end="\r")
+    print("Calculating Residual...")
     # Calculate residual for each cell
     residual = tools.array_4d(info.cells_x, info.cells_y, NN, info.groups)
     _residual_integral(residual, int_psi, int_dx, int_dy, int_phi, xs_total, \
                        xs_scatter, xs_fission, external, medium_map, \
                        delta_x, delta_y, angle_x, angle_y, info)
-    # np.save("nearby-residual", np.asarray(residual))
+    np.save(f"nearby_residual_s{info.angles}", np.asarray(residual))
+    np.save(f"nearby_boundary_x_s{info.angles}", np.asarray(curve_fit_boundary_x))
+    np.save(f"nearby_boundary_y_s{info.angles}", np.asarray(curve_fit_boundary_y))
     # Run Nearby Problem
-    print("Calculating Nearby Solution...", end="\r")
+    print("Calculating Nearby Solution...")
     info.edges = 0
     nearby_flux = fixed2d.source_iteration(xs_total, xs_scatter, \
                         xs_fission, (external + residual).flatten(), \
@@ -105,9 +107,11 @@ cdef void _curve_fit_centers(double[:,:,:,:]& flux, double[:,:,:,:]& curve_fit, 
     # Iterate over groups
     for gg in range(info.groups):
         # Iterate over angles
-        for nn in range(NN):
+        for nn in tqdm(range(NN), desc="Curve Fit Angles", ascii=True):
+        # for nn in range(NN):
             # Create function
-            approx = Block(Hermite, flux[:,:,nn,gg], knots_x, knots_y, medium_map)
+            # approx = Block(Hermite, flux[:,:,nn,gg], knots_x, knots_y, medium_map)
+            approx = Hermite(flux[:,:,nn,gg], knots_x, knots_y)
             # Interpolate the knots
             spline = approx.interpolate(knots_x, knots_y)
             curve_fit[...,nn,gg] = spline[:,:]
@@ -122,8 +126,6 @@ cdef void _curve_fit_centers(double[:,:,:,:]& flux, double[:,:,:,:]& curve_fit, 
             integral[...,nn,gg] = int_psi[:,:]
             dxintegral[...,nn,gg] = int_dx[:,:]
             dyintegral[...,nn,gg] = int_dy[:,:]
-    # np.save("boundary_x", np.asarray(boundary_x))
-    # np.save("boundary_y", np.asarray(boundary_y))
     tools._angular_to_scalar(integral, sintegral, angle_w, info)
 
 

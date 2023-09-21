@@ -152,9 +152,9 @@ class CubicHermite:
                       [-3, 3, -2, -1], [2, -2, 1, 1]])
 
     def __init__(self, psi, knots_x, knots_y):
-        self.psi = psi
-        self.knots_x = knots_x
-        self.knots_y = knots_y
+        self.psi = np.asarray(psi)
+        self.knots_x = np.asarray(knots_x)
+        self.knots_y = np.asarray(knots_y)
         self._generate_coefs()
 
     def _generate_coefs(self):
@@ -195,6 +195,12 @@ class CubicHermite:
         return t, idx
 
     def interpolate(self, nx, ny):
+        if isinstance(nx, float):
+            nx = np.array([nx])
+        if isinstance(ny, float):
+            ny = np.array([ny])
+        nx = np.asarray(nx)
+        ny = np.asarray(ny)
         # Normalize x input
         tx, idx_x = self._normalize_input(nx, self.knots_x)
         # Normalize y input
@@ -251,6 +257,8 @@ class CubicHermite:
 
     # Integral of X/Y - centers
     def integrate_centers(self, limits_x, limits_y):
+        limits_x = np.asarray(limits_x)
+        limits_y = np.asarray(limits_y)
         Nx = self.knots_x.shape[0]
         Ny = self.knots_y.shape[0]
         int_psi = np.zeros((Nx, Ny))
@@ -307,9 +315,9 @@ class QuinticHermite:
                       [15, -15, 8, 7, 1.5, -1], [-6, 6, -3, -3, -0.5, 0.5]])
 
     def __init__(self, psi, knots_x, knots_y):
-        self.psi = psi
-        self.knots_x = knots_x
-        self.knots_y = knots_y
+        self.psi = np.asarray(psi)
+        self.knots_x = np.asarray(knots_x)
+        self.knots_y = np.asarray(knots_y)
         self._generate_coefs()
 
     def _generate_coefs(self):
@@ -361,6 +369,12 @@ class QuinticHermite:
         return idx
 
     def interpolate(self, nx, ny):
+        if isinstance(nx, float):
+            nx = np.array([nx])
+        if isinstance(ny, float):
+            ny = np.array([ny])
+        nx = np.asarray(nx)
+        ny = np.asarray(ny)
         # Normalize x input
         idx_x = self._find_zone(nx, self.knots_x)
         tx = (nx - self.knots_x[idx_x]) / (self.knots_x[idx_x+1] - self.knots_x[idx_x])
@@ -430,6 +444,8 @@ class QuinticHermite:
 
     # Integral of X/Y - centers
     def integrate_centers(self, limits_x, limits_y):
+        limits_x = np.asarray(limits_x)
+        limits_y = np.asarray(limits_y)
         Nx = self.knots_x.shape[0]
         Ny = self.knots_y.shape[0]
         int_psi = np.zeros((Nx, Ny))
