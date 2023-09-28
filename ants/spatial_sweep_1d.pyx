@@ -51,8 +51,8 @@ cdef void slab_ordinates(double[:]& flux, double[:]& flux_old, \
     # Initialize external and boundary indices, iterables
     cdef int nn, qq1, qq2, bc1, bc2
     # Set indexing for external and boundary sources
-    qq2 = 1 if info.qdim != 3 else info.angles
-    bc2 = 1 if info.bcdim_x != 3 else info.angles
+    qq2 = 1 if info.qdim < 3 else info.angles
+    bc2 = 1 if info.bcdim_x < 3 else info.angles
     # Initialize unknown cell edge
     cdef double edge = 0.0
     # Add reflector array
@@ -69,8 +69,8 @@ cdef void slab_ordinates(double[:]& flux, double[:]& flux_old, \
         reflector[:] = 0.0
         for nn in range(info.angles):
             # Determine dimensions of external and boundary sources
-            qq1 = 0 if info.qdim != 3 else nn
-            bc1 = 0 if info.bcdim_x != 3 else nn
+            qq1 = 0 if info.qdim < 3 else nn
+            bc1 = 0 if info.bcdim_x < 3 else nn
             # Perform spatial sweep
             edge = slab_sweep(flux, flux_old, xs_total, xs_scatter, off_scatter, \
                         external[qq1::qq2], boundary_x[bc1::bc2], medium_map, \
@@ -194,8 +194,8 @@ cdef void sphere_ordinates(double[:]& flux, double[:]& flux_old, double[:]& xs_t
     # Initialize external and boundary indices, iterables
     cdef int nn, qq1, qq2, bc1, bc2
     # Set indexing for external and boundary sources
-    qq2 = 1 if info.qdim != 3 else info.angles
-    bc2 = 1 if info.bcdim_x != 3 else info.angles
+    qq2 = 1 if info.qdim < 3 else info.angles
+    bc2 = 1 if info.bcdim_x < 3 else info.angles
     # Initialize sphere specific terms
     cdef double angle_minus, angle_plus, tau
     cdef double alpha_minus, alpha_plus
@@ -219,8 +219,8 @@ cdef void sphere_ordinates(double[:]& flux, double[:]& flux_old, double[:]& xs_t
         # Iterate over all the discrete ordinates
         for nn in range(info.angles):
             # Determine dimensions of external and boundary sources
-            qq1 = 0 if info.qdim != 3 else nn
-            bc1 = 0 if info.bcdim_x != 3 else nn
+            qq1 = 0 if info.qdim < 3 else nn
+            bc1 = 0 if info.bcdim_x < 3 else nn
             # Calculate the half angle coefficient
             angle_plus = angle_minus + 2 * angle_w[nn]
             # Calculate the weighted diamond
@@ -419,8 +419,8 @@ cdef void _known_slab(double[:,:]& flux, double[:]& xs_total, \
     # Initialize external and boundary indices, iterables
     cdef int nn, qq1, qq2, bc1, bc2
     # Set indexing for external and boundary sources
-    qq2 = 1 if info.qdim != 3 else info.angles
-    bc2 = 1 if info.bcdim_x != 3 else info.angles
+    qq2 = 1 if info.qdim < 3 else info.angles
+    bc2 = 1 if info.bcdim_x < 3 else info.angles
     # Initialize unknown cell edge
     cdef double edge = 0.0
     # Add dummy dimension to run both (I x N) and (I) fluxes
@@ -430,8 +430,8 @@ cdef void _known_slab(double[:,:]& flux, double[:]& xs_total, \
     # Iterate over all the discrete ordinates
     for nn in range(info.angles):
         # Determine dimensions of external and boundary sources
-        qq1 = 0 if info.qdim != 3 else nn
-        bc1 = 0 if info.bcdim_x != 3 else nn
+        qq1 = 0 if info.qdim < 3 else nn
+        bc1 = 0 if info.bcdim_x < 3 else nn
         # Perform spatial sweep on scalar flux
         if (xdim == 1):
             edge = slab_sweep(flux[:,0], zero, xs_total, zero, zero, \
@@ -453,8 +453,8 @@ cdef void _known_sphere(double[:,:]& flux, double[:]& xs_total, \
     # Initialize external and boundary indices, iterables
     cdef int nn, qq1, qq2, bc1, bc2
     # Set indexing for external and boundary sources
-    qq2 = 1 if info.qdim != 3 else info.angles
-    bc2 = 1 if info.bcdim_x != 3 else info.angles
+    qq2 = 1 if info.qdim < 3 else info.angles
+    bc2 = 1 if info.bcdim_x < 3 else info.angles
     # Initialize sphere specific terms
     cdef double angle_minus, angle_plus, tau
     cdef double alpha_minus, alpha_plus
@@ -470,8 +470,8 @@ cdef void _known_sphere(double[:,:]& flux, double[:]& xs_total, \
     # Iterate over all the discrete ordinates
     for nn in range(info.angles):
         # Determine dimensions of external and boundary sources
-        qq1 = 0 if info.qdim != 3 else nn
-        bc1 = 0 if info.bcdim_x != 3 else nn
+        qq1 = 0 if info.qdim < 3 else nn
+        bc1 = 0 if info.bcdim_x < 3 else nn
         # Calculate the half angle coefficient
         angle_plus = angle_minus + 2 * angle_w[nn]
         # Calculate the weighted diamond

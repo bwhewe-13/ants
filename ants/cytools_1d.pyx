@@ -195,10 +195,40 @@ cdef void _time_source_star_bdf1(double[:,:,:]& flux, double[:]& q_star, \
                                 * 1 / (velocity[gg] * info.dt)
 
 
+cdef void _time_source_star_cn(double[:,:,:]& psi_edges, double[:,:]& phi, \
+        double[:,:]& xs_total, double[:,:,:]& xs_scatter, \
+        double[:]& velocity, double[:]& q_star, double[:]& source_last, \
+        double[:]& source, int[:]& medium_map, double[:]& delta_x, \
+        double[:]& angle_x, double constant, int step, params info):
+    # Combining the source (I x N x G) with the angular flux (I x N x G)
+    # source_last is time step \ell, source is time step \ell + 1
+    # Initialize iterables
+    cdef int ii, mat, nn, og, ig, loc
+    # Initialize angular flux center estimates
+    cdef double psi, dpsi
+    # Zero out previous values
+    q_star[:] = 0.0
+    for ii in range(info.cells_x):
+        mat = medium_map[ii]
+        for nn in range(info.angles):
+            for og in range(info.groups):
+                psi = 0.5 * (psi_edges[ii,nn,og] + psi_edges[ii+1,nn,og])
+                dpsi = (psi_edges[ii+1,nn,og] - psi_edges[ii,nn,og]) / delta_x[ii]
+                loc = og + info.groups * (nn + ii * info.angles)
+                for ig in range(info.groups):
+                    q_star[loc] += phi[ii,ig] * xs_scatter[mat,og,ig]
+                if step != 0:
+                    q_star[loc] += source_last[loc]
+                q_star[loc] += source[loc] - angle_x[nn] * dpsi \
+                            + psi * (constant / (velocity[og] * info.dt) \
+                                     - xs_total[mat,og])
+
+
 cdef void _time_source_star_bdf2(double[:,:,:]& flux_1, \
         double[:,:,:]& flux_2, double[:]& q_star, double[:]& external, \
         double[:]& velocity, params info):
     # Combining the source (I x N x G) with the angular flux (I x N x G)
+    # flux_1 is time step \ell - 1, flux_2 is time step \ell - 2
     # Initialize iterables
     cdef int ii, nn, gg, loc
     # Zero out previous values
@@ -208,49 +238,42 @@ cdef void _time_source_star_bdf2(double[:,:,:]& flux_1, \
             for ii in range(info.cells_x):
                 loc = gg + info.groups * (nn + ii * info.angles)
                 q_star[loc] = external[loc] \
-                            + flux_1[ii,nn,gg] * 2 / (velocity[gg] * info.dt) \
-                            - flux_2[ii,nn,gg] * 1 / (2 * velocity[gg] * info.dt)
+                        + flux_1[ii,nn,gg] * 2 / (velocity[gg] * info.dt) \
+                        - flux_2[ii,nn,gg] * 1 / (2 * velocity[gg] * info.dt)
 
 
-cdef void _time_source_total_bdf1(double[:]& source, double[:,:]& scalar_flux, \
-        double[:,:,:]& angular_flux, double[:,:,:]& xs_matrix, \
-        double[:]& velocity, int[:]& medium_map, double[:]& external, \
-        params info):
+cdef void _time_source_star_tr_bdf2(double[:,:,:]& flux_1, \
+        double[:,:,:]& flux_2, double[:]& q_star, double[:]& external, \
+        double[:]& velocity, double gamma, params info):
+    # Combining the source (I x N x G) with the angular flux (I x N x G)
+    # flux_1 is time step \ell (edges), flux_2 is time step \ell + gamma (centers)
+    # Initialize iterables
+    cdef int ii, nn, gg, loc
+    # Zero out previous values
+    q_star[:] = 0.0
+    for gg in range(info.groups):
+        for nn in range(info.angles):
+            for ii in range(info.cells_x):
+                loc = gg + info.groups * (nn + ii * info.angles)
+                q_star[loc] = external[loc] + flux_2[ii,nn,gg] \
+                        * 1 / (gamma * (1 - gamma) * velocity[gg] * info.dt) \
+                        - 0.5 * (flux_1[ii,nn,gg] + flux_1[ii+1,nn,gg]) \
+                        * (1 - gamma) / (gamma * velocity[gg] * info.dt)
+
+
+cdef void _time_right_side(double[:]& q_star, double[:,:]& flux, \
+        double[:,:,:]& xs_scatter, int[:]& medium_map, params info):
     # Create (sigma_s + sigma_f) * phi + external + 1/(v*dt) * psi function
     # Initialize iterables
     cdef int ii, nn, ig, og, mat, loc
     # Zero out previous values
-    source[:] = 0.0
     for ii in range(info.cells_x):
         mat = medium_map[ii]
         for nn in range(info.angles):
             for og in range(info.groups):
                 loc = og + info.groups * (nn + ii * info.angles)
                 for ig in range(info.groups):
-                    source[loc] += scalar_flux[ii,ig] * xs_matrix[mat,og,ig]
-                source[loc] += external[loc] + angular_flux[ii,nn,og] \
-                                * 1 / (velocity[og] * info.dt)
-
-
-cdef void _time_source_total_bdf2(double[:]& source, double[:,:]& scalar_flux, \
-        double[:,:,:]& angular_flux_1, double[:,:,:]& angular_flux_2, \
-        double[:,:,:]& xs_matrix, double[:]& velocity, int[:]& medium_map, \
-        double[:]& external, params info):
-    # Create (sigma_s + sigma_f) * phi + external + 1/(v*dt) * psi function
-    # Initialize iterables
-    cdef int ii, nn, ig, og, mat, loc
-    # Zero out previous values
-    source[:] = 0.0
-    for ii in range(info.cells_x):
-        mat = medium_map[ii]
-        for nn in range(info.angles):
-            for og in range(info.groups):
-                loc = og + info.groups * (nn + ii * info.angles)
-                for ig in range(info.groups):
-                    source[loc] += scalar_flux[ii,ig] * xs_matrix[mat,og,ig]
-                source[loc] += external[loc] \
-                        + angular_flux_1[ii,nn,og] * 2 / (velocity[og] * info.dt) \
-                        - angular_flux_2[ii,nn,og] * 1 / (2 * velocity[og] * info.dt)
+                    q_star[loc] += flux[ii,ig] * xs_scatter[mat,og,ig]
 
 
 cdef void boundary_decay(double[:]& boundary_x, int step, params info):
