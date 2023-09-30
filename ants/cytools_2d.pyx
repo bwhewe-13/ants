@@ -170,8 +170,7 @@ cdef void _initialize_edge_y(double[:]& known_y, double[:]& boundary_y, \
     if info.bcdim_y == 1:
         known_y[:] = boundary_y[loc]
     else:
-        width = info.cells_x + info.edges
-        known_y[:] = boundary_y[loc * width:(loc+1) * width]
+        known_y[:] = boundary_y[loc * info.cells_x:(loc+1) * info.cells_x]
 
 
 cdef void _initialize_edge_x(double[:]& known_x, double[:]& boundary_x, \
@@ -192,8 +191,7 @@ cdef void _initialize_edge_x(double[:]& known_x, double[:]& boundary_x, \
     if info.bcdim_x == 1:
         known_x[:] = boundary_x[loc]
     else:
-        width = info.cells_y + info.edges
-        known_x[:] = boundary_x[loc * width:(loc+1) * width]
+        known_x[:] = boundary_x[loc * info.cells_y:(loc+1) * info.cells_y]
 
 
 ########################################################################

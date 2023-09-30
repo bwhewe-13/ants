@@ -99,26 +99,21 @@ cdef void square_forward_y(double[:,:]& flux, double[:,:]& flux_old, \
         int[:,:]& medium_map, double[:]& delta_x, double[:]& delta_y, \
         double angle_x, double angle_y, double angle_w, params info):
     # Initialize iterables
-    cdef int jj, cell
-    cdef double coef_y, edge_y, const
+    cdef int jj
+    cdef double coef_y, const
     # Step vs Diamond
     const = 2.0 if info.spatial == 2 else 1.0
-    # Determine flux edges
-    # if info.edges:
-    #     flux[:,0] = known_x[:]
     # Iterate over Y spatial cells
     for jj in range(info.cells_y):
         coef_y = const * angle_y / delta_y[jj]
-        cell = jj + 1 if info.edges else jj
-        # edge_y = 0.5 * (known_x[jj] + known_x[cell])
         if angle_x > 0.0:
-            known_x[cell] = square_forward_x(flux[:,cell], flux_old[:,cell], \
+            known_x[jj] = square_forward_x(flux[:,jj], flux_old[:,jj], \
                                 xs_total, xs_scatter, off_scatter[:,jj], \
                                 external[jj::info.cells_y], known_x[jj], \
                                 known_y, medium_map[:,jj], delta_x, angle_x, \
                                 angle_w, coef_y, info)
         elif angle_x < 0.0:
-            known_x[cell] = square_backward_x(flux[:,cell], flux_old[:,cell], \
+            known_x[jj] = square_backward_x(flux[:,jj], flux_old[:,jj], \
                                 xs_total, xs_scatter, off_scatter[:,jj], \
                                 external[jj::info.cells_y], known_x[jj], \
                                 known_y, medium_map[:,jj], delta_x, angle_x, \
@@ -131,18 +126,13 @@ cdef void square_backward_y(double[:,:]& flux, double[:,:]& flux_old, \
         int[:,:]& medium_map, double[:]& delta_x, double[:]& delta_y, \
         double angle_x, double angle_y, double angle_w, params info):
     # Initialize iterable
-    cdef int jj, cell
-    cdef double coef_y, edge_y, const
+    cdef int jj
+    cdef double coef_y, const
     # Step vs Diamond
     const = 2.0 if info.spatial == 2 else 1.0
-    # Determine flux edges
-    # if info.edges:
-    #     flux[:,info.cells_y] = known_x[:]
     # Iterate over Y spatial cells
     for jj in range(info.cells_y-1, -1, -1):
         coef_y = -const * angle_y / delta_y[jj]
-        # cell = jj + 1 if info.edges else jj
-        # edge_y = 0.5 * (known_x[jj] + known_x[cell])
         if angle_x > 0.0:
             known_x[jj] = square_forward_x(flux[:,jj], flux_old[:,jj], \
                                 xs_total, xs_scatter, off_scatter[:,jj], \
@@ -167,9 +157,6 @@ cdef double square_forward_x(double[:]& flux, double[:]& flux_old, \
     cdef double center, coef_x, const
     # Step vs Diamond
     const = 2.0 if info.spatial == 2 else 1.0
-    # Determine flux edge
-    # if info.edges:
-    #     flux[0] += angle_w * edge_x
     # Iterate over X spatial cells
     for ii in range(info.cells_x):
         mat = medium_map[ii]
@@ -177,12 +164,8 @@ cdef double square_forward_x(double[:]& flux, double[:]& flux_old, \
         center = (coef_x * edge_x + coef_y * edge_y[ii] + xs_scatter[mat] \
                     * flux_old[ii] + external[ii] + off_scatter[ii]) \
                     / (xs_total[mat] + coef_x + coef_y)
-        # Update flux with cell edges
-        if info.edges:
-            flux[ii+1] += angle_w * (2 * center - edge_x)
         # Update flux with cell centers
-        else:
-            flux[ii] += angle_w * center
+        flux[ii] += angle_w * center
         # Update known flux with step method
         if info.spatial == 1:
             edge_x = center
@@ -204,9 +187,6 @@ cdef double square_backward_x(double[:]& flux, double[:]& flux_old, \
     cdef double center, coef_x, const
     # Step vs Diamond
     const = 2.0 if info.spatial == 2 else 1.0
-    # Determine flux edge
-    # if info.edges:
-    #     flux[info.cells_x] = angle_w * edge_x
     # Iterate over X spatial cells
     for ii in range(info.cells_x-1, -1, -1):
         mat = medium_map[ii]
@@ -214,12 +194,8 @@ cdef double square_backward_x(double[:]& flux, double[:]& flux_old, \
         center = (coef_x * edge_x + coef_y * edge_y[ii] + xs_scatter[mat] \
                     * flux_old[ii] + external[ii] + off_scatter[ii]) \
                     / (xs_total[mat] + coef_x + coef_y)
-        # Update flux with cell edges
-        if info.edges:
-            flux[ii+1] += angle_w * (2 * center - edge_x)
         # Update flux with cell centers
-        else:
-            flux[ii] += angle_w * center
+        flux[ii] += angle_w * center
         # Update known flux with step method
         if info.spatial == 1:
             edge_x = center
@@ -235,23 +211,23 @@ cdef double square_backward_x(double[:]& flux, double[:]& flux_old, \
 # Known Source Spatial Sweeps
 ########################################################################
 
-cdef void _known_sweep(double[:,:,:]& flux, double[:]& xs_total, \
+cdef void _known_center_sweep(double[:,:,:]& flux, double[:]& xs_total, \
         double[:,:]& zero_2d, double[:]& source, double[:]& boundary_x, \
         double[:]& boundary_y, int[:,:]& medium_map, double[:]& delta_x, \
         double[:]& delta_y, double[:]& angle_x, double[:]& angle_y, \
         double[:]& angle_w, params info):
+    # if info.geometry == 1:
     # Rectangular spatial cells
-    if info.geometry == 1:
-        _known_square(flux, xs_total, source, boundary_x, boundary_y, \
-                      medium_map, delta_x, delta_y, angle_x, angle_y, \
-                      angle_w, info)
+    _known_square(flux, xs_total, zero_2d, source, boundary_x, \
+                  boundary_y, medium_map, delta_x, delta_y, angle_x, \
+                  angle_y, angle_w, info)
 
 
 cdef void _known_square(double[:,:,:]& flux, double[:]& xs_total, \
-        double[:]& source, double[:]& boundary_x, double[:]& boundary_y, \
-        int[:,:]& medium_map, double[:]& delta_x, double[:]& delta_y, \
-        double[:]& angle_x, double[:]& angle_y, double[:]& angle_w, \
-        params info):
+        double[:,:]& zero_2d, double[:]& source, double[:]& boundary_x, \
+        double[:]& boundary_y, int[:,:]& medium_map, double[:]& delta_x, \
+        double[:]& delta_y, double[:]& angle_x, double[:]& angle_y, \
+        double[:]& angle_w, params info):
     # Initialize indices etc
     cdef int nn, qq1, qq2, bcx1, bcx2, bcy1, bcy2
     # Set indexing
@@ -261,10 +237,9 @@ cdef void _known_square(double[:,:,:]& flux, double[:]& xs_total, \
     # Add dummy dimension to run both (I x J x N) and (I x J) fluxes
     cdef int xdim = flux.shape[2]
     # Add reflector array
-    known_y = tools.array_1d(info.cells_x + info.edges)
-    known_x = tools.array_1d(info.cells_y + info.edges)
+    known_y = tools.array_1d(info.cells_x)
+    known_x = tools.array_1d(info.cells_y)
     # Add zero placeholder
-    zero_2d = tools.array_2d(info.cells_x + info.edges, info.cells_y + info.edges)
     zero_1d = tools.array_1d(info.materials)
     for nn in range(info.angles * info.angles):
         # Determine dimensions of external and boundary sources
@@ -276,12 +251,186 @@ cdef void _known_square(double[:,:,:]& flux, double[:]& xs_total, \
                                  angle_y, angle_x, nn, info)
         tools._initialize_edge_x(known_x, boundary_x[bcx1::bcx2], \
                                  angle_x, angle_y, nn, info)
-        # Perform spatial sweep
         if (xdim == 1):
+            # Perform spatial sweep - scalar flux
             square_sweep(flux[:,:,0], zero_2d, xs_total, zero_1d, zero_2d, \
                 source[qq1::qq2], known_x, known_y, medium_map, delta_x, \
                 delta_y, angle_x[nn], angle_y[nn], angle_w[nn], info)
         else:
+            # Perform spatial sweep - angular flux
             square_sweep(flux[:,:,nn], zero_2d, xs_total, zero_1d, zero_2d, \
                 source[qq1::qq2], known_x, known_y, medium_map, delta_x, \
                 delta_y, angle_x[nn], angle_y[nn], 1.0, info)
+
+
+cdef void _known_interface_sweep(double[:,:,:]& flux_edge_x, \
+        double[:,:,:]& flux_edge_y, double[:]& xs_total, double[:]& source, \
+        double[:]& boundary_x, double[:]& boundary_y, int[:,:]& medium_map, \
+        double[:]& delta_x, double[:]& delta_y, double[:]& angle_x, \
+        double[:]& angle_y, double[:]& angle_w, params info):
+    # Initialize indices etc
+    cdef int nn, qq1, qq2, bcx1, bcx2, bcy1, bcy2
+    # Set indexing
+    qq2 = 1 if info.qdim != 3 else info.angles * info.angles
+    bcx2 = 1 if info.bcdim_x != 4 else info.angles * info.angles
+    bcy2 = 1 if info.bcdim_y != 4 else info.angles * info.angles
+    # Add dummy dimension to run both (I x J x N) and (I x J) fluxes
+    cdef int xdim = flux_edge_x.shape[2]
+    # Add reflector array
+    known_y = tools.array_1d(info.cells_x)
+    known_x = tools.array_1d(info.cells_y)
+    # Iterate over angles
+    for nn in range(info.angles * info.angles):
+        # Determine dimensions of external and boundary sources
+        qq1 = 0 if info.qdim != 3 else nn
+        bcx1 = 0 if info.bcdim_x != 4 else nn
+        bcy1 = 0 if info.bcdim_y != 4 else nn
+        # Initialize known x and y
+        tools._initialize_edge_y(known_y, boundary_y[bcy1::bcy2], \
+                                 angle_y, angle_x, nn, info)
+        tools._initialize_edge_x(known_x, boundary_x[bcx1::bcx2], \
+                                 angle_x, angle_y, nn, info)
+        if (xdim == 1):
+            # Perform spatial sweep - scalar flux
+            interface_sweep(flux_edge_x[:,:,0], flux_edge_y[:,:,0], xs_total, \
+                    source[qq1::qq2], known_x, known_y, medium_map, delta_x, \
+                    delta_y, angle_x[nn], angle_y[nn], angle_w[nn], info)
+        else:
+            # Perform spatial sweep - angular flux
+            interface_sweep(flux_edge_x[:,:,nn], flux_edge_y[:,:,nn], \
+                    xs_total, source[qq1::qq2], known_x, known_y, medium_map, \
+                    delta_x, delta_y, angle_x[nn], angle_y[nn], 1.0, info)
+
+
+cdef void interface_sweep(double[:,:]& flux_edge_x, double[:,:]& flux_edge_y, \
+        double[:]& xs_total, double[:]& external, double[:]& known_x, \
+        double[:]& known_y, int[:,:]& medium_map, double[:]& delta_x, \
+        double[:]& delta_y, double angle_x, double angle_y, double angle_w, params info):
+    if (angle_y > 0.0):
+        interface_forward_y(flux_edge_x, flux_edge_y, xs_total, external, \
+                            known_x, known_y, medium_map, delta_x, delta_y, \
+                            angle_x, angle_y, angle_w, info)
+    elif (angle_y < 0.0):
+        interface_backward_y(flux_edge_x, flux_edge_y, xs_total, external, \
+                            known_x, known_y, medium_map, delta_x, delta_y, \
+                            angle_x, angle_y, angle_w, info)
+
+
+cdef void interface_forward_y(double[:,:]& flux_edge_x, \
+        double[:,:]& flux_edge_y, double[:]& xs_total, double[:]& external, \
+        double[:]& known_x, double[:]& known_y, int[:,:]& medium_map, \
+        double[:]& delta_x, double[:]& delta_y, double angle_x, \
+        double angle_y, double angle_w, params info):
+    # Initialize iterables
+    cdef int ii, jj
+    cdef double coef_y, const
+    # Step vs Diamond
+    const = 2.0 if info.spatial == 2 else 1.0
+    # Iterate over Y spatial cells
+    for jj in range(info.cells_y):
+        coef_y = const * angle_y / delta_y[jj]
+        if angle_x > 0.0:
+            known_x[jj] = interface_forward_x(flux_edge_x[:,jj], flux_edge_y[:,jj], \
+                                xs_total, external[jj::info.cells_y], \
+                                known_x[jj], known_y, medium_map[:,jj], \
+                                delta_x, angle_x, angle_w, coef_y, info)
+        elif angle_x < 0.0:
+            known_x[jj] = interface_backward_x(flux_edge_x[:,jj], flux_edge_y[:,jj], \
+                                xs_total, external[jj::info.cells_y], \
+                                known_x[jj], known_y, medium_map[:,jj], \
+                                delta_x, angle_x, angle_w, coef_y, info)
+    # Solve for top boundary (flux_edge_y)
+    for ii in range(info.cells_x):
+        flux_edge_y[ii,info.cells_y] += angle_w * known_y[ii]
+
+
+cdef void interface_backward_y(double[:,:]& flux_edge_x, \
+        double[:,:]& flux_edge_y, double[:]& xs_total, double[:]& external, \
+        double[:]& known_x, double[:]& known_y, int[:,:]& medium_map, \
+        double[:]& delta_x, double[:]& delta_y, double angle_x, \
+        double angle_y, double angle_w, params info):
+    # Initialize iterable
+    cdef int ii, jj
+    cdef double coef_y, const
+    # Step vs Diamond
+    const = 2.0 if info.spatial == 2 else 1.0
+    # Iterate over Y spatial cells
+    for jj in range(info.cells_y-1, -1, -1):
+        coef_y = -const * angle_y / delta_y[jj]
+        if angle_x > 0.0:
+            known_x[jj] = interface_forward_x(flux_edge_x[:,jj], flux_edge_y[:,jj+1], \
+                                xs_total, external[jj::info.cells_y], \
+                                known_x[jj], known_y, medium_map[:,jj], \
+                                delta_x, angle_x, angle_w, coef_y, info)
+        elif angle_x < 0.0:
+            known_x[jj] = interface_backward_x(flux_edge_x[:,jj], flux_edge_y[:,jj+1], \
+                                xs_total, external[jj::info.cells_y], \
+                                known_x[jj], known_y, medium_map[:,jj], \
+                                delta_x, angle_x, angle_w, coef_y, info)
+    # Solve for bottom boundary (flux_edge_y)
+    for ii in range(info.cells_x):
+        flux_edge_y[ii,0] += angle_w * known_y[ii]
+
+
+cdef double interface_forward_x(double[:]& flux_edge_x, double[:]& flux_edge_y, \
+        double[:]& xs_total, double[:]& external, double edge_x, \
+        double[:]& edge_y, int[:]& medium_map, double[:]& delta_x, \
+        double angle_x, double angle_w, double coef_y, params info):
+    # Initialize iterables
+    cdef int ii, mat
+    cdef double center, coef_x, const
+    # Step vs Diamond
+    const = 2.0 if info.spatial == 2 else 1.0
+    # Start with initial edge (i-1/2, j)
+    flux_edge_x[0] += angle_w * edge_x
+    # Iterate over X spatial cells
+    for ii in range(info.cells_x):
+        mat = medium_map[ii]
+        coef_x = (const * angle_x / delta_x[ii])
+        center = (coef_x * edge_x + coef_y * edge_y[ii] + external[ii]) \
+                    / (xs_total[mat] + coef_x + coef_y)
+        # Update flux_edge_y (i, j-1/2)
+        flux_edge_y[ii] += angle_w * edge_y[ii]
+        # Update known flux with step method
+        if info.spatial == 1:
+            edge_x = center
+            edge_y[ii] = center
+        # Update known flux with diamond difference
+        elif info.spatial == 2:
+            edge_x = 2 * center - edge_x
+            edge_y[ii] = 2 * center - edge_y[ii]
+        # Update flux_edge_x (i+1/2, j)
+        flux_edge_x[ii+1] += angle_w * edge_x
+    return edge_x
+
+
+cdef double interface_backward_x(double[:]& flux_edge_x, double[:]& flux_edge_y, \
+        double[:]& xs_total, double[:]& external, double edge_x, \
+        double[:]& edge_y, int[:]& medium_map, double[:]& delta_x, \
+        double angle_x, double angle_w, double coef_y, params info):
+    # Initialize iterables
+    cdef int ii, mat
+    cdef double center, coef_x, const
+    # Step vs Diamond
+    const = 2.0 if info.spatial == 2 else 1.0
+    # Start with initial edge (i+1/2, j)
+    flux_edge_x[info.cells_x] += angle_w * edge_x
+    # Iterate over X spatial cells
+    for ii in range(info.cells_x-1, -1, -1):
+        mat = medium_map[ii]
+        coef_x = (-const * angle_x / delta_x[ii])
+        center = (coef_x * edge_x + coef_y * edge_y[ii] + external[ii]) \
+                    / (xs_total[mat] + coef_x + coef_y)
+        # Update flux_edge_y (i, j-1/2)
+        flux_edge_y[ii] += angle_w * edge_y[ii]
+        # Update known flux with step method
+        if info.spatial == 1:
+            edge_x = center
+            edge_y[ii] = center
+        # Update known flux with diamond difference
+        elif info.spatial == 2:
+            edge_x = 2 * center - edge_x
+            edge_y[ii] = 2 * center - edge_y[ii]
+        # Update flux_edge_x to (i-1/2, j)
+        flux_edge_x[ii] += angle_w * edge_x
+    return edge_x

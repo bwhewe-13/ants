@@ -58,21 +58,36 @@ def known_source_calculation(double[:,:,:] flux, double[:,:] xs_total, \
         double[:] boundary_y, int[:,:] medium_map, double[:] delta_x, \
         double[:] delta_y, double[:] angle_x, double[:] angle_y, \
         double[:] angle_w, dict params_dict):
+    # This is for solving for angular flux or cell interfaces
     # Covert dictionary to type params
     info = parameters._to_params(params_dict)
     # Create (sigma_s + sigma_f) * phi + external function
     source = tools.array_1d(info.cells_x * info.cells_y * info.angles \
                             * info.angles * info.groups)
     tools._source_total(source, flux, xs_matrix, medium_map, external, info)
-    # Return scalar flux cell edges
-    if (info.angular == False) and (info.edges == 1):
-        scalar_flux = mg._known_source_scalar(xs_total, source, boundary_x, \
+    # Solve for angular flux at cell centers
+    if (info.angular == True) and (info.edges == 0):
+        angular_flux = mg._known_source_angular(xs_total, source, boundary_x, \
                                 boundary_y, medium_map, delta_x, delta_y, \
                                 angle_x, angle_y, angle_w, info)
-        return np.asarray(scalar_flux)
-    # Solve for angular flux
-    angular_flux = mg._known_source_angular(xs_total, source, boundary_x, \
-                                boundary_y, medium_map, delta_x, delta_y, \
-                                angle_x, angle_y, angle_w, info)
-    # Return angular flux (either edges or centers)
-    return np.asarray(angular_flux)
+        return np.asarray(angular_flux)
+    # Solve for angular flux cell interfaces
+    elif (info.angular == True) and (info.edges == 1):
+        flux_edge_x = tools.array_4d(info.cells_x + 1, info.cells_y, \
+                                     info.angles * info.angles, info.groups)
+        flux_edge_y = tools.array_4d(info.cells_x, info.cells_y + 1, \
+                                     info.angles * info.angles, info.groups)
+        mg._interface_angular(flux_edge_x, flux_edge_y, xs_total, source, \
+                             boundary_x, boundary_y, medium_map, delta_x, \
+                             delta_y, angle_x, angle_y, angle_w, info)
+        return np.asarray(flux_edge_x), np.asarray(flux_edge_y)
+    # Solve for scalar flux cell interfaces
+    elif (info.angular == False) and (info.edges == 1):
+        flux_edge_x = tools.array_4d(info.cells_x + 1, info.cells_y, info.groups, 1)
+        flux_edge_y = tools.array_4d(info.cells_x, info.cells_y + 1, info.groups, 1)
+        mg._interface_scalar(flux_edge_x, flux_edge_y, xs_total, source, \
+                             boundary_x, boundary_y, medium_map, delta_x, \
+                             delta_y, angle_x, angle_y, angle_w, info)
+        return np.asarray(flux_edge_x[...,0]), np.asarray(flux_edge_y[...,0])
+    return -1
+    
