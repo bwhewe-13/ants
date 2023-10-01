@@ -16,7 +16,6 @@ import numpy as np
 import ants
 from ants import hybrid1d
 from ants.utils import hybrid as hytools
-# import hybrid_coarsen_materials as coarsen
 
 # Path for reference solutions
 PATH = "data/references_multigroup/"
@@ -93,10 +92,11 @@ def test_slab_01_bdf1(angles_c, groups_c):
     fine_idx, coarse_idx, factor = hytools.indexing(groups_u, groups_c, \
                                                     edges_g, edges_gidx)
     # Run Hybrid Method
-    flux = hybrid1d.bdf1(xs_total_u, xs_scatter_u, xs_fission_u, xs_total_c, \
-                xs_scatter_c, xs_fission_c, velocity_u, velocity_c, external, \
-                boundary_x, medium_map, delta_x, angle_xu, angle_wu, angle_xc, \
-                angle_wc, fine_idx, coarse_idx, factor, info_u, info_c)
+    flux = hybrid1d.backward_euler(xs_total_u, xs_total_c, xs_scatter_u, \
+                xs_scatter_c, xs_fission_u, xs_fission_c, velocity_u, \
+                velocity_c, external, boundary_x, medium_map, delta_x, \
+                angle_xu, angle_xc, angle_wu, angle_wc, fine_idx, \
+                coarse_idx, factor, info_u, info_c)
     # Load Reference flux
     params = f"g87g{groups_c}_n8n{angles_c}_flux.npy"
     reference = np.load(PATH + "hybrid_uranium_slab_backward_euler_" + params)

@@ -93,6 +93,7 @@ def _flux_coarsen_2d(fine_flux, fine_edges_x, fine_edges_y, coarse_edges_x, \
                             & (fine_edges_y >= coarse_edges_y[jj]))
             count_y += len(idx_y)
             coarse_flux[ii,jj] = np.sum(fine_flux[idx_x,idx_y], axis=(0,1)) * ratio
+            # coarse_flux[ii,jj] = np.mean(fine_flux[idx_x,idx_y], axis=(0,1))
         # Make sure we got all columns
         assert count_y == fine_flux.shape[1], "Not including all y cells"
     # Make sure we got all rows

@@ -31,7 +31,7 @@ def test_reed_bdf1(boundary):
     info["steps"] = 100
     info["dt"] = 1.
     velocity = np.ones((info["groups"],))
-    timed_flux = timed1d.bdf1(xs_total, xs_scatter, xs_fission, \
+    timed_flux = timed1d.backward_euler(xs_total, xs_scatter, xs_fission, \
                                 velocity, external, boundary_x, medium_map, \
                                 delta_x, angle_x, angle_w, info)
     assert np.isclose(fixed_flux[:,0], timed_flux[-1,:,0]).all(), \
@@ -64,7 +64,7 @@ def test_reed_bdf2(boundary):
 @pytest.mark.multigroup1d
 def test_sphere_01_bdf1():
     info = problems1d.sphere_01("timed")[-1]
-    flux = timed1d.bdf1(*problems1d.sphere_01("timed"))
+    flux = timed1d.backward_euler(*problems1d.sphere_01("timed"))
     reference = np.load(problems1d.PATH + "uranium_sphere_backward_euler_flux.npy")
     for tt in range(info["steps"]):
         assert np.isclose(flux[tt], reference[tt]).all()

@@ -125,7 +125,7 @@ cdef double[:,:,:] multigroup_bdf1(double[:,:]& xs_total, \
     # Initialize array with all scalar flux time steps
     flux_time = tools.array_3d(info.steps, info.cells_x, info.groups)
     # Iterate over time steps
-    for step in tqdm(range(info.steps), desc="Time Steps", ascii=True):
+    for step in tqdm(range(info.steps), desc="BDF1   ", ascii=True):
         # Determine dimensions of external and boundary sources
         qq1 = 0 if info.qdim < 4 else step
         bc1 = 0 if info.bcdim_x < 4 else step
@@ -194,7 +194,7 @@ cdef double[:,:,:] multigroup_cn(double[:,:]& xs_total, \
     # Initialize array with all scalar flux time steps
     flux_time = tools.array_3d(info.steps, info.cells_x, info.groups)
     # Iterate over time steps
-    for step in tqdm(range(info.steps), desc="Time Steps", ascii=True):
+    for step in tqdm(range(info.steps), desc="CN     ", ascii=True):
         # Determine dimensions of external and boundary sources
         qqa = 0 if info.qdim < 4 else step - 1 # Previous time step
         qq1 = 0 if info.qdim < 4 else step
@@ -249,7 +249,7 @@ cdef double[:,:,:] multigroup_bdf2(double[:,:]& xs_total, \
     xs_total_v[:,:] = xs_total[:,:]
     tools._total_velocity(xs_total_v, velocity, 1.5, info)
     # Iterate over time steps
-    for step in tqdm(range(1, info.steps), desc="Time Steps", ascii=True):
+    for step in tqdm(range(1, info.steps), desc="BDF2   ", ascii=True):
         # Determine dimensions of external and boundary sources
         qq1 = 0 if info.qdim < 4 else step
         bc1 = 0 if info.bcdim_x < 4 else step
@@ -272,8 +272,6 @@ cdef double[:,:,:] multigroup_bdf2(double[:,:]& xs_total, \
                                         delta_x, angle_x, angle_w, info)
     return flux_time[:,:,:]
 
-import numpy as np
-import matplotlib.pyplot as plt
 
 cdef double[:,:,:] multigroup_tr_bdf2(double[:,:]& xs_total, \
         double[:,:,:]& xs_scatter, double[:]& velocity, \
@@ -307,7 +305,7 @@ cdef double[:,:,:] multigroup_tr_bdf2(double[:,:]& xs_total, \
     # Initialize array with all scalar flux time steps
     flux_time = tools.array_3d(info.steps, info.cells_x, info.groups)
     # Iterate over time steps
-    for step in tqdm(range(info.steps), desc="Time Steps", ascii=True):
+    for step in tqdm(range(info.steps), desc="TR-BDF2", ascii=True):
         # Determine dimensions of external and boundary sources
         qq1 = 0 if info.qdim < 4 else step
         bc1 = 0 if info.bcdim_x < 4 else step
@@ -315,7 +313,7 @@ cdef double[:,:,:] multigroup_tr_bdf2(double[:,:]& xs_total, \
         tools._time_source_star_cn(flux_last_ell, scalar_flux_ell, xs_total, \
                         xs_scatter, velocity, q_star, external[qq1::qq2], \
                         external[qq1::qq2], medium_map, delta_x, angle_x, \
-                        2.0 / gamma, 1, info)
+                        2.0 / gamma, step, info)
         # Solve for the \ell + gamma time step
         scalar_flux_gamma = mg.source_iteration(scalar_flux_gamma, xs_total_v_cn, \
                                 xs_scatter, q_star, boundary_x[bc1::bc2], \
@@ -333,6 +331,7 @@ cdef double[:,:,:] multigroup_tr_bdf2(double[:,:]& xs_total, \
         flux_time[step] = mg.source_iteration(scalar_flux_ell, xs_total_v_bdf2, \
                                 xs_scatter, q_star, boundary_x[bc1::bc2], \
                                 medium_map, delta_x, angle_x, angle_w, info)
+        # print(step, np.sum(flux_time[step]))
         # Update previous time step
         scalar_flux_ell[:,:] = flux_time[step,:,:]
         # Create (sigma_s + sigma_f) * phi^{\ell} + Q*
@@ -341,6 +340,7 @@ cdef double[:,:,:] multigroup_tr_bdf2(double[:,:]& xs_total, \
         flux_last_ell = mg._known_source_angular(xs_total_v_bdf2, q_star, \
                                         boundary_x[bc1::bc2], medium_map, \
                                         delta_x, angle_x, angle_w, info_edge)
+        # Adjust gamma step
         if step == 0:
             gamma = 2 - sqrt(2)
 

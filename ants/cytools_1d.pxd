@@ -60,6 +60,9 @@ cdef void _source_total(double[:]& source, double[:,:]& flux, \
 cdef void _angular_to_scalar(double[:,:,:]& angular_flux, \
         double[:,:]& scalar_flux, double[:]& angle_w, params info)
 
+cdef void _angular_edge_to_scalar(double[:,:,:]& angular_flux, \
+        double[:,:]& scalar_flux, double[:]& angle_w, params info)
+
 ########################################################################
 # Time Dependent functions
 ########################################################################
