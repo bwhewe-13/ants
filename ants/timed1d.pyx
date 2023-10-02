@@ -59,7 +59,7 @@ def crank_nicolson(double[:,:] xs_total, double[:,:,:] xs_scatter, \
     # Combine fission and scattering
     xs_matrix = tools.array_3d(info.materials, info.groups, info.groups)
     tools._xs_matrix(xs_matrix, xs_scatter, xs_fission, info)
-    # Run Backward Euler
+    # Run Crank Nicolson
     flux = multigroup_cn(xs_total, xs_matrix, velocity, external, \
                          boundary_x.copy(), medium_map, delta_x, \
                          angle_x, angle_w, info, info_edge)
@@ -168,7 +168,7 @@ cdef double[:,:,:] bdf1_one_step(double[:,:,:] flux_last, double[:,:]& scalar_fl
     # Solve for angular flux of previous time step
     flux_last = mg._known_source_angular(xs_total_v, q_star, boundary_x, \
                             medium_map, delta_x, angle_x, angle_w, info)
-    return flux_last
+    return flux_last[:,:,:]
 
 
 cdef double[:,:,:] multigroup_cn(double[:,:]& xs_total, \
@@ -331,7 +331,6 @@ cdef double[:,:,:] multigroup_tr_bdf2(double[:,:]& xs_total, \
         flux_time[step] = mg.source_iteration(scalar_flux_ell, xs_total_v_bdf2, \
                                 xs_scatter, q_star, boundary_x[bc1::bc2], \
                                 medium_map, delta_x, angle_x, angle_w, info)
-        # print(step, np.sum(flux_time[step]))
         # Update previous time step
         scalar_flux_ell[:,:] = flux_time[step,:,:]
         # Create (sigma_s + sigma_f) * phi^{\ell} + Q*

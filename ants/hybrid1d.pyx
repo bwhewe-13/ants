@@ -364,8 +364,6 @@ cdef double[:,:,:] multigroup_bdf2(double[:,:]& xs_total_u, double[:,:]& xs_tota
     return flux_time[:,:,:]
 
 
-# cdef void _update_velocity_(double[:,:])
-
 cdef double[:,:,:] multigroup_tr_bdf2(double[:,:]& xs_total_u, \
         double[:,:]& xs_total_c, double[:,:,:]& xs_scatter_u, \
         double[:,:,:]& xs_scatter_c, double[:]& velocity_u, \

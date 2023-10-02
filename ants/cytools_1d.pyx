@@ -229,7 +229,7 @@ cdef void _time_source_star_cn(double[:,:,:]& psi_edges, double[:,:]& phi, \
                 psi = 0.5 * (psi_edges[ii,nn,og] + psi_edges[ii+1,nn,og])
                 dpsi = (psi_edges[ii+1,nn,og] - psi_edges[ii,nn,og]) / delta_x[ii]
                 loc = og + info.groups * (nn + ii * info.angles)
-
+                # Double add source
                 if step != 0:
                     q_star[loc] += source_last[loc]
                     for ig in range(info.groups):
@@ -281,7 +281,7 @@ cdef void _time_right_side(double[:]& q_star, double[:,:]& flux, \
     # Create (sigma_s + sigma_f) * phi + external + 1/(v*dt) * psi function
     # Initialize iterables
     cdef int ii, nn, ig, og, mat, loc
-    # Zero out previous values
+    # Iterate over dimensions
     for ii in range(info.cells_x):
         mat = medium_map[ii]
         for nn in range(info.angles):
