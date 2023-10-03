@@ -36,7 +36,7 @@ def backward_euler(double[:,:] xs_total_u, double[:,:] xs_total_c, \
         double[:,:,:] xs_scatter_u, double[:,:,:] xs_scatter_c, \
         double[:,:,:] xs_fission_u, double[:,:,:] xs_fission_c, \
         double[:] velocity_u, double[:] velocity_c, double[:] external_u, \
-        double[:,:] boundary_xu, double[:,:] boundary_yu, int[:,:] medium_map, \
+        double[:] boundary_xu, double[:] boundary_yu, int[:,:] medium_map, \
         double[:] delta_x, double[:] delta_y, double[:] angle_xu, \
         double[:] angle_xc, double[:] angle_yu, double[:] angle_yc, \
         double[:] angle_wu, double[:] angle_wc, int[:] fine_idx, \
@@ -164,20 +164,20 @@ def tr_bdf2(double[:,:] xs_total_u, double[:,:] xs_total_c, \
 
 cdef double[:,:,:,:] multigroup_bdf1(double[:,:]& xs_total_u, double[:,:]& xs_total_c, \
         double[:,:,:]& xs_scatter_u, double[:,:,:]& xs_scatter_c, double[:]& velocity_u, \
-        double[:]& velocity_c, double[:]& external_u, double[:,:]& boundary_xu, \
-        double[:,:]& boundary_yu, int[:,:]& medium_map, double[:]& delta_x, \
+        double[:]& velocity_c, double[:]& external_u, double[:]& boundary_xu, \
+        double[:]& boundary_yu, int[:,:]& medium_map, double[:]& delta_x, \
         double[:]& delta_y, double[:]& angle_xu, double[:]& angle_xc, \
         double[:]& angle_yu, double[:]& angle_yc, double[:]& angle_wu, \
         double[:]& angle_wc, int[:]& fine_idx, int[:]& coarse_idx, \
         double[:]& factor, params info_u, params info_c):
 
     # Initialize time step, external and boundary indices
-    cdef int step, qq1, qq2, bcx, bcy #1, bcx2, bcy1, bcy2
+    cdef int step, qq1, qq2, bcx1, bcy1, bcx2, bcy1, bcy2
     
     # Set indexing for external and boundary sources
     qq2 = 1 if info_u.qdim < 4 else info_u.steps
-    # bcx2 = 1 if info_u.bcdim_x < 5 else info_u.steps
-    # bcy2 = 1 if info_u.bcdim_y < 5 else info_u.steps
+    bcx2 = 1 if info_u.bcdim_x < 5 else info_u.steps
+    bcy2 = 1 if info_u.bcdim_y < 5 else info_u.steps
 
     # Create sigma_t + 1 / (v * dt) - Uncollided
     xs_total_vu = tools.array_2d(info_u.materials, info_u.groups)
@@ -211,25 +211,23 @@ cdef double[:,:,:,:] multigroup_bdf1(double[:,:]& xs_total_u, double[:,:]& xs_to
     for step in tqdm(range(info_u.steps), desc="BDF1   ", ascii=True):
         # Determine dimensions of external and boundary sources
         qq1 = 0 if info_u.qdim < 4 else step
-        # bcx1 = 0 if info_u.bcdim_x < 5 else step
-        # bcy1 = 0 if info_u.bcdim_y < 5 else step
+        bcx1 = 0 if info_u.bcdim_x < 5 else step
+        bcy1 = 0 if info_u.bcdim_y < 5 else step
 
-        bcx = 0 if info_u.bcdim_x < 5 else step
-        bcy = 0 if info_u.bcdim_y < 5 else step
         # Update q_star as external + 1/(v*dt) * psi
         tools._time_source_star_bdf1(flux_last, q_star, \
                                 external_u[qq1::qq2], velocity_u, info_u)
         # Run hybrid method
         hybrid_method(flux_u, flux_c, flux_t, xs_total_vu, xs_total_vc, \
                       xs_scatter_u, xs_scatter_c, q_star, source_c, \
-                      boundary_xu[:,bcx], boundary_yu[:,bcy], \
+                      boundary_xu[bcx1::bcx2], boundary_yu[bcy1::bcy2], \
                       boundary_c, medium_map, delta_x, delta_y, angle_xu, \
                       angle_xc, angle_yu, angle_yc, angle_wu, angle_wc, \
                       fine_idx, coarse_idx, factor, info_u, info_c)
 
         # Solve for angular flux of time step
         flux_last = mg._known_source_angular(xs_total_vu, q_star, \
-                            boundary_xu[:,bcx], boundary_yu[:,bcy], \
+                            boundary_xu[bcx1::bcx2], boundary_yu[bcy1::bcy2], \
                             medium_map, delta_x, delta_y, angle_xu, \
                             angle_yu, angle_wu, info_u)
         # Step 5: Update and repeat
