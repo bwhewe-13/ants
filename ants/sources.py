@@ -374,7 +374,7 @@ def boundaries2d(name, shape_x, shape_y, **kw):
         if loc_y >= 0:
             boundary_y[(loc_y, ..., group)] = 1.0
         return boundary_x, boundary_y
-        
+
     elif name == "2.5-mev":
         loc_x = kw["loc_x"] if "loc_x" in kw.keys() else -1
         loc_y = kw["loc_y"] if "loc_y" in kw.keys() else -1

@@ -56,6 +56,9 @@ cdef void _source_total(double[:]& source, double[:,:,:]& flux, \
 cdef void _angular_to_scalar(double[:,:,:,:]& angular_flux, \
         double[:,:,:]& scalar_flux, double[:]& angle_w, params info)
 
+cdef void _angular_edge_to_scalar(double[:,:,:,:]& psi_x, double[:,:,:,:]& psi_y, \
+        double[:,:,:]& scalar_flux, double[:]& angle_w, params info)
+
 cdef void _initialize_edge_y(double[:]& known_y, double[:]& boundary_y, \
         double[:]& angle_y, double[:]& angle_x, int nn, params info)
 
@@ -65,15 +68,29 @@ cdef void _initialize_edge_x(double[:]& known_x, double[:]& boundary_x, \
 ########################################################################
 # Time Dependent functions
 ########################################################################
-cdef void _total_velocity(double[:,:]& xs_total, double[:]& velocity, params info)
+cdef void _total_velocity(double[:,:]& xs_total, double[:]& velocity, \
+        double constant, params info)
 
-cdef void _time_source_total(double[:]& source, double[:,:,:]& scalar_flux, \
-        double[:,:,:,:]& angular_flux, double[:,:,:]& xs_matrix, \
-        double[:]& velocity, int[:,:]& medium_map, double[:]& external, \
-        params info)
-
-cdef void _time_source_star(double[:,:,:,:]& angular_flux, double[:]& q_star, \
+cdef void _time_source_star_bdf1(double[:,:,:,:]& flux, double[:]& q_star, \
         double[:]& external, double[:]& velocity, params info)
+
+cdef void _time_source_star_cn(double[:,:,:,:]& psi_x, double[:,:,:,:]& psi_y, \
+        double[:,:,:]& phi, double[:,:]& xs_total, double[:,:,:]& xs_scatter, \
+        double[:]& velocity, double[:]& q_star, double[:]& source_last, \
+        double[:]& source, int[:,:]& medium_map, double[:]& delta_x, \
+        double[:]& delta_y, double[:]& angle_x, double[:]& angle_y, \
+        double constant, int step, params info)
+
+cdef void _time_source_star_bdf2(double[:,:,:,:]& flux_1, \
+        double[:,:,:,:]& flux_2, double[:]& q_star, double[:]& external, \
+        double[:]& velocity, params info)
+
+cdef void _time_source_star_tr_bdf2(double[:,:,:,:]& psi_x, \
+        double[:,:,:,:]& psi_y, double[:,:,:,:]& flux_2, double[:]& q_star, \
+        double[:]& external, double[:]& velocity, double gamma, params info)
+
+cdef void _time_right_side(double[:]& q_star, double[:,:,:]& flux, \
+        double[:,:,:]& xs_scatter, int[:,:]& medium_map, params info)
 
 cdef void boundary_decay(double[:]& boundary_x, double[:]& boundary_y, \
         int step, params info)

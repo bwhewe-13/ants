@@ -69,9 +69,9 @@ cdef double[:,:,:] source_iteration(double[:,:,:]& flux_guess, \
         if isnan(change) or isinf(change):
             change = 0.5
         converged = (change < EPSILON_ENERGY) or (count >= MAX_ENERGY)
-        if info.steps > 0:
-            print("\rSource Iteration, Count: {:>2},".format(count) \
-                  + " Tolerance: {:2.6e}".format(change), end="\r")
+        # if info.steps > 0:
+        #     print("\rSource Iteration, Count: {:>2},".format(count) \
+        #           + " Tolerance: {:2.6e}".format(change), end="\r")
         count += 1
         flux_old[:,:,:] = flux[:,:,:]
     return flux[:,:,:]
@@ -141,6 +141,8 @@ cdef void _interface_angular(double[:,:,:,:]& flux_edge_x, \
     # source = flux * xs_scatter + external source
     # flux_edge_x = [(I+1) x J]
     # flux_edge_y = [I x (J+1)]
+    flux_edge_x[:,:,:,:] = 0.0
+    flux_edge_y[:,:,:,:] = 0.0
     # Initialize components
     cdef int gg, q1, qq2, bcx1, bcx2, bcy1, bcy2
     # Set indexing

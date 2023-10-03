@@ -1,6 +1,7 @@
 
 import ants
-from ants.hybrid1d import bdf1
+from ants.hybrid1d import backward_euler
+from ants.utils import hybrid as hytools
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -51,10 +52,12 @@ centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
 
 # Energy Grid
 edges_g, edges_gidx = ants.energy_grid(groups_u, 1)
-velocity = ants.energy_velocity(groups_u, None)
+velocity_u = ants.energy_velocity(groups_u, None)
+velocity_c = hytools.coarsen_velocity(velocity_u, edges_gidx)
 
 # Angular
-angle_x, angle_w = ants.angular_x(info_u)
+angle_xu, angle_wu = ants.angular_x(info_u)
+angle_xc, angle_wc = ants.angular_x(info_c)
 
 # Medium Map
 layers = [[0, "scatter", "0-4, 12-16"], [1, "vacuum", "4-5, 11-12"],
@@ -75,9 +78,14 @@ external = ants.externals1d("reeds", (cells, angles_u, groups_u), \
                           edges_x=edges_x, bc=[0,0]).flatten()
 boundary_x = np.zeros((2,))
 
-flux = bdf1(xs_total_u, xs_scatter_u, xs_fission_u, xs_total_c, \
-            xs_scatter_c, xs_fission_c, velocity, external, boundary_x, \
-            medium_map, delta_x, edges_g, edges_gidx, info_u, info_c)
+# Indexing Parameters
+fine_idx, coarse_idx, factor = hytools.indexing(groups_u, groups_c, edges_g, edges_gidx)
+
+# Run Hybrid Method
+flux = backward_euler(xs_total_u, xs_total_c, xs_scatter_u, xs_scatter_c, \
+            xs_fission_u, xs_fission_c, velocity_u, velocity_c, external, \
+            boundary_x, medium_map, delta_x, angle_xu, angle_xc, angle_wu, \
+            angle_wc, fine_idx, coarse_idx, factor, info_u, info_c)
 
 
 fig, ax = plt.subplots()

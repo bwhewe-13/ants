@@ -167,6 +167,20 @@ cdef void _angular_to_scalar(double[:,:,:]& angular_flux, \
                 scalar_flux[ii,gg] += angular_flux[ii,nn,gg] * angle_w[nn]
 
 
+cdef void _angular_edge_to_scalar(double[:,:,:]& angular_flux, \
+        double[:,:]& scalar_flux, double[:]& angle_w, params info):
+    # Initialize iterables
+    cdef int ii, nn, gg
+    # Zero out scalar flux term
+    scalar_flux[:,:] = 0.0
+    # Iterate over all spatial cells, angles, energy groups
+    for ii in range(info.cells_x):
+        for nn in range(info.angles):
+            for gg in range(info.groups):
+                scalar_flux[ii,gg] += 0.5 * angle_w[nn] * (angular_flux[ii,nn,gg] \
+                                        + angular_flux[ii+1,nn,gg])
+
+
 ########################################################################
 # Time Dependent functions
 ########################################################################
@@ -215,10 +229,11 @@ cdef void _time_source_star_cn(double[:,:,:]& psi_edges, double[:,:]& phi, \
                 psi = 0.5 * (psi_edges[ii,nn,og] + psi_edges[ii+1,nn,og])
                 dpsi = (psi_edges[ii+1,nn,og] - psi_edges[ii,nn,og]) / delta_x[ii]
                 loc = og + info.groups * (nn + ii * info.angles)
-                for ig in range(info.groups):
-                    q_star[loc] += phi[ii,ig] * xs_scatter[mat,og,ig]
+                # Double add source
                 if step != 0:
                     q_star[loc] += source_last[loc]
+                    for ig in range(info.groups):
+                        q_star[loc] += phi[ii,ig] * xs_scatter[mat,og,ig]
                 q_star[loc] += source[loc] - angle_x[nn] * dpsi \
                             + psi * (constant / (velocity[og] * info.dt) \
                                      - xs_total[mat,og])
@@ -266,7 +281,7 @@ cdef void _time_right_side(double[:]& q_star, double[:,:]& flux, \
     # Create (sigma_s + sigma_f) * phi + external + 1/(v*dt) * psi function
     # Initialize iterables
     cdef int ii, nn, ig, og, mat, loc
-    # Zero out previous values
+    # Iterate over dimensions
     for ii in range(info.cells_x):
         mat = medium_map[ii]
         for nn in range(info.angles):
