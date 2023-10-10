@@ -158,14 +158,14 @@ cdef double[:,:,:] multigroup_bdf1(double[:,:]& xs_total_u, double[:,:]& xs_tota
         double[:]& angle_xu, double[:]& angle_xc, double[:]& angle_wu, \
         double[:]& angle_wc, int[:]& fine_idx, int[:]& coarse_idx, \
         double[:]& factor, params info_u, params info_c):
-    
+
     # Initialize time step, external and boundary indices
     cdef int step, qq1, qq2, bc1, bc2
-    
+
     # Set indexing for external and boundary sources
     qq2 = 1 if info_u.qdim < 4 else info_u.steps
     bc2 = 1 if info_u.bcdim_x < 4 else info_u.steps
-    
+
     # Create sigma_t + 1 / (v * dt) - Uncollided
     xs_total_vu = tools.array_2d(info_u.materials, info_u.groups)
     xs_total_vu[:,:] = xs_total_u[:,:]
@@ -175,17 +175,17 @@ cdef double[:,:,:] multigroup_bdf1(double[:,:]& xs_total_u, double[:,:]& xs_tota
     xs_total_vc = tools.array_2d(info_c.materials, info_c.groups)
     xs_total_vc[:,:] = xs_total_c[:,:]
     tools._total_velocity(xs_total_vc, velocity_c, 1.0, info_c)
-    
+
     # Combine last time step and uncollided source term
     q_star = tools.array_1d(info_u.cells_x * info_u.angles * info_u.groups)
     # Initialize angular flux for previous time step
     flux_last = tools.array_3d(info_u.cells_x, info_u.angles, info_u.groups)
-    
+
     # Initialize scalar fluxes
     flux_u = tools.array_2d(info_u.cells_x, info_u.groups)
     flux_c = tools.array_2d(info_c.cells_x, info_c.groups)
     flux_t = tools.array_2d(info_u.cells_x, info_u.groups)
-    
+
     # Initialize array with all scalar flux time steps
     flux_time = tools.array_3d(info_u.steps, info_u.cells_x, info_u.groups)
     # Initialize collided source and boundary
@@ -222,14 +222,14 @@ cdef double[:,:,:] multigroup_cn(double[:,:]& xs_total_u, double[:,:]& xs_total_
         double[:]& angle_xu, double[:]& angle_xc, double[:]& angle_wu, \
         double[:]& angle_wc, int[:]& fine_idx, int[:]& coarse_idx, \
         double[:]& factor, params info_u, params info_c, params info_edge):
-    
+
     # Initialize time step, external and boundary indices
     cdef int step, qq1, qq2, qqa, bc1, bc2
-    
+
     # Set indexing for external and boundary sources
     qq2 = 1 if info_u.qdim < 4 else info_u.steps
     bc2 = 1 if info_u.bcdim_x < 4 else info_u.steps
-    
+
     # Create sigma_t + 2 / (v * dt) - Uncollided
     xs_total_vu = tools.array_2d(info_u.materials, info_u.groups)
     xs_total_vu[:,:] = xs_total_u[:,:]
@@ -239,24 +239,24 @@ cdef double[:,:,:] multigroup_cn(double[:,:]& xs_total_u, double[:,:]& xs_total_
     xs_total_vc = tools.array_2d(info_c.materials, info_c.groups)
     xs_total_vc[:,:] = xs_total_c[:,:]
     tools._total_velocity(xs_total_vc, velocity_c, 2.0, info_c)
-    
+
     # Combine last time step and uncollided source term
     q_star = tools.array_1d(info_u.cells_x * info_u.angles * info_u.groups)
     # Initialize angular flux for previous time step
     flux_last = tools.array_3d(info_u.cells_x + 1, info_u.angles, info_u.groups)
-    
+
     # Initialize scalar fluxes
     flux_u = tools.array_2d(info_u.cells_x, info_u.groups)
     flux_c = tools.array_2d(info_c.cells_x, info_c.groups)
     flux_t = tools.array_2d(info_u.cells_x, info_u.groups)
-    
+
     # Initialize array with all scalar flux time steps
     flux_time = tools.array_3d(info_u.steps, info_u.cells_x, info_u.groups)
 
     # Initialize collided source and boundary
     source_c = tools.array_1d(info_c.cells_x * info_c.groups)
     cdef double[2] boundary_xc = [0.0, 0.0]
-    
+
     # Iterate over time steps
     for step in tqdm(range(info_u.steps), desc="CN     ", ascii=True):
         # Determine dimensions of external and boundary sources
@@ -292,10 +292,10 @@ cdef double[:,:,:] multigroup_bdf2(double[:,:]& xs_total_u, double[:,:]& xs_tota
         double[:]& angle_xu, double[:]& angle_xc, double[:]& angle_wu, \
         double[:]& angle_wc, int[:]& fine_idx, int[:]& coarse_idx, \
         double[:]& factor, params info_u, params info_c):
-    
+
     # Initialize time step, external and boundary indices
     cdef int step, qq1, qq2, bc1, bc2
-    
+
     # Set indexing for external and boundary sources
     qq2 = 1 if info_u.qdim < 4 else info_u.steps
     bc2 = 1 if info_u.bcdim_x < 4 else info_u.steps
@@ -312,16 +312,16 @@ cdef double[:,:,:] multigroup_bdf2(double[:,:]& xs_total_u, double[:,:]& xs_tota
 
     # Combine last time step and uncollided source term
     q_star = tools.array_1d(info_u.cells_x * info_u.angles * info_u.groups)
-    
+
     # Initialize angular flux for previous time steps
     flux_last_1 = tools.array_3d(info_u.cells_x, info_u.angles, info_u.groups)
     flux_last_2 = tools.array_3d(info_u.cells_x, info_u.angles, info_u.groups)
-    
+
     # Initialize scalar fluxes
     flux_u = tools.array_2d(info_u.cells_x, info_u.groups)
     flux_c = tools.array_2d(info_c.cells_x, info_c.groups)
     flux_t = tools.array_2d(info_u.cells_x, info_u.groups)
-    
+
     # Initialize array with all scalar flux time steps
     flux_time = tools.array_3d(info_u.steps, info_u.cells_x, info_u.groups)
     # Initialize collided source and boundary
@@ -347,7 +347,7 @@ cdef double[:,:,:] multigroup_bdf2(double[:,:]& xs_total_u, double[:,:]& xs_tota
                       xs_scatter_u, xs_scatter_c, q_star, source_c, \
                       boundary_xu[bc1::bc2], boundary_xc, medium_map, \
                       delta_x, angle_xu, angle_xc, angle_wu, angle_wc, \
-                      fine_idx, coarse_idx, factor, info_u, info_c)        
+                      fine_idx, coarse_idx, factor, info_u, info_c)
         # Solve for angular flux of time step
         flux_last_2[:,:,:] = flux_last_1[:,:,:]
         flux_last_1 = mg._known_source_angular(xs_total_vu, q_star, \
@@ -356,7 +356,7 @@ cdef double[:,:,:] multigroup_bdf2(double[:,:]& xs_total_u, double[:,:]& xs_tota
         # Step 5: Update flux_time and repeat
         tools._angular_to_scalar(flux_last_1, flux_time[step], angle_wu, info_u)
         # Create sigma_t + 3 / (2 * v * dt) (For BDF2 time steps)
-        if step == 0:    
+        if step == 0:
             xs_total_vu[:,:] = xs_total_u[:,:]
             tools._total_velocity(xs_total_vu, velocity_u, 1.5, info_u)
             xs_total_vc[:,:] = xs_total_c[:,:]
@@ -379,22 +379,22 @@ cdef double[:,:,:] multigroup_tr_bdf2(double[:,:]& xs_total_u, \
     # Set indexing for external and boundary sources
     qq2 = 1 if info_u.qdim < 4 else info_u.steps
     bc2 = 1 if info_u.bcdim_x < 4 else info_u.steps
-    
+
     # Create sigma_t + 2 / (gamma * v * dt) - CN Step
     xs_total_vu_cn = tools.array_2d(info_u.materials, info_u.groups)
     xs_total_vu_cn[:,:] = xs_total_u[:,:]
     tools._total_velocity(xs_total_vu_cn, velocity_u, 2.0 / gamma, info_u)
-    
+
     xs_total_vc_cn = tools.array_2d(info_c.materials, info_c.groups)
     xs_total_vc_cn[:,:] = xs_total_c[:,:]
     tools._total_velocity(xs_total_vc_cn, velocity_c, 2.0 / gamma, info_c)
-    
+
     # Create sigma_t + (2 - gamma) / ((1 - gamma) * v * dt) - BDF2 Step
     xs_total_vu_bdf2 = tools.array_2d(info_u.materials, info_u.groups)
     xs_total_vu_bdf2[:,:] = xs_total_u[:,:]
     tools._total_velocity(xs_total_vu_bdf2, velocity_u, \
                             (2.0 - gamma) / (1.0 - gamma), info_u)
-    
+
     xs_total_vc_bdf2 = tools.array_2d(info_c.materials, info_c.groups)
     xs_total_vc_bdf2[:,:] = xs_total_c[:,:]
     tools._total_velocity(xs_total_vc_bdf2, velocity_c, \
@@ -402,11 +402,11 @@ cdef double[:,:,:] multigroup_tr_bdf2(double[:,:]& xs_total_u, \
 
     # Combine last time step and uncollided source term
     q_star = tools.array_1d(info_u.cells_x * info_u.angles * info_u.groups)
-    
+
     # Initialize angular flux for previous time steps
     flux_last_ell = tools.array_3d(info_u.cells_x + 1, info_u.angles, info_u.groups)
     flux_last_gamma = tools.array_3d(info_u.cells_x, info_u.angles, info_u.groups)
-    
+
     # Initialize scalar fluxes
     flux_u = tools.array_2d(info_u.cells_x, info_u.groups)
     flux_c = tools.array_2d(info_c.cells_x, info_c.groups)
@@ -468,15 +468,15 @@ cdef double[:,:,:] multigroup_tr_bdf2(double[:,:]& xs_total_u, \
 
             xs_total_vu_cn[:,:] = xs_total_u[:,:]
             tools._total_velocity(xs_total_vu_cn, velocity_u, 2.0 / gamma, info_u)
-            
+
             xs_total_vc_cn[:,:] = xs_total_c[:,:]
             tools._total_velocity(xs_total_vc_cn, velocity_c, 2.0 / gamma, info_c)
-            
+
             # Create sigma_t + (2 - gamma) / ((1 - gamma) * v * dt) - BDF2 Step
             xs_total_vu_bdf2[:,:] = xs_total_u[:,:]
             tools._total_velocity(xs_total_vu_bdf2, velocity_u, \
                                     (2.0 - gamma) / (1.0 - gamma), info_u)
-            
+
             xs_total_vc_bdf2[:,:] = xs_total_c[:,:]
             tools._total_velocity(xs_total_vc_bdf2, velocity_c, \
                                     (2.0 - gamma) / (1.0 - gamma), info_c)
