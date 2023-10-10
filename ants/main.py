@@ -35,9 +35,14 @@ def angular_x(info):
 
 
 def angular_xy(info):
-    angles = info["angles"]
-    bc_x = info["bc_x"]
-    bc_y = info["bc_y"]
+    if isinstance(info, int):
+        angles = info
+        bc_x = [0, 0]
+        bc_y = [0, 0]
+    else:
+        angles = info["angles"]
+        bc_x = info["bc_x"]
+        bc_y = info["bc_y"]
     # eta, xi, mu: direction cosines (x,y,z) 
     xx, wx = np.polynomial.legendre.leggauss(angles)
     yy, wy = np.polynomial.chebyshev.chebgauss(angles)
@@ -128,12 +133,23 @@ def energy_velocity(groups, edges_g=None):
     return velocity
 
 
-def spatial1d(layers, edges_x, key=False):
-    # layers is list of list with each element [idx, material, width]
-    material_key = {}
-    medium_map = np.ones((len(edges_x) - 1)) * -1
+def spatial1d(layers, edges_x):
+    """ Creating one-dimensional medium map
+    
+    :param layers: list of lists where each layer is a new material. A 
+        layer is comprised of an index (int), material name (str), and 
+        the width (str) in the form [index, material, width]. The width 
+        is the starting and ending points of the material (in cm) 
+        separated by a dash. If there are multiple regions, a comma can 
+        separate them. I.E. layer = [0, "plutonium", "0 - 2, 3 - 4"].
+    :param edges_x: Array of length I + 1 with the location of the cell edges
+    :return: One-dimensional array of length I, identifying the locations 
+        of the materials
+    """
+    # Initialize medium_map
+    medium_map = np.ones((len(edges_x) - 1), dtype=np.int32) * -1
+    # Iterate over all layers
     for layer in layers:
-        material_key[layer[0]] = layer[1]
         for region in layer[2].split(","):
             start, stop = region.split("-")
             idx1 = np.argmin(np.fabs(float(start) - edges_x))
@@ -141,25 +157,28 @@ def spatial1d(layers, edges_x, key=False):
             medium_map[idx1:idx2] = layer[0]
     # Verify all cells are filled
     assert np.all(medium_map != -1)
-    medium_map = medium_map.astype(np.int32)
-    if key:
-        return medium_map, material_key
     return medium_map
 
 
-def spatial2d(matrix, value, coordinates, edges_x, edges_y):
-    """ Populating areas of 2D matrices easily (medium_map, sources) with
-    rectangular geometries
-    Arguments:
-        matrix: (I x J x ...): At least a 2D array, where the value 
-        value: (int) or array depending on additional dimensions of matrix
-        coordinates: list of [(starting index), x_length, y_length]
-        edges_x: (array of size I + 1)
-        edges_y: (array of size J + 1)
-    Returns:
-        matrix populated with value
+def spatial2d(medium_map, value, coordinates, edges_x, edges_y):
+    """ Populating 2D medium_map with rectangular geometries
+
+    :param medium_map: 2D medium_map array of size (I x J) to input value, 
+        must be of type np.int32
+    :param value: Integer to be populating the medium_map. It will correspond
+        to the ordering of the cross section materials
+    :type value: int
+    :param coordinates: list of locations, where each location is composed
+        of the starting index tuple, the length in the x direction and 
+        the length in the y direction, with all values being in centimeters.
+        I.E. location = [(x1, y1), dx, dy].
+    :param edges_x: Array of length I + 1 with the location of the cell 
+        edges in the x direction
+    :param edges_y: Array of length J + 1 with the location of the cell 
+        edges in the y direction
+    :return: medium_map populated with value at specific coordinates
     """
-    # For rectangular grids
+    # Iterate over coordinates
     for [(x1, y1), span_x, span_y] in coordinates:
         # Get starting locations
         idx_x1 = np.argwhere(edges_x == x1)[0, 0]
@@ -168,8 +187,8 @@ def spatial2d(matrix, value, coordinates, edges_x, edges_y):
         idx_x2 = np.argwhere(edges_x == x1 + span_x)[0, 0]
         idx_y2 = np.argwhere(edges_y == y1 + span_y)[0, 0]
         # Populate with value
-        matrix[idx_x1:idx_x2, idx_y1:idx_y2] = value
-    return matrix
+        medium_map[idx_x1:idx_x2, idx_y1:idx_y2] = value
+    return medium_map
 
 
 def weight_spatial2d(weight_matrix, xs_total, xs_scatter, xs_fission):

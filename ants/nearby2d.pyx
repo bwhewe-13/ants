@@ -32,13 +32,13 @@ from ants.parameters cimport params
 
 def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x, \
         boundary_y, medium_map, delta_x, delta_y, knots_x, knots_y, \
-        angle_x, angle_y, angle_w, params_dict):
+        angle_x, angle_y, angle_w, params_dict, zero_bounds=False):
     # Convert dictionary to type params
     info = parameters._to_params(params_dict)
     parameters._check_nearby2d_fixed_source(info, xs_total.shape[0])
     # Angular directions
     cdef int NN = info.angles * info.angles
-    print("Calculating Numerical Solution...", end="\r")
+    print("1. Calculating Numerical Solution...")
     # Run Numerical Solution
     numerical_flux = fixed2d.source_iteration(xs_total, xs_scatter, \
                         xs_fission, external.flatten(), boundary_x.flatten(), \
@@ -54,7 +54,7 @@ def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x, \
     int_dy = tools.array_4d(info.cells_x, info.cells_y, NN, info.groups)
     int_phi = tools.array_3d(info.cells_x, info.cells_y, info.groups)
     # Calculate curve fit at knots
-    print("Calculating Analytical Solution...")
+    print("2. Calculating Analytical Solution...")
     # Knots at cell centers
     if knots_x.shape[0] == info.cells_x:
         edges_x = np.insert(np.cumsum(delta_x), 0, 0)
@@ -69,7 +69,7 @@ def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x, \
         _curve_fit_edges(numerical_flux, curve_fit_flux, curve_fit_boundary_x, \
                 curve_fit_boundary_y, int_psi, int_dx, int_dy, int_phi, \
                 medium_map, knots_x, knots_y, centers_x, centers_y, angle_w, info)
-    print("Calculating Residual...")
+    print("3. Calculating Residual...")
     # Calculate residual for each cell
     residual = tools.array_4d(info.cells_x, info.cells_y, NN, info.groups)
     _residual_integral(residual, int_psi, int_dx, int_dy, int_phi, xs_total, \
@@ -79,8 +79,12 @@ def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x, \
     np.save(f"nearby_boundary_x_s{info.angles}", np.asarray(curve_fit_boundary_x))
     np.save(f"nearby_boundary_y_s{info.angles}", np.asarray(curve_fit_boundary_y))
     # Run Nearby Problem
-    print("Calculating Nearby Solution...")
+    print("4. Calculating Nearby Solution...")
     info.edges = 0
+    if zero_bounds:
+        print("Removing Analytical Boundary Conditions...")
+        curve_fit_boundary_x = boundary_x.copy()
+        curve_fit_boundary_y = boundary_y.copy()
     nearby_flux = fixed2d.source_iteration(xs_total, xs_scatter, \
                         xs_fission, (external + residual).flatten(), \
                         curve_fit_boundary_x.flatten(), \
@@ -110,8 +114,11 @@ cdef void _curve_fit_centers(double[:,:,:,:]& flux, double[:,:,:,:]& curve_fit, 
         for nn in tqdm(range(NN), desc="Curve Fit Angles", ascii=True):
         # for nn in range(NN):
             # Create function
-            # approx = Block(Hermite, flux[:,:,nn,gg], knots_x, knots_y, medium_map)
-            approx = Hermite(flux[:,:,nn,gg], knots_x, knots_y)
+            if info.materials == 1:
+                approx = Hermite(flux[:,:,nn,gg], knots_x, knots_y)
+            else:
+                approx = Block(Hermite, flux[:,:,nn,gg], knots_x, \
+                                knots_y, medium_map)
             # Interpolate the knots
             spline = approx.interpolate(knots_x, knots_y)
             curve_fit[...,nn,gg] = spline[:,:]
