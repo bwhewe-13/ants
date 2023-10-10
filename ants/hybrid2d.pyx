@@ -172,12 +172,12 @@ cdef double[:,:,:,:] multigroup_bdf1(double[:,:]& xs_total_u, double[:,:]& xs_to
         double[:]& factor, params info_u, params info_c):
 
     # Initialize time step, external and boundary indices
-    cdef int step, qq1, qq2, bcx1, bcx2, bcy1, bcy2
+    cdef int step, qq1, qq2, bcx1, bcy1, bcx2, bcy1, bcy2
     
     # Set indexing for external and boundary sources
     qq2 = 1 if info_u.qdim < 4 else info_u.steps
-    bcx2 = 1 if info_u.bcdim_x < 4 else info_u.steps
-    bcy2 = 1 if info_u.bcdim_y < 4 else info_u.steps
+    bcx2 = 1 if info_u.bcdim_x < 5 else info_u.steps
+    bcy2 = 1 if info_u.bcdim_y < 5 else info_u.steps
 
     # Create sigma_t + 1 / (v * dt) - Uncollided
     xs_total_vu = tools.array_2d(info_u.materials, info_u.groups)
@@ -211,7 +211,9 @@ cdef double[:,:,:,:] multigroup_bdf1(double[:,:]& xs_total_u, double[:,:]& xs_to
     for step in tqdm(range(info_u.steps), desc="BDF1   ", ascii=True):
         # Determine dimensions of external and boundary sources
         qq1 = 0 if info_u.qdim < 4 else step
-        bc1 = 0 if info_u.bcdim_x < 4 else step
+        bcx1 = 0 if info_u.bcdim_x < 5 else step
+        bcy1 = 0 if info_u.bcdim_y < 5 else step
+
         # Update q_star as external + 1/(v*dt) * psi
         tools._time_source_star_bdf1(flux_last, q_star, \
                                 external_u[qq1::qq2], velocity_u, info_u)
@@ -247,8 +249,8 @@ cdef double[:,:,:,:] multigroup_cn(double[:,:]& xs_total_u, double[:,:]& xs_tota
     
     # Set indexing for external and boundary sources
     qq2 = 1 if info_u.qdim < 4 else info_u.steps
-    bcx2 = 1 if info_u.bcdim_x < 4 else info_u.steps
-    bcy2 = 1 if info_u.bcdim_y < 4 else info_u.steps
+    bcx2 = 1 if info_u.bcdim_x < 5 else info_u.steps
+    bcy2 = 1 if info_u.bcdim_y < 5 else info_u.steps
 
     # Create sigma_t + 2 / (v * dt) - Uncollided
     xs_total_vu = tools.array_2d(info_u.materials, info_u.groups)
@@ -284,8 +286,8 @@ cdef double[:,:,:,:] multigroup_cn(double[:,:]& xs_total_u, double[:,:]& xs_tota
         # Determine dimensions of external and boundary sources
         qqa = 0 if info_u.qdim < 4 else step - 1 # Previous time step
         qq1 = 0 if info_u.qdim < 4 else step
-        bcx1 = 0 if info_u.bcdim_x < 4 else step
-        bcy1 = 0 if info_u.bcdim_y < 4 else step
+        bcx1 = 0 if info_u.bcdim_x < 5 else step
+        bcy1 = 0 if info_u.bcdim_y < 5 else step
         # Update q_star
         tools._time_source_star_cn(flux_last_x, flux_last_y, flux_u, xs_total_u, \
                 xs_scatter_u, velocity_u, q_star, external_u[qqa::qq2], \
@@ -323,8 +325,8 @@ cdef double[:,:,:,:] multigroup_bdf2(double[:,:]& xs_total_u, double[:,:]& xs_to
     
     # Set indexing for external and boundary sources
     qq2 = 1 if info_u.qdim < 4 else info_u.steps
-    bcx2 = 1 if info_u.bcdim_x < 4 else info_u.steps
-    bcy2 = 1 if info_u.bcdim_y < 4 else info_u.steps
+    bcx2 = 1 if info_u.bcdim_x < 5 else info_u.steps
+    bcy2 = 1 if info_u.bcdim_y < 5 else info_u.steps
 
     # Create sigma_t + 1 / (v * dt) - Uncollided
     xs_total_vu = tools.array_2d(info_u.materials, info_u.groups)
@@ -360,8 +362,8 @@ cdef double[:,:,:,:] multigroup_bdf2(double[:,:]& xs_total_u, double[:,:]& xs_to
     for step in tqdm(range(info_u.steps), desc="BDF2   ", ascii=True):
         # Determine dimensions of external and boundary sources
         qq1 = 0 if info_u.qdim < 4 else step
-        bcx1 = 0 if info_u.bcdim_x < 4 else step
-        bcy1 = 0 if info_u.bcdim_y < 4 else step
+        bcx1 = 0 if info_u.bcdim_x < 5 else step
+        bcy1 = 0 if info_u.bcdim_y < 5 else step
         # Update q_star
         if step == 0:
             # Run BDF1 on first step
@@ -415,8 +417,8 @@ cdef double[:,:,:,:] multigroup_tr_bdf2(double[:,:]& xs_total_u, double[:,:]& xs
     
     # Set indexing for external and boundary sources
     qq2 = 1 if info_u.qdim < 4 else info_u.steps
-    bcx2 = 1 if info_u.bcdim_x < 4 else info_u.steps
-    bcy2 = 1 if info_u.bcdim_y < 4 else info_u.steps
+    bcx2 = 1 if info_u.bcdim_x < 5 else info_u.steps
+    bcy2 = 1 if info_u.bcdim_y < 5 else info_u.steps
 
     # Create sigma_t + 2 / (gamma * v * dt) - CN Step
     xs_total_vu_cn = tools.array_2d(info_u.materials, info_u.groups)
@@ -465,8 +467,8 @@ cdef double[:,:,:,:] multigroup_tr_bdf2(double[:,:]& xs_total_u, double[:,:]& xs
     for step in tqdm(range(info_u.steps), desc="TR-BDF2", ascii=True):
         # Determine dimensions of external and boundary sources
         qq1 = 0 if info_u.qdim < 4 else step
-        bcx1 = 0 if info_u.bcdim_x < 4 else step
-        bcy1 = 0 if info_u.bcdim_y < 4 else step
+        bcx1 = 0 if info_u.bcdim_x < 5 else step
+        bcy1 = 0 if info_u.bcdim_y < 5 else step
         ################################################################
         # Crank Nicolson
         ################################################################
