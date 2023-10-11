@@ -26,15 +26,13 @@ from ants.parameters cimport params
 from ants.constants import *
 
 
-cdef double[:,:] source_iteration(double[:,:]& flux_guess, double[:,:]& xs_total, \
-        double[:,:,:]& xs_scatter, double[:]& external, double [:]& boundary_x, \
+cdef double[:,:] source_iteration(double[:,:]& flux_guess, \
+        double[:,:]& xs_total, double[:,:,:]& xs_scatter, \
+        double[:,:,:]& external, double[:,:,:]& boundary_x, \
         int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
         double[:]& angle_w, params info):
     # Initialize components
-    cdef int gg, qq1, qq2, bc1, bc2
-    # Set indexing
-    qq2 = 1 if info.qdim == 1 else info.groups
-    bc2 = 1 if info.bcdim_x == 1 else info.groups
+    cdef int gg, qq, bc
     # Initialize flux
     flux = tools.array_2d(info.cells_x, info.groups)
     flux_old = flux_guess.copy()
@@ -49,8 +47,8 @@ cdef double[:,:] source_iteration(double[:,:]& flux_guess, double[:,:]& xs_total
     while not (converged):
         flux[:,:] = 0.0
         for gg in range(info.groups):
-            qq1 = 0 if info.qdim == 1 else gg
-            bc1 = 0 if info.bcdim_x == 1 else gg
+            qq = 0 if external.shape[2] == 1 else gg
+            bc = 0 if boundary_x.shape[2] == 1 else gg
             # Select the specific group from last iteration
             flux_1g[:] = flux_old[:,gg]
             # Calculate up and down scattering term using Gauss-Seidel
@@ -58,9 +56,9 @@ cdef double[:,:] source_iteration(double[:,:]& flux_guess, double[:,:]& xs_total
                                off_scatter, info, gg)
             # Use discrete ordinates for the angular dimension
             discrete_ordinates(flux[:,gg], flux_1g, xs_total[:,gg], \
-                               xs_scatter[:,gg,gg], off_scatter, external[qq1::qq2], \
-                               boundary_x[bc1::bc2], medium_map, delta_x, \
-                               angle_x, angle_w, info)
+                    xs_scatter[:,gg,gg], off_scatter, external[...,qq], \
+                    boundary_x[...,bc], medium_map, delta_x, angle_x, \
+                    angle_w, info)
         change = tools.group_convergence(flux, flux_old, info)
         if isnan(change) or isinf(change):
             change = 0.5
@@ -71,48 +69,42 @@ cdef double[:,:] source_iteration(double[:,:]& flux_guess, double[:,:]& xs_total
 
 
 cdef double[:,:,:] _known_source_angular(double[:,:]& xs_total, \
-        double[:]& source, double [:]& boundary_x, int[:]& medium_map, \
-        double[:]& delta_x, double[:]& angle_x, double[:]& angle_w, \
-        params info):
+        double[:,:,:]& source, double[:,:,:]& boundary_x, \
+        int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
+        double[:]& angle_w, params info):
     # source = flux * xs_scatter + external source
     # Initialize components
-    cdef int gg, q1, qq2, bc1, bc2
-    # Set indexing
-    qq2 = 1 if info.qdim == 1 else info.groups
-    bc2 = 1 if info.bcdim_x == 1 else info.groups
+    cdef int gg, qq, bc
     # Initialize angular flux
     angular_flux = tools.array_3d(info.cells_x + info.edges, info.angles, info.groups)
     # Set zero matrix placeholder for scattering
     zero = tools.array_1d(info.cells_x + info.edges)
     # Iterate over groups
     for gg in range(info.groups):
-        qq1 = 0 if info.qdim == 1 else gg
-        bc1 = 0 if info.bcdim_x == 1 else gg
+        qq = 0 if external.shape[2] == 1 else gg
+        bc = 0 if boundary_x.shape[2] == 1 else gg
         _known_sweep(angular_flux[:,:,gg], xs_total[:,gg], zero, \
-                source[qq1::qq2], boundary_x[bc1::bc2], medium_map, \
-                delta_x, angle_x, angle_w, info)
+                     source[...,qq], boundary_x[...,bc], medium_map, \
+                     delta_x, angle_x, angle_w, info)
     return angular_flux[:,:,:]
 
 
 cdef double[:,:] _known_source_scalar(double[:,:]& xs_total, \
-        double[:]& source, double [:]& boundary_x, int[:]& medium_map, \
-        double[:]& delta_x, double[:]& angle_x, double[:]& angle_w, \
-        params info):
+        double[:,:,:]& source, double[:,:,:]& boundary_x, \
+        int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
+        double[:]& angle_w, params info):
     # source = flux * xs_scatter + external source
     # Initialize components
-    cdef int gg, q1, qq2, bc1, bc2
-    # Set indexing
-    qq2 = 1 if info.qdim == 1 else info.groups
-    bc2 = 1 if info.bcdim_x == 1 else info.groups
+    cdef int gg, qq, bc
     # Initialize angular flux
     scalar_flux = tools.array_3d(info.cells_x + info.edges, info.groups, 1)
     # Set zero matrix placeholder for scattering
     zero = tools.array_1d(info.cells_x + info.edges)
     # Iterate over groups
     for gg in range(info.groups):
-        qq1 = 0 if info.qdim == 1 else gg
-        bc1 = 0 if info.bcdim_x == 1 else gg
+        qq = 0 if external.shape[2] == 1 else gg
+        bc = 0 if boundary_x.shape[2] == 1 else gg
         _known_sweep(scalar_flux[:,gg], xs_total[:,gg], zero, \
-                     source[qq1::qq2], boundary_x[bc1::bc2], medium_map, \
+                     source[...,qq], boundary_x[...,bc], medium_map, \
                      delta_x, angle_x, angle_w, info)
     return scalar_flux[:,:,0]

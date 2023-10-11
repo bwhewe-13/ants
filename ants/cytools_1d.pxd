@@ -69,8 +69,8 @@ cdef void _angular_edge_to_scalar(double[:,:,:]& angular_flux, \
 cdef void _total_velocity(double[:,:]& xs_total, double[:]& velocity, \
         double constant, params info)
 
-cdef void _time_source_star_bdf1(double[:,:,:]& flux, double[:]& q_star, \
-        double[:]& external, double[:]& velocity, params info)
+cdef void _time_source_star_bdf1(double[:,:,:]& flux, double[:,:,:]& q_star, \
+        double[:,:,:]& external, double[:]& velocity, params info)
 
 cdef void _time_source_star_cn(double[:,:,:]& psi_edges, double[:,:]& phi, \
         double[:,:]& xs_total, double[:,:,:]& xs_scatter, \
@@ -86,7 +86,7 @@ cdef void _time_source_star_tr_bdf2(double[:,:,:]& flux_1, \
         double[:,:,:]& flux_2, double[:]& q_star, double[:]& external, \
         double[:]& velocity, double gamma, params info)
 
-cdef void _time_right_side(double[:]& q_star, double[:,:]& flux, \
+cdef void _time_right_side(double[:,:,:]& q_star, double[:,:]& flux, \
         double[:,:,:]& xs_scatter, int[:]& medium_map, params info)
 
 cdef void boundary_decay(double[:]& boundary_x, int step, params info)
@@ -119,11 +119,11 @@ cdef double _nearby_keffective(double[:,:]& flux, double rate, params info)
 # Hybrid Method Time Dependent Problems
 ########################################################################
 cdef void _hybrid_source_collided(double[:,:]& flux, double[:,:,:]& xs_scatter, \
-        double[:]& source_c, int[:]& medium_map, int[:]& index_c, \
+        double[:,:,:]& source_c, int[:]& medium_map, int[:]& index_c, \
         params info_u, params info_c)
 
 cdef void _hybrid_source_total(double[:,:]& flux_t, double[:,:]& flux_u, \
-        double[:,:,:]& xs_matrix, double[:]& source, int[:]& medium_map, \
+        double[:,:,:]& xs_matrix, double[:,:,:]& source, int[:]& medium_map, \
         int[:]& index_u, double[:]& factor_u, params info_u, params info_c)
 
 cdef void _expand_hybrid_source(double[:,:]& flux_t, double[:,:]& flux_c, \

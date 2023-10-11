@@ -172,7 +172,7 @@ cdef double[:,:,:,:] multigroup_bdf1(double[:,:]& xs_total_u, double[:,:]& xs_to
         double[:]& factor, params info_u, params info_c):
 
     # Initialize time step, external and boundary indices
-    cdef int step, qq1, qq2, bcx1, bcy1, bcx2, bcy1, bcy2
+    cdef int step, qq1, qq2, bcx1, bcx2, bcy1, bcy2
     
     # Set indexing for external and boundary sources
     qq2 = 1 if info_u.qdim < 4 else info_u.steps
