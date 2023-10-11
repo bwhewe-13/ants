@@ -138,7 +138,7 @@ cdef double[:,:,:] multigroup_bdf1(double[:,:,:]& flux_last, \
         # Create (sigma_s + sigma_f) * phi^{\ell} + Q*
         tools._time_right_side(q_star, scalar_flux, xs_scatter, medium_map, info)
         # Solve for angular flux of previous time step
-        flux_last = mg._known_source_angular(xs_total_v, q_star, \
+        flux_last[:,:,:] = mg._known_source_angular(xs_total_v, q_star, \
                                     boundary_x[...,bc], medium_map, \
                                     delta_x, angle_x, angle_w, info)
     return flux_time[:,:,:]

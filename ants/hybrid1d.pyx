@@ -206,7 +206,7 @@ cdef double[:,:,:] multigroup_bdf1(double[:,:,:]& flux_last, \
                       delta_x, angle_xu, angle_xc, angle_wu, angle_wc, \
                       fine_idx, coarse_idx, factor, info_u, info_c)
         # Solve for angular flux of time step
-        flux_last = mg._known_source_angular(xs_total_vu, q_star, \
+        flux_last[:,:,:] = mg._known_source_angular(xs_total_vu, q_star, \
                                     boundary_xu[...,bc], medium_map, \
                                     delta_x, angle_xu, angle_wu, info_u)
         # Step 5: Update and repeat

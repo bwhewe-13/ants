@@ -424,7 +424,7 @@ cdef void _known_slab(double[:,:]& flux, double[:]& xs_total, \
     for nn in range(info.angles):
         # Determine dimensions of external and boundary sources
         qq = 0 if source.shape[1] == 0 else nn
-        bc = 0 if boundary.shape[1] == 0 else nn
+        bc = 0 if boundary_x.shape[1] == 0 else nn
         # Perform spatial sweep on scalar flux
         if (xdim == 1):
             edge = slab_sweep(flux[:,0], zero, xs_total, zero, zero, \

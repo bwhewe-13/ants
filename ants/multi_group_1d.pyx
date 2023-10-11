@@ -81,7 +81,7 @@ cdef double[:,:,:] _known_source_angular(double[:,:]& xs_total, \
     zero = tools.array_1d(info.cells_x + info.edges)
     # Iterate over groups
     for gg in range(info.groups):
-        qq = 0 if external.shape[2] == 1 else gg
+        qq = 0 if source.shape[2] == 1 else gg
         bc = 0 if boundary_x.shape[2] == 1 else gg
         _known_sweep(angular_flux[:,:,gg], xs_total[:,gg], zero, \
                      source[...,qq], boundary_x[...,bc], medium_map, \
@@ -102,7 +102,7 @@ cdef double[:,:] _known_source_scalar(double[:,:]& xs_total, \
     zero = tools.array_1d(info.cells_x + info.edges)
     # Iterate over groups
     for gg in range(info.groups):
-        qq = 0 if external.shape[2] == 1 else gg
+        qq = 0 if source.shape[2] == 1 else gg
         bc = 0 if boundary_x.shape[2] == 1 else gg
         _known_sweep(scalar_flux[:,gg], xs_total[:,gg], zero, \
                      source[...,qq], boundary_x[...,bc], medium_map, \
