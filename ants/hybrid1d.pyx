@@ -32,7 +32,7 @@ from ants cimport parameters
 # Collided is coarse grid (N' x G')
 
 
-def backward_euler(double[:,:,:] flux_last, double[:,:] xs_total_u, \
+def backward_euler(double[:,:,:] initial_flux, double[:,:] xs_total_u, \
         double[:,:] xs_total_c, double[:,:,:] xs_scatter_u, \
         double[:,:,:] xs_scatter_c, double[:,:,:] xs_fission_u, \
         double[:,:,:] xs_fission_c, double[:] velocity_u, \
@@ -54,11 +54,11 @@ def backward_euler(double[:,:,:] flux_last, double[:,:] xs_total_u, \
     xs_matrix_c = tools.array_3d(info_c.materials, info_c.groups, info_c.groups)
     tools._xs_matrix(xs_matrix_c, xs_scatter_c, xs_fission_c, info_c)
     # Run Backward Euler
-    flux = multigroup_bdf1(flux_last, xs_total_u, xs_total_c, xs_matrix_u, \
-                        xs_matrix_c, velocity_u, velocity_c, external_u, \
-                        boundary_xu.copy(), medium_map, delta_x, angle_xu, \
-                        angle_xc, angle_wu, angle_wc, fine_idx, coarse_idx, \
-                        factor, info_u, info_c)
+    flux = multigroup_bdf1(initial_flux.copy(), xs_total_u, xs_total_c, \
+                        xs_matrix_u, xs_matrix_c, velocity_u, velocity_c, \
+                        external_u, boundary_xu.copy(), medium_map, delta_x, \
+                        angle_xu, angle_xc, angle_wu, angle_wc, fine_idx, \
+                        coarse_idx, factor, info_u, info_c)
     return np.asarray(flux)
 
 
@@ -189,15 +189,16 @@ cdef double[:,:,:] multigroup_bdf1(double[:,:,:]& flux_last, \
 
     # Initialize collided source and boundary
     source_c = tools.array_3d(info_c.cells_x, 1, info_c.groups)
-    cdef double[2][1][1] boundary_xc = { { {0.0, 0.0} } }
+    boundary_xc = tools.array_3d(2, 1, 1)
+    # cdef double[2][1][1] boundary_xc = [0.0, 0.0]
 
     # Iterate over time steps
     for step in tqdm(range(info_u.steps), desc="BDF1   ", ascii=True):
         # Determine dimensions of external and boundary sources
-        qq = 0 if external_u.shape[3] == 0 else step
-        bc = 0 if boundary_xu.shape[3] == 0 else step
+        qq = 0 if external_u.shape[3] == 1 else step
+        bc = 0 if boundary_xu.shape[3] == 1 else step
         # Update q_star as external + 1/(v*dt) * psi
-        tools._time_source_star_bdf1(flux_last, q_star, external_u[...,qq], \
+        tools._time_source_star_bdf1(flux_last, q_star, external_u[:,:,:,qq], \
                                      velocity_u, info_u)
         # Run Hybrid Method
         hybrid_method(flux_u, flux_c, flux_t, xs_total_vu, xs_total_vc, \
@@ -207,7 +208,7 @@ cdef double[:,:,:] multigroup_bdf1(double[:,:,:]& flux_last, \
                       fine_idx, coarse_idx, factor, info_u, info_c)
         # Solve for angular flux of time step
         flux_last[:,:,:] = mg._known_source_angular(xs_total_vu, q_star, \
-                                    boundary_xu[...,bc], medium_map, \
+                                    boundary_xu[:,:,:,bc], medium_map, \
                                     delta_x, angle_xu, angle_wu, info_u)
         # Step 5: Update and repeat
         tools._angular_to_scalar(flux_last, flux_time[step], angle_wu, info_u)

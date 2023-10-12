@@ -66,8 +66,9 @@ cdef void slab_ordinates(double[:]& flux, double[:]& flux_old, \
         reflector[:] = 0.0
         for nn in range(info.angles):
             # Determine dimensions of external and boundary sources
-            qq = 0 if external.shape[1] == 0 else nn
-            bc = 0 if boundary_x.shape[1] == 0 else nn
+            qq = 0 if external.shape[1] == 1 else nn
+            bc = 0 if boundary_x.shape[1] == 1 else nn
+            # print(boundary_x.shape, external.shape)
             # Perform spatial sweep
             edge = slab_sweep(flux, flux_old, xs_total, xs_scatter, off_scatter, \
                         external[:,qq], boundary_x[:,bc], medium_map, \
@@ -214,8 +215,8 @@ cdef void sphere_ordinates(double[:]& flux, double[:]& flux_old, \
         # Iterate over all the discrete ordinates
         for nn in range(info.angles):
             # Determine dimensions of external and boundary sources
-            qq = 0 if external.shape[1] == 0 else nn
-            bc = 0 if boundary_x.shape[1] == 0 else nn
+            qq = 0 if external.shape[1] == 1 else nn
+            bc = 0 if boundary_x.shape[1] == 1 else nn
             # Calculate the half angle coefficient
             angle_plus = angle_minus + 2 * angle_w[nn]
             # Calculate the weighted diamond
@@ -423,8 +424,8 @@ cdef void _known_slab(double[:,:]& flux, double[:]& xs_total, \
     # Iterate over all the discrete ordinates
     for nn in range(info.angles):
         # Determine dimensions of external and boundary sources
-        qq = 0 if source.shape[1] == 0 else nn
-        bc = 0 if boundary_x.shape[1] == 0 else nn
+        qq = 0 if source.shape[1] == 1 else nn
+        bc = 0 if boundary_x.shape[1] == 1 else nn
         # Perform spatial sweep on scalar flux
         if (xdim == 1):
             edge = slab_sweep(flux[:,0], zero, xs_total, zero, zero, \
@@ -459,8 +460,8 @@ cdef void _known_sphere(double[:,:]& flux, double[:]& xs_total, \
     # Iterate over all the discrete ordinates
     for nn in range(info.angles):
         # Determine dimensions of external and boundary sources
-        qq = 0 if source.shape[1] == 0 else nn
-        bc = 0 if boundary_x.shape[1] == 0 else nn
+        qq = 0 if source.shape[1] == 1 else nn
+        bc = 0 if boundary_x.shape[1] == 1 else nn
         # Calculate the half angle coefficient
         angle_plus = angle_minus + 2 * angle_w[nn]
         # Calculate the weighted diamond

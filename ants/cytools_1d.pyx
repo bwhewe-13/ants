@@ -198,14 +198,16 @@ cdef void _time_source_star_bdf1(double[:,:,:]& flux, double[:,:,:]& q_star, \
         double[:,:,:]& external, double[:]& velocity, params info):
     # Combining the source (I x N x G) with the angular flux (I x N x G)
     # Initialize iterables
-    cdef int ii, nn, gg #, loc
+    cdef int ii, nn, gg, nn_q, gg_q#, loc
     # Zero out previous values
     q_star[:,:,:] = 0.0
     for gg in range(info.groups):
+        gg_q = 0 if external.shape[2] == 1 else gg
         for nn in range(info.angles):
+            nn_q = 0 if external.shape[1] == 1 else nn
             for ii in range(info.cells_x):
                 # loc = gg + info.groups * (nn + ii * info.angles)
-                q_star[ii,nn,gg] = external[ii,nn,gg] + flux[ii,nn,gg] \
+                q_star[ii,nn,gg] = external[ii,nn_q,gg_q] + flux[ii,nn,gg] \
                                     * 1 / (velocity[gg] * info.dt)
 
 

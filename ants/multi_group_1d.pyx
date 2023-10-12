@@ -56,12 +56,13 @@ cdef double[:,:] source_iteration(double[:,:]& flux_guess, \
                                off_scatter, info, gg)
             # Use discrete ordinates for the angular dimension
             discrete_ordinates(flux[:,gg], flux_1g, xs_total[:,gg], \
-                    xs_scatter[:,gg,gg], off_scatter, external[...,qq], \
-                    boundary_x[...,bc], medium_map, delta_x, angle_x, \
+                    xs_scatter[:,gg,gg], off_scatter, external[:,:,qq], \
+                    boundary_x[:,:,bc], medium_map, delta_x, angle_x, \
                     angle_w, info)
         change = tools.group_convergence(flux, flux_old, info)
         if isnan(change) or isinf(change):
             change = 0.5
+        # print(count, change, np.sum(flux))
         converged = (change < EPSILON_ENERGY) or (count >= MAX_ENERGY)
         count += 1
         flux_old[:,:] = flux[:,:]
@@ -84,7 +85,7 @@ cdef double[:,:,:] _known_source_angular(double[:,:]& xs_total, \
         qq = 0 if source.shape[2] == 1 else gg
         bc = 0 if boundary_x.shape[2] == 1 else gg
         _known_sweep(angular_flux[:,:,gg], xs_total[:,gg], zero, \
-                     source[...,qq], boundary_x[...,bc], medium_map, \
+                     source[:,:,qq], boundary_x[:,:,bc], medium_map, \
                      delta_x, angle_x, angle_w, info)
     return angular_flux[:,:,:]
 
@@ -105,6 +106,6 @@ cdef double[:,:] _known_source_scalar(double[:,:]& xs_total, \
         qq = 0 if source.shape[2] == 1 else gg
         bc = 0 if boundary_x.shape[2] == 1 else gg
         _known_sweep(scalar_flux[:,gg], xs_total[:,gg], zero, \
-                     source[...,qq], boundary_x[...,bc], medium_map, \
+                     source[:,:,qq], boundary_x[:,:,bc], medium_map, \
                      delta_x, angle_x, angle_w, info)
     return scalar_flux[:,:,0]

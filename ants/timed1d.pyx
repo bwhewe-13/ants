@@ -41,9 +41,9 @@ def backward_euler(double[:,:,:] initial_flux, double[:,:] xs_total, \
     xs_matrix = tools.array_3d(info.materials, info.groups, info.groups)
     tools._xs_matrix(xs_matrix, xs_scatter, xs_fission, info)
     # Run Backward Euler
-    flux = multigroup_bdf1(initial_flux, xs_total, xs_matrix, velocity, \
-                            external, boundary_x.copy(), medium_map, \
-                            delta_x, angle_x, angle_w, info)
+    flux = multigroup_bdf1(initial_flux.copy(), xs_total, xs_matrix, \
+                           velocity, external, boundary_x.copy(), \
+                           medium_map, delta_x, angle_x, angle_w, info)
     return np.asarray(flux)
 
 
@@ -127,11 +127,11 @@ cdef double[:,:,:] multigroup_bdf1(double[:,:,:]& flux_last, \
         qq = 0 if external.shape[3] == 1 else step
         bc = 0 if boundary_x.shape[3] == 1 else step
         # Update q_star as external + 1/(v*dt) * psi
-        tools._time_source_star_bdf1(flux_last, q_star, external[...,qq], \
+        tools._time_source_star_bdf1(flux_last, q_star, external[:,:,:,qq], \
                                      velocity, info)
         # Solve for the current time step
         flux_time[step] = mg.source_iteration(scalar_flux, xs_total_v, \
-                                xs_scatter, q_star, boundary_x[...,bc], \
+                                xs_scatter, q_star, boundary_x[:,:,:,bc], \
                                 medium_map, delta_x, angle_x, angle_w, info)
         # Update previous time step
         scalar_flux[:,:] = flux_time[step,:,:]
@@ -139,7 +139,7 @@ cdef double[:,:,:] multigroup_bdf1(double[:,:,:]& flux_last, \
         tools._time_right_side(q_star, scalar_flux, xs_scatter, medium_map, info)
         # Solve for angular flux of previous time step
         flux_last[:,:,:] = mg._known_source_angular(xs_total_v, q_star, \
-                                    boundary_x[...,bc], medium_map, \
+                                    boundary_x[:,:,:,bc], medium_map, \
                                     delta_x, angle_x, angle_w, info)
     return flux_time[:,:,:]
 
