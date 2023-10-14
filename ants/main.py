@@ -132,6 +132,23 @@ def energy_velocity(groups, edges_g=None):
     velocity = LIGHT_SPEED / gamma * np.sqrt(gamma**2 - 1) * 100
     return velocity
 
+def gamma_time_steps(edges_t, half_step=True):
+    """ Add gamma half time steps to original time steps with initial step
+    where gamma = 2 - sqrt(2). For external source with TR-BDF2 problems.
+
+    Arguments:
+        edges_t: array of length (steps + 1)
+        half_step: if True, first half step is 0.5, else gamma
+    Returns:
+        array of length (steps * 2 + 1)
+    """
+    gamma = 2 - np.sqrt(2)
+    half_steps = edges_t[:-1] + np.diff(edges_t) * (2 - np.sqrt(2))
+    combined_steps = np.sort(np.concatenate((edges_t, half_steps)))
+    if half_step:
+        combined_steps[1] = 0.5 * (combined_steps[0] + combined_steps[2])
+    return combined_steps
+
 
 def spatial1d(layers, edges_x):
     """ Creating one-dimensional medium map

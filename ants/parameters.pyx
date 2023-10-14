@@ -85,9 +85,50 @@ cdef int _check_nearby1d_criticality(params info) except -1:
 cdef int _check_timed1d(params info, int xs_length) except -1:
     assert info.angles % 2 == 0, "Need an even number of angles"
     assert info.materials == xs_length, "Incorrect number of materials"
-    assert info.qdim > 2, "Need (I x N x G) fixed source"
     assert info.steps > 0, "Need at least 1 time step"
     assert info.angular == False, "Scalar flux is returned"
+    return 0
+
+
+cdef int _check_bdf_timed1d(params info, int psi_length, int q_length, \
+        int bc_length, int xs_length) except -1:
+    # Go through time-dependent default checks
+    _check_timed1d(info, xs_length)
+    assert psi_length == info.cells_x, "Need initial flux at cell centers"
+    if q_length > 1:
+        assert q_length == info.steps, \
+                "Need time-dependent external source for each time step"
+    if bc_length > 1:
+        assert bc_length == info.steps, \
+                "Need time-dependent boundary source for each time step"
+    return 0
+
+
+cdef int _check_cn_timed1d(params info, int psi_length, int q_length, \
+        int bc_length, int xs_length) except -1:
+    # Go through time-dependent default checks
+    _check_timed1d(info, xs_length)
+    assert psi_length == (info.cells_x + 1), "Need initial flux at cell edges"
+    if q_length > 1:
+        assert q_length == (info.steps + 1), "Need time-dependent external " \
+                "source for each time step and initial time step"
+    if bc_length > 1:
+        assert bc_length == info.steps, \
+                "Need time-dependent boundary source for each time step"
+    return 0
+
+
+cdef int _check_tr_bdf_timed1d(params info, int psi_length, int q_length, \
+        int bc_length, int xs_length) except -1:
+    # Go through time-dependent default checks
+    _check_timed1d(info, xs_length)
+    assert psi_length == (info.cells_x + 1), "Need initial flux at cell edges"
+    if q_length > 1:
+        assert q_length == (info.steps * 2 + 1), "Need time-dependent " \
+            "external source for each time step, gamma step, and initial step"
+    if bc_length > 1:
+        assert bc_length == info.steps, \
+                "Need time-dependent boundary source for each time step"
     return 0
 
 

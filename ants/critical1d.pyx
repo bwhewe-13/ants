@@ -53,29 +53,39 @@ cdef double[:,:] multigroup_power(double[:,:]& flux_guess, double[:,:]& xs_total
         double[:,:,:]& xs_scatter, double[:,:,:]& xs_fission, \
         int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
         double[:]& angle_w, params info, double[:]& keff):
+
     # Initialize flux
     flux = tools.array_2d(info.cells_x, info.groups)
     flux_old = flux_guess.copy()
+
     # Initialize power source
-    source = tools.array_1d(info.cells_x * info.groups)
+    source = tools.array_3d(info.cells_x, 1, info.groups)
+    
     # Vacuum boundaries
-    cdef double[2] boundary_x = [0.0, 0.0]
+    boundary_x = tools.array_3d(2, 1, 1)
+    
     # Set convergence limits
     cdef bint converged = False
     cdef int count = 1
     cdef double change = 0.0
+    
+    # Iterate until converge
     while not (converged):
         # Update power source term
         tools._fission_source(flux_old, xs_fission, source, medium_map, \
                               info, keff[0])
+        
         # Solve for scalar flux
         flux = mg.source_iteration(flux_old, xs_total, xs_scatter, source, \
                     boundary_x, medium_map, delta_x, angle_x, angle_w, info)
+        
         # Update keffective
         keff[0] = tools._update_keffective(flux, flux_old, xs_fission, \
                                            medium_map, info, keff[0])
+        
         # Normalize flux
         tools._normalize_flux(flux, info)
+        
         # Check for convergence
         change = tools.group_convergence(flux, flux_old, info)
         print("Count: {:>3}\tKeff: {:.8f}".format(str(count).zfill(3), \
@@ -83,6 +93,7 @@ cdef double[:,:] multigroup_power(double[:,:]& flux_guess, double[:,:]& xs_total
         converged = (change < EPSILON_POWER) or (count >= MAX_POWER)
         count += 1
         flux_old[:,:] = flux[:,:]
+    
     print("\nConvergence: {:2.6e}".format(change))
     return flux[:,:]
 
@@ -91,19 +102,24 @@ def known_source_calculation(double[:,:] flux, double[:,:] xs_total, \
         double[:,:,:] xs_scatter, double[:,:,:] xs_fission, \
         int[:] medium_map, double[:] delta_x, double[:] angle_x, \
         double[:] angle_w, double keff, dict params_dict):
+    
     # Covert dictionary to type params
     info = parameters._to_params(params_dict)
+    
     # Create (sigma_s + sigma_f) * phi + external function
-    source = tools.array_1d(info.cells_x * info.groups)
+    source = tools.array_3d(info.cells_x, 1, info.groups)
     tools._source_total_critical(source, flux, xs_scatter, xs_fission, \
                                  medium_map, keff, info)
+    
     # Need zero array for boundary
-    boundary_x = tools.array_1d(2)
+    boundary_x = tools.array_3d(2, 1, 1)
+    
     # Return scalar flux cell edges
     if (info.angular == False) and (info.edges == 1):
         scalar_flux = mg._known_source_scalar(xs_total, source, boundary_x, \
                             medium_map, delta_x, angle_x, angle_w, info)
         return np.asarray(scalar_flux)
+    
     # Solve for angular flux 
     angular_flux = mg._known_source_angular(xs_total, source, boundary_x, \
                             medium_map, delta_x, angle_x, angle_w, info)
@@ -112,7 +128,7 @@ def known_source_calculation(double[:,:] flux, double[:,:] xs_total, \
 
 
 def nearby_power(double[:,:] xs_total, double[:,:,:] xs_scatter, \
-        double[:,:,:] xs_fission, double[:] residual, int[:] medium_map, \
+        double[:,:,:] xs_fission, double[:,:,:] residual, int[:] medium_map, \
         double[:] delta_x, double[:] angle_x, double[:] angle_w, \
         double n_rate, dict params_dict):
     # Convert dictionary to type params1d
@@ -131,33 +147,43 @@ def nearby_power(double[:,:] xs_total, double[:,:,:] xs_scatter, \
     return np.asarray(flux), keff[0]
 
 
-cdef double[:,:] multigroup_nearby(double[:,:]& flux_guess, double[:,:]& xs_total, \
-        double[:,:,:]& xs_scatter, double[:,:,:]& xs_fission, double[:]& residual, \
+cdef double[:,:] multigroup_nearby(double[:,:]& flux_guess, \
+        double[:,:]& xs_total, double[:,:,:]& xs_scatter, \
+        double[:,:,:]& xs_fission, double[:,:,:]& residual, \
         int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
         double[:]& angle_w, params info, double[:]& keff):
     # Initialize flux
     flux = tools.array_2d(info.cells_x, info.groups)
     flux_old = flux_guess.copy()
+    
     # Initialize power source
-    source = tools.array_1d(info.cells_x * info.angles * info.groups)
+    source = tools.array_3d(info.cells_x, info.angles, info.groups)
+    
     # Vacuum boundaries
-    cdef double[2] boundary_x = [0.0, 0.0]
+    boundary_x = tools.array_3d(2, 1, 1)
+    
     # Set convergence limits
     cdef bint converged = False
     cdef int count = 1
     cdef double change = 0.0
+    
+    # Iterate until converged
     while not (converged):
         # Update nearby power source term
         tools._nearby_fission_source(flux_old, xs_fission, source, \
                                      residual, medium_map, info, keff[0])
+        
         # Solve for scalar flux
         flux = mg.source_iteration(flux_old, xs_total, xs_scatter, source, \
                     boundary_x, medium_map, delta_x, angle_x, angle_w, info)
+        
         # Update keffective
         keff[0] = tools._update_keffective(flux, flux_old, xs_fission, \
                                            medium_map, info, keff[0])
+        
         # Normalize flux
         tools._normalize_flux(flux, info)
+        
         # Check for convergence
         change = tools.group_convergence(flux, flux_old, info)
         print("Count: {:>3}\tKeff: {:.8f}".format(str(count).zfill(3), \
@@ -165,5 +191,6 @@ cdef double[:,:] multigroup_nearby(double[:,:]& flux_guess, double[:,:]& xs_tota
         converged = (change < EPSILON_POWER) or (count >= MAX_POWER)
         count += 1
         flux_old[:,:] = flux[:,:]
+    
     print("\nConvergence: {:2.6e}".format(change))
     return flux[:,:]

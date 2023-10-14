@@ -107,6 +107,15 @@ cdef int _check_nearby1d_criticality(params info) except -1
 
 cdef int _check_timed1d(params info, int xs_length) except -1
 
+cdef int _check_bdf_timed1d(params info, int psi_length, int q_length, \
+        int bc_length, int xs_length) except -1
+
+cdef int _check_cn_timed1d(params info, int psi_length, int q_length, \
+        int bc_length, int xs_length) except -1
+
+cdef int _check_tr_bdf_timed1d(params info, int psi_length, int q_length, \
+        int bc_length, int xs_length) except -1
+
 cdef int _check_critical1d_power_iteration(params info) except -1
 
 cdef int _check_critical1d_nearby_power(params info) except -1
