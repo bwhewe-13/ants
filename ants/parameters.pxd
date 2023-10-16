@@ -120,10 +120,6 @@ cdef int _check_critical1d_power_iteration(params info) except -1
 
 cdef int _check_critical1d_nearby_power(params info) except -1
 
-cdef int _check_hybrid1d_uncollided(params info, int xs_length) except -1
-
-cdef int _check_hybrid1d_collided(params info, int xs_length) except -1
-
 ########################################################################
 # Two-dimensional functions
 ########################################################################

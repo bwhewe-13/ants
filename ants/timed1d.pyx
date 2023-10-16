@@ -37,7 +37,7 @@ def backward_euler(double[:,:,:] initial_flux, double[:,:] xs_total, \
     # Covert dictionary to type params
     info = parameters._to_params(params_dict)
     parameters._check_bdf_timed1d(info, initial_flux.shape[0], \
-                external.shape[3], boundary_x.shape[3], xs_total.shape[0])
+                external.shape[0], boundary_x.shape[0], xs_total.shape[0])
     # Combine fission and scattering
     xs_matrix = tools.array_3d(info.materials, info.groups, info.groups)
     tools._xs_matrix(xs_matrix, xs_scatter, xs_fission, info)
@@ -56,7 +56,7 @@ def crank_nicolson(double[:,:,:] initial_flux, double[:,:] xs_total, \
     # Covert dictionary to type params
     info = parameters._to_params(params_dict)
     parameters._check_cn_timed1d(info, initial_flux.shape[0], \
-                external.shape[3], boundary_x.shape[3], xs_total.shape[0])
+                external.shape[0], boundary_x.shape[0], xs_total.shape[0])
     # Create params with edges for CN method
     info_edge = parameters._to_params(params_dict)
     info_edge.edges = 1
@@ -78,7 +78,7 @@ def bdf2(double[:,:,:] initial_flux, double[:,:] xs_total, \
     # Covert dictionary to type params
     info = parameters._to_params(params_dict)
     parameters._check_bdf_timed1d(info, initial_flux.shape[0], \
-                external.shape[3], boundary_x.shape[3], xs_total.shape[0])
+                external.shape[0], boundary_x.shape[0], xs_total.shape[0])
     # Combine fission and scattering
     xs_matrix = tools.array_3d(info.materials, info.groups, info.groups)
     tools._xs_matrix(xs_matrix, xs_scatter, xs_fission, info)
@@ -97,7 +97,7 @@ def tr_bdf2(double[:,:,:] initial_flux, double[:,:] xs_total, \
     # Covert dictionary to type params
     info = parameters._to_params(params_dict)
     parameters._check_tr_bdf_timed1d(info, initial_flux.shape[0], \
-            external.shape[3], boundary_x.shape[3], xs_total.shape[0])
+            external.shape[0], boundary_x.shape[0], xs_total.shape[0])
     # Create params with edges for CN method
     info_edge = parameters._to_params(params_dict)
     info_edge.edges = 1
@@ -132,14 +132,14 @@ cdef double[:,:,:] multigroup_bdf1(double[:,:,:]& flux_last, \
     # Iterate over time steps
     for step in tqdm(range(info.steps), desc="BDF1   ", ascii=True):
         # Determine dimensions of external and boundary sources
-        qq = 0 if external.shape[3] == 1 else step
-        bc = 0 if boundary_x.shape[3] == 1 else step
+        qq = 0 if external.shape[0] == 1 else step
+        bc = 0 if boundary_x.shape[0] == 1 else step
         # Update q_star as external + 1/(v*dt) * psi
-        tools._time_source_star_bdf1(flux_last, q_star, external[:,:,:,qq], \
+        tools._time_source_star_bdf1(flux_last, q_star, external[qq], \
                                      velocity, info)
         # Solve for the current time step
         flux_time[step] = mg.source_iteration(scalar_flux, xs_total_v, \
-                                xs_scatter, q_star, boundary_x[:,:,:,bc], \
+                                xs_scatter, q_star, boundary_x[bc], \
                                 medium_map, delta_x, angle_x, angle_w, info)
         # Update previous time step
         scalar_flux[:,:] = flux_time[step,:,:]
@@ -147,7 +147,7 @@ cdef double[:,:,:] multigroup_bdf1(double[:,:,:]& flux_last, \
         tools._time_right_side(q_star, scalar_flux, xs_scatter, medium_map, info)
         # Solve for angular flux of previous time step
         flux_last[:,:,:] = mg._known_source_angular(xs_total_v, q_star, \
-                                    boundary_x[:,:,:,bc], medium_map, \
+                                    boundary_x[bc], medium_map, \
                                     delta_x, angle_x, angle_w, info)
     return flux_time[:,:,:]
 
@@ -183,18 +183,18 @@ cdef double[:,:,:] multigroup_cn(double[:,:,:]& flux_last, \
     for step in tqdm(range(info.steps), desc="CN     ", ascii=True):
         
         # Determine dimensions of external and boundary sources
-        qqa = 0 if external.shape[3] == 1 else step # Previous time step
-        qq = 0 if external.shape[3] == 1 else step + 1
-        bc = 0 if boundary_x.shape[3] == 1 else step
+        qqa = 0 if external.shape[0] == 1 else step # Previous time step
+        qq = 0 if external.shape[0] == 1 else step + 1
+        bc = 0 if boundary_x.shape[0] == 1 else step
         
         # Update q_star
         tools._time_source_star_cn(flux_last, scalar_flux, xs_total, \
-                        xs_scatter, velocity, q_star, external[:,:,:,qqa], \
-                        external[:,:,:,qq], medium_map, delta_x, angle_x, \
+                        xs_scatter, velocity, q_star, external[qqa], \
+                        external[qq], medium_map, delta_x, angle_x, \
                         2.0, info)
         # Solve for the current time step
         flux_time[step] = mg.source_iteration(scalar_flux, xs_total_v, \
-                                xs_scatter, q_star, boundary_x[:,:,:,bc], \
+                                xs_scatter, q_star, boundary_x[bc], \
                                 medium_map, delta_x, angle_x, angle_w, info)
         # Update previous time step
         scalar_flux[:,:] = flux_time[step,:,:]
@@ -202,7 +202,7 @@ cdef double[:,:,:] multigroup_cn(double[:,:,:]& flux_last, \
         tools._time_right_side(q_star, scalar_flux, xs_scatter, medium_map, info)
         # Solve for angular flux of previous time step
         flux_last[:,:,:] = mg._known_source_angular(xs_total_v, q_star, \
-                                        boundary_x[:,:,:,bc], medium_map, \
+                                        boundary_x[bc], medium_map, \
                                         delta_x, angle_x, angle_w, info_edge)
     return flux_time[:,:,:]
 
@@ -239,22 +239,22 @@ cdef double[:,:,:] multigroup_bdf2(double[:,:,:]& flux_last_1, \
     for step in tqdm(range(info.steps), desc="BDF2   ", ascii=True):
         
         # Determine dimensions of external and boundary sources
-        qq = 0 if external.shape[3] == 1 else step
-        bc = 0 if boundary_x.shape[3] == 1 else step
+        qq = 0 if external.shape[0] == 1 else step
+        bc = 0 if boundary_x.shape[0] == 1 else step
 
         # Update q_star
         if step == 0:
             # Run BDF1 on first time step
             tools._time_source_star_bdf1(flux_last_1, q_star, \
-                                    external[:,:,:,qq], velocity, info)
+                                    external[qq], velocity, info)
         else:
             # Run BDF2 on rest of time steps
             tools._time_source_star_bdf2(flux_last_1, flux_last_2, q_star, \
-                                        external[:,:,:,qq], velocity, info)
+                                        external[qq], velocity, info)
 
         # Solve for the current time step
         flux_time[step] = mg.source_iteration(scalar_flux, xs_total_v, \
-                                xs_scatter, q_star, boundary_x[:,:,:,bc], \
+                                xs_scatter, q_star, boundary_x[bc], \
                                 medium_map, delta_x, angle_x, angle_w, info)
 
         # Update previous time step
@@ -265,7 +265,7 @@ cdef double[:,:,:] multigroup_bdf2(double[:,:,:]& flux_last_1, \
         # Solve for angular flux of previous time step
         flux_last_2[:,:,:] = flux_last_1[:,:,:]
         flux_last_1[:,:,:] = mg._known_source_angular(xs_total_v, q_star, \
-                                        boundary_x[:,:,:,bc], medium_map, \
+                                        boundary_x[bc], medium_map, \
                                         delta_x, angle_x, angle_w, info)
 
         # Create sigma_t + 3 / (2 * v * dt) (For BDF2 time steps)
@@ -318,39 +318,39 @@ cdef double[:,:,:] multigroup_tr_bdf2(double[:,:,:]& flux_last_ell, \
     for step in tqdm(range(info.steps), desc="TR-BDF2", ascii=True):
         
         # Determine dimensions of external and boundary sources
-        qq = 0 if external.shape[3] == 1 else step * 2 # Ell Step
-        qqa = 0 if external.shape[3] == 1 else step * 2 + 1 # Gamma Step 
-        bc = 0 if boundary_x.shape[3] == 1 else step
+        qq = 0 if external.shape[0] == 1 else step * 2 # Ell Step
+        qqa = 0 if external.shape[0] == 1 else step * 2 + 1 # Gamma Step 
+        bc = 0 if boundary_x.shape[0] == 1 else step
         
         ################################################################
         # Crank Nicolson
         ################################################################
         # Update q_star for CN step
         tools._time_source_star_cn(flux_last_ell, scalar_flux_ell, xs_total, \
-                        xs_scatter, velocity, q_star, external[:,:,:,qq], \
-                        external[:,:,:,qqa], medium_map, delta_x, angle_x, \
+                        xs_scatter, velocity, q_star, external[qq], \
+                        external[qqa], medium_map, delta_x, angle_x, \
                         2.0 / gamma, info)
 
         # Solve for the \ell + gamma time step
         scalar_flux_gamma = mg.source_iteration(scalar_flux_gamma, xs_total_v_cn, \
-                                xs_scatter, q_star, boundary_x[:,:,:,bc], \
+                                xs_scatter, q_star, boundary_x[bc], \
                                 medium_map, delta_x, angle_x, angle_w, info)
 
         # Create (sigma_s + sigma_f) * phi^{\ell} + Q*
         tools._time_right_side(q_star, scalar_flux_gamma, xs_scatter, medium_map, info)
         # Solve for angular flux of previous time step
         flux_last_gamma = mg._known_source_angular(xs_total_v_cn, q_star, \
-                                        boundary_x[:,:,:,bc], medium_map, \
+                                        boundary_x[bc], medium_map, \
                                         delta_x, angle_x, angle_w, info)
         ################################################################
         # BDF2
         ################################################################
         # Update q_star for BDF2 Step
         tools._time_source_star_tr_bdf2(flux_last_ell, flux_last_gamma, \
-                    q_star, external[:,:,:,qqa+1], velocity, gamma, info)
+                    q_star, external[qqa+1], velocity, gamma, info)
         # Solve for the \ell + 1 time step
         flux_time[step] = mg.source_iteration(scalar_flux_ell, xs_total_v_bdf2, \
-                                xs_scatter, q_star, boundary_x[:,:,:,bc], \
+                                xs_scatter, q_star, boundary_x[bc], \
                                 medium_map, delta_x, angle_x, angle_w, info)
         # Update previous time step
         scalar_flux_ell[:,:] = flux_time[step,:,:]
@@ -358,7 +358,7 @@ cdef double[:,:,:] multigroup_tr_bdf2(double[:,:,:]& flux_last_ell, \
         tools._time_right_side(q_star, scalar_flux_ell, xs_scatter, medium_map, info)
         # Solve for angular flux of previous time step
         flux_last_ell[:,:,:] = mg._known_source_angular(xs_total_v_bdf2, \
-                                    q_star, boundary_x[:,:,:,bc], medium_map, \
+                                    q_star, boundary_x[bc], medium_map, \
                                     delta_x, angle_x, angle_w, info_edge)
         # Adjust gamma step
         if step == 0:

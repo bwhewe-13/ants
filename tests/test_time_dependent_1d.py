@@ -31,9 +31,14 @@ def test_reed_bdf1(boundary):
     info["steps"] = 100
     info["dt"] = 1.
     velocity = np.ones((info["groups"],))
-    timed_flux = timed1d.backward_euler(xs_total, xs_scatter, xs_fission, \
-                                velocity, external, boundary_x, medium_map, \
-                                delta_x, angle_x, angle_w, info)
+    # Adjust for time dependency
+    initial_flux = np.zeros((info["cells_x"], info["angles"], info["groups"]))
+    external = external[None,...].copy()
+    boundary_x = boundary_x[None,...].copy()
+    # Get Time Dependent
+    timed_flux = timed1d.backward_euler(initial_flux, xs_total, xs_scatter, \
+                            xs_fission, velocity, external, boundary_x, \
+                            medium_map, delta_x, angle_x, angle_w, info)
     assert np.isclose(fixed_flux[:,0], timed_flux[-1,:,0]).all(), \
         "Incorrect Flux"
 
@@ -52,9 +57,14 @@ def test_reed_bdf2(boundary):
     info["steps"] = 100
     info["dt"] = 1.
     velocity = np.ones((info["groups"],))
-    timed_flux = timed1d.bdf2(xs_total, xs_scatter, xs_fission, \
-                                velocity, external, boundary_x, medium_map, \
-                                delta_x, angle_x, angle_w, info)
+    # Adjust for time dependency
+    initial_flux = np.zeros((info["cells_x"], info["angles"], info["groups"]))
+    external = external[None,...].copy()
+    boundary_x = boundary_x[None,...].copy()
+    # Get Time Dependent
+    timed_flux = timed1d.bdf2(initial_flux, xs_total, xs_scatter, xs_fission, \
+                              velocity, external, boundary_x, medium_map, \
+                              delta_x, angle_x, angle_w, info)
     assert np.isclose(fixed_flux[:,0], timed_flux[-1,:,0]).all(), \
         "Incorrect Flux"
 

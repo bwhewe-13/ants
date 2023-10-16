@@ -148,24 +148,6 @@ cdef int _check_critical1d_nearby_power(params info) except -1:
     return 0
 
 
-cdef int _check_hybrid1d_uncollided(params info, int xs_length) except -1:
-    assert info.angles % 2 == 0, "Need an even number of angles"
-    assert info.materials == xs_length, "Incorrect number of materials"
-    assert info.qdim > 2, "Need (I x N x G) fixed source"
-    assert info.steps > 0, "Need at least 1 time step"
-    assert info.angular == False, "Scalar flux is returned"
-    return 0
-
-
-cdef int _check_hybrid1d_collided(params info, int xs_length) except -1:
-    assert info.angles % 2 == 0, "Need an even number of angles"
-    assert info.materials == xs_length, "Incorrect number of materials"
-    assert info.qdim == 2, "Need (I x G) fixed source"
-    assert info.angular == False, "Scalar Flux is returned"
-    assert info.bcdim_x == 1, "No Boundary conditions"
-    return 0
-
-
 ########################################################################
 # Two-dimensional functions
 ########################################################################
