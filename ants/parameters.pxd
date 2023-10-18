@@ -99,22 +99,22 @@ cdef params _to_params(dict pydic)
 ########################################################################
 # One-dimensional functions
 ########################################################################
-cdef int _check_fixed1d_source_iteration(params info, int xs_length) except -1
+cdef int _check_fixed1d_source_iteration(params info, int xs_shape) except -1
 
-cdef int _check_nearby1d_fixed_source(params info, int xs_length) except -1
+cdef int _check_nearby1d_fixed_source(params info, int xs_shape) except -1
 
 cdef int _check_nearby1d_criticality(params info) except -1
 
-cdef int _check_timed1d(params info, int xs_length) except -1
+cdef int _check_timed1d(params info, int bc_x_shape, int xs_shape) except -1
 
-cdef int _check_bdf_timed1d(params info, int psi_length, int q_length, \
-        int bc_length, int xs_length) except -1
+cdef int _check_bdf_timed1d(params info, int psi_shape, int q_shape, \
+        int bc_x_shape, int xs_shape) except -1
 
-cdef int _check_cn_timed1d(params info, int psi_length, int q_length, \
-        int bc_length, int xs_length) except -1
+cdef int _check_cn_timed1d(params info, int psi_shape, int q_shape, \
+        int bc_x_shape, int xs_shape) except -1
 
-cdef int _check_tr_bdf_timed1d(params info, int psi_length, int q_length, \
-        int bc_length, int xs_length) except -1
+cdef int _check_tr_bdf_timed1d(params info, int psi_shape, int q_shape, \
+        int bc_x_shape, int xs_shape) except -1
 
 cdef int _check_critical1d_power_iteration(params info) except -1
 
@@ -123,18 +123,24 @@ cdef int _check_critical1d_nearby_power(params info) except -1
 ########################################################################
 # Two-dimensional functions
 ########################################################################
-cdef int _check_fixed2d_source_iteration(params info, int xs_length) except -1
+cdef int _check_fixed2d_source_iteration(params info, int xs_shape) except -1
 
-cdef int _check_nearby2d_fixed_source(params info, int xs_length) except -1
+cdef int _check_nearby2d_fixed_source(params info, int xs_shape) except -1
 
 cdef int _check_nearby2d_criticality(params info) except -1
 
-cdef int _check_timed2d(params info, int xs_length) except -1
+cdef int _check_timed2d(params info, int bc_x_shape, int bc_y_shape, \
+        int xs_shape) except -1
+
+cdef int _check_bdf_timed2d(params info, int psi_shape, int q_shape, \
+        int bc_x_shape, int bc_y_shape, int xs_shape) except -1
+
+cdef int _check_cn_timed2d(params info, int psi_x_shape, int psi_y_shape, \
+        int q_shape, int bc_x_shape, int bc_y_shape, int xs_shape) except -1
+
+cdef int _check_tr_bdf_timed2d(params info, int psi_x_shape, int psi_y_shape, \
+        int q_shape, int bc_x_shape, int bc_y_shape, int xs_shape) except -1
 
 cdef int _check_critical2d_power_iteration(params info) except -1
 
 cdef int _check_critical2d_nearby_power(params info) except -1
-
-cdef int _check_hybrid2d_uncollided(params info, int xs_length) except -1
-
-cdef int _check_hybrid2d_collided(params info, int xs_length) except -1

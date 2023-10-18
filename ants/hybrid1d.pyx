@@ -47,7 +47,7 @@ def backward_euler(double[:,:,:] initial_flux, double[:,:] xs_total_u, \
             external_u.shape[0], boundary_xu.shape[0], xs_total_u.shape[0])
     # Convert collided dictionary to type params
     info_c = parameters._to_params(params_dict_c)
-    parameters._check_timed1d(info_c, xs_total_c.shape[0])
+    parameters._check_timed1d(info_c, 0, xs_total_c.shape[0])
     # Combine fission and scattering - Uncollided groups
     xs_matrix_u = tools.array_3d(info_u.materials, info_u.groups, info_u.groups)
     tools._xs_matrix(xs_matrix_u, xs_scatter_u, xs_fission_u, info_u)
@@ -60,105 +60,6 @@ def backward_euler(double[:,:,:] initial_flux, double[:,:] xs_total_u, \
                         external_u, boundary_xu.copy(), medium_map, delta_x, \
                         angle_xu, angle_xc, angle_wu, angle_wc, fine_idx, \
                         coarse_idx, factor, info_u, info_c)
-    return np.asarray(flux)
-
-
-def crank_nicolson(double[:,:,:] initial_flux, double[:,:] xs_total_u, \
-        double[:,:] xs_total_c, double[:,:,:] xs_scatter_u, \
-        double[:,:,:] xs_scatter_c, double[:,:,:] xs_fission_u, \
-        double[:,:,:] xs_fission_c, double[:] velocity_u, \
-        double[:] velocity_c, double[:,:,:,:] external_u, \
-        double[:,:,:,:] boundary_xu, int[:] medium_map, double[:] delta_x, \
-        double[:] angle_xu, double[:] angle_xc, double[:] angle_wu, \
-        double[:] angle_wc, int[:] fine_idx, int[:] coarse_idx, \
-        double[:] factor, dict params_dict_u, dict params_dict_c):
-    # Convert uncollided dictionary to type params
-    info_u = parameters._to_params(params_dict_u)
-    parameters._check_cn_timed1d(info_u, initial_flux.shape[0], \
-            external_u.shape[0], boundary_xu.shape[0], xs_total_u.shape[0])
-    # Convert collided dictionary to type params
-    info_c = parameters._to_params(params_dict_c)
-    parameters._check_timed1d(info_c, xs_total_c.shape[0])
-    # Create params with edges for CN method
-    info_edge = parameters._to_params(params_dict_u)
-    info_edge.edges = 1
-    # Combine fission and scattering - Uncollided groups
-    xs_matrix_u = tools.array_3d(info_u.materials, info_u.groups, info_u.groups)
-    tools._xs_matrix(xs_matrix_u, xs_scatter_u, xs_fission_u, info_u)
-    # Combine fission and scattering - Collided groups
-    xs_matrix_c = tools.array_3d(info_c.materials, info_c.groups, info_c.groups)
-    tools._xs_matrix(xs_matrix_c, xs_scatter_c, xs_fission_c, info_c)
-    # Run Crank-Nicolson
-    flux = multigroup_cn(initial_flux.copy(), xs_total_u, xs_total_c, \
-                xs_matrix_u, xs_matrix_c, velocity_u, velocity_c, \
-                external_u, boundary_xu.copy(), medium_map, delta_x, \
-                angle_xu, angle_xc, angle_wu, angle_wc, fine_idx, \
-                coarse_idx, factor, info_u, info_c, info_edge)
-    return np.asarray(flux)
-
-
-def bdf2(double[:,:,:] initial_flux, double[:,:] xs_total_u, \
-        double[:,:] xs_total_c, double[:,:,:] xs_scatter_u, \
-        double[:,:,:] xs_scatter_c, double[:,:,:] xs_fission_u, \
-        double[:,:,:] xs_fission_c, double[:] velocity_u, \
-        double[:] velocity_c, double[:,:,:,:] external_u, \
-        double[:,:,:,:] boundary_xu, int[:] medium_map, double[:] delta_x, \
-        double[:] angle_xu, double[:] angle_xc, double[:] angle_wu, \
-        double[:] angle_wc, int[:] fine_idx, int[:] coarse_idx, \
-        double[:] factor, dict params_dict_u, dict params_dict_c):
-    # Convert uncollided dictionary to type params
-    info_u = parameters._to_params(params_dict_u)
-    parameters._check_bdf_timed1d(info_u, initial_flux.shape[0], \
-            external_u.shape[0], boundary_xu.shape[0], xs_total_u.shape[0])
-    # Convert collided dictionary to type params
-    info_c = parameters._to_params(params_dict_c)
-    parameters._check_timed1d(info_c, xs_total_c.shape[0])
-    # Combine fission and scattering - Uncollided groups
-    xs_matrix_u = tools.array_3d(info_u.materials, info_u.groups, info_u.groups)
-    tools._xs_matrix(xs_matrix_u, xs_scatter_u, xs_fission_u, info_u)
-    # Combine fission and scattering - Collided groups
-    xs_matrix_c = tools.array_3d(info_c.materials, info_c.groups, info_c.groups)
-    tools._xs_matrix(xs_matrix_c, xs_scatter_c, xs_fission_c, info_c)
-    # Run BDF2
-    flux = multigroup_bdf2(initial_flux.copy(), xs_total_u, xs_total_c, \
-                        xs_matrix_u, xs_matrix_c, velocity_u, velocity_c, \
-                        external_u, boundary_xu.copy(), medium_map, \
-                        delta_x, angle_xu, angle_xc, angle_wu, angle_wc, \
-                        fine_idx, coarse_idx, factor, info_u, info_c)
-    return np.asarray(flux)
-
-
-def tr_bdf2(double[:,:,:] initial_flux, double[:,:] xs_total_u, \
-        double[:,:] xs_total_c, double[:,:,:] xs_scatter_u, \
-        double[:,:,:] xs_scatter_c, double[:,:,:] xs_fission_u, \
-        double[:,:,:] xs_fission_c, double[:] velocity_u, \
-        double[:] velocity_c, double[:,:,:,:] external_u, \
-        double[:,:,:,:] boundary_xu, int[:] medium_map, double[:] delta_x, \
-        double[:] angle_xu, double[:] angle_xc, double[:] angle_wu, \
-        double[:] angle_wc, int[:] fine_idx, int[:] coarse_idx, \
-        double[:] factor, dict params_dict_u, dict params_dict_c):
-    # Convert uncollided dictionary to type params
-    info_u = parameters._to_params(params_dict_u)
-    parameters._check_tr_bdf_timed1d(info_u, initial_flux.shape[0], \
-            external_u.shape[0], boundary_xu.shape[0], xs_total_u.shape[0])
-    # Convert collided dictionary to type params
-    info_c = parameters._to_params(params_dict_c)
-    parameters._check_timed1d(info_c, xs_total_c.shape[0])
-    # Create params with edges for CN method
-    info_edge = parameters._to_params(params_dict_u)
-    info_edge.edges = 1
-    # Combine fission and scattering - Uncollided groups
-    xs_matrix_u = tools.array_3d(info_u.materials, info_u.groups, info_u.groups)
-    tools._xs_matrix(xs_matrix_u, xs_scatter_u, xs_fission_u, info_u)
-    # Combine fission and scattering - Collided groups
-    xs_matrix_c = tools.array_3d(info_c.materials, info_c.groups, info_c.groups)
-    tools._xs_matrix(xs_matrix_c, xs_scatter_c, xs_fission_c, info_c)
-    # Run TR-BDF2
-    flux = multigroup_tr_bdf2(initial_flux.copy(), xs_total_u, xs_total_c, \
-                        xs_matrix_u, xs_matrix_c, velocity_u, velocity_c, \
-                        external_u, boundary_xu.copy(), medium_map, delta_x, \
-                        angle_xu, angle_xc, angle_wu, angle_wc, fine_idx, \
-                        coarse_idx, factor, info_u, info_c, info_edge)
     return np.asarray(flux)
 
 
@@ -200,10 +101,9 @@ cdef double[:,:,:] multigroup_bdf1(double[:,:,:]& flux_last, \
     # Initialize collided source and boundary
     source_c = tools.array_3d(info_c.cells_x, 1, info_c.groups)
     boundary_xc = tools.array_3d(2, 1, 1)
-    # cdef double[2][1][1] boundary_xc = [0.0, 0.0]
 
     # Iterate over time steps
-    for step in tqdm(range(info_u.steps), desc="BDF1   ", ascii=True):
+    for step in tqdm(range(info_u.steps), desc="BDF1*   ", ascii=True):
         # Determine dimensions of external and boundary sources
         qq = 0 if external_u.shape[0] == 1 else step
         bc = 0 if boundary_xu.shape[0] == 1 else step
@@ -223,6 +123,40 @@ cdef double[:,:,:] multigroup_bdf1(double[:,:,:]& flux_last, \
         # Step 5: Update and repeat
         tools._angular_to_scalar(flux_last, flux_time[step], angle_wu, info_u)
     return flux_time[:,:,:]
+
+
+def crank_nicolson(double[:,:,:] initial_flux, double[:,:] xs_total_u, \
+        double[:,:] xs_total_c, double[:,:,:] xs_scatter_u, \
+        double[:,:,:] xs_scatter_c, double[:,:,:] xs_fission_u, \
+        double[:,:,:] xs_fission_c, double[:] velocity_u, \
+        double[:] velocity_c, double[:,:,:,:] external_u, \
+        double[:,:,:,:] boundary_xu, int[:] medium_map, double[:] delta_x, \
+        double[:] angle_xu, double[:] angle_xc, double[:] angle_wu, \
+        double[:] angle_wc, int[:] fine_idx, int[:] coarse_idx, \
+        double[:] factor, dict params_dict_u, dict params_dict_c):
+    # Convert uncollided dictionary to type params
+    info_u = parameters._to_params(params_dict_u)
+    parameters._check_cn_timed1d(info_u, initial_flux.shape[0], \
+            external_u.shape[0], boundary_xu.shape[0], xs_total_u.shape[0])
+    # Convert collided dictionary to type params
+    info_c = parameters._to_params(params_dict_c)
+    parameters._check_timed1d(info_c, 0, xs_total_c.shape[0])
+    # Create params with edges for CN method
+    info_edge = parameters._to_params(params_dict_u)
+    info_edge.edges = 1
+    # Combine fission and scattering - Uncollided groups
+    xs_matrix_u = tools.array_3d(info_u.materials, info_u.groups, info_u.groups)
+    tools._xs_matrix(xs_matrix_u, xs_scatter_u, xs_fission_u, info_u)
+    # Combine fission and scattering - Collided groups
+    xs_matrix_c = tools.array_3d(info_c.materials, info_c.groups, info_c.groups)
+    tools._xs_matrix(xs_matrix_c, xs_scatter_c, xs_fission_c, info_c)
+    # Run Crank-Nicolson
+    flux = multigroup_cn(initial_flux.copy(), xs_total_u, xs_total_c, \
+                xs_matrix_u, xs_matrix_c, velocity_u, velocity_c, \
+                external_u, boundary_xu.copy(), medium_map, delta_x, \
+                angle_xu, angle_xc, angle_wu, angle_wc, fine_idx, \
+                coarse_idx, factor, info_u, info_c, info_edge)
+    return np.asarray(flux)
 
 
 cdef double[:,:,:] multigroup_cn(double[:,:,:]& flux_last, \
@@ -265,7 +199,7 @@ cdef double[:,:,:] multigroup_cn(double[:,:,:]& flux_last, \
     boundary_xc = tools.array_3d(2, 1, 1)
     
     # Iterate over time steps
-    for step in tqdm(range(info_u.steps), desc="CN     ", ascii=True):
+    for step in tqdm(range(info_u.steps), desc="CN*     ", ascii=True):
         
         # Determine dimensions of external and boundary sources
         qqa = 0 if external_u.shape[0] == 1 else step # Previous time step
@@ -295,6 +229,37 @@ cdef double[:,:,:] multigroup_cn(double[:,:,:]& flux_last, \
                                       angle_wu, info_u)
         flux_u[:,:] = flux_time[step]
     return flux_time[:,:,:]
+
+
+def bdf2(double[:,:,:] initial_flux, double[:,:] xs_total_u, \
+        double[:,:] xs_total_c, double[:,:,:] xs_scatter_u, \
+        double[:,:,:] xs_scatter_c, double[:,:,:] xs_fission_u, \
+        double[:,:,:] xs_fission_c, double[:] velocity_u, \
+        double[:] velocity_c, double[:,:,:,:] external_u, \
+        double[:,:,:,:] boundary_xu, int[:] medium_map, double[:] delta_x, \
+        double[:] angle_xu, double[:] angle_xc, double[:] angle_wu, \
+        double[:] angle_wc, int[:] fine_idx, int[:] coarse_idx, \
+        double[:] factor, dict params_dict_u, dict params_dict_c):
+    # Convert uncollided dictionary to type params
+    info_u = parameters._to_params(params_dict_u)
+    parameters._check_bdf_timed1d(info_u, initial_flux.shape[0], \
+            external_u.shape[0], boundary_xu.shape[0], xs_total_u.shape[0])
+    # Convert collided dictionary to type params
+    info_c = parameters._to_params(params_dict_c)
+    parameters._check_timed1d(info_c, 0, xs_total_c.shape[0])
+    # Combine fission and scattering - Uncollided groups
+    xs_matrix_u = tools.array_3d(info_u.materials, info_u.groups, info_u.groups)
+    tools._xs_matrix(xs_matrix_u, xs_scatter_u, xs_fission_u, info_u)
+    # Combine fission and scattering - Collided groups
+    xs_matrix_c = tools.array_3d(info_c.materials, info_c.groups, info_c.groups)
+    tools._xs_matrix(xs_matrix_c, xs_scatter_c, xs_fission_c, info_c)
+    # Run BDF2
+    flux = multigroup_bdf2(initial_flux.copy(), xs_total_u, xs_total_c, \
+                        xs_matrix_u, xs_matrix_c, velocity_u, velocity_c, \
+                        external_u, boundary_xu.copy(), medium_map, \
+                        delta_x, angle_xu, angle_xc, angle_wu, angle_wc, \
+                        fine_idx, coarse_idx, factor, info_u, info_c)
+    return np.asarray(flux)
 
 
 cdef double[:,:,:] multigroup_bdf2(double[:,:,:]& flux_last_1, \
@@ -340,7 +305,7 @@ cdef double[:,:,:] multigroup_bdf2(double[:,:,:]& flux_last_1, \
     boundary_xc = tools.array_3d(2, 1, 1)
 
     # Iterate over time steps
-    for step in tqdm(range(info_u.steps), desc="BDF2   ", ascii=True):
+    for step in tqdm(range(info_u.steps), desc="BDF2*   ", ascii=True):
         # Determine dimensions of external and boundary sources
         qq = 0 if external_u.shape[0] == 1 else step
         bc = 0 if boundary_xu.shape[0] == 1 else step
@@ -378,6 +343,40 @@ cdef double[:,:,:] multigroup_bdf2(double[:,:,:]& flux_last_1, \
             tools._total_velocity(xs_total_vc, velocity_c, 1.5, info_c)
 
     return flux_time[:,:,:]
+
+
+def tr_bdf2(double[:,:,:] initial_flux, double[:,:] xs_total_u, \
+        double[:,:] xs_total_c, double[:,:,:] xs_scatter_u, \
+        double[:,:,:] xs_scatter_c, double[:,:,:] xs_fission_u, \
+        double[:,:,:] xs_fission_c, double[:] velocity_u, \
+        double[:] velocity_c, double[:,:,:,:] external_u, \
+        double[:,:,:,:] boundary_xu, int[:] medium_map, double[:] delta_x, \
+        double[:] angle_xu, double[:] angle_xc, double[:] angle_wu, \
+        double[:] angle_wc, int[:] fine_idx, int[:] coarse_idx, \
+        double[:] factor, dict params_dict_u, dict params_dict_c):
+    # Convert uncollided dictionary to type params
+    info_u = parameters._to_params(params_dict_u)
+    parameters._check_tr_bdf_timed1d(info_u, initial_flux.shape[0], \
+            external_u.shape[0], boundary_xu.shape[0], xs_total_u.shape[0])
+    # Convert collided dictionary to type params
+    info_c = parameters._to_params(params_dict_c)
+    parameters._check_timed1d(info_c, 0, xs_total_c.shape[0])
+    # Create params with edges for CN method
+    info_edge = parameters._to_params(params_dict_u)
+    info_edge.edges = 1
+    # Combine fission and scattering - Uncollided groups
+    xs_matrix_u = tools.array_3d(info_u.materials, info_u.groups, info_u.groups)
+    tools._xs_matrix(xs_matrix_u, xs_scatter_u, xs_fission_u, info_u)
+    # Combine fission and scattering - Collided groups
+    xs_matrix_c = tools.array_3d(info_c.materials, info_c.groups, info_c.groups)
+    tools._xs_matrix(xs_matrix_c, xs_scatter_c, xs_fission_c, info_c)
+    # Run TR-BDF2
+    flux = multigroup_tr_bdf2(initial_flux.copy(), xs_total_u, xs_total_c, \
+                        xs_matrix_u, xs_matrix_c, velocity_u, velocity_c, \
+                        external_u, boundary_xu.copy(), medium_map, delta_x, \
+                        angle_xu, angle_xc, angle_wu, angle_wc, fine_idx, \
+                        coarse_idx, factor, info_u, info_c, info_edge)
+    return np.asarray(flux)
 
 
 cdef double[:,:,:] multigroup_tr_bdf2(double[:,:,:]& flux_last_ell, \
@@ -437,7 +436,7 @@ cdef double[:,:,:] multigroup_tr_bdf2(double[:,:,:]& flux_last_ell, \
     boundary_xc = tools.array_3d(2, 1, 1)
 
     # Iterate over time steps
-    for step in tqdm(range(info_u.steps), desc="TR-BDF2", ascii=True):
+    for step in tqdm(range(info_u.steps), desc="TR-BDF2*", ascii=True):
         
         # Determine dimensions of external and boundary sources
         qq = 0 if external_u.shape[0] == 1 else step * 2 # Ell Step

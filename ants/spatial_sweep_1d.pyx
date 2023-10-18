@@ -48,39 +48,52 @@ cdef void slab_ordinates(double[:]& flux, double[:]& flux_old, \
         double[:,:]& external, double[:,:]& boundary_x, int[:]& medium_map, \
         double[:]& delta_x, double[:]& angle_x, double[:]& angle_w, \
         params info):
+    
     # Initialize external and boundary indices, iterables
     cdef int nn, qq, bc
+    
     # Initialize unknown cell edge
     cdef double edge = 0.0
+    
     # Add reflector array
     reflector = tools.array_1d(info.angles)
+    
     # Set convergence limits
     cdef bint converged = False
     cdef int count = 1
     cdef double change = 0.0
+    
     # Iterate over angles until converged
     while not (converged):
+    
         # Zero out the scalar flux
         flux[:] = 0.0
+    
         # Zero out reflector collector
         reflector[:] = 0.0
+    
+        # Iterate over angles
         for nn in range(info.angles):
+            
             # Determine dimensions of external and boundary sources
             qq = 0 if external.shape[1] == 1 else nn
             bc = 0 if boundary_x.shape[1] == 1 else nn
-            # print(boundary_x.shape, external.shape)
+
             # Perform spatial sweep
             edge = slab_sweep(flux, flux_old, xs_total, xs_scatter, off_scatter, \
                         external[:,qq], boundary_x[:,bc], medium_map, \
                         delta_x, angle_x[nn], angle_w[nn], reflector[nn], info)
+            
             # Update reflected direction
             reflector_corrector(reflector, angle_x, edge, nn, info)
+        
         # Calculate L2 change
         change = tools.angle_convergence(flux, flux_old, info)
         # Check for convergence
         converged = (change < EPSILON_ANGULAR) or (count >= MAX_ANGULAR)
         # Add one to the iteration count
         count += 1
+        
         # Update flux_old
         flux_old[:] = flux[:]
 

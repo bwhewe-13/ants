@@ -460,7 +460,7 @@ cdef void _hybrid_source_collided(double[:,:]& flux, double[:,:,:]& xs_scatter, 
         double[:,:,:]& source_c, int[:]& medium_map, int[:]& index_c, \
         params info_u, params info_c):
     # Initialize iterables
-    cdef int ii, mat, og, ig, loc
+    cdef int ii, mat, og, ig #, loc
     # Zero out previous source
     source_c[:,:,:] = 0.0
     # Iterate over all spatial cells
@@ -477,14 +477,14 @@ cdef void _hybrid_source_total(double[:,:]& flux_t, double[:,:]& flux_u, \
         double[:,:,:]& xs_matrix, double[:,:,:]& source, int[:]& medium_map, \
         int[:]& index_u, double[:]& factor_u, params info_u, params info_c):
     # Initialize iterables
-    cdef int ii, mat, nn, ig, og, loc
+    cdef int ii, mat, nn, ig, og#, loc
     # Assume that source is already (Qu + 1 / (v * dt) * psi^{\ell-1})
     # source[:] = 0.0
     for ii in range(info_u.cells_x):
         mat = medium_map[ii]
         for nn in range(info_u.angles):
             for og in range(info_u.groups):
-                loc = og + info_u.groups * (nn + ii * info_u.angles)
+                # loc = og + info_u.groups * (nn + ii * info_u.angles)
                 for ig in range(info_u.groups):
                     source[ii,nn,og] += (flux_t[ii,ig] + flux_u[ii,ig]) \
                                         * xs_matrix[mat,og,ig]
