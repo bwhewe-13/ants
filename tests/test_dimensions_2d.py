@@ -78,13 +78,12 @@ def test_dimensions_boundary_x():
     xs_total, xs_scatter, xs_fission, medium_map, delta_x, delta_y, \
         angle_x, angle_y, angle_w, info = cylinder_01()
     # Set boundary_y and external sources
-    external = np.zeros((info["cells_x"] * info["cells_y"]))
-    info["qdim"] = 1
-    boundary_y = np.zeros((2))
+    external = np.zeros((info["cells_x"], info["cells_y"], 1, 1))
+    boundary_y = np.zeros((2, 1, 1, 1))
     info["bcdim_y"] = 1
     # Different boundary_x dimensions
-    bounds = [np.zeros((2,)), np.zeros((2, info["cells_y"])), \
-              np.zeros((2, info["cells_y"], info["groups"])), \
+    bounds = [np.zeros((2, 1, 1, 1)), np.zeros((2, info["cells_y"], 1, 1)), \
+              np.zeros((2, info["cells_y"], 1, info["groups"])), \
               np.zeros((2, info["cells_y"], info["angles"]**2, info["groups"]))]
     flux = []
     for loc in [0, 1]:
@@ -92,7 +91,7 @@ def test_dimensions_boundary_x():
             boundary_x[loc] = 1.0
             info["bcdim_x"] = bcdim_x + 1
             result = source_iteration(xs_total, xs_scatter, xs_fission, \
-                        external, boundary_x.flatten(), boundary_y, medium_map, \
+                        external, boundary_x, boundary_y, medium_map, \
                         delta_x, delta_y, angle_x, angle_y, angle_w, info)
             boundary_x *= 0.0
             if loc == 1:
@@ -109,22 +108,21 @@ def test_dimensions_boundary_y():
     # Call original problem
     xs_total, xs_scatter, xs_fission, medium_map, delta_x, delta_y, \
         angle_x, angle_y, angle_w, info = cylinder_01()
+    
     # Set boundary_x and external sources
-    external = np.zeros((info["cells_x"] * info["cells_y"]))
-    info["qdim"] = 1
-    boundary_x = np.zeros((2))
-    info["bcdim_x"] = 1
+    external = np.zeros((info["cells_x"], info["cells_y"], 1, 1))
+    boundary_x = np.zeros((2, 1, 1, 1))
+
     # Different boundary_x dimensions
-    bounds = [np.zeros((2,)), np.zeros((2, info["cells_x"])), \
-              np.zeros((2, info["cells_x"], info["groups"])), \
+    bounds = [np.zeros((2, 1, 1, 1)), np.zeros((2, info["cells_x"], 1, 1)), \
+              np.zeros((2, info["cells_x"], 1, info["groups"])), \
               np.zeros((2, info["cells_x"], info["angles"]**2, info["groups"]))]
     flux = []
     for loc in [0, 1]:
         for bcdim_y, boundary_y in enumerate(bounds):
             boundary_y[loc] = 1
-            info["bcdim_y"] = bcdim_y + 1
             result = source_iteration(xs_total, xs_scatter, xs_fission, \
-                        external, boundary_x, boundary_y.flatten(), medium_map, \
+                        external, boundary_x, boundary_y, medium_map, \
                         delta_x, delta_y, angle_x, angle_y, angle_w, info)
             boundary_y *= 0.0
             if loc == 1:
@@ -142,17 +140,17 @@ def test_dimensions_external_unit():
     xs_total, xs_scatter, xs_fission, medium_map, delta_x, delta_y, \
         angle_x, angle_y, angle_w, info = cylinder_01()
     # Set boundary_x and boundary_y
-    boundary_x = np.zeros((2))
-    info["bcdim_x"] = 1
-    boundary_y = np.zeros((2))
-    info["bcdim_y"] = 1
+    boundary_x = np.zeros((2, 1, 1, 1))
+    boundary_y = np.zeros((2, 1, 1, 1))
+
     # Different boundary_x dimensions
-    externals = [np.ones((info["cells_x"] * info["cells_y"])), \
-                 np.ones((info["cells_x"] * info["cells_y"] * info["groups"])), \
-                 np.ones((info["cells_x"] * info["cells_y"] * info["angles"]**2 * info["groups"]))]
+    externals = [np.ones((info["cells_x"], info["cells_y"], 1, 1)), \
+                 np.ones((info["cells_x"], info["cells_y"], 1, info["groups"])), \
+                 np.ones((info["cells_x"], info["cells_y"], \
+                            info["angles"]**2, info["groups"]))]
     flux = []
     for qdim, external in enumerate(externals):
-        info["qdim"] = qdim + 1
+        # info["qdim"] = qdim + 1
         result = source_iteration(xs_total, xs_scatter, xs_fission, \
                     external, boundary_x, boundary_y, medium_map, \
                     delta_x, delta_y, angle_x, angle_y, angle_w, info)
