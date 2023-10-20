@@ -72,6 +72,41 @@ def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x, \
     return numerical_flux, curve_fit_flux, nearby_flux
 
 
+def residual_fixed(numerical_flux, xs_total, xs_scatter, xs_fission, \
+        external, boundary_x, medium_map, delta_x, knots_x, angle_x, \
+        angle_w, params_dict):
+    # Convert dictionary to type params
+    info = parameters._to_params(params_dict)
+    parameters._check_nearby1d_fixed_source(info, xs_total.shape[0])
+    # Create boundaries for each material
+    splits = tools._material_index(medium_map, info)
+    # Initialize curve fit
+    curve_fit_boundary_x = np.zeros((2, info.angles, info.groups))
+    curve_fit_flux = tools.array_3d(info.cells_x, info.angles, info.groups)
+    # Initialize curve fit integrals
+    psi = tools.array_3d(info.cells_x, info.angles, info.groups)
+    dpsi = tools.array_3d(info.cells_x, info.angles, info.groups)
+    phi = tools.array_2d(info.cells_x, info.groups)
+    # Calculate curve fit at knots
+    # Knots at cell centers
+    if knots_x.shape[0] == info.cells_x:
+        edges_x = np.insert(np.cumsum(delta_x), 0, 0)
+        _curve_fit_centers(numerical_flux, curve_fit_flux, curve_fit_boundary_x, \
+                    psi, dpsi, phi, splits, knots_x, edges_x, angle_w, info)
+    # Knots at cell edges
+    else:
+        centers_x = 0.5 * (knots_x[1:] + knots_x[:-1])
+        _curve_fit_edges(numerical_flux, curve_fit_flux, curve_fit_boundary_x, \
+                    psi, dpsi, phi, splits, knots_x, centers_x, angle_w, info)
+    # Calculate residual for each cell
+    residual = tools.array_3d(info.cells_x, info.angles, info.groups)
+    _residual_integral(residual, psi, dpsi, phi, xs_total, xs_scatter, \
+                       xs_fission, external, medium_map, delta_x, \
+                       angle_x, info)
+    return np.asarray(curve_fit_flux), np.asarray(residual), \
+            np.asarray(curve_fit_boundary_x)
+
+
 cdef void _curve_fit_centers(double[:,:,:]& flux, double[:,:,:]& curve_fit, \
         double[:,:,:]& boundary_x, double[:,:,:]& integral, \
         double[:,:,:]& dintegral, double[:,:]& sintegral, int[:]& splits, \
@@ -104,7 +139,7 @@ cdef void _curve_fit_centers(double[:,:,:]& flux, double[:,:,:]& curve_fit, \
                 # Correct boundary conditions
                 if ii == 0:
                     boundary_x[0,nn,gg] = spline.interpolate(edges_x[0])
-                elif ii == (split_length - 1):
+                if ii == (split_length - 1):
                     boundary_x[1,nn,gg] = spline.interpolate(edges_x[info.cells_x])
 
 
@@ -140,7 +175,7 @@ cdef void _curve_fit_edges(double[:,:,:]& flux, double[:,:,:]& curve_fit, \
                 # Correct boundary conditions
                 if ii == 0:
                     boundary_x[0,nn,gg] = spline.interpolate(0.0)
-                elif ii == (split_length - 1):
+                if ii == (split_length - 1):
                     boundary_x[1,nn,gg] = spline.interpolate(knots_x[info.cells_x])
                 
 

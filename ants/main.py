@@ -18,16 +18,21 @@ from ants.utils.hybrid import energy_coarse_index
 
 DATA_PATH = pkg_resources.resource_filename("ants","sources/energy/")
 
-np.random.seed(42)
 
 def angular_x(info):
-    angle_x, angle_w = np.polynomial.legendre.leggauss(info["angles"])
+    if isinstance(info, int):
+        angles = info
+        bc_x = [0, 0]
+    else:
+        angles = info["angles"]
+        bc_x = info["bc_x"]
+    angle_x, angle_w = np.polynomial.legendre.leggauss(angles)
     angle_w /= np.sum(angle_w)
     # Ordering for reflective boundaries
-    if np.sum(info["bc_x"]) > 0.0:
-        if info["bc_x"] == [1, 0]:
+    if np.sum(bc_x) > 0.0:
+        if bc_x == [1, 0]:
             idx = angle_x.argsort()
-        elif info["bc_x"] == [0, 1]:
+        elif bc_x == [0, 1]:
             idx = angle_x.argsort()[::-1]
         angle_x = angle_x[idx].copy()
         angle_w = angle_w[idx].copy()
