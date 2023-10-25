@@ -53,9 +53,9 @@ cdef void _off_scatter(double[:,:]& flux, double[:,:]& flux_old, \
         int[:]& medium_map, double[:,:,:]& xs_matrix, \
         double[:]& off_scatter, params info, int group)
 
-cdef void _source_total(double[:]& source, double[:,:]& flux, \
+cdef void _source_total(double[:,:,:]& source, double[:,:]& flux, \
         double[:,:,:]& xs_matrix, int[:]& medium_map, \
-        double[:]& external, params info)
+        double[:,:,:]& external, params info)
 
 cdef void _angular_to_scalar(double[:,:,:]& angular_flux, \
         double[:,:]& scalar_flux, double[:]& angle_w, params info)
@@ -69,40 +69,40 @@ cdef void _angular_edge_to_scalar(double[:,:,:]& angular_flux, \
 cdef void _total_velocity(double[:,:]& xs_total, double[:]& velocity, \
         double constant, params info)
 
-cdef void _time_source_star_bdf1(double[:,:,:]& flux, double[:]& q_star, \
-        double[:]& external, double[:]& velocity, params info)
+cdef void _time_source_star_bdf1(double[:,:,:]& flux, double[:,:,:]& q_star, \
+        double[:,:,:]& external, double[:]& velocity, params info)
 
 cdef void _time_source_star_cn(double[:,:,:]& psi_edges, double[:,:]& phi, \
-        double[:,:]& xs_total, double[:,:,:]& xs_scatter, \
-        double[:]& velocity, double[:]& q_star, double[:]& source_last, \
-        double[:]& source, int[:]& medium_map, double[:]& delta_x, \
-        double[:]& angle_x, double constant, int step, params info)
+        double[:,:]& xs_total, double[:,:,:]& xs_scatter, double[:]& velocity, \
+        double[:,:,:]& q_star, double[:,:,:]& external_prev, \
+        double[:,:,:]& external, int[:]& medium_map, double[:]& delta_x, \
+        double[:]& angle_x, double constant, params info)
 
 cdef void _time_source_star_bdf2(double[:,:,:]& flux_1, \
-        double[:,:,:]& flux_2, double[:]& q_star, double[:]& external, \
-        double[:]& velocity, params info)
+        double[:,:,:]& flux_2, double[:,:,:]& q_star, \
+        double[:,:,:]& external, double[:]& velocity, params info)
 
-cdef void _time_source_star_tr_bdf2(double[:,:,:]& flux_1, \
-        double[:,:,:]& flux_2, double[:]& q_star, double[:]& external, \
-        double[:]& velocity, double gamma, params info)
+cdef void _time_source_star_tr_bdf2(double[:,:,:]& flux_1, double[:,:,:]& flux_2, \
+        double[:,:,:]& q_star, double[:,:,:]& external, double[:]& velocity, \
+        double gamma, params info)
 
-cdef void _time_right_side(double[:]& q_star, double[:,:]& flux, \
+cdef void _time_right_side(double[:,:,:]& q_star, double[:,:]& flux, \
         double[:,:,:]& xs_scatter, int[:]& medium_map, params info)
 
-cdef void boundary_decay(double[:]& boundary_x, int step, params info)
+# cdef void boundary_decay(double[:]& boundary_x, int step, params info)
 
 ########################################################################
 # Criticality functions
 ########################################################################
 cdef void _normalize_flux(double[:,:]& flux, params info)
 
-cdef void _fission_source(double[:,:] flux, double[:,:,:] xs_fission, \
-        double[:] source, int[:] medium_map, params info, double keff)
+cdef void _fission_source(double[:,:]& flux, double[:,:,:]& xs_fission, \
+        double[:,:,:]& source, int[:]& medium_map, params info, double keff)
 
 cdef double _update_keffective(double[:,:] flux_new, double[:,:] flux_old, \
         double[:,:,:] xs_fission, int[:] medium_map, params info, double keff)
 
-cdef void _source_total_critical(double[:]& source, double[:,:]& flux, \
+cdef void _source_total_critical(double[:,:,:]& source, double[:,:]& flux, \
         double[:,:,:]& xs_scatter, double[:,:,:]& xs_fission, \
         int[:]& medium_map, double keff, params info)
 
@@ -110,7 +110,7 @@ cdef void _source_total_critical(double[:]& source, double[:,:]& flux, \
 # Nearby Problems Criticality functions
 ########################################################################
 cdef void _nearby_fission_source(double[:,:]& flux, double[:,:,:]& xs_fission, \
-        double[:]& source, double[:]& residual, int[:]& medium_map, \
+        double[:,:,:]& source, double[:,:,:]& residual, int[:]& medium_map, \
         params info, double keff)
 
 cdef double _nearby_keffective(double[:,:]& flux, double rate, params info)
@@ -119,11 +119,11 @@ cdef double _nearby_keffective(double[:,:]& flux, double rate, params info)
 # Hybrid Method Time Dependent Problems
 ########################################################################
 cdef void _hybrid_source_collided(double[:,:]& flux, double[:,:,:]& xs_scatter, \
-        double[:]& source_c, int[:]& medium_map, int[:]& index_c, \
+        double[:,:,:]& source_c, int[:]& medium_map, int[:]& index_c, \
         params info_u, params info_c)
 
 cdef void _hybrid_source_total(double[:,:]& flux_t, double[:,:]& flux_u, \
-        double[:,:,:]& xs_matrix, double[:]& source, int[:]& medium_map, \
+        double[:,:,:]& xs_matrix, double[:,:,:]& source, int[:]& medium_map, \
         int[:]& index_u, double[:]& factor_u, params info_u, params info_c)
 
 cdef void _expand_hybrid_source(double[:,:]& flux_t, double[:,:]& flux_c, \

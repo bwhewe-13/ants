@@ -66,8 +66,8 @@ def reeds(boundary):
 
     # External and boundary sources
     external = ants.externals1d("reeds", (cells, angles, groups), \
-                              edges_x=edges_x, bc=info["bc_x"]).flatten()
-    boundary_x = np.zeros((2,))
+                              edges_x=edges_x, bc=info["bc_x"])
+    boundary_x = np.zeros((2, 1, 1))
     return xs_total, xs_scatter, xs_fission, external, boundary_x, \
         medium_map, delta_x, angle_x, angle_w, info
 
@@ -100,9 +100,10 @@ def sphere_01(ptype):
     xs_total, xs_scatter, xs_fission = ants.materials(groups, materials)
 
     # External and boundary sources
-    external = ants.externals1d(0.0, (cells * angles * groups,))
+    external = ants.externals1d(0.0, (cells, angles, groups,))
     boundary_x = ants.boundaries1d("14.1-mev", (2, groups), [1], \
-                                 energy_grid=edges_g).flatten()
+                                 energy_grid=edges_g)
+    boundary_x = boundary_x[:,None,:].copy()
 
     info = {
                 "cells_x": cells,
@@ -123,8 +124,12 @@ def sphere_01(ptype):
         info["steps"] = 5
         info["dt"] = 1e-8
         info["bcdecay_x"] = 2
-        return xs_total, xs_scatter, xs_fission, velocity, external, \
-            boundary_x, medium_map, delta_x, angle_x, angle_w, info
+        initial_flux = np.zeros((info["cells_x"], info["angles"], info["groups"]))
+        external = external[None,...].copy()
+        boundary_x = boundary_x[None,...].copy()
+
+        return initial_flux, xs_total, xs_scatter, xs_fission, velocity, \
+            external, boundary_x, medium_map, delta_x, angle_x, angle_w, info
 
     elif ptype == "fixed":
         return xs_total, xs_scatter, xs_fission, external, \
@@ -148,8 +153,9 @@ def manufactured_01(cells, angles):
     xs_total = np.array([[1.0]])
     xs_scatter = np.array([[[0.0]]])
     xs_fission = np.array([[[0.0]]])
-    external = ants.externals1d(1.0, (info["cells_x"] * info["angles"] * info["groups"],))
-    boundary_x = ants.boundaries1d(1.0, (2, info["angles"], info["groups"]), [0]).flatten()
+    # external = ants.externals1d(1.0, (info["cells_x"] * info["angles"] * info["groups"],))
+    external = np.ones((info["cells_x"], 1, 1))
+    boundary_x = ants.boundaries1d(1.0, (2, info["angles"], info["groups"]), [0])
     angle_x, angle_w = ants.angular_x(info)
     medium_map = np.zeros((info["cells_x"]), dtype=np.int32)
     return xs_total, xs_scatter, xs_fission, external, boundary_x, \
@@ -167,8 +173,9 @@ def manufactured_02(cells, angles):
     xs_total = np.array([[1.0]])
     xs_scatter = np.array([[[0.0]]])
     xs_fission = np.array([[[0.0]]])
-    external = ants.externals1d(0.5, (info["cells_x"] * info["angles"] * info["groups"],))
-    boundary_x = ants.boundaries1d(1.0, (2, info["angles"], info["groups"]), [0]).flatten()
+    # external = ants.externals1d(0.5, (info["cells_x"] * info["angles"] * info["groups"],))
+    external = 0.5 * np.ones((info["cells_x"], 1, 1))
+    boundary_x = ants.boundaries1d(1.0, (2, info["angles"], info["groups"]), [0])
     angle_x, angle_w = ants.angular_x(info)
     medium_map = np.zeros((info["cells_x"]), dtype=np.int32)
     return xs_total, xs_scatter, xs_fission, external, boundary_x, \
@@ -189,9 +196,9 @@ def manufactured_03(cells, angles):
     xs_fission = np.array([[[0.0]]])
     external = ants.externals1d("mms-03", (info["cells_x"], info["angles"], \
                               info["groups"]), centers_x=centers_x, \
-                              angle_x=angle_x).flatten()
+                              angle_x=angle_x)
     boundary_x = ants.boundaries1d("mms-03", (2, info["angles"]), [0, 1], \
-                               angle_x=angle_x).flatten()
+                              angle_x=angle_x)[...,None]
     medium_map = np.zeros((info["cells_x"]), dtype=np.int32)
     return xs_total, xs_scatter, xs_fission, external, boundary_x, \
         medium_map, delta_x, angle_x, angle_w, info, edges_x, centers_x
@@ -210,9 +217,9 @@ def manufactured_04(cells, angles):
     xs_scatter = np.array([[[0.3]], [[0.9]]])
     xs_fission = np.array([[[0.0]], [[0.0]]])
     external = ants.externals1d("mms-04", (info["cells_x"], info["angles"]), \
-                              centers_x=centers_x, angle_x=angle_x).flatten()
+                              centers_x=centers_x, angle_x=angle_x)[...,None]
     boundary_x = ants.boundaries1d("mms-04", (2, info["angles"]), [0, 1], \
-                               angle_x=angle_x).flatten()
+                               angle_x=angle_x)[...,None]
     materials = [[0, "quasi", "0-1"], [1, "scatter", "1-2"]]
     medium_map = ants.spatial1d(materials, edges_x)
     return xs_total, xs_scatter, xs_fission, external, boundary_x, \
@@ -232,9 +239,9 @@ def manufactured_05(cells, angles):
     xs_scatter = np.array([[[0.3]], [[0.9]]])
     xs_fission = np.array([[[0.0]], [[0.0]]])
     external = ants.externals1d("mms-05", (info["cells_x"], info["angles"]), \
-                              centers_x=centers_x, angle_x=angle_x).flatten()
+                              centers_x=centers_x, angle_x=angle_x)[...,None]
     boundary_x = ants.boundaries1d("mms-05", (2, info["angles"]), [0, 1], \
-                               angle_x=angle_x).flatten()
+                               angle_x=angle_x)[...,None]
     materials = [[0, "quasi", "0-1"], [1, "scatter", "1-2"]]
     medium_map = ants.spatial1d(materials, edges_x)
     return xs_total, xs_scatter, xs_fission, external, boundary_x, \

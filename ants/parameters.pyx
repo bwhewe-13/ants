@@ -57,17 +57,17 @@ cdef params _to_params(dict pydic):
 # One-dimensional functions
 ########################################################################
 
-cdef int _check_fixed1d_source_iteration(params info, int xs_length) except -1:
+cdef int _check_fixed1d_source_iteration(params info, int xs_shape) except -1:
     assert info.angles % 2 == 0, "Need an even number of angles"
-    assert info.materials == xs_length, "Incorrect number of materials"
+    assert info.materials == xs_shape, "Incorrect number of materials"
     if info.angular or info.edges:
         assert info.qdim == 3, "Need (I x N x G) fixed source"
     return 0
 
 
-cdef int _check_nearby1d_fixed_source(params info, int xs_length) except -1:
+cdef int _check_nearby1d_fixed_source(params info, int xs_shape) except -1:
     assert info.angles % 2 == 0, "Need an even number of angles"
-    assert info.materials == xs_length, "Incorrect number of materials"
+    assert info.materials == xs_shape, "Incorrect number of materials"
     assert info.qdim == 3, "Need (I x N x G) source for analysis"
     assert info.bcdim_x == 3, "Need (2 x N x G) boundary for analysis"
     assert info.angular == True, "Need angular flux for analysis"
@@ -82,12 +82,47 @@ cdef int _check_nearby1d_criticality(params info) except -1:
     return 0
 
 
-cdef int _check_timed1d(params info, int xs_length) except -1:
+cdef int _check_timed1d(params info, int bc_x_shape, int xs_shape) except -1:
     assert info.angles % 2 == 0, "Need an even number of angles"
-    assert info.materials == xs_length, "Incorrect number of materials"
-    assert info.qdim > 2, "Need (I x N x G) fixed source"
+    assert info.materials == xs_shape, "Incorrect number of materials"
     assert info.steps > 0, "Need at least 1 time step"
     assert info.angular == False, "Scalar flux is returned"
+    if bc_x_shape > 1:
+        assert bc_x_shape == info.steps, \
+                "Need time-dependent boundary source for each time step"
+    return 0
+
+
+cdef int _check_bdf_timed1d(params info, int psi_shape, int q_shape, \
+        int bc_x_shape, int xs_shape) except -1:
+    # Go through time-dependent default checks
+    _check_timed1d(info, bc_x_shape, xs_shape)
+    assert psi_shape == info.cells_x, "Need initial flux at cell centers"
+    if q_shape > 1:
+        assert q_shape == info.steps, \
+                "Need time-dependent external source for each time step"
+    return 0
+
+
+cdef int _check_cn_timed1d(params info, int psi_shape, int q_shape, \
+        int bc_x_shape, int xs_shape) except -1:
+    # Go through time-dependent default checks
+    _check_timed1d(info, bc_x_shape, xs_shape)
+    assert psi_shape == (info.cells_x + 1), "Need initial flux at cell edges"
+    if q_shape > 1:
+        assert q_shape == (info.steps + 1), "Need time-dependent external " \
+                "source for each time step and initial time step"
+    return 0
+
+
+cdef int _check_tr_bdf_timed1d(params info, int psi_shape, int q_shape, \
+        int bc_x_shape, int xs_shape) except -1:
+    # Go through time-dependent default checks
+    _check_timed1d(info, bc_x_shape, xs_shape)
+    assert psi_shape == (info.cells_x + 1), "Need initial flux at cell edges"
+    if q_shape > 1:
+        assert q_shape == (info.steps * 2 + 1), "Need time-dependent " \
+            "external source for each time step, gamma step, and initial step"
     return 0
 
 
@@ -107,39 +142,21 @@ cdef int _check_critical1d_nearby_power(params info) except -1:
     return 0
 
 
-cdef int _check_hybrid1d_uncollided(params info, int xs_length) except -1:
-    assert info.angles % 2 == 0, "Need an even number of angles"
-    assert info.materials == xs_length, "Incorrect number of materials"
-    assert info.qdim > 2, "Need (I x N x G) fixed source"
-    assert info.steps > 0, "Need at least 1 time step"
-    assert info.angular == False, "Scalar flux is returned"
-    return 0
-
-
-cdef int _check_hybrid1d_collided(params info, int xs_length) except -1:
-    assert info.angles % 2 == 0, "Need an even number of angles"
-    assert info.materials == xs_length, "Incorrect number of materials"
-    assert info.qdim == 2, "Need (I x G) fixed source"
-    assert info.angular == False, "Scalar Flux is returned"
-    assert info.bcdim_x == 1, "No Boundary conditions"
-    return 0
-
-
 ########################################################################
 # Two-dimensional functions
 ########################################################################
 
-cdef int _check_fixed2d_source_iteration(params info, int xs_length) except -1:
+cdef int _check_fixed2d_source_iteration(params info, int xs_shape) except -1:
     assert info.angles % 2 == 0, "Need an even number of angles"
-    assert info.materials == xs_length, "Incorrect number of materials"
+    assert info.materials == xs_shape, "Incorrect number of materials"
     if info.angular or info.edges:
         assert info.qdim == 3, "Need (I x J x N x G) fixed source"
     return 0
 
 
-cdef int _check_nearby2d_fixed_source(params info, int xs_length) except -1:
+cdef int _check_nearby2d_fixed_source(params info, int xs_shape) except -1:
     assert info.angles % 2 == 0, "Need an even number of angles"
-    assert info.materials == xs_length, "Incorrect number of materials"
+    assert info.materials == xs_shape, "Incorrect number of materials"
     assert info.qdim == 3, "Need (I x J x N x G) source for analysis"
     assert info.bcdim_x == 4, "Need (2 x J x N x G) boundary for analysis"
     assert info.bcdim_y == 4, "Need (2 x I x N x G) boundary for analysis"
@@ -156,12 +173,53 @@ cdef int _check_nearby2d_criticality(params info) except -1:
     return 0
 
 
-cdef int _check_timed2d(params info, int xs_length) except -1:
+cdef int _check_timed2d(params info, int bc_x_shape, int bc_y_shape, \
+        int xs_shape) except -1:
     assert info.angles % 2 == 0, "Need an even number of angles"
-    assert info.materials == xs_length, "Incorrect number of materials"
-    assert info.qdim == 3, "Need (I x J x N x G) fixed source"
+    assert info.materials == xs_shape, "Incorrect number of materials"
     assert info.steps > 0, "Need at least 1 time step"
     assert info.angular == False, "Scalar flux is returned"
+    if bc_x_shape > 1:
+        assert bc_x_shape == info.steps, \
+                "Need time-dependent boundary source for each time step"
+    if bc_y_shape > 1:
+        assert bc_y_shape == info.steps, \
+                "Need time-dependent boundary source for each time step"
+    return 0
+
+
+cdef int _check_bdf_timed2d(params info, int psi_shape, int q_shape, \
+        int bc_x_shape, int bc_y_shape, int xs_shape) except -1:
+    # Go through time-dependent default checks
+    _check_timed2d(info, bc_x_shape, bc_y_shape, xs_shape)
+    assert psi_shape == info.cells_x, "Need initial flux at cell centers"
+    if q_shape > 1:
+        assert q_shape == info.steps, \
+                "Need time-dependent external source for each time step"
+    return 0
+
+
+cdef int _check_cn_timed2d(params info, int psi_x_shape, int psi_y_shape, \
+        int q_shape, int bc_x_shape, int bc_y_shape, int xs_shape) except -1:
+    # Go through time-dependent default checks
+    _check_timed2d(info, bc_x_shape, bc_y_shape, xs_shape)
+    assert psi_x_shape == (info.cells_x + 1), "Need initial flux at cell edges"
+    assert psi_y_shape == (info.cells_y + 1), "Need initial flux at cell edges"
+    if q_shape > 1:
+        assert q_shape == (info.steps + 1), "Need time-dependent external " \
+                "source for each time step and initial time step"
+    return 0
+
+
+cdef int _check_tr_bdf_timed2d(params info, int psi_x_shape, int psi_y_shape, \
+        int q_shape, int bc_x_shape, int bc_y_shape, int xs_shape) except -1:
+    # Go through time-dependent default checks
+    _check_timed2d(info, bc_x_shape, bc_y_shape, xs_shape)
+    assert psi_x_shape == (info.cells_x + 1), "Need initial flux at cell edges"
+    assert psi_y_shape == (info.cells_y + 1), "Need initial flux at cell edges"
+    if q_shape > 1:
+        assert q_shape == (info.steps * 2 + 1), "Need time-dependent " \
+            "external source for each time step, gamma step, and initial step"
     return 0
 
 
@@ -180,23 +238,4 @@ cdef int _check_critical2d_nearby_power(params info) except -1:
     assert info.edges == 0, "Cannot currently use cell edges"
     assert info.bcdim_x == 1, "No boundary conditions"
     assert info.bcdim_y == 1, "No boundary conditions"
-    return 0
-
-
-cdef int _check_hybrid2d_uncollided(params info, int xs_length) except -1:
-    assert info.angles % 2 == 0, "Need an even number of angles"
-    assert info.materials == xs_length, "Incorrect number of materials"
-    assert info.qdim == 3, "Need (I x J x N^2 x G) fixed source"
-    assert info.steps > 0, "Need at least 1 time step"
-    assert info.angular == False, "Scalar flux is returned"
-    return 0
-
-
-cdef int _check_hybrid2d_collided(params info, int xs_length) except -1:
-    assert info.angles % 2 == 0, "Need an even number of angles"
-    assert info.materials == xs_length, "Incorrect number of materials"
-    assert info.qdim == 2, "Need (I x J x G) fixed source"
-    assert info.angular == False, "Scalar Flux is returned"
-    assert info.bcdim_x == 1, "No Boundary conditions"
-    assert info.bcdim_y == 1, "No Boundary conditions"
     return 0

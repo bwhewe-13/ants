@@ -28,13 +28,13 @@ PATH = "data/references_multigroup/"
                         (8, 43), (2, 43)])
 def test_slab_01_bdf1(angles_c, groups_c):
     # General Parameters
-    cells = 1000
+    cells_x = 1000
     angles_u = 8
     groups_u = 87
     steps = 5
     # Uncollided flux dictionary
     info_u = {
-            "cells_x": cells,
+            "cells_x": cells_x,
             "angles": angles_u,
             "groups": groups_u,
             "materials": 2,
@@ -49,7 +49,7 @@ def test_slab_01_bdf1(angles_c, groups_c):
             }
     # Collided flux dictionary
     info_c = {
-            "cells_x": cells,
+            "cells_x": cells_x,
             "angles": angles_c,
             "groups": groups_c,
             "materials": 2,
@@ -64,8 +64,8 @@ def test_slab_01_bdf1(angles_c, groups_c):
             }
     # Spatial
     length = 10.
-    delta_x = np.repeat(length / cells, cells)
-    edges_x = np.linspace(0, length, cells+1)
+    delta_x = np.repeat(length / cells_x, cells_x)
+    edges_x = np.linspace(0, length, cells_x + 1)
     centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
     # Energy Grid
     edges_g, edges_gidx = ants.energy_grid(groups_c, 87)
@@ -85,17 +85,18 @@ def test_slab_01_bdf1(angles_c, groups_c):
     xs_total_c, xs_scatter_c, xs_fission_c = hytools.coarsen_materials( \
             xs_total_u, xs_scatter_u, xs_fission_u, edges_g, edges_gidx)
     # External and boundary sources
-    external = ants.externals1d(0.0, (cells * angles_u * groups_u,))
+    initial_flux = np.zeros((cells_x, angles_u, groups_u))
+    external = np.zeros((1, cells_x, 1, 1))
     boundary_x = ants.boundaries1d("14.1-mev", (2, groups_u), [0], \
-                                 energy_grid=edges_g).flatten()
+                                 energy_grid=edges_g)[None,:,None,:]
     # Indexing Parameters
     fine_idx, coarse_idx, factor = hytools.indexing(groups_u, groups_c, \
                                                     edges_g, edges_gidx)
     # Run Hybrid Method
-    flux = hybrid1d.backward_euler(xs_total_u, xs_total_c, xs_scatter_u, \
-                xs_scatter_c, xs_fission_u, xs_fission_c, velocity_u, \
-                velocity_c, external, boundary_x, medium_map, delta_x, \
-                angle_xu, angle_xc, angle_wu, angle_wc, fine_idx, \
+    flux = hybrid1d.backward_euler(initial_flux, xs_total_u, xs_total_c, \
+                xs_scatter_u, xs_scatter_c, xs_fission_u, xs_fission_c, \
+                velocity_u, velocity_c, external, boundary_x, medium_map, \
+                delta_x, angle_xu, angle_xc, angle_wu, angle_wc, fine_idx, \
                 coarse_idx, factor, info_u, info_c)
     # Load Reference flux
     params = f"g87g{groups_c}_n8n{angles_c}_flux.npy"
