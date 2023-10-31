@@ -15,7 +15,7 @@ import numpy as np
 ########################################################################
 # Manufactured Solutions and Accuracy
 ########################################################################
-def _spatial_error(approx, reference, ndims=1):
+def spatial_error(approx, reference, ndims=1):
     """ Calculating the spatial error between an approximation and the
     reference solution
     Arguments:
@@ -33,8 +33,8 @@ def _spatial_error(approx, reference, ndims=1):
     return normalized * np.linalg.norm(approx - reference)
 
 
-def _spatial_accuracy(error1, error2, ratio):
-    """ Finding the order of accuracy between errors on different spatial
+def order_accuracy(error1, error2, ratio):
+    """ Finding the order of accuracy between errors on different 
     grids, where error2 is the refined grid
     Arguments:
         error1 (double): Error between an approximate solution and the
@@ -49,7 +49,7 @@ def _spatial_accuracy(error1, error2, ratio):
     return np.log(error1 / error2) / np.log(ratio)
 
 
-def _wynn_epsilon(lst, rank):
+def wynn_epsilon(lst, rank):
     """ Perform Wynn Epsilon Convergence Algorithm
     Arguments:
         lst: list of values for convergence
@@ -99,6 +99,105 @@ def _flux_coarsen_2d(fine_flux, fine_edges_x, fine_edges_y, coarse_edges_x, \
     # Make sure we got all rows
     assert count_x == fine_flux.shape[0], "Not including all x cells"
     return coarse_flux
+
+
+########################################################################
+# Meshing Different Energy Grids
+########################################################################
+
+def _concatenate_edges_1d(fine, coarse, value):
+    # Combine the edges for both the coarse and fine grid
+    new_edges = np.sort(np.unique(np.concatenate((coarse, fine))))
+    # Create new array for values
+    new_value = np.zeros((new_edges.shape[0] - 1))
+    # Iterate over fine edges
+    for cc, (gg1, gg2) in enumerate(zip(fine[:-1], fine[1:])):
+        idx1 = np.argmin(np.fabs(gg1 - new_edges))
+        idx2 = np.argmin(np.fabs(gg2 - new_edges))
+        for gg in range(idx1, idx2):
+            new_value[gg] = value[cc]
+    return new_edges, new_value
+
+
+def resize_array_1d(fine, coarse, value):
+    """ Coarsen array for difference energy grids where (G hat) < (G)
+    Arguments:
+        fine (float [G + 1]): fine energy edges
+        coarse (float [G hat + 1]): coarse energy edges
+        value (float [G] or [G hat]): values of grid values
+    Returns:
+        resized (float [G hat] or [G]): values of resized grid
+    """
+    # Combine edges
+    if (value.shape[0] + 1 == coarse.shape[0]):
+        fine, coarse = coarse.copy(), fine.copy()
+    fine, value = _concatenate_edges_1d(fine, coarse, value)
+    # Create coarse array
+    shrink = np.zeros((coarse.shape[0] - 1))
+    # Iterate over all coarse bins
+    for cc, (gg1, gg2) in enumerate(zip(coarse[:-1], coarse[1:])):
+        # Find indices for edge locations
+        idx1 = np.argmin(np.fabs(gg1 - fine))
+        idx2 = np.argmin(np.fabs(gg2 - fine))
+        # Estimate magnitude
+        magnitude = np.sum(value[idx1:idx2] * np.diff(fine[idx1:idx2+1]))
+        magnitude /= (gg2 - gg1)
+        # Populate coarsened array
+        shrink[cc] = magnitude
+    return shrink
+
+
+def _concatenate_edges_2d(fine, coarse, value):
+    # Combine the edges for both the coarse and fine grid
+    new_edges = np.sort(np.unique(np.concatenate((coarse, fine))))
+    # Create new array for values
+    new_value = np.zeros((new_edges.shape[0] - 1, new_edges.shape[0] - 1))
+    # Iterate over fine edges
+    for cc1, (gg1, gg2) in enumerate(zip(fine[:-1], fine[1:])):
+        idx1 = np.argmin(np.fabs(gg1 - new_edges))
+        idx2 = np.argmin(np.fabs(gg2 - new_edges))
+        for cc2, (gg3, gg4) in enumerate(zip(fine[:-1], fine[1:])):
+            idx3 = np.argmin(np.fabs(gg3 - new_edges))
+            idx4 = np.argmin(np.fabs(gg4 - new_edges))
+            for gg1 in range(idx1, idx2):
+                for gg2 in range(idx3, idx4):
+                    new_value[gg1,gg2] = value[cc1,cc2]
+    return new_edges, new_value
+
+
+def resize_array_2d(fine, coarse, value):
+    """ Coarsen array for difference energy grids where (G hat) < (G)
+    Arguments:
+        fine (float [G + 1]): fine energy edges
+        coarse (float [G hat + 1]): coarse energy edges
+        value (float [G x G] or [G hat x G hat]): values of grid values
+    Returns:
+        resized (float [G hat x G hat] or [G x G]): values of resized grid
+    """
+    # Combine edges
+    if (value.shape[0] + 1 == coarse.shape[0]):
+        fine, coarse = coarse.copy(), fine.copy()
+    fine, value = _concatenate_edges_2d(fine, coarse, value)
+    # return value
+    # Create coarse array
+    shrink = np.zeros((coarse.shape[0] - 1, coarse.shape[0] - 1))
+    # Iterate over all coarse bins
+    for cc1, (gg1, gg2) in enumerate(zip(coarse[:-1], coarse[1:])):
+        # Find indices for edge locations
+        idx1 = np.argmin(np.fabs(gg1 - fine))
+        idx2 = np.argmin(np.fabs(gg2 - fine))
+        for cc2, (gg3, gg4) in enumerate(zip(coarse[:-1], coarse[1:])):
+            # Find indices for edge locations
+            idx3 = np.argmin(np.fabs(gg3 - fine))
+            idx4 = np.argmin(np.fabs(gg4 - fine))
+            # Estimate magnitude
+            magnitude = np.sum(value[idx1:idx2,idx3:idx4] \
+                                * (np.diff(fine[idx1:idx2+1])[:,None] \
+                                @ np.diff(fine[idx3:idx4+1])[None,:]))
+            magnitude /= ((gg2 - gg1) * (gg4 - gg3))
+            # Populate coarsened array
+            shrink[cc1, cc2] = magnitude
+    return shrink
 
 
 ########################################################################

@@ -137,6 +137,7 @@ def energy_velocity(groups, edges_g=None):
     velocity = LIGHT_SPEED / gamma * np.sqrt(gamma**2 - 1) * 100
     return velocity
 
+
 def gamma_time_steps(edges_t, half_step=True):
     """ Add gamma half time steps to original time steps with initial step
     where gamma = 2 - sqrt(2). For external source with TR-BDF2 problems.

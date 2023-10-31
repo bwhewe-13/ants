@@ -30,14 +30,14 @@ from tests import problems1d
 def test_manufactured_01(angular, spatial, edges):
     xs_total, xs_scatter, xs_fission, external, boundary_x, medium_map, \
         delta_x, angle_x, angle_w, info, edges_x, centers_x \
-        = problems1d.manufactured_01(400, 4)
+        = problems1d.manufactured_ss_01(400, 4)
     info["angular"] = angular
     info["spatial"] = spatial
     info["edges"] = edges
     flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
                 boundary_x, medium_map, delta_x, angle_x, angle_w, info)
     space_x = edges_x.copy() if edges else centers_x.copy()
-    exact = mms.solution_mms_01(space_x, angle_x)
+    exact = mms.solution_ss_01(space_x, angle_x)
     if not angular:
         exact = np.sum(exact * angle_w[None,:], axis=1)
     atol = 1e-5 if spatial == 2 else 5e-3
@@ -53,14 +53,14 @@ def test_manufactured_01(angular, spatial, edges):
 def test_manufactured_02(angular, spatial, edges):
     xs_total, xs_scatter, xs_fission, external, boundary_x, medium_map, \
         delta_x, angle_x, angle_w, info, edges_x, centers_x \
-        = problems1d.manufactured_02(400, 4)
+        = problems1d.manufactured_ss_02(400, 4)
     info["angular"] = angular
     info["spatial"] = spatial
     info["edges"] = edges
     flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
                 boundary_x, medium_map, delta_x, angle_x, angle_w, info)
     space_x = edges_x.copy() if edges else centers_x.copy()
-    exact = mms.solution_mms_02(space_x, angle_x)
+    exact = mms.solution_ss_02(space_x, angle_x)
     if not angular:
         exact = np.sum(exact * angle_w[None,:], axis=1)
     atol = 1e-5 if spatial == 2 else 5e-3
@@ -75,14 +75,14 @@ def test_manufactured_02(angular, spatial, edges):
 def test_manufactured_03(angular, spatial, edges):
     xs_total, xs_scatter, xs_fission, external, boundary_x, medium_map, \
         delta_x, angle_x, angle_w, info, edges_x, centers_x \
-        = problems1d.manufactured_03(400, 4)
+        = problems1d.manufactured_ss_03(400, 4)
     info["angular"] = angular
     info["spatial"] = spatial
     info["edges"] = edges
     flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
                 boundary_x, medium_map, delta_x, angle_x, angle_w, info)
     space_x = edges_x.copy() if edges else centers_x.copy()
-    exact = mms.solution_mms_03(space_x, angle_x)
+    exact = mms.solution_ss_03(space_x, angle_x)
     if not angular:
         exact = np.sum(exact * angle_w[None,:], axis=1)
     atol = 1e-5 if spatial == 2 else 5e-3
@@ -97,14 +97,14 @@ def test_manufactured_03(angular, spatial, edges):
 def test_manufactured_04(angular, spatial, edges):
     xs_total, xs_scatter, xs_fission, external, boundary_x, medium_map, \
         delta_x, angle_x, angle_w, info, edges_x, centers_x \
-        = problems1d.manufactured_04(400, 4)
+        = problems1d.manufactured_ss_04(400, 4)
     info["angular"] = angular
     info["spatial"] = spatial
     info["edges"] = edges
     flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
                 boundary_x, medium_map, delta_x, angle_x, angle_w, info)
     space_x = edges_x.copy() if edges else centers_x.copy()
-    exact = mms.solution_mms_04(space_x, angle_x)
+    exact = mms.solution_ss_04(space_x, angle_x)
     if not angular:
         exact = np.sum(exact * angle_w[None,:], axis=1)
     atol = 1e-4 if spatial == 2 else 1e-2
@@ -119,14 +119,14 @@ def test_manufactured_04(angular, spatial, edges):
 def test_manufactured_05(angular, spatial, edges):
     xs_total, xs_scatter, xs_fission, external, boundary_x, medium_map, \
         delta_x, angle_x, angle_w, info, edges_x, centers_x \
-        = problems1d.manufactured_05(400, 4)
+        = problems1d.manufactured_ss_05(400, 4)
     info["angular"] = angular
     info["spatial"] = spatial
     info["edges"] = edges
     flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
                 boundary_x, medium_map, delta_x, angle_x, angle_w, info)
     space_x = edges_x.copy() if edges else centers_x.copy()
-    exact = mms.solution_mms_05(space_x, angle_x)
+    exact = mms.solution_ss_05(space_x, angle_x)
     if not angular:
         exact = np.sum(exact * angle_w[None,:], axis=1)
     atol = 1e-4 if spatial == 2 else 2e-2

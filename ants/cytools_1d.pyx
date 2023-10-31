@@ -302,55 +302,6 @@ cdef void _time_right_side(double[:,:,:]& q_star, double[:,:]& flux, \
                 for ig in range(info.groups):
                     q_star[ii,nn,og] += flux[ii,ig] * xs_scatter[mat,og,ig]
 
-
-# cdef void boundary_decay(double[:]& boundary_x, int step, params info):
-#     # Calculate elapsed time
-#     cdef double t = info.dt * step
-#     # Cycle through different decay processes
-#     if info.bcdecay_x == 0: # Do nothing
-#         pass
-#     elif info.bcdecay_x == 1: # Turn off after one step
-#         _decay_01(boundary_x, step, info)
-#     elif info.bcdecay_x == 2: # Step decay
-#         _decay_02(boundary_x, t, info)
-
-
-# cdef int _boundary_length(params info):
-#     # Initialize boundary length
-#     cdef int bc_length
-#     if info.bcdim_x == 1:
-#         bc_length = 2
-#     elif info.bcdim_x == 2:
-#         bc_length = 2 * info.groups
-#     elif info.bcdim_x == 3:
-#         bc_length = 2 * info.groups * info.angles
-#     return bc_length
-
-
-# cdef void _decay_01(double[:]& boundary_x, int step, params info):
-#     cdef int cell, bc_length
-#     bc_length = _boundary_length(info)
-#     cdef double magnitude = 0.0 if step > 0 else 1.0
-#     for cell in range(bc_length):
-#         boundary_x[cell] = magnitude
-
-
-# cdef void _decay_02(double[:]& boundary_x, double t, params info):
-#     cdef int cell, bc_length
-#     bc_length = _boundary_length(info)
-#     cdef double k, err_arg
-#     t *= 1e6 # Convert elapsed time
-#     for cell in range(bc_length):
-#         if boundary_x[cell] == 0.0:
-#             continue
-#         if t < 0.2:
-#             boundary_x[cell] = 1.
-#         else:
-#             k = ceil((t - 0.2) / 0.1)
-#             err_arg = (t - 0.1 * (1 + k)) / (0.01)
-#             boundary_x[cell] = pow(0.5, k) * (1 + 2 * erfc(err_arg))
-
-
 ########################################################################
 # Criticality functions
 ########################################################################

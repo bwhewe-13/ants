@@ -89,8 +89,6 @@ cdef void _time_source_star_tr_bdf2(double[:,:,:]& flux_1, double[:,:,:]& flux_2
 cdef void _time_right_side(double[:,:,:]& q_star, double[:,:]& flux, \
         double[:,:,:]& xs_scatter, int[:]& medium_map, params info)
 
-# cdef void boundary_decay(double[:]& boundary_x, int step, params info)
-
 ########################################################################
 # Criticality functions
 ########################################################################

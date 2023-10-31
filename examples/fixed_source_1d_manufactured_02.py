@@ -21,19 +21,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-cells = 100
+cells_x = 100
 angles = 4
 groups = 1
 
 length = 1.
-delta_x = np.repeat(length / cells, cells)
-edges_x = np.linspace(0, length, cells+1)
+delta_x = np.repeat(length / cells_x, cells_x)
+edges_x = np.linspace(0, length, cells_x+1)
 centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
 
 bc_x = [0, 0]
 
 info = {
-            "cells_x": cells,
+            "cells_x": cells_x,
             "angles": angles, 
             "groups": groups, 
             "materials": 1,
@@ -46,19 +46,20 @@ info = {
         }
 
 angle_x, angle_w = ants.angular_x(info)
-medium_map = np.zeros((cells), dtype=np.int32)
+medium_map = np.zeros((cells_x), dtype=np.int32)
 
 xs_total = np.array([[1.0]])
 xs_scatter = np.array([[[0.0]]])
 xs_fission = np.array([[[0.0]]])
 
-external = ants.externals1d(0.5, (cells * angles * groups,))
-boundary_x = ants.boundaries1d(1.0, (2, angles, groups), [0]).flatten()
+external = 0.5 * np.ones((cells_x, 1, 1))
+boundary_x = np.zeros((2, 1, 1))
+boundary_x[0] = 1.
 
 flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
                 boundary_x, medium_map, delta_x, angle_x, angle_w, info)
 
-exact = mms.solution_mms_02(centers_x, angle_x)
+exact = mms.solution_ss_02(centers_x, angle_x)
 
 colors = sns.color_palette("hls", angles)
 

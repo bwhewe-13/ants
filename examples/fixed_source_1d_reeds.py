@@ -17,40 +17,38 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # General conditions
-cells = 160
+cells_x = 160
 angles = 4
 groups = 1
 
 # Different boundary conditions
-bc = [0, 0]
+bc_x = [0, 0]
 layout = [[0, "scattering", "0-4, 12-16"], [1, "vacuum", "4-5, 11-12"], \
           [2, "absorber", "5-6, 10-11"], [3, "source", "6-10"]]
 
-# bc = [0, 1]
+# bc_x = [0, 1]
 # layout = [[0, "scattering", "0-4"], [1, "vacuum", "4-5"], \
 #           [2, "absorber", "5-6"], [3, "source", "6-8"]]
 
-# bc = [1, 0]
+# bc_x = [1, 0]
 # layout = [[0, "scattering", "4-8"], [1, "vacuum", "3-4"], \
 #           [2, "absorber", "2-3"], [3, "source", "0-2"]]
 
 info = {
-            "cells_x": cells,
+            "cells_x": cells_x,
             "angles": angles, 
             "groups": groups, 
             "materials": len(layout),
             "geometry": 1, 
             "spatial": 2, 
-            "qdim": 3, 
-            "bc_x": bc,
-            "bcdim_x": 1,
+            "bc_x": bc_x,
             "angular": True
         }
 
 # Spatial
-length = 8. if np.sum(bc) > 0.0 else 16.
-delta_x = np.repeat(length / cells, cells)
-edges_x = np.linspace(0, length, cells+1)
+length = 8. if np.sum(bc_x) > 0.0 else 16.
+delta_x = np.repeat(length / cells_x, cells_x)
+edges_x = np.linspace(0, length, cells_x+1)
 centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
 
 # Medium Map
@@ -65,10 +63,11 @@ xs_total = np.array([[1.0], [0.0], [5.0], [50.0]])
 xs_scatter = np.array([[[0.9]], [[0.0]], [[0.0]], [[0.0]]])
 xs_fission = np.array([[[0.0]], [[0.0]], [[0.0]], [[0.0]]])
 
-# External and boundary sources
-external = ants.externals1d("reeds", (cells, angles, groups), \
-                          edges_x=edges_x, bc=info["bc_x"]).flatten()
-boundary_x = np.zeros((2,))
+
+# Sources
+external = ants.external1d.reeds(edges_x, bc_x)
+boundary_x = np.zeros((2, 1, 1))
+
 
 flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
                 boundary_x, medium_map, delta_x, angle_x, angle_w, info)

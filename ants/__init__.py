@@ -22,6 +22,7 @@ from ants.main import spatial1d, spatial2d, weight_spatial2d, weight_matrix2d
 # To remove later
 from ants.main import weight_triangle2d, weight_cylinder2d
 
-# Creating sources
-from ants.sources import materials, externals1d, boundaries1d
-from ants.sources import externals2d, boundaries2d
+# Creating materials/sources
+from ants.materials import materials
+from ants import boundary1d, external1d
+from ants import boundary2d, external2d

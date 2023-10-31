@@ -32,18 +32,12 @@ cdef params _to_params(dict pydic):
     info.geometry = pydic.get("geometry", 1)
     # Spatial discretization type
     info.spatial = pydic.get("spatial", 2)
-    # External source
-    info.qdim = pydic.get("qdim", 1)
     # Boundary parameters
     info.bc_x = pydic.get("bc_x", [0, 0])
-    info.bcdim_x = pydic.get("bcdim_x", 1)
     info.bc_y = pydic.get("bc_y", [0, 0])
-    info.bcdim_y = pydic.get("bcdim_y", 1)
     # Time dependent parameters
     info.steps = pydic.get("steps", 0)
     info.dt = pydic.get("dt", 1.0)
-    info.bcdecay_x = pydic.get("bcdecay_x", 0)
-    info.bcdecay_y = pydic.get("bcdecay_y", 0)
     # Angular flux option
     info.angular = pydic.get("angular", False)
     # Adjoint option, cross section matrices must be transposed
@@ -60,24 +54,18 @@ cdef params _to_params(dict pydic):
 cdef int _check_fixed1d_source_iteration(params info, int xs_shape) except -1:
     assert info.angles % 2 == 0, "Need an even number of angles"
     assert info.materials == xs_shape, "Incorrect number of materials"
-    if info.angular or info.edges:
-        assert info.qdim == 3, "Need (I x N x G) fixed source"
     return 0
 
 
 cdef int _check_nearby1d_fixed_source(params info, int xs_shape) except -1:
     assert info.angles % 2 == 0, "Need an even number of angles"
     assert info.materials == xs_shape, "Incorrect number of materials"
-    assert info.qdim == 3, "Need (I x N x G) source for analysis"
-    assert info.bcdim_x == 3, "Need (2 x N x G) boundary for analysis"
     assert info.angular == True, "Need angular flux for analysis"
     return 0
 
 
 cdef int _check_nearby1d_criticality(params info) except -1:
     assert info.angles % 2 == 0, "Need an even number of angles"
-    assert info.qdim == 3, "Need (I x N x G) source term"
-    assert info.bcdim_x == 1, "No boundary conditions"
     # assert info.angular == True, "Need angular flux for analysis"
     return 0
 
@@ -128,17 +116,13 @@ cdef int _check_tr_bdf_timed1d(params info, int psi_shape, int q_shape, \
 
 cdef int _check_critical1d_power_iteration(params info) except -1:
     assert info.angles % 2 == 0, "Need an even number of angles"
-    assert info.qdim == 2, "Need (I x G) source term"
     # assert info.edges == 0, "Cannot currently use cell edges"
-    assert info.bcdim_x == 1, "No boundary conditions"
     return 0
 
 
 cdef int _check_critical1d_nearby_power(params info) except -1:
     assert info.angles % 2 == 0, "Need an even number of angles"
-    assert info.qdim == 3, "Need (I x N x G) source term"
     # assert info.edges == 0, "Cannot currently use cell edges"
-    assert info.bcdim_x == 1, "No boundary conditions"
     return 0
 
 
@@ -149,26 +133,18 @@ cdef int _check_critical1d_nearby_power(params info) except -1:
 cdef int _check_fixed2d_source_iteration(params info, int xs_shape) except -1:
     assert info.angles % 2 == 0, "Need an even number of angles"
     assert info.materials == xs_shape, "Incorrect number of materials"
-    if info.angular or info.edges:
-        assert info.qdim == 3, "Need (I x J x N x G) fixed source"
     return 0
 
 
 cdef int _check_nearby2d_fixed_source(params info, int xs_shape) except -1:
     assert info.angles % 2 == 0, "Need an even number of angles"
     assert info.materials == xs_shape, "Incorrect number of materials"
-    assert info.qdim == 3, "Need (I x J x N x G) source for analysis"
-    assert info.bcdim_x == 4, "Need (2 x J x N x G) boundary for analysis"
-    assert info.bcdim_y == 4, "Need (2 x I x N x G) boundary for analysis"
     assert info.angular == True, "Need angular flux for analysis"
     return 0
 
 
 cdef int _check_nearby2d_criticality(params info) except -1:
     assert info.angles % 2 == 0, "Need an even number of angles"
-    assert info.qdim == 3, "Need (I x J x N x G) source for analysis"
-    assert info.bcdim_x == 1, "No boundary conditions"
-    assert info.bcdim_y == 1, "No boundary conditions"
     # assert info.angular == True, "Need angular flux for analysis"
     return 0
 
@@ -225,17 +201,11 @@ cdef int _check_tr_bdf_timed2d(params info, int psi_x_shape, int psi_y_shape, \
 
 cdef int _check_critical2d_power_iteration(params info) except -1:
     assert info.angles % 2 == 0, "Need an even number of angles"
-    assert info.qdim == 2, "Need (I x J x G) source term"
     assert info.edges == 0, "Cannot currently use cell edges"
-    assert info.bcdim_x == 1, "No boundary conditions"
-    assert info.bcdim_y == 1, "No boundary conditions"
     return 0
 
 
 cdef int _check_critical2d_nearby_power(params info) except -1:
     assert info.angles % 2 == 0, "Need an even number of angles"
-    assert info.qdim == 3, "Need (I x J x N x G) source term"
     assert info.edges == 0, "Cannot currently use cell edges"
-    assert info.bcdim_x == 1, "No boundary conditions"
-    assert info.bcdim_y == 1, "No boundary conditions"
     return 0

@@ -1,27 +1,25 @@
 
 import ants
-from ants.timed1d import bdf1
+from ants.timed1d import backward_euler
 from ants.fixed1d import source_iteration
 
 import numpy as np
 import matplotlib.pyplot as plt
 
 # General conditions
-cells = 320
+cells_x = 320
 angles = 8
 groups = 1
 steps = 100
 
 info = {
-            "cells_x": cells,
+            "cells_x": cells_x,
             "angles": angles,
             "groups": groups,
             "materials": 4,
             "geometry": 1,
             "spatial": 2,
-            "qdim": 3,
             "bc_x": [0, 0],
-            "bcdim_x": 1,
             "steps": steps,
             "dt": 1.,
             "angular": False
@@ -29,8 +27,8 @@ info = {
 
 # Spatial
 length = 16.
-delta_x = np.repeat(length / cells, cells)
-edges_x = np.linspace(0, length, cells+1)
+delta_x = np.repeat(length / cells_x, cells_x)
+edges_x = np.linspace(0, length, cells_x+1)
 centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
 
 # Energy Grid
@@ -50,18 +48,21 @@ xs_scatter = np.array([[[0.9]], [[0.0]], [[0.0]], [[0.0]]])
 xs_fission = np.array([[[0.0]], [[0.0]], [[0.0]], [[0.0]]])
 
 # External Source and Boundary
-external = ants.externals1d("reeds", (cells, angles, groups), \
-                          edges_x=edges_x, bc=[0,0]).flatten()
-boundary_x = np.zeros((2,))
+external = ants.external1d.reeds(edges_x, info["bc_x"])
+external = external[None,...].copy()
+boundary_x = np.zeros((1, 2, 1, 1))
+
+initial_flux = np.zeros((cells_x, angles, groups))
 
 # Time Dependent
-dependent = bdf1(xs_total, xs_scatter, xs_fission, velocity, external, \
-                boundary_x, medium_map, delta_x, angle_x, angle_w, info)
+dependent = backward_euler(initial_flux, xs_total, xs_scatter, xs_fission, \
+                           velocity, external, boundary_x, medium_map, \
+                           delta_x, angle_x, angle_w, info)
 
 # Time Independent
 xs_total = np.array([[1.0], [0.0], [5.0], [50.0]])
-independent = source_iteration(xs_total, xs_scatter, xs_fission, external, \
-                boundary_x, medium_map, delta_x, angle_x, angle_w, info)
+independent = source_iteration(xs_total, xs_scatter, xs_fission, external[0], \
+                boundary_x[0], medium_map, delta_x, angle_x, angle_w, info)
 independent = independent.flatten()
 
 

@@ -21,47 +21,44 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-cells = 100
+cells_x = 100
 angles = 4
 groups = 1
 
 length = 1.
-delta_x = np.repeat(length / cells, cells)
-edges_x = np.linspace(0, length, cells+1)
+delta_x = np.repeat(length / cells_x, cells_x)
+edges_x = np.linspace(0, length, cells_x+1)
 centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
 
 bc_x = [0, 0]
 
 info = {
-            "cells_x": cells,
+            "cells_x": cells_x,
             "angles": angles, 
             "groups": groups, 
             "materials": 1,
             "geometry": 1, 
             "spatial": 2, 
-            "qdim": 3, 
             "bc_x": bc_x,
-            "bcdim_x": 3,
             "angular": True
         }
 
 angle_x, angle_w = ants.angular_x(info)
-medium_map = np.zeros((cells), dtype=np.int32)
+medium_map = np.zeros((cells_x), dtype=np.int32)
 
 xs_total = np.array([[1.0]])
 xs_scatter = np.array([[[0.9]]])
 xs_fission = np.array([[[0.0]]])
 
-external = ants.externals1d("mms-03", (cells, angles, groups), \
-                          centers_x=centers_x, angle_x=angle_x).flatten()
-boundary_x = ants.boundaries1d("mms-03", (2, angles), [0, 1], \
-                           angle_x=angle_x).flatten()
+# Sources
+external = ants.external1d.manufactured_ss_03(centers_x, angle_x)
+boundary_x = ants.boundary1d.manufactured_ss_03(angle_x)
 
 
 flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
                 boundary_x, medium_map, delta_x, angle_x, angle_w, info)
 
-exact = mms.solution_mms_03(centers_x, angle_x)
+exact = mms.solution_ss_03(centers_x, angle_x)
 
 colors = sns.color_palette("hls", angles)
 

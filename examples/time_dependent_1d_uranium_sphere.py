@@ -5,30 +5,27 @@ import ants
 from ants.timed1d import bdf1
 
 # General conditions
-cells = 1000
+cells_x = 1000
 angles = 16
 groups = 87
 steps = 100
 
 info = {
-            "cells_x": cells,
+            "cells_x": cells_x,
             "angles": angles, 
             "groups": groups, 
             "materials": 3,
             "geometry": 2,
             "spatial": 2,
-            "qdim": 3,
             "bc_x": [1, 0],
-            "bcdim_x": 2,
             "steps": steps,
-            "dt": 1e-8,
-            "bcdecay": 2
+            "dt": 1e-8
         }
 
 # Spatial
 length = 10.
-delta_x = np.repeat(length / cells, cells)
-edges_x = np.linspace(0, length, cells+1)
+delta_x = np.repeat(length / cells_x, cells_x)
+edges_x = np.linspace(0, length, cells_x+1)
 centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
 
 # Energy Grid
@@ -48,10 +45,15 @@ materials = np.array(layers)[:,1]
 xs_total, xs_scatter, xs_fission = ants.materials(groups, materials)
 
 # External and boundary sources
-external = ants.externals1d(0.0, (cells * angles * groups,))
-boundary_x = ants.boundaries1d("14.1-mev", (2, groups), [1], \
-                             energy_grid=edges_g).flatten()
+external = np.zeros((1, cells_x, 1, 1))
 
-flux = bdf1(xs_total, xs_scatter, xs_fission, velocity, external, \
-            boundary_x, medium_map, delta_x, angle_x, angle_w, info)
+boundary_x = ants.boundary1d.deuterium_tritium([1], edges_g)
+edges_t = np.linspace(0, steps * info["dt"], steps + 1)
+boundary_x = ants.boundary1d.time_dependence_decay_02(boundary_x, edges_t)
+
+initial_flux = np.zeros((cells_x, angles, groups))
+
+flux = backward_euler(initial_flux, xs_total, xs_scatter, xs_fission, \
+                      velocity, external, boundary_x, medium_map, \
+                      delta_x, angle_x, angle_w, info)
 # np.save("time_dependent_uranium_sphere", flux)

@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # General conditions
-cells = 320
+cells_x = 320
 angles_u = 8
 angles_c = 8
 groups_u = 1
@@ -15,30 +15,26 @@ groups_c = 1
 steps = 100
 
 info_u = {
-            "cells_x": cells,
+            "cells_x": cells_x,
             "angles": angles_u,
             "groups": groups_u,
             "materials": 4,
             "geometry": 1,
             "spatial": 2,
-            "qdim": 3,
             "bc_x": [0, 0],
-            "bcdim_x": 1,
             "steps": steps,
             "dt": 1.,
             "angular": False
         }
 
 info_c = {
-            "cells_x": cells,
+            "cells_x": cells_x,
             "angles": angles_c,
             "groups": groups_c,
             "materials": 4,
             "geometry": 1,
             "spatial": 2,
-            "qdim": 2,
             "bc_x": [0, 0],
-            "bcdim_x": 1,
             "steps": steps,
             "dt": 1.,
             "angular": False
@@ -46,8 +42,8 @@ info_c = {
 
 # Spatial
 length = 16.
-delta_x = np.repeat(length / cells, cells)
-edges_x = np.linspace(0, length, cells+1)
+delta_x = np.repeat(length / cells_x, cells_x)
+edges_x = np.linspace(0, length, cells_x+1)
 centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
 
 # Energy Grid
@@ -74,18 +70,23 @@ xs_scatter_c = xs_scatter_u.copy()
 xs_fission_c = xs_fission_u.copy()
 
 # External Source and Boundary
-external = ants.externals1d("reeds", (cells, angles_u, groups_u), \
-                          edges_x=edges_x, bc=[0,0]).flatten()
-boundary_x = np.zeros((2,))
+external = ants.external1d.reeds(edges_x, info_u["bc_x"])
+external = ants.external1d.time_dependence_constant(external)
+boundary_x = np.zeros((1, 2, 1, 1))
+
 
 # Indexing Parameters
-fine_idx, coarse_idx, factor = hytools.indexing(groups_u, groups_c, edges_g, edges_gidx)
+fine_idx, coarse_idx, factor = hytools.indexing(groups_u, groups_c, \
+                                                edges_g, edges_gidx)
+
+initial_flux = np.zeros((cells_x, angles_u, groups_u))
 
 # Run Hybrid Method
-flux = backward_euler(xs_total_u, xs_total_c, xs_scatter_u, xs_scatter_c, \
-            xs_fission_u, xs_fission_c, velocity_u, velocity_c, external, \
-            boundary_x, medium_map, delta_x, angle_xu, angle_xc, angle_wu, \
-            angle_wc, fine_idx, coarse_idx, factor, info_u, info_c)
+flux = backward_euler(initial_flux, xs_total_u, xs_total_c, xs_scatter_u, \
+            xs_scatter_c, xs_fission_u, xs_fission_c, velocity_u, \
+            velocity_c, external, boundary_x, medium_map, delta_x, \
+            angle_xu, angle_xc, angle_wu, angle_wc, fine_idx, coarse_idx, \
+            factor, info_u, info_c)
 
 
 fig, ax = plt.subplots()

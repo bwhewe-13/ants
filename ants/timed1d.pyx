@@ -300,7 +300,7 @@ def tr_bdf2(double[:,:,:] initial_flux, double[:,:] xs_total, \
     
     # Run TR-BDF2
     flux = multigroup_tr_bdf2(initial_flux.copy(), xs_total, xs_matrix, \
-                        velocity, external, boundary_x.copy(), medium_map, \
+                        velocity, external.copy(), boundary_x.copy(), medium_map, \
                         delta_x, angle_x, angle_w, info, info_edge)
     
     return np.asarray(flux)

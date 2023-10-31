@@ -40,28 +40,14 @@ cdef struct params:
     # :param spatial: Spatial discretization type
     # :type spatial: int
 
-    # :param qdim: Number of external source dimensions (1: [I],
-    #             2: [I x G], 3: [I x N x G])
-    # :type qdim: int
-
     # :param bc: [left, right] boundary conditions (0: vacuum, 1: reflect)
     # :type bc: int [2]
-
-    # :param bcdim: Number of boundary condition dimensions (1: [2],
-    #             2: [2 x G], 3: [2 x N x G])
-    # :type bcdim: int
 
     # :param steps: Number of time steps
     # :type steps: int
 
     # :param dt: Time step width
     # :type dt: double
-
-    # :param bcdecay_x: Type of boundary source decay
-    # :type bcdecay_x: int
-
-    # :param bcdecay_y: Type of boundary source decay
-    # :type bcdecay_y: int
 
     # """
     # Collect Spatial cells, angles, energy groups
@@ -74,18 +60,12 @@ cdef struct params:
     int geometry
     # Spatial discretization type
     int spatial
-    # External source
-    int qdim
     # Boundary parameters
     int bc_x [2]
-    int bcdim_x
     int bc_y [2]
-    int bcdim_y
     # Time dependent parameters
     int steps
     double dt
-    int bcdecay_x
-    int bcdecay_y
     # Angular flux option
     bint angular
     # Adjoint option

@@ -40,12 +40,9 @@ def test_slab_01_bdf1(angles_c, groups_c):
             "materials": 2,
             "geometry": 1,
             "spatial": 2,
-            "qdim": 3,
             "bc_x": [0, 0],
-            "bcdim_x": 2,
             "steps": steps,
-            "dt": 1e-8,
-            "bcdecay_x": 2
+            "dt": 1e-8
             }
     # Collided flux dictionary
     info_c = {
@@ -55,12 +52,9 @@ def test_slab_01_bdf1(angles_c, groups_c):
             "materials": 2,
             "geometry": 1,
             "spatial": 2,
-            "qdim": 2,
             "bc_x": [0, 0],
-            "bcdim_x": 1,
             "steps": steps,
-            "dt": 1e-8,
-            "bcdecay_x": 2
+            "dt": 1e-8
             }
     # Spatial
     length = 10.
@@ -87,8 +81,11 @@ def test_slab_01_bdf1(angles_c, groups_c):
     # External and boundary sources
     initial_flux = np.zeros((cells_x, angles_u, groups_u))
     external = np.zeros((1, cells_x, 1, 1))
-    boundary_x = ants.boundaries1d("14.1-mev", (2, groups_u), [0], \
-                                 energy_grid=edges_g)[None,:,None,:]
+    # boundary_x = ants.boundaries1d("14.1-mev", (2, groups_u), [0], \
+    #                              energy_grid=edges_g)[None,:,None,:]
+    edges_t = np.linspace(0, info_u["dt"] * steps, steps + 1)
+    boundary_x = ants.boundary1d.deuterium_tritium(0, edges_g)
+    boundary_x = ants.boundary1d.time_dependence_decay_02(boundary_x, edges_t)
     # Indexing Parameters
     fine_idx, coarse_idx, factor = hytools.indexing(groups_u, groups_c, \
                                                     edges_g, edges_gidx)
