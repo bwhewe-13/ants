@@ -11,6 +11,7 @@ import numpy as np
 
 import ants
 from ants.hybrid2d import backward_euler
+from ants.utils import hybrid as hytools
 
 cells_x = 100
 cells_y = 100
@@ -58,12 +59,8 @@ info_u = {
             "materials": xs_total.shape[0],
             "geometry": 1,
             "spatial": 2,
-            "qdim": 3,
             "bc_x": bc_x,
-            "bcdim_x": 1,
-            "bcdecay_x": 1, 
-            "bc_y": bc_y,
-            "bcdim_y": 1, 
+            "bc_y": bc_y, 
             "steps": steps, 
             "dt": 0.1
         }
@@ -76,38 +73,43 @@ info_c = {
             "materials": xs_total.shape[0],
             "geometry": 1,
             "spatial": 2,
-            "qdim": 2,
             "bc_x": bc_x,
-            "bcdim_x": 1,
-            "bc_y": bc_y,
-            "bcdim_y": 1, 
+            "bc_y": bc_y, 
             "steps": steps, 
             "dt": 0.1
         }
 
 
-# angle_x, angle_y, angle_w = ants.angular_xy(info_u)
+angle_x, angle_y, angle_w = ants.angular_xy(info_u)
 
 # Boundary conditions and external source
-external = np.zeros((cells_x * cells_y * angles_u**2 * groups_u))
-boundary_x = np.array([1.0, 0.0])
-boundary_y = np.array([0.0, 0.0])
+external = np.zeros((1, cells_x, cells_y, 1, 1))
+
+boundary_x = np.zeros((2, 1, 1, 1))
+boundary_x[0] = 1.
+edges_t = np.linspace(0, info["dt"] * steps, steps + 1)
+boundary_x = ants.boundary2d.time_dependence_decay_01(boundary_x, edges_t, 0.1)
+
+boundary_y = np.zeros((1, 2, 1, 1, 1))
 
 # Velocity
 edges_g, edges_gidx = ants.energy_grid(groups_u, 1)
-velocity = ants.energy_velocity(groups_u, None)
+velocity_u = ants.energy_velocity(groups_u, None)
+velocity_c = hytools.coarsen_velocity(velocity_u, edges_gidx)
 
+# Indexing Parameters
+fine_idx, coarse_idx, factor = hytools.indexing(groups_u, groups_c, edges_g, edges_gidx)
 
-# info["qdim"] = 2
-# flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
-#                              delta_x, delta_y, angle_x, angle_y, angle_w, info)
+initial_flux = np.zeros((cells_x, cells_x, angles_u**2, groups_u))
 
-flux = backward_euler(xs_total, xs_scatter, xs_fission, velocity, external, \
-                        boundary_x, boundary_y, medium_map, delta_x, \
-                        delta_y, edges_g, edges_gidx, info_u, info_c)
+flux = backward_euler(initial_flux, xs_total, xs_total, xs_scatter, \
+                    xs_scatter, xs_fission, xs_fission, velocity_u, velocity_c, \
+                    external, boundary_x, boundary_y, medium_map, delta_x, \
+                    delta_y, angle_x, angle_x, angle_y, angle_y, angle_w, \
+                    angle_w, fine_idx, coarse_idx, factor, info, info_c)
 
 # print(flux.shape)
 nn1 = str(angles_u).zfill(2)
 nn2 = str(angles_c).zfill(2)
 
-np.save(f"flux_hybrid_n{nn1}n{nn2}", flux)
+# np.save(f"flux_hybrid_n{nn1}n{nn2}", flux)

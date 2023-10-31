@@ -54,12 +54,8 @@ info = {
             "materials": xs_total.shape[0],
             "geometry": 1, 
             "spatial": 2, 
-            "qdim": 3,
             "bc_x": bc_x,
-            "bcdim_x": 1,
-            "bcdecay_x": 1, 
-            "bc_y": bc_y,
-            "bcdim_y": 1, 
+            "bc_y": bc_y, 
             "steps": steps, 
             "dt": 0.1
         }
@@ -68,17 +64,18 @@ info = {
 angle_x, angle_y, angle_w = ants.angular_xy(info)
 
 # Boundary conditions and external source
-external = np.zeros((cells_x * cells_y * angles**2 * groups))
-boundary_x = np.array([1.0, 0.0])
-boundary_y = np.array([0.0, 0.0])
+external = np.zeros((1, cells_x, cells_y, 1, 1))
 
-# Velocity
-velocity = np.ones((groups), dtype=float)
+boundary_x = np.zeros((2, 1, 1, 1))
+boundary_x[0] = 1.
+edges_t = np.linspace(0, info["dt"] * steps, steps + 1)
+boundary_x = ants.boundary2d.time_dependence_decay_01(boundary_x, edges_t, 0.1)
 
-# info["qdim"] = 2
-# flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
-#                              delta_x, delta_y, angle_x, angle_y, angle_w, info)
+boundary_y = np.zeros((1, 2, 1, 1, 1))
 
-flux = backward_euler(xs_total, xs_scatter, xs_fission, velocity, external, \
-                        boundary_x, boundary_y, medium_map, delta_x, \
-                        delta_y, angle_x, angle_y, angle_w, info)
+initial_flux = np.zeros((cells_x, cells_y, angles**2, groups))
+
+flux = backward_euler(initial_flux, xs_total, xs_scatter, xs_fission, \
+                      velocity, external, boundary_x, boundary_y, \
+                      medium_map, delta_x, delta_y, angle_x, angle_y, \
+                      angle_w, info)

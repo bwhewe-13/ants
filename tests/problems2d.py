@@ -12,16 +12,16 @@
 import numpy as np
 
 import ants
+from ants.utils import manufactured_2d as mms
 
 # Path for reference solutions
 PATH = "data/references_multigroup/"
 
 
-def manufactured_01(cells, angles):
-    info = {"cells_x": cells, "cells_y": cells, "angles": angles, "groups": 1, 
-            "materials": 1, "geometry": 1, "spatial": 2, "qdim": 3, 
-            "bc_x": [0, 0], "bcdim_x": 4, "bc_y": [0, 0], "bcdim_y": 4,
-            "angular": False}
+def manufactured_ss_01(cells, angles):
+    info = {"cells_x": cells, "cells_y": cells, "angles": angles, \
+            "groups": 1, "materials": 1, "geometry": 1, "spatial": 2, 
+            "bc_x": [0, 0], "bc_y": [0, 0], "angular": False}
     
     # Spatial dimension x
     length_x = 1.
@@ -35,35 +35,31 @@ def manufactured_01(cells, angles):
     edges_y = np.linspace(0, length_y, info["cells_y"]+1)
     centers_y = 0.5 * (edges_y[1:] + edges_y[:-1])
     
-    # Cross sections
+    # Angular
+    angle_x, angle_y, angle_w = ants.angular_xy(info)
+
+    # Materials
     xs_total = np.array([[1.0]])
     xs_scatter = np.array([[[0.0]]])
     xs_fission = np.array([[[0.0]]])
-    
-    # Layout
-    medium_map = np.zeros((info["cells_x"], info["cells_y"]), dtype=np.int32)
-    angle_x, angle_y, angle_w = ants.angular_xy(info)
-    
-    # External Source
+
+    # Externals
     external = 0.5 * np.ones((info["cells_x"], info["cells_y"], 1, 1)) 
-    
-    # Boundary sources
-    shape_x = (2, info["cells_y"], info["angles"]**2, info["groups"])
-    shape_y = (2, info["cells_x"], info["angles"]**2, info["groups"])
-    boundary_x, boundary_y = ants.boundaries2d("mms-01", shape_x, shape_y, \
-                                        angle_x=angle_x, angle_y=angle_y, \
-                                        centers_x=centers_x)
+    boundary_x, boundary_y = ants.boundary2d.manufactured_ss_01(centers_x, \
+                                            centers_y, angle_x, angle_y)
+
+    # Layout
+    medium_map = np.zeros((info["cells_x"], info["cells_y"]), dtype=np.int32)
 
     return xs_total, xs_scatter, xs_fission, external, boundary_x, \
         boundary_y, medium_map, delta_x, delta_y, angle_x, angle_y, \
         angle_w, info, centers_x, centers_y
 
 
-def manufactured_02(cells, angles):
-    info = {"cells_x": cells, "cells_y": cells, "angles": angles, "groups": 1, 
-            "materials": 1, "geometry": 1, "spatial": 2, "qdim": 3, 
-            "bc_x": [0, 0], "bcdim_x": 4, "bc_y": [0, 0], "bcdim_y": 4,
-            "angular": False}
+def manufactured_ss_02(cells, angles):
+    info = {"cells_x": cells, "cells_y": cells, "angles": angles, \
+            "groups": 1, "materials": 1, "geometry": 1, "spatial": 2, \
+            "bc_x": [0, 0], "bc_y": [0, 0], "angular": False}
     
     # Spatial dimension x
     length_x = 1.
@@ -76,35 +72,32 @@ def manufactured_02(cells, angles):
     delta_y = np.repeat(length_y / info["cells_y"], info["cells_y"])
     edges_y = np.linspace(0, length_y, info["cells_y"]+1)
     centers_y = 0.5 * (edges_y[1:] + edges_y[:-1])
+
+    # Angular
+    angle_x, angle_y, angle_w = ants.angular_xy(info)
     
-    # Cross sections
+    # Materials
     xs_total = np.array([[1.0]])
     xs_scatter = np.array([[[0.0]]])
     xs_fission = np.array([[[0.0]]])
     
-    # Layout
-    medium_map = np.zeros((info["cells_x"], info["cells_y"]), dtype=np.int32)
-    angle_x, angle_y, angle_w = ants.angular_xy(info)
-    # External Source
+    # Externals
     external = np.ones((info["cells_x"], info["cells_y"], 1, 1))
-    
-    # Boundary sources
-    shape_x = (2, info["cells_y"], info["angles"]**2, info["groups"])
-    shape_y = (2, info["cells_x"], info["angles"]**2, info["groups"])
-    boundary_x, boundary_y = ants.boundaries2d("mms-02", shape_x, shape_y, \
-                                    angle_x=angle_x, angle_y=angle_y, \
-                                    centers_x=centers_x, centers_y=centers_y)
+    boundary_x, boundary_y = ants.boundary2d.manufactured_ss_02(centers_x, \
+                                            centers_y, angle_x, angle_y)
+
+    # Layout
+    medium_map = np.zeros((info["cells_x"], info["cells_y"]), dtype=np.int32)
 
     return xs_total, xs_scatter, xs_fission, external, boundary_x, \
         boundary_y, medium_map, delta_x, delta_y, angle_x, angle_y, \
         angle_w, info, centers_x, centers_y
 
 
-def manufactured_03(cells, angles):
-    info = {"cells_x": cells, "cells_y": cells, "angles": angles, "groups": 1, 
-        "materials": 1, "geometry": 1, "spatial": 2, "qdim": 3, 
-        "bc_x": [0, 0], "bcdim_x": 4, "bc_y": [0, 0], "bcdim_y": 4,
-        "angular": False}
+def manufactured_ss_03(cells, angles):
+    info = {"cells_x": cells, "cells_y": cells, "angles": angles, \
+            "groups": 1, "materials": 1, "geometry": 1, "spatial": 2, 
+            "bc_x": [0, 0], "bc_y": [0, 0], "angular": False}
     
     # Spatial dimension x
     length_x = 2.
@@ -118,35 +111,32 @@ def manufactured_03(cells, angles):
     edges_y = np.linspace(0, length_y, info["cells_y"]+1)
     centers_y = 0.5 * (edges_y[1:] + edges_y[:-1])
     
-    # Cross sections
+    # Angular
+    angle_x, angle_y, angle_w = ants.angular_xy(info)
+
+    # Materials
     xs_total = np.array([[1.0]])
     xs_scatter = np.array([[[0.5]]])
     xs_fission = np.array([[[0.0]]])
     
+    # Externals
+    external = ants.external2d.manufactured_ss_03(centers_x, centers_y, \
+                                                    angle_x, angle_y)
+    boundary_x, boundary_y = ants.boundary2d.manufactured_ss_03(centers_x, \
+                                            centers_y, angle_x, angle_y)
+
     # Layout
     medium_map = np.zeros((info["cells_x"], info["cells_y"]), dtype=np.int32)
-    angle_x, angle_y, angle_w = ants.angular_xy(info)
-    
-    # External Source
-    shape_q = (info["cells_x"], info["cells_y"], info["angles"]**2, info["groups"])
-    external = ants.externals2d("mms-03", shape_q, angle_x=angle_x, angle_y=angle_y)
-    
-    # Boundary sources
-    shape_x = (2, info["cells_y"]) + shape_q[2:]
-    shape_y = (2, info["cells_x"]) + shape_q[2:]
-    boundary_x, boundary_y = ants.boundaries2d("mms-03", shape_x, shape_y, \
-                                    angle_x=angle_x, angle_y=angle_y)
 
     return xs_total, xs_scatter, xs_fission, external, boundary_x, \
         boundary_y, medium_map, delta_x, delta_y, angle_x, angle_y, \
         angle_w, info, centers_x, centers_y
 
 
-def manufactured_04(cells, angles):
-    info = {"cells_x": cells, "cells_y": cells, "angles": angles, "groups": 1, 
-        "materials": 1, "geometry": 1, "spatial": 2, "qdim": 3, 
-        "bc_x": [0, 0], "bcdim_x": 4, "bc_y": [0, 0], "bcdim_y": 4,
-        "angular": False}
+def manufactured_ss_04(cells, angles):
+    info = {"cells_x": cells, "cells_y": cells, "angles": angles, \
+            "groups": 1, "materials": 1, "geometry": 1, "spatial": 2, 
+            "bc_x": [0, 0], "bc_y": [0, 0], "angular": False}
     
     # Spatial dimension x
     length_x = 2.
@@ -160,27 +150,102 @@ def manufactured_04(cells, angles):
     edges_y = np.linspace(0, length_y, info["cells_y"]+1)
     centers_y = 0.5 * (edges_y[1:] + edges_y[:-1])
     
-    # Cross sections
+    # Angular
+    angle_x, angle_y, angle_w = ants.angular_xy(info)
+
+    # Materials
     xs_total = np.array([[1.0]])
     xs_scatter = np.array([[[0.5]]])
     xs_fission = np.array([[[0.0]]])
     
+    # Externals
+    external = ants.external2d.manufactured_ss_04(centers_x, centers_y, \
+                                                    angle_x, angle_y)
+    boundary_x, boundary_y = ants.boundary2d.manufactured_ss_04(centers_x, \
+                                            centers_y, angle_x, angle_y)
+
     # Layout
     medium_map = np.zeros((info["cells_x"], info["cells_y"]), dtype=np.int32)
-    angle_x, angle_y, angle_w = ants.angular_xy(info)
-    # External Source
-    shape_q = (info["cells_x"], info["cells_y"], info["angles"]**2, info["groups"])
-    external = ants.externals2d("mms-04", shape_q, angle_x=angle_x, angle_y=angle_y, \
-                                centers_x=centers_x, centers_y=centers_y)
-    external = np.transpose(external, axes=(1, 0, 2, 3))
-    
-    # Boundary sources
-    shape_x = (2, info["cells_y"]) + shape_q[2:]
-    shape_y = (2, info["cells_x"]) + shape_q[2:]
-    boundary_x, boundary_y = ants.boundaries2d("mms-04", shape_x, shape_y, \
-                                    angle_x=angle_x, angle_y=angle_y, \
-                                    centers_x=centers_x, centers_y=centers_y)
 
     return xs_total, xs_scatter, xs_fission, external, boundary_x, \
         boundary_y, medium_map, delta_x, delta_y, angle_x, angle_y, \
         angle_w, info, centers_x, centers_y
+
+
+def manufactured_td_01(cells, angles, edges_t, dt, temporal=1):
+    info = {"cells_x": cells, "cells_y": cells, "angles": angles, \
+            "groups": 1, "materials": 1, "geometry": 1,  "spatial": 2, \
+            "bc_x": [0, 0], "bc_y": [0, 0], "angular": False,  \
+            "steps": edges_t.shape[0] - 1, "dt": dt}
+
+    # Spatial Dimensions
+    cells_x = cells
+    length_x = np.pi
+    delta_x = np.repeat(length_x / cells_x, cells_x)
+    edges_x = np.linspace(0, length_x, cells_x+1)
+    centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
+
+    cells_y = cells
+    length_y = np.pi
+    delta_y = np.repeat(length_y / cells_y, cells_y)
+    edges_y = np.linspace(0, length_y, cells_y+1)
+    centers_y = 0.5 * (edges_y[1:] + edges_y[:-1])
+
+    # Angular
+    angle_x, angle_y, angle_w = ants.angular_xy(info)
+
+    # Materials
+    xs_total = np.array([[1.0]])
+    xs_scatter = np.array([[[0.25]]])
+    xs_fission = np.array([[[0.0]]])
+    velocity = np.ones((info["groups"],))
+
+    # Sources
+    # Backward Euler
+    if temporal == 1:
+        initial_flux = mms.solution_td_01(centers_x, centers_y, angle_x, \
+                                          angle_y, np.array([0.0]))[0]
+        initial_flux = (initial_flux, )
+
+        external = ants.external2d.manufactured_td_01(centers_x, centers_y, \
+                                          angle_x, angle_y, edges_t)[1:]
+        boundary_x, boundary_y = ants.boundary2d.manufactured_td_01(centers_x, \
+                                    centers_y, angle_x, angle_y, edges_t[1:])
+    # Crank Nicolson
+    elif temporal == 2:
+        initial_flux_x = mms.solution_td_01(edges_x, centers_y, angle_x, angle_y, np.array([0.0]))[0]
+        initial_flux_y = mms.solution_td_01(centers_x, edges_y, angle_x, angle_y, np.array([0.0]))[0]
+        initial_flux = (initial_flux_x, initial_flux_y)
+
+        external = ants.external2d.manufactured_td_01(centers_x, centers_y, \
+                                          angle_x, angle_y, edges_t)
+        boundary_x, boundary_y = ants.boundary2d.manufactured_td_01(centers_x, \
+                                    centers_y, angle_x, angle_y, edges_t[1:])
+    # BDF2
+    elif temporal == 3:
+        initial_flux = mms.solution_td_01(centers_x, centers_y, angle_x, \
+                                          angle_y, np.array([0.0]))[0]
+        initial_flux = (initial_flux, )
+
+        external = ants.external2d.manufactured_td_01(centers_x, centers_y, \
+                                          angle_x, angle_y, edges_t)[1:]
+        boundary_x, boundary_y = ants.boundary2d.manufactured_td_01(centers_x, \
+                                    centers_y, angle_x, angle_y, edges_t[1:])
+    # TR-BDF2
+    elif temporal == 4:
+        initial_flux_x = mms.solution_td_01(edges_x, centers_y, angle_x, angle_y, np.array([0.0]))[0]
+        initial_flux_y = mms.solution_td_01(centers_x, edges_y, angle_x, angle_y, np.array([0.0]))[0]
+        initial_flux = (initial_flux_x, initial_flux_y)
+
+        gamma_steps = ants.gamma_time_steps(edges_t)
+        external = ants.external2d.manufactured_td_01(centers_x, centers_y, \
+                                          angle_x, angle_y, gamma_steps)
+        boundary_x, boundary_y = ants.boundary2d.manufactured_td_01(centers_x, \
+                                    centers_y, angle_x, angle_y, edges_t[1:])
+
+    # Layout
+    medium_map = np.zeros((cells_x, cells_y), dtype=np.int32)   
+
+    return *initial_flux, xs_total, xs_scatter, xs_fission, velocity, \
+        external, boundary_x, boundary_y, medium_map, delta_x, delta_y, \
+        angle_x, angle_y, angle_w, info

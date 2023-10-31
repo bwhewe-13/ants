@@ -275,8 +275,6 @@ def manufactured_ss_05(cells_x, angles):
     xs_fission = np.array([[[0.0]], [[0.0]]])
 
     # Sources
-    # external = ants.externals1d("mms-05", (info["cells_x"], info["angles"]), \
-    #                           centers_x=centers_x, angle_x=angle_x)[...,None]
     external = ants.external1d.manufactured_ss_05(centers_x, angle_x)
     boundary_x = ants.boundary1d.manufactured_ss_05()
 

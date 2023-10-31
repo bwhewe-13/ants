@@ -47,7 +47,7 @@ def test_one_group_infinite(finite, spatial):
     # Collect problem dictionary
     info = {"cells_x": cells_x, "cells_y": cells_y, "angles": angles, \
             "groups": groups, "materials": 1, "geometry": 1, "spatial": ss, \
-            "qdim": 2, "bc_x": bc_x, "bcdim_x": 1, "bc_y": bc_y, "bcdim_y": 1}
+            "bc_x": bc_x, "bc_y": bc_y}
     # Collect angles
     angle_x, angle_y, angle_w = ants.angular_xy(info)
     flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
@@ -91,7 +91,7 @@ def test_two_group_infinite(finite, spatial):
     # Collect problem dictionary
     info = {"cells_x": cells_x, "cells_y": cells_y, "angles": angles, \
             "groups": groups, "materials": 1, "geometry": 1, "spatial": ss, \
-            "qdim": 2, "bc_x": bc_x, "bcdim_x": 1, "bc_y": bc_y, "bcdim_y": 1}
+            "bc_x": bc_x, "bc_y": bc_y}
     # Collect angles
     angle_x, angle_y, angle_w = ants.angular_xy(info)
     flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \

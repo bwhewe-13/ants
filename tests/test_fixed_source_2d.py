@@ -27,14 +27,14 @@ from tests import problems2d
 def test_manufactured_01(angular, spatial):
     xs_total, xs_scatter, xs_fission, external, boundary_x, boundary_y, \
         medium_map, delta_x, delta_y, angle_x, angle_y, angle_w, info, \
-        centers_x, centers_y = problems2d.manufactured_01(200, 2)
+        centers_x, centers_y = problems2d.manufactured_ss_01(200, 2)
     info["angular"] = angular
     info["spatial"] = spatial
     # Run Source Iteration 
     flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
                             boundary_x, boundary_y, medium_map, delta_x, \
                             delta_y, angle_x, angle_y, angle_w, info)
-    exact = mms.solution_mms_01(centers_x, centers_y, angle_x, angle_y)
+    exact = mms.solution_ss_01(centers_x, centers_y, angle_x, angle_y)
     # Rearrange dimensions
     if not angular:
         exact = np.sum(exact * angle_w[None,None,:,None], axis=2)
@@ -51,14 +51,14 @@ def test_manufactured_01(angular, spatial):
 def test_manufactured_02(angular, spatial):
     xs_total, xs_scatter, xs_fission, external, boundary_x, boundary_y, \
         medium_map, delta_x, delta_y, angle_x, angle_y, angle_w, info, \
-        centers_x, centers_y = problems2d.manufactured_02(200, 2)
+        centers_x, centers_y = problems2d.manufactured_ss_02(200, 2)
     info["angular"] = angular
     info["spatial"] = spatial
     # Run Source Iteration 
     flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
                             boundary_x, boundary_y, medium_map, delta_x, \
                             delta_y, angle_x, angle_y, angle_w, info)
-    exact = mms.solution_mms_02(centers_x, centers_y, angle_x, angle_y)
+    exact = mms.solution_ss_02(centers_x, centers_y, angle_x, angle_y)
     # Rearrange dimensions
     if not angular:
         exact = np.sum(exact * angle_w[None,None,:,None], axis=2)
@@ -75,14 +75,14 @@ def test_manufactured_02(angular, spatial):
 def test_manufactured_03(angular, spatial):
     xs_total, xs_scatter, xs_fission, external, boundary_x, boundary_y, \
         medium_map, delta_x, delta_y, angle_x, angle_y, angle_w, info, \
-        centers_x, centers_y = problems2d.manufactured_03(200, 4)
+        centers_x, centers_y = problems2d.manufactured_ss_03(200, 4)
     info["angular"] = angular
     info["spatial"] = spatial
     # Run Source Iteration 
     flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
                         boundary_x, boundary_y, medium_map, delta_x, \
                         delta_y, angle_x, angle_y, angle_w, info)
-    exact = mms.solution_mms_03(centers_x, centers_y, angle_x, angle_y)
+    exact = mms.solution_ss_03(centers_x, centers_y, angle_x, angle_y)
     # Rearrange dimensions
     if not angular:
         exact = np.sum(exact * angle_w[None,None,:,None], axis=2)
@@ -99,7 +99,7 @@ def test_manufactured_03(angular, spatial):
 def test_manufactured_04(angular, spatial):
     xs_total, xs_scatter, xs_fission, external, boundary_x, boundary_y, \
         medium_map, delta_x, delta_y, angle_x, angle_y, angle_w, info, \
-        centers_x, centers_y = problems2d.manufactured_04(200, 4)
+        centers_x, centers_y = problems2d.manufactured_ss_04(200, 4)
     info["angular"] = angular
     info["spatial"] = spatial
     # Run Source Iteration 
@@ -107,7 +107,7 @@ def test_manufactured_04(angular, spatial):
                         boundary_x, boundary_y, medium_map, delta_x, \
                         delta_y, angle_x, angle_y, angle_w, info)
 
-    exact = mms.solution_mms_04(centers_x, centers_y, angle_x, angle_y)
+    exact = mms.solution_ss_04(centers_x, centers_y, angle_x, angle_y)
     # Rearrange dimensions
     if not angular:
         exact = np.sum(exact * angle_w[None,None,:,None], axis=2)

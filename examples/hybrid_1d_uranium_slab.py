@@ -48,7 +48,7 @@ edges_x = np.linspace(0, length, cells_x+1)
 centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
 
 # Energy Grid
-edges_g, edges_gidx = ants.energy_grid(groups_c, 87)
+edges_g, edges_gidx = ants.energy_grid(groups_u, 87)
 velocity_u = ants.energy_velocity(groups_u, edges_g)
 velocity_c = hytools.coarsen_velocity(velocity_u, edges_gidx)
 
