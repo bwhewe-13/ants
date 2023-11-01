@@ -136,7 +136,7 @@ def time_dependence_decay_01(boundary, edges_t, off_time):
     # Turn off boundary at specific step
     steps = edges_t.shape[0] - 1
     boundary = np.repeat(boundary[None,...], steps, axis=0)
-    loc = np.argwhere(edges_t >= off_time).flatten()
+    loc = np.argwhere(edges_t[1:] > off_time).flatten()
     boundary[loc,...] *= 0.0
     return boundary
 
