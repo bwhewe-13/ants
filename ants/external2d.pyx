@@ -73,7 +73,7 @@ def manufactured_td_01(x, y, angle_x, angle_y, edges_t):
 
 def ambe(edges_x, edges_y, coordinates, edges_g):
     external = np.zeros((edges_x.shape[0] - 1, edges_y.shape[0] - 1, \
-                         1, edges_g.shape[0]))
+                         1, edges_g.shape[0] - 1))
 
     data = np.load(DATA_PATH + "external/AmBe_source_050G.npz")
     # Convert to MeV

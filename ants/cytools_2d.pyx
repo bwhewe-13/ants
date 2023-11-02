@@ -237,9 +237,9 @@ cdef void _time_source_star_bdf1(double[:,:,:,:]& flux, \
     q_star[:,:,:,:] = 0.0
     # Iterate over cells, angles, groups
     for gg in range(info.groups):
-        gg_q = 0 if external.shape[2] == 1 else gg
+        gg_q = 0 if external.shape[3] == 1 else gg
         for nn in range(info.angles * info.angles):
-            nn_q = 0 if external.shape[1] == 1 else nn
+            nn_q = 0 if external.shape[2] == 1 else nn
             for jj in range(info.cells_y):
                 for ii in range(info.cells_x):
                     # loc = gg + info.groups * (nn + info.angles * info.angles \
