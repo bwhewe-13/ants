@@ -61,6 +61,23 @@ def manufactured_td_01(x, y, angle_x, angle_y, edges_t):
 
     for cc, tt in enumerate(edges_t):
         for nn, (mu, eta) in enumerate(zip(angle_x, angle_y)):
+            external[cc,...,nn,0] = 2 + mesh_x * mesh_y * (4 - 2 * mesh_y \
+                    + mesh_x * (mesh_y - 2)) * (-0.1 + mesh_x * eta \
+                    + mesh_y * mu) * np.cos(0.1 * tt - mesh_x * mesh_y) \
+                    + (-1 * (mesh_x * (mesh_x - 2) * (mesh_y * (mesh_y - 2) \
+                    + 2 * (mesh_y - 1) * eta)) - 2 * (mesh_x - 1) * (mesh_y - 2) \
+                    * mesh_y * mu) * np.sin(0.1 * tt - mesh_x * mesh_y)
+    return external
+
+
+def manufactured_td_02(x, y, angle_x, angle_y, edges_t):
+    external = np.zeros((edges_t.shape[0], x.shape[0], y.shape[0], \
+                         angle_x.shape[0], 1))
+
+    mesh_x, mesh_y = np.meshgrid(x, y, indexing="ij")
+
+    for cc, tt in enumerate(edges_t):
+        for nn, (mu, eta) in enumerate(zip(angle_x, angle_y)):
             pp1 = 3 + (4 * mu - 2) * np.cos(0.5 * (tt - 2 * mesh_x))
             pp2 = 3 * np.cos(0.25 * (tt - 4 * mesh_y)) + 4 * np.cos(mu)
             pp3 = -np.sin(1) - 3 * np.sin(0.5 * (tt - 2 * mesh_x))

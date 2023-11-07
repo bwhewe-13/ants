@@ -459,7 +459,7 @@ cdef double[:,:,:,:] multigroup_tr_bdf2(double[:,:,:,:]& flux_ell_x, \
         params info_u, params info_c, params info_edge):
 
     # Initialize time step, external and boundary indices
-    cdef int step, qq, qqa, bcx, bcy
+    cdef int step, qq, qqa, qqb, bcx, bcxa, bcy, bcya
 
     # Initialize gamma
     cdef double gamma = 0.5 # 2 - sqrt(2)
@@ -511,8 +511,13 @@ cdef double[:,:,:,:] multigroup_tr_bdf2(double[:,:,:,:]& flux_ell_x, \
         # Determine dimensions of external and boundary sources
         qq = 0 if external_u.shape[0] == 1 else step * 2 # Ell Step
         qqa = 0 if external_u.shape[0] == 1 else step * 2 + 1 # Gamma Step 
-        bcx = 0 if boundary_xu.shape[0] == 1 else step
-        bcy = 0 if boundary_yu.shape[0] == 1 else step
+        qqb = 0 if external_u.shape[0] == 1 else step * 2 + 2 # Ell + 1 Step
+
+        bcx = 0 if boundary_xu.shape[0] == 1 else step * 2 # Ell Step
+        bcxa = 0 if boundary_xu.shape[0] == 1 else step * 2 + 1 # Gamma Step
+
+        bcy = 0 if boundary_yu.shape[0] == 1 else step * 2 # Ell Step
+        bcya = 0 if boundary_yu.shape[0] == 1 else step * 2 + 1 # Gamma Step
 
         ################################################################
         # Crank Nicolson
@@ -541,43 +546,24 @@ cdef double[:,:,:,:] multigroup_tr_bdf2(double[:,:,:,:]& flux_ell_x, \
         ################################################################
         # Update q_star for BDF2 Step
         tools._time_source_star_tr_bdf2(flux_ell_x, flux_ell_y, flux_gamma, \
-                        q_star, external_u[qqa+1], velocity_u, gamma, info_u)
+                        q_star, external_u[qqb], velocity_u, gamma, info_u)
         
         # Run hybrid method
         hybrid_method(flux_u, flux_c, flux_t, xs_total_vu_bdf2, xs_total_vc_bdf2, \
                       xs_scatter_u, xs_scatter_c, q_star, source_c, \
-                      boundary_xu[bcx], boundary_yu[bcy], boundary_c, \
+                      boundary_xu[bcxa], boundary_yu[bcya], boundary_c, \
                       medium_map, delta_x, delta_y, angle_xu, angle_xc, \
                       angle_yu, angle_yc, angle_wu, angle_wc, fine_idx, \
                       coarse_idx, factor, info_u, info_c)
         
         # Solve for angular flux of previous time step
         mg._interface_angular(flux_ell_x, flux_ell_y, xs_total_vu_bdf2, q_star, \
-                boundary_xu[bcx], boundary_yu[bcy], medium_map, \
+                boundary_xu[bcxa], boundary_yu[bcya], medium_map, \
                 delta_x, delta_y, angle_xu, angle_yu, angle_wu, info_edge)
         # Step 5: Update flux_time and repeat
         tools._angular_edge_to_scalar(flux_ell_x, flux_ell_y, \
                                       flux_time[step], angle_wu, info_u)
         flux_u[:,:,:] = flux_time[step,:,:,:]
-        
-        # Adjust gamma step
-        if step == 0:
-            gamma = 2 - sqrt(2)
-
-            xs_total_vu_cn[:,:] = xs_total_u[:,:]
-            tools._total_velocity(xs_total_vu_cn, velocity_u, 2.0 / gamma, info_u)
-            
-            xs_total_vc_cn[:,:] = xs_total_c[:,:]
-            tools._total_velocity(xs_total_vc_cn, velocity_c, 2.0 / gamma, info_c)
-            
-            # Create sigma_t + (2 - gamma) / ((1 - gamma) * v * dt) - BDF2 Step
-            xs_total_vu_bdf2[:,:] = xs_total_u[:,:]
-            tools._total_velocity(xs_total_vu_bdf2, velocity_u, \
-                                    (2.0 - gamma) / (1.0 - gamma), info_u)
-            
-            xs_total_vc_bdf2[:,:] = xs_total_c[:,:]
-            tools._total_velocity(xs_total_vc_bdf2, velocity_c, \
-                                    (2.0 - gamma) / (1.0 - gamma), info_c)
 
     return flux_time[:,:,:,:]
 

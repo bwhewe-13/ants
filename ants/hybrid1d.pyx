@@ -390,7 +390,7 @@ cdef double[:,:,:] multigroup_tr_bdf2(double[:,:,:]& flux_last_ell, \
         params info_u, params info_c, params info_edge):
     
     # Initialize time step
-    cdef int step, qq, qqa, bc, bca
+    cdef int step, qq, qqa, qqb, bc, bca
 
     # Initialize gamma
     cdef double gamma = 0.5
@@ -440,7 +440,9 @@ cdef double[:,:,:] multigroup_tr_bdf2(double[:,:,:]& flux_last_ell, \
         
         # Determine dimensions of external and boundary sources
         qq = 0 if external_u.shape[0] == 1 else step * 2 # Ell Step
-        qqa = 0 if external_u.shape[0] == 1 else step * 2 + 1 # Gamma Step 
+        qqa = 0 if external_u.shape[0] == 1 else step * 2 + 1 # Gamma Step
+        qqb = 0 if external_u.shape[0] == 1 else step * 2 + 2 # Ell + 1 Step
+
         bc = 0 if boundary_xu.shape[0] == 1 else step * 2 # Ell Step
         bca = 0 if boundary_xu.shape[0] == 1 else step * 2 + 1 # Gamma Step
         
@@ -467,7 +469,7 @@ cdef double[:,:,:] multigroup_tr_bdf2(double[:,:,:]& flux_last_ell, \
         ################################################################
         # Update q_star
         tools._time_source_star_tr_bdf2(flux_last_ell, flux_last_gamma, \
-                q_star, external_u[qqa+1], velocity_u, gamma, info_u)
+                q_star, external_u[qqb], velocity_u, gamma, info_u)
         # Run Hybrid Method
         hybrid_method(flux_u, flux_c, flux_t, xs_total_vu_bdf2, \
                       xs_total_vc_bdf2, xs_scatter_u, xs_scatter_c, \

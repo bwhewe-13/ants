@@ -71,6 +71,17 @@ def solution_td_01(x, y, angle_x, angle_y, edges_t):
     mesh_x, mesh_y = np.meshgrid(x, y, indexing="ij")
     for cc, tt in enumerate(edges_t):
         for nn, (mu, eta) in enumerate(zip(angle_x, angle_y)):
+            flux[cc,...,nn,0] = 2 + np.sin(mesh_x * mesh_y - 0.1 * tt) \
+                    * (-mesh_x) * (mesh_x - 2) * (-mesh_y) * (mesh_y - 2)
+
+    return flux
+
+
+def solution_td_02(x, y, angle_x, angle_y, edges_t):
+    flux = np.zeros((edges_t.shape[0], x.shape[0], y.shape[0], angle_x.shape[0], 1))
+    mesh_x, mesh_y = np.meshgrid(x, y, indexing="ij")
+    for cc, tt in enumerate(edges_t):
+        for nn, (mu, eta) in enumerate(zip(angle_x, angle_y)):
             flux[cc,...,nn,0] = 1 + np.sin(mesh_x - 0.5 * tt) + np.cos(mu) \
                                   + np.cos(mesh_y - 0.25 * tt) + np.sin(eta)
     return flux

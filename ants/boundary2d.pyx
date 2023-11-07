@@ -84,7 +84,7 @@ def manufactured_ss_04(x, y, angle_x, angle_y):
     return boundary_x, boundary_y
 
 
-def manufactured_td_01(x, y, angle_x, angle_y, edges_t):
+def manufactured_td_02(x, y, angle_x, angle_y, edges_t):
     boundary_x = np.zeros((edges_t.shape[0], 2, y.shape[0], angle_x.shape[0], 1))
     boundary_y = np.zeros((edges_t.shape[0], 2, x.shape[0], angle_y.shape[0], 1))
 

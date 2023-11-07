@@ -346,7 +346,6 @@ def tr_bdf2(double[:,:,:,:] initial_flux_x, double[:,:,:,:] initial_flux_y, \
     return np.asarray(flux)
 
 
-
 cdef double[:,:,:,:] multigroup_tr_bdf2(double[:,:,:,:]& flux_ell_x, \
         double[:,:,:,:]& flux_ell_y, double[:,:]& xs_total, \
         double[:,:,:]& xs_scatter, double[:]& velocity, \
@@ -357,7 +356,7 @@ cdef double[:,:,:,:] multigroup_tr_bdf2(double[:,:,:,:]& flux_ell_x, \
         params info_edge):
     
     # Initialize time step, external and boundary indices
-    cdef int step, qq, qqa, bcx, bcy
+    cdef int step, qq, qqa, qqb, bcx, bcxa, bcy, bcya
 
     # Initialize gamma
     cdef double gamma = 0.5 # 2 - sqrt(2)
@@ -395,9 +394,14 @@ cdef double[:,:,:,:] multigroup_tr_bdf2(double[:,:,:,:]& flux_ell_x, \
         
         # Determine dimensions of external and boundary sources
         qq = 0 if external.shape[0] == 1 else step * 2 # Ell Step
-        qqa = 0 if external.shape[0] == 1 else step * 2 + 1 # Gamma Step 
-        bcx = 0 if boundary_x.shape[0] == 1 else step
-        bcy = 0 if boundary_y.shape[0] == 1 else step
+        qqa = 0 if external.shape[0] == 1 else step * 2 + 1 # Gamma Step
+        qqb = 0 if external.shape[0] == 1 else step * 2 + 2 # Ell + 1 Step
+
+        bcx = 0 if boundary_x.shape[0] == 1 else step * 2 # Ell Step
+        bcxa = 0 if boundary_x.shape[0] == 1 else step * 2 + 1 # Gamma Step
+
+        bcy = 0 if boundary_y.shape[0] == 1 else step * 2 # Ell Step
+        bcya = 0 if boundary_y.shape[0] == 1 else step * 2 + 1 # Gamma Step
 
         ################################################################
         # Crank Nicolson
@@ -426,12 +430,12 @@ cdef double[:,:,:,:] multigroup_tr_bdf2(double[:,:,:,:]& flux_ell_x, \
         ################################################################
         # Update q_star for BDF2 Step
         tools._time_source_star_tr_bdf2(flux_ell_x, flux_ell_y, flux_gamma, \
-                            q_star, external[qqa+1], velocity, gamma, info)
+                            q_star, external[qqb], velocity, gamma, info)
         
         # Solve for the \ell + 1 time step
         flux_time[step] = mg.source_iteration(scalar_ell, xs_total_v_bdf2, \
-                                xs_scatter, q_star, boundary_x[bcx], \
-                                boundary_y[bcy], medium_map, delta_x, \
+                                xs_scatter, q_star, boundary_x[bcxa], \
+                                boundary_y[bcya], medium_map, delta_x, \
                                 delta_y, angle_x, angle_y, angle_w, info)
         
         # Update previous time step
@@ -442,18 +446,7 @@ cdef double[:,:,:,:] multigroup_tr_bdf2(double[:,:,:,:]& flux_ell_x, \
         
         # Solve for angular flux of previous time step
         mg._interface_angular(flux_ell_x, flux_ell_y, xs_total_v_bdf2, \
-                    q_star, boundary_x[bcx], boundary_y[bcy], medium_map, \
+                    q_star, boundary_x[bcxa], boundary_y[bcya], medium_map, \
                     delta_x, delta_y, angle_x, angle_y, angle_w, info_edge)
-
-        # Adjust gamma step
-        if step == 0:
-            gamma = 2 - sqrt(2)
-
-            xs_total_v_cn[:,:] = xs_total[:,:]
-            tools._total_velocity(xs_total_v_cn, velocity, 2.0 / gamma, info)
-
-            xs_total_v_bdf2[:,:] = xs_total[:,:]
-            tools._total_velocity(xs_total_v_bdf2, velocity, \
-                                  (2.0 - gamma) / (1.0 - gamma), info)
     
     return flux_time[:,:,:,:]
