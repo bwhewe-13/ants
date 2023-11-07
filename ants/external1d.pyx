@@ -94,6 +94,16 @@ def manufactured_td_01(x, angle_x, edges_t):
     external = np.zeros((edges_t.shape[0], x.shape[0], angle_x.shape[0], 1))
     for cc, tt in enumerate(edges_t):
         for nn, mu in enumerate(angle_x):
+            external[cc,:,nn,0] = 2 + x * (-0.2 - x * (-0.1 + mu) + 2 * mu) \
+                                * np.cos(0.1 * tt - x) + ((-2 + x) * x + 2 \
+                                * (x - 1) * mu) * np.sin(0.1 * tt - x)
+    return external
+
+
+def manufactured_td_02(x, angle_x, edges_t):
+    external = np.zeros((edges_t.shape[0], x.shape[0], angle_x.shape[0], 1))
+    for cc, tt in enumerate(edges_t):
+        for nn, mu in enumerate(angle_x):
             external[cc,:,nn,0] = 1 + (mu - 0.5) * np.cos(0.5 * tt - x) \
                                     + np.cos(mu) - np.sin(0.5 * tt - x)
     return external

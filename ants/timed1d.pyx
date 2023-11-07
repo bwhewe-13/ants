@@ -313,10 +313,10 @@ cdef double[:,:,:] multigroup_tr_bdf2(double[:,:,:]& flux_last_ell, \
         double[:]& angle_w, params info, params info_edge):
     
     # Initialize time step, external and boundary indices
-    cdef int step, qq, qqa, bc
+    cdef int step, qq, qqa, bc, bca
     
     # Initialize gamma
-    cdef double gamma = 0.5
+    cdef double gamma = 0.5 # 2 - sqrt(2)
     
     # Create sigma_t + 2 / (gamma * v * dt) - CN Step
     xs_total_v_cn = tools.array_2d(info.materials, info.groups)
@@ -348,8 +348,9 @@ cdef double[:,:,:] multigroup_tr_bdf2(double[:,:,:]& flux_last_ell, \
         
         # Determine dimensions of external and boundary sources
         qq = 0 if external.shape[0] == 1 else step * 2 # Ell Step
-        qqa = 0 if external.shape[0] == 1 else step * 2 + 1 # Gamma Step 
-        bc = 0 if boundary_x.shape[0] == 1 else step
+        qqa = 0 if external.shape[0] == 1 else step * 2 + 1 # Gamma Step
+        bc = 0 if boundary_x.shape[0] == 1 else step * 2 # Ell Step
+        bca = 0 if boundary_x.shape[0] == 1 else step * 2 + 1 # Gamma Step
         
         ################################################################
         # Crank Nicolson
@@ -379,7 +380,7 @@ cdef double[:,:,:] multigroup_tr_bdf2(double[:,:,:]& flux_last_ell, \
                     q_star, external[qqa+1], velocity, gamma, info)
         # Solve for the \ell + 1 time step
         flux_time[step] = mg.source_iteration(scalar_flux_ell, xs_total_v_bdf2, \
-                                xs_scatter, q_star, boundary_x[bc], \
+                                xs_scatter, q_star, boundary_x[bca], \
                                 medium_map, delta_x, angle_x, angle_w, info)
         # Update previous time step
         scalar_flux_ell[:,:] = flux_time[step,:,:]
@@ -387,16 +388,7 @@ cdef double[:,:,:] multigroup_tr_bdf2(double[:,:,:]& flux_last_ell, \
         tools._time_right_side(q_star, scalar_flux_ell, xs_scatter, medium_map, info)
         # Solve for angular flux of previous time step
         flux_last_ell[:,:,:] = mg._known_source_angular(xs_total_v_bdf2, \
-                                    q_star, boundary_x[bc], medium_map, \
+                                    q_star, boundary_x[bca], medium_map, \
                                     delta_x, angle_x, angle_w, info_edge)
-        # Adjust gamma step
-        if step == 0:
-            gamma = 2 - sqrt(2)
 
-            xs_total_v_cn[:,:] = xs_total[:,:]
-            tools._total_velocity(xs_total_v_cn, velocity, 2.0 / gamma, info)
-
-            xs_total_v_bdf2[:,:] = xs_total[:,:]
-            tools._total_velocity(xs_total_v_bdf2, velocity, \
-                                  (2.0 - gamma) / (1.0 - gamma), info)
     return flux_time[:,:,:]

@@ -75,9 +75,6 @@ cdef int _check_timed1d(params info, int bc_x_shape, int xs_shape) except -1:
     assert info.materials == xs_shape, "Incorrect number of materials"
     assert info.steps > 0, "Need at least 1 time step"
     assert info.angular == False, "Scalar flux is returned"
-    if bc_x_shape > 1:
-        assert bc_x_shape == info.steps, \
-                "Need time-dependent boundary source for each time step"
     return 0
 
 
@@ -89,6 +86,9 @@ cdef int _check_bdf_timed1d(params info, int psi_shape, int q_shape, \
     if q_shape > 1:
         assert q_shape == info.steps, \
                 "Need time-dependent external source for each time step"
+    if bc_x_shape > 1:
+        assert bc_x_shape == info.steps, \
+                "Need time-dependent boundary source for each time step"
     return 0
 
 
@@ -100,6 +100,9 @@ cdef int _check_cn_timed1d(params info, int psi_shape, int q_shape, \
     if q_shape > 1:
         assert q_shape == (info.steps + 1), "Need time-dependent external " \
                 "source for each time step and initial time step"
+    if bc_x_shape > 1:
+        assert bc_x_shape == info.steps, \
+                "Need time-dependent boundary source for each time step"
     return 0
 
 
@@ -111,6 +114,9 @@ cdef int _check_tr_bdf_timed1d(params info, int psi_shape, int q_shape, \
     if q_shape > 1:
         assert q_shape == (info.steps * 2 + 1), "Need time-dependent " \
             "external source for each time step, gamma step, and initial step"
+    if bc_x_shape > 1:
+        assert bc_x_shape == (info.steps * 2), "Need time-dependent " \
+            "boundary source for each time step, gamma step, and initial step"
     return 0
 
 

@@ -390,7 +390,7 @@ cdef double[:,:,:] multigroup_tr_bdf2(double[:,:,:]& flux_last_ell, \
         params info_u, params info_c, params info_edge):
     
     # Initialize time step
-    cdef int step, qq, qqa, bc
+    cdef int step, qq, qqa, bc, bca
 
     # Initialize gamma
     cdef double gamma = 0.5
@@ -441,7 +441,8 @@ cdef double[:,:,:] multigroup_tr_bdf2(double[:,:,:]& flux_last_ell, \
         # Determine dimensions of external and boundary sources
         qq = 0 if external_u.shape[0] == 1 else step * 2 # Ell Step
         qqa = 0 if external_u.shape[0] == 1 else step * 2 + 1 # Gamma Step 
-        bc = 0 if boundary_xu.shape[0] == 1 else step
+        bc = 0 if boundary_xu.shape[0] == 1 else step * 2 # Ell Step
+        bca = 0 if boundary_xu.shape[0] == 1 else step * 2 + 1 # Gamma Step
         
         ################################################################
         # Crank Nicolson
@@ -470,36 +471,18 @@ cdef double[:,:,:] multigroup_tr_bdf2(double[:,:,:]& flux_last_ell, \
         # Run Hybrid Method
         hybrid_method(flux_u, flux_c, flux_t, xs_total_vu_bdf2, \
                       xs_total_vc_bdf2, xs_scatter_u, xs_scatter_c, \
-                      q_star, source_c, boundary_xu[bc], boundary_xc, \
+                      q_star, source_c, boundary_xu[bca], boundary_xc, \
                       medium_map, delta_x, angle_xu, angle_xc, angle_wu, \
                       angle_wc, fine_idx, coarse_idx, factor, info_u, info_c)
         # Solve for angular flux of time step
         flux_last_ell[:,:,:] = mg._known_source_angular(xs_total_vu_bdf2, \
-                                            q_star, boundary_xu[bc], \
+                                            q_star, boundary_xu[bca], \
                                             medium_map, delta_x, angle_xu, \
                                             angle_wu, info_edge)
         # Step 5: Update flux_time and repeat
         tools._angular_edge_to_scalar(flux_last_ell, flux_time[step], \
                                       angle_wu, info_u)
         flux_u[:,:] = flux_time[step]
-        # Adjust gamma step
-        if step == 0:
-            gamma = 2 - sqrt(2)
-
-            xs_total_vu_cn[:,:] = xs_total_u[:,:]
-            tools._total_velocity(xs_total_vu_cn, velocity_u, 2.0 / gamma, info_u)
-
-            xs_total_vc_cn[:,:] = xs_total_c[:,:]
-            tools._total_velocity(xs_total_vc_cn, velocity_c, 2.0 / gamma, info_c)
-
-            # Create sigma_t + (2 - gamma) / ((1 - gamma) * v * dt) - BDF2 Step
-            xs_total_vu_bdf2[:,:] = xs_total_u[:,:]
-            tools._total_velocity(xs_total_vu_bdf2, velocity_u, \
-                                    (2.0 - gamma) / (1.0 - gamma), info_u)
-
-            xs_total_vc_bdf2[:,:] = xs_total_c[:,:]
-            tools._total_velocity(xs_total_vc_bdf2, velocity_c, \
-                                    (2.0 - gamma) / (1.0 - gamma), info_c)
 
     return flux_time[:,:,:]
 

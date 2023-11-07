@@ -292,7 +292,7 @@ def manufactured_td_01(cells_x, angles, edges_t, dt, temporal=1):
             "angular": False, "steps": edges_t.shape[0] - 1, "dt": dt}
 
     # Spatial
-    length_x = np.pi
+    length_x = 2
     delta_x = np.repeat(length_x / cells_x, cells_x)
     edges_x = np.linspace(0, length_x, cells_x+1)
     centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
@@ -311,23 +311,70 @@ def manufactured_td_01(cells_x, angles, edges_t, dt, temporal=1):
     if temporal == 1:
         initial_flux = mms.solution_td_01(centers_x, angle_x, np.array([0.0]))[0]
         external = ants.external1d.manufactured_td_01(centers_x, angle_x, edges_t)[1:]
-        boundary_x = ants.boundary1d.manufactured_td_01(angle_x, edges_t)[1:]
     # Crank Nicolson
     elif temporal == 2:
         initial_flux = mms.solution_td_01(edges_x, angle_x, np.array([0.0]))[0]
         external = ants.external1d.manufactured_td_01(centers_x, angle_x, edges_t)
-        boundary_x = ants.boundary1d.manufactured_td_01(angle_x, edges_t)[1:]
     # BDF2
     elif temporal == 3:
         initial_flux = mms.solution_td_01(centers_x, angle_x, np.array([0.0]))[0]
         external = ants.external1d.manufactured_td_01(centers_x, angle_x, edges_t)[1:]
-        boundary_x = ants.boundary1d.manufactured_td_01(angle_x, edges_t)[1:]
     # TR-BDF2
-    elif temporal == 4:    
+    elif temporal == 4:
         initial_flux = mms.solution_td_01(edges_x, angle_x, np.array([0.0]))[0]
         gamma_steps = ants.gamma_time_steps(edges_t)
         external = ants.external1d.manufactured_td_01(centers_x, angle_x, gamma_steps)
-        boundary_x = ants.boundary1d.manufactured_td_01(angle_x, edges_t)[1:]
+
+    boundary_x = 2 * np.ones((1, 2, 1, 1))
+    # Layout
+    medium_map = np.zeros((cells_x), dtype=np.int32)
+
+    return initial_flux, xs_total, xs_scatter, xs_fission, velocity, \
+        external, boundary_x, medium_map, delta_x, angle_x, angle_w, info
+
+
+def manufactured_td_02(cells_x, angles, edges_t, dt, temporal=1):
+    info = {"cells_x": cells_x, "angles": angles, "groups": 1, \
+            "materials": 1, "geometry": 1, "spatial": 2, "bc_x": [0, 0],
+            "angular": False, "steps": edges_t.shape[0] - 1, "dt": dt}
+
+    # Spatial
+    length_x = np.pi
+    delta_x = np.repeat(length_x / cells_x, cells_x)
+    edges_x = np.linspace(0, length_x, cells_x+1)
+    centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
+
+    # Angular
+    angle_x, angle_w = ants.angular_x(angles)
+
+    # Materials
+    xs_total = np.array([[1.0]])
+    xs_scatter = np.array([[[0.0]]])
+    xs_fission = np.array([[[0.0]]])
+    velocity = np.ones((info["groups"],))
+
+    # Sources
+    # Backward Euler
+    if temporal == 1:
+        initial_flux = mms.solution_td_02(centers_x, angle_x, np.array([0.0]))[0]
+        external = ants.external1d.manufactured_td_02(centers_x, angle_x, edges_t)[1:]
+        boundary_x = ants.boundary1d.manufactured_td_02(angle_x, edges_t)[1:]
+    # Crank Nicolson
+    elif temporal == 2:
+        initial_flux = mms.solution_td_02(edges_x, angle_x, np.array([0.0]))[0]
+        external = ants.external1d.manufactured_td_02(centers_x, angle_x, edges_t)
+        boundary_x = ants.boundary1d.manufactured_td_02(angle_x, edges_t)[1:]
+    # BDF2
+    elif temporal == 3:
+        initial_flux = mms.solution_td_02(centers_x, angle_x, np.array([0.0]))[0]
+        external = ants.external1d.manufactured_td_02(centers_x, angle_x, edges_t)[1:]
+        boundary_x = ants.boundary1d.manufactured_td_02(angle_x, edges_t)[1:]
+    # TR-BDF2
+    elif temporal == 4:
+        initial_flux = mms.solution_td_02(edges_x, angle_x, np.array([0.0]))[0]
+        gamma_steps = ants.gamma_time_steps(edges_t)
+        external = ants.external1d.manufactured_td_02(centers_x, angle_x, gamma_steps)
+        boundary_x = ants.boundary1d.manufactured_td_02(angle_x, gamma_steps)[1:]
 
     # Layout
     medium_map = np.zeros((cells_x), dtype=np.int32)

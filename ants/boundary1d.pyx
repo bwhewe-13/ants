@@ -46,7 +46,7 @@ def manufactured_ss_05():
     return boundary_x
 
 
-def manufactured_td_01(angle_x, edges_t):
+def manufactured_td_02(angle_x, edges_t):
     # Time dependent, one group, angle dependent boundary
     length_x = np.pi
     boundary_x = np.zeros((edges_t.shape[0], 2, angle_x.shape[0], 1))

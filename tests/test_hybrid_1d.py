@@ -16,9 +16,328 @@ import numpy as np
 import ants
 from ants import hybrid1d
 from ants.utils import hybrid as hytools
+from ants.utils import manufactured_1d as mms
+from tests import problems1d
 
 # Path for reference solutions
 PATH = "data/references_multigroup/"
+
+
+@pytest.mark.smoke
+@pytest.mark.hybrid
+@pytest.mark.slab1d
+@pytest.mark.bdf1
+def test_backward_euler_01():
+    # General parameters
+    cells_x = 200
+    angles = 4
+    groups = 1
+    # Time parameters
+    T = 1.
+    steps = 20
+    dt = T / (steps)
+    edges_t = np.linspace(0, T, steps + 1)
+
+    initial_flux, xs_total, xs_scatter, xs_fission, velocity, external, \
+        boundary_x, medium_map, delta_x, angle_x, angle_w, info \
+            = problems1d.manufactured_td_01(cells_x, angles, edges_t, dt, temporal=1)
+
+    edges_g, edges_gidx = ants.energy_grid(groups, None)
+    # Indexing Parameters
+    fine_idx, coarse_idx, factor = hytools.indexing(groups, groups, \
+                                                    edges_g, edges_gidx)
+    # Run Hybrid Method
+    approx = hybrid1d.backward_euler(initial_flux, xs_total, xs_total, \
+                    xs_scatter, xs_scatter, xs_fission, xs_fission, \
+                    velocity, velocity, external, boundary_x, medium_map, \
+                    delta_x, angle_x, angle_x, angle_w, angle_w, fine_idx, \
+                    coarse_idx, factor, info, info)
+
+    edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
+    centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
+    exact = mms.solution_td_01(centers_x, angle_x, edges_t[1:])
+    exact = np.sum(exact * angle_w[None,None,:,None], axis=2)
+
+    atol = 5e-3
+    for tt in range(steps):
+        assert np.isclose(approx[tt], exact[tt], atol=atol).all()
+
+
+@pytest.mark.slab1d
+@pytest.mark.hybrid
+@pytest.mark.bdf1
+def test_backward_euler_02():
+     # General parameters
+    cells_x = 200
+    angles = 4
+    groups = 1
+    # Time parameters
+    T = 1.
+    steps = 20
+    dt = T / (steps)
+    edges_t = np.linspace(0, T, steps + 1)
+
+    initial_flux, xs_total, xs_scatter, xs_fission, velocity, external, \
+        boundary_x, medium_map, delta_x, angle_x, angle_w, info \
+            = problems1d.manufactured_td_02(cells_x, angles, edges_t, dt, temporal=1)
+
+    edges_g, edges_gidx = ants.energy_grid(groups, None)
+    # Indexing Parameters
+    fine_idx, coarse_idx, factor = hytools.indexing(groups, groups, \
+                                                    edges_g, edges_gidx)
+    # Run Hybrid Method
+    approx = hybrid1d.backward_euler(initial_flux, xs_total, xs_total, \
+                    xs_scatter, xs_scatter, xs_fission, xs_fission, \
+                    velocity, velocity, external, boundary_x, medium_map, \
+                    delta_x, angle_x, angle_x, angle_w, angle_w, fine_idx, \
+                    coarse_idx, factor, info, info)
+
+    edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
+    centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
+    exact = mms.solution_td_02(centers_x, angle_x, edges_t[1:])
+    exact = np.sum(exact * angle_w[None,None,:,None], axis=2)
+
+    atol = 5e-3
+    for tt in range(steps):
+        assert np.isclose(approx[tt], exact[tt], atol=atol).all()
+
+
+@pytest.mark.smoke
+@pytest.mark.hybrid
+@pytest.mark.slab1d
+@pytest.mark.cn
+def test_crank_nicolson_01():
+    # General parameters
+    cells_x = 200
+    angles = 4
+    groups = 1
+    # Time parameters
+    T = 1.
+    steps = 20
+    dt = T / (steps)
+    edges_t = np.linspace(0, T, steps + 1)
+
+    initial_flux, xs_total, xs_scatter, xs_fission, velocity, external, \
+        boundary_x, medium_map, delta_x, angle_x, angle_w, info \
+            = problems1d.manufactured_td_01(cells_x, angles, edges_t, dt, temporal=2)
+
+    edges_g, edges_gidx = ants.energy_grid(groups, None)
+    # Indexing Parameters
+    fine_idx, coarse_idx, factor = hytools.indexing(groups, groups, \
+                                                    edges_g, edges_gidx)
+    # Run Hybrid Method
+    approx = hybrid1d.crank_nicolson(initial_flux, xs_total, xs_total, \
+                    xs_scatter, xs_scatter, xs_fission, xs_fission, \
+                    velocity, velocity, external, boundary_x, medium_map, \
+                    delta_x, angle_x, angle_x, angle_w, angle_w, fine_idx, \
+                    coarse_idx, factor, info, info)
+
+    edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
+    centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
+    exact = mms.solution_td_01(centers_x, angle_x, edges_t[1:])
+    exact = np.sum(exact * angle_w[None,None,:,None], axis=2)
+
+    atol = 5e-3
+    for tt in range(steps):
+        assert np.isclose(approx[tt], exact[tt], atol=atol).all()
+
+
+@pytest.mark.slab1d
+@pytest.mark.hybrid
+@pytest.mark.cn
+def test_crank_nicolson_02():
+     # General parameters
+    cells_x = 200
+    angles = 4
+    groups = 1
+    # Time parameters
+    T = 1.
+    steps = 20
+    dt = T / (steps)
+    edges_t = np.linspace(0, T, steps + 1)
+
+    initial_flux, xs_total, xs_scatter, xs_fission, velocity, external, \
+        boundary_x, medium_map, delta_x, angle_x, angle_w, info \
+            = problems1d.manufactured_td_02(cells_x, angles, edges_t, dt, temporal=2)
+
+    edges_g, edges_gidx = ants.energy_grid(groups, None)
+    # Indexing Parameters
+    fine_idx, coarse_idx, factor = hytools.indexing(groups, groups, \
+                                                    edges_g, edges_gidx)
+    # Run Hybrid Method
+    approx = hybrid1d.crank_nicolson(initial_flux, xs_total, xs_total, \
+                    xs_scatter, xs_scatter, xs_fission, xs_fission, \
+                    velocity, velocity, external, boundary_x, medium_map, \
+                    delta_x, angle_x, angle_x, angle_w, angle_w, fine_idx, \
+                    coarse_idx, factor, info, info)
+
+    edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
+    centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
+    exact = mms.solution_td_02(centers_x, angle_x, edges_t[1:])
+    exact = np.sum(exact * angle_w[None,None,:,None], axis=2)
+
+    atol = 5e-3
+    for tt in range(steps):
+        assert np.isclose(approx[tt], exact[tt], atol=atol).all()
+
+
+@pytest.mark.smoke
+@pytest.mark.hybrid
+@pytest.mark.slab1d
+@pytest.mark.bdf2
+def test_bdf2_01():
+    # General parameters
+    cells_x = 200
+    angles = 4
+    groups = 1
+    # Time parameters
+    T = 1.
+    steps = 20
+    dt = T / (steps)
+    edges_t = np.linspace(0, T, steps + 1)
+
+    initial_flux, xs_total, xs_scatter, xs_fission, velocity, external, \
+        boundary_x, medium_map, delta_x, angle_x, angle_w, info \
+            = problems1d.manufactured_td_01(cells_x, angles, edges_t, dt, temporal=3)
+
+    edges_g, edges_gidx = ants.energy_grid(groups, None)
+    # Indexing Parameters
+    fine_idx, coarse_idx, factor = hytools.indexing(groups, groups, \
+                                                    edges_g, edges_gidx)
+    # Run Hybrid Method
+    approx = hybrid1d.bdf2(initial_flux, xs_total, xs_total, \
+                    xs_scatter, xs_scatter, xs_fission, xs_fission, \
+                    velocity, velocity, external, boundary_x, medium_map, \
+                    delta_x, angle_x, angle_x, angle_w, angle_w, fine_idx, \
+                    coarse_idx, factor, info, info)
+
+    edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
+    centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
+    exact = mms.solution_td_01(centers_x, angle_x, edges_t[1:])
+    exact = np.sum(exact * angle_w[None,None,:,None], axis=2)
+
+    atol = 5e-3
+    for tt in range(steps):
+        assert np.isclose(approx[tt], exact[tt], atol=atol).all()
+
+
+@pytest.mark.slab1d
+@pytest.mark.hybrid
+@pytest.mark.bdf2
+def test_bdf2_02():
+     # General parameters
+    cells_x = 200
+    angles = 4
+    groups = 1
+    # Time parameters
+    T = 1.
+    steps = 20
+    dt = T / (steps)
+    edges_t = np.linspace(0, T, steps + 1)
+
+    initial_flux, xs_total, xs_scatter, xs_fission, velocity, external, \
+        boundary_x, medium_map, delta_x, angle_x, angle_w, info \
+            = problems1d.manufactured_td_02(cells_x, angles, edges_t, dt, temporal=3)
+
+    edges_g, edges_gidx = ants.energy_grid(groups, None)
+    # Indexing Parameters
+    fine_idx, coarse_idx, factor = hytools.indexing(groups, groups, \
+                                                    edges_g, edges_gidx)
+    # Run Hybrid Method
+    approx = hybrid1d.bdf2(initial_flux, xs_total, xs_total, \
+                    xs_scatter, xs_scatter, xs_fission, xs_fission, \
+                    velocity, velocity, external, boundary_x, medium_map, \
+                    delta_x, angle_x, angle_x, angle_w, angle_w, fine_idx, \
+                    coarse_idx, factor, info, info)
+
+    edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
+    centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
+    exact = mms.solution_td_02(centers_x, angle_x, edges_t[1:])
+    exact = np.sum(exact * angle_w[None,None,:,None], axis=2)
+
+    atol = 5e-3
+    for tt in range(steps):
+        assert np.isclose(approx[tt], exact[tt], atol=atol).all()
+
+
+@pytest.mark.smoke
+@pytest.mark.hybrid
+@pytest.mark.slab1d
+@pytest.mark.bdf1
+def test_tr_bdf2_01():
+    # General parameters
+    cells_x = 200
+    angles = 4
+    groups = 1
+    # Time parameters
+    T = 1.
+    steps = 20
+    dt = T / (steps)
+    edges_t = np.linspace(0, T, steps + 1)
+
+    initial_flux, xs_total, xs_scatter, xs_fission, velocity, external, \
+        boundary_x, medium_map, delta_x, angle_x, angle_w, info \
+            = problems1d.manufactured_td_01(cells_x, angles, edges_t, dt, temporal=4)
+
+    edges_g, edges_gidx = ants.energy_grid(groups, None)
+    # Indexing Parameters
+    fine_idx, coarse_idx, factor = hytools.indexing(groups, groups, \
+                                                    edges_g, edges_gidx)
+    # Run Hybrid Method
+    approx = hybrid1d.tr_bdf2(initial_flux, xs_total, xs_total, \
+                    xs_scatter, xs_scatter, xs_fission, xs_fission, \
+                    velocity, velocity, external, boundary_x, medium_map, \
+                    delta_x, angle_x, angle_x, angle_w, angle_w, fine_idx, \
+                    coarse_idx, factor, info, info)
+
+    edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
+    centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
+    exact = mms.solution_td_01(centers_x, angle_x, edges_t[1:])
+    exact = np.sum(exact * angle_w[None,None,:,None], axis=2)
+
+    atol = 5e-3
+    for tt in range(steps):
+        assert np.isclose(approx[tt], exact[tt], atol=atol).all()
+
+
+@pytest.mark.slab1d
+@pytest.mark.hybrid
+@pytest.mark.bdf1
+def test_tr_bdf2_02():
+     # General parameters
+    cells_x = 200
+    angles = 4
+    groups = 1
+    # Time parameters
+    T = 1.
+    steps = 20
+    dt = T / (steps)
+    edges_t = np.linspace(0, T, steps + 1)
+
+    initial_flux, xs_total, xs_scatter, xs_fission, velocity, external, \
+        boundary_x, medium_map, delta_x, angle_x, angle_w, info \
+            = problems1d.manufactured_td_02(cells_x, angles, edges_t, dt, temporal=4)
+
+    edges_g, edges_gidx = ants.energy_grid(groups, None)
+    # Indexing Parameters
+    fine_idx, coarse_idx, factor = hytools.indexing(groups, groups, \
+                                                    edges_g, edges_gidx)
+    # Run Hybrid Method
+    approx = hybrid1d.tr_bdf2(initial_flux, xs_total, xs_total, \
+                    xs_scatter, xs_scatter, xs_fission, xs_fission, \
+                    velocity, velocity, external, boundary_x, medium_map, \
+                    delta_x, angle_x, angle_x, angle_w, angle_w, fine_idx, \
+                    coarse_idx, factor, info, info)
+
+    edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
+    centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
+    exact = mms.solution_td_02(centers_x, angle_x, edges_t[1:])
+    exact = np.sum(exact * angle_w[None,None,:,None], axis=2)
+
+    atol = 5e-3
+    for tt in range(steps):
+        assert np.isclose(approx[tt], exact[tt], atol=atol).all()
+
 
 @pytest.mark.slab1d
 @pytest.mark.hybrid
@@ -90,7 +409,7 @@ def test_slab_01_bdf1(angles_c, groups_c):
     fine_idx, coarse_idx, factor = hytools.indexing(groups_u, groups_c, \
                                                     edges_g, edges_gidx)
     # Run Hybrid Method
-    flux = hybrid1d.backward_euler(initial_flux, xs_total_u, xs_total_c, \
+    approx = hybrid1d.backward_euler(initial_flux, xs_total_u, xs_total_c, \
                 xs_scatter_u, xs_scatter_c, xs_fission_u, xs_fission_c, \
                 velocity_u, velocity_c, external, boundary_x, medium_map, \
                 delta_x, angle_xu, angle_xc, angle_wu, angle_wc, fine_idx, \
@@ -100,4 +419,4 @@ def test_slab_01_bdf1(angles_c, groups_c):
     reference = np.load(PATH + "hybrid_uranium_slab_backward_euler_" + params)
     # Compare each time step
     for tt in range(steps):
-        assert np.isclose(flux[tt], reference[tt]).all()
+        assert np.isclose(approx[tt], reference[tt]).all()

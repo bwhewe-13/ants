@@ -138,9 +138,9 @@ def energy_velocity(groups, edges_g=None):
     return velocity
 
 
-def gamma_time_steps(edges_t, half_step=True):
+def gamma_time_steps(edges_t, gamma=0.5, half_step=True):
     """ Add gamma half time steps to original time steps with initial step
-    where gamma = 2 - sqrt(2). For external source with TR-BDF2 problems.
+    where gamma = 0.5 or 2 - sqrt(2). For external source with TR-BDF2 problems.
 
     Arguments:
         edges_t: array of length (steps + 1)
@@ -148,8 +148,12 @@ def gamma_time_steps(edges_t, half_step=True):
     Returns:
         array of length (steps * 2 + 1)
     """
-    gamma = 2 - np.sqrt(2)
-    half_steps = edges_t[:-1] + np.diff(edges_t) * (2 - np.sqrt(2))
+
+    if gamma == 0.5:
+        half_steps = 0.5 * (edges_t[1:] + edges_t[:-1])
+    else:
+        half_steps = edges_t[:-1] + np.diff(edges_t) * gamma
+    # Combine half steps
     combined_steps = np.sort(np.concatenate((edges_t, half_steps)))
     if half_step:
         combined_steps[1] = 0.5 * (combined_steps[0] + combined_steps[2])
