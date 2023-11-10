@@ -54,6 +54,31 @@ def coarsen_materials(xs_total, xs_scatter, xs_fission, edges_g, \
     return coarse_total, coarse_scatter, coarse_fission
 
 
+def coarsen_external(external, edges_g, edges_gidx):
+    """ Coarsen (... x groups) arrays to (... x groups')
+    Arguments:
+        external (float [... x groups]): Array to coarsen
+        edges_g (float [groups + 1]): Energy group bounds
+        edges_gidx (int [groups' + 1]): Index of energy group bounds for
+                                        new energy grid
+    Returns:
+        coarse (float [... x groups']): Coarsened array
+    """
+    groups_coarse = edges_gidx.shape[0] - 1
+    # Create coarsened array
+    coarse = np.zeros(external.shape[:-1] + (groups_coarse,))
+    # Create energy bin widths
+    delta_fine = np.diff(edges_g)
+    delta_coarse = np.diff(np.asarray(edges_g)[edges_gidx])
+    # Condition vector with energy bin width
+    fine = external * delta_fine[...,:]
+    for gg, (gg1, gg2) in enumerate(zip(edges_gidx[:-1], edges_gidx[1:])):
+        coarse[...,gg] = np.sum(fine[...,gg1:gg2],axis=-1)
+    # Coarsen
+    coarse /= delta_coarse[...,:]
+    return coarse
+
+
 def _xs_vector_coarsen(vector, edges_g, edges_gidx):
     """ Coarsen (materials x groups) arrays to (materials x groups')
     Arguments:
