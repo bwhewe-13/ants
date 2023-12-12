@@ -90,6 +90,7 @@ def _wynn_epsilon(lst, rank):
 
 
 @pytest.mark.smoke
+@pytest.mark.math
 @pytest.mark.parametrize(("function"), [_function_01, _function_02])
 def test_first_derivative(function):
     # Set interval
@@ -116,6 +117,7 @@ def test_first_derivative(function):
 
 
 @pytest.mark.smoke
+@pytest.mark.math
 @pytest.mark.parametrize(("function"), [_function_01, _function_02])
 def test_second_derivative(function):
     # Set interval
@@ -148,6 +150,7 @@ def test_second_derivative(function):
 
 
 @pytest.mark.smoke
+@pytest.mark.math
 @pytest.mark.parametrize(("function"), [_function_01, _function_02])
 def test_higher_order_derivative(function):
     # Set interval
@@ -178,6 +181,7 @@ def test_higher_order_derivative(function):
     assert convergence_d4_dx2dy2 < 5e-6, "d4/dx2dy2 not converged correctly"
 
 
+@pytest.mark.math
 @pytest.mark.parametrize(("function", "edges"), [(_function_01, 0), \
             (_function_01, 1), (_function_02, 0), (_function_02, 1)])
 def test_cubic_hermite_integrate(function, edges):
@@ -217,6 +221,7 @@ def test_cubic_hermite_integrate(function, edges):
     assert convergence_int_dypsi < 1e-6, "int_dypsi not converged correctly"
 
 
+@pytest.mark.math
 @pytest.mark.parametrize(("function", "edges"), [(_function_01, 0), \
             (_function_01, 1), (_function_02, 0), (_function_02, 1)])
 def test_quintic_hermite_integrate(function, edges):

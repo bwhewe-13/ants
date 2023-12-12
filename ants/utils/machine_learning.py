@@ -11,6 +11,9 @@
 
 import numpy as np
 from glob import glob
+import itertools
+
+# from djinn import djinn
 
 
 def _combine_flux_reaction(flux, xs_matrix, medium_map, labels):
@@ -85,3 +88,88 @@ def clean_data_scatter(path, labels):
     # return training_data
 
 
+def min_max_normalization(data, verbose=False):
+    # Find maximum and minimum values
+    high = np.max(data, axis=1)
+    np.nan_to_num(high, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
+    low = np.min(data, axis=1)
+    np.nan_to_num(low, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
+    # Normalize between 0 and 1    
+    ndata = (data - low[:,None])/(high - low)[:,None]
+    # Remove undesirables
+    np.nan_to_num(ndata, copy=False, nan=0.0, posinf=0.0, neginf=0.0)
+    # Return high and low values
+    if verbose:
+        return ndata, high, low
+    return ndata
+
+
+def root_normalization(data, root):
+    return data ** root
+
+
+def mean_absolute_error(y_true, y_pred):
+    return np.mean(np.fabs(y_true - y_pred), axis=-1)
+
+
+def mean_squared_error(y_true, y_pred):
+    return np.mean((y_true - y_pred)**2, axis=-1)
+
+
+def root_mean_squared_error(y_true, y_pred):
+    return np.sqrt(mean_squared_error(y_true, y_pred))
+
+
+def explained_variance_score(y_true, y_pred):
+    return 1 - np.var(y_true - y_pred, axis=-1) / np.var(y_true, axis=-1)
+
+
+def r2_score(y_true, y_pred):
+    numerator = np.sum((y_true - y_pred)**2, axis=-1)
+    denominator = np.sum((y_true - np.mean(y_true, axis=1)[:,None])**2, axis=-1)
+    return 1 - numerator / denominator
+
+
+def train_model(x_train, x_test, y_train, y_test, path, trees, depth, \
+        dropout_keep=1.0, display=0):
+    # number of trees = number of neural nets in ensemble
+    # max depth of tree = optimize this for each data set
+    # dropout typically set to 1 for non-Bayesian models
+
+    for ntrees, maxdepth in itertools.product(trees, depth):
+        if display:
+            print("\nNumber of Trees: {}\tMax Depth: {}\n{}".format(ntrees, \
+                    maxdepth, "="*40))
+
+        fntrees = str(ntrees).zfill(3)
+        fmaxdepth = str(maxdepth).zfill(3)
+        modelname = f"model_{fntrees}{fmaxdepth}"
+
+        # initialize the model
+        model = djinn.DJINN_Regressor(ntrees, maxdepth, dropout_keep)
+
+        # find optimal settings
+        optimal = model.get_hyperparameters(x_train, y_train)
+        batchsize = optimal['batch_size']
+        learnrate = optimal['learn_rate']
+        epochs = np.min((300, optimal['epochs']))
+        # epochs = optimal['epochs']
+
+        # train the model with these settings
+        model.train(x_train,y_train, epochs=epochs, learn_rate=learnrate, \
+                    batch_size=batchsize, display_step=0, save_files=True, \
+                    model_path=path, file_name=modelname, \
+                    save_model=True, model_name=modelname)
+
+        # Estimate
+        y_estimate = model.predict(x_test)
+
+        # evaluate results
+        error_dict = {"MAE": mean_absolute_error(y_test, y_estimate), 
+                      "MSE": mean_squared_error(y_test, y_estimate), 
+                      "EVS": explained_variance_score(y_test, y_estimate), 
+                      "R2": r2_score(y_test, y_estimate)}
+        np.savez(path + "error_" + modelname, **error_dict)
+
+        # close model 
+        model.close_model()

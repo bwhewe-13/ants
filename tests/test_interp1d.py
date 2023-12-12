@@ -68,6 +68,7 @@ def _wynn_epsilon(lst, rank):
 
 
 @pytest.mark.smoke
+@pytest.mark.math
 @pytest.mark.parametrize(("function"), [_function_01, _function_02])
 def test_first_derivative(function):
     # Set interval
@@ -86,6 +87,7 @@ def test_first_derivative(function):
 
 
 @pytest.mark.smoke
+@pytest.mark.math
 @pytest.mark.parametrize(("function"), [_function_01, _function_02])
 def test_second_derivative(function):
     # Set interval
@@ -103,6 +105,7 @@ def test_second_derivative(function):
     assert convergence < 1e-6, "Not converged correctly"
 
 
+@pytest.mark.math
 @pytest.mark.parametrize(("function", "edges"), [(_function_01, 0), \
             (_function_01, 1), (_function_02, 0), (_function_02, 1)])
 def test_cubic_hermite_integrate(function, edges):
@@ -136,6 +139,7 @@ def test_cubic_hermite_integrate(function, edges):
     assert convergence_int_dpsi < 1e-6, "int_dpsi not converged correctly"
 
 
+@pytest.mark.math
 @pytest.mark.parametrize(("function", "edges"), [(_function_01, 0), \
             (_function_01, 1), (_function_02, 0), (_function_02, 1)])
 def test_quintic_hermite_integrate(function, edges):
