@@ -266,56 +266,71 @@ def weight_spatial2d(weight_matrix, xs_total, xs_scatter, xs_fission):
         np.array(new_xs_fission)
 
 
-def weight_matrix2d(rectangles, triangles, circles, edges_x, edges_y, N=100_000):
+def weight_matrix2d(edges_x, edges_y, materials, N_particles=100_000, **kwargs):
     """ Creating weight matrix for a triangle in cartesian coordinates
     Arguments:
+        edges_x (float [cells_x + 1]): Spatial cell edge values in x direction
+        edges_y (float [cells_y + 1]): Spatial cell edge values in y direction
+        N (int): Optional, number of MC samples, default = 100_000
+    Keyword Arguments
         rectangles (list [(x1, y1), dx, dy]): list of all rectangles 
             staring vertices and widths (in cm), put None if shape not needed
         triangles (list [(x1, y1), (x2, y2), (x3, y3)]): list of all triangle
             vertices (in cm), put None if shape not needed
         circles (list [(x1, y1), (r1, r2)]): list of all circle centers and
             inside and outside radii
-        edges_x (float [cells_x + 1]): Spatial cell edge values in x direction
-        edges_y (float [cells_y + 1]): Spatial cell edge values in y direction
-        N (int): Optional, number of MC samples, default = 100_000
     Returns:
         weight_matrix (float [cells_x, cells_y]): Normalized weight
             matrix for percent inside material shapes
     """
+    # Assert at least one shape
+    assert ("triangles" in kwargs.keys()) or ("rectangles" in kwargs.keys()) \
+        or ("circles" in kwargs.keys()), "Need at least one shape"
     # Create uniform samples
-    samples = np.random.uniform(size=(N, 2), low=[0, 0], \
+    samples = np.random.uniform(size=(N_particles, 2), low=[0, 0], \
                                 high=[np.max(edges_x), np.max(edges_y)])
-    # Create weight matrix (ii x jj x outside, inside)
-    weight_matrix = np.zeros((edges_x.shape[0] - 1, edges_y.shape[0] - 1, 2))
+    # Create weight matrix (ii x jj x materials)
+    weight_matrix = np.zeros((edges_x.shape[0] - 1, edges_y.shape[0] - 1, \
+                              materials))
+    tally = np.zeros((materials))
     # Iterate over samples
     for x, y in zip(samples[:,0], samples[:,1]):
         idx_x = np.digitize(x, edges_x) - 1
         idx_y = np.digitize(y, edges_y) - 1
+        tally *= 0.0
         # Check different shapes
-        where1 = _inside_triangle(x, y, triangles)
-        where2 = _inside_rectangle(x, y, rectangles)
-        where3 = _inside_circle(x, y, circles)
-        weight_matrix[idx_x, idx_y, where1 + where2 + where3] += 1
-
+        if "triangles" in kwargs.keys() and np.sum(tally) == 0.0:
+            _inside_triangle(kwargs["triangles"], x, y, tally, \
+                             kwargs["triangle_index"])
+        if "rectangles" in kwargs.keys() and np.sum(tally) == 0.0:
+            _inside_rectangle(kwargs["rectangles"], x, y, tally, \
+                              kwargs["rectangle_index"])
+        if "circles" in kwargs.keys() and np.sum(tally) == 0.0:
+            _inside_circle(kwargs["circles"], x, y, tally, \
+                           kwargs["circle_index"])
+        tally[tally > 0.0] = 1.0
+        if np.sum(tally) == 0:
+            tally[-1] = 1
+        weight_matrix[idx_x, idx_y] += tally
+    # Make sure symmetric circles
+    if "circles" in kwargs.keys():
+        weight_matrix = _quarter_symmetry(weight_matrix, kwargs["circles"], \
+                                          edges_x, edges_y)
     # Normalize and return percentage inside
-    return weight_matrix[:,:,1] / np.sum(weight_matrix, axis=2)
+    return weight_matrix / np.sum(weight_matrix, axis=2)[...,None]
 
 
-def _inside_triangle(x, y, triangles):
+def _inside_triangle(triangles, x, y, tally, index):
     """ Using Finite Element theory to see if point is inside triangle
     Based off of http://www.alternatievewiskunde.nl/sunall/suna57.htm
     Arguments:
-        x, y (float): x, y coordinates to test
         triangles (list [(x1, y1), (x2, y2), (x3, y3)]): list of all triangle
             vertices (in cm), put None if shape not needed
+        x, y (float): x, y coordinates to test
+        tally (int [length materials]): List of which circle to tally
     Returns:
-        True/False integer if point is inside triangle
+        Updated tally array
     """
-    # Check if exist
-    if triangles is None:
-        return 0
-    # Create checker for each triangle
-    all_triangles = np.zeros((len(triangles)))
     # Iterate through triangles
     for ii, triangle in enumerate(triangles):
         # Unpack vertices
@@ -324,147 +339,86 @@ def _inside_triangle(x, y, triangles):
         determinant = (x2 - x1) * (y3 - y1) - (x3 - x1) * (y2 - y1)
         xi = ((y3 - y1) * (x - x1) - (x3 - x1) * (y - y1)) / determinant
         eta = ((x2 - x1) * (y - y1) - (y2 - y1) * (x - x1)) / determinant
-        all_triangles[ii] = np.min([xi, eta, 1 - xi - eta])
-    return int(np.any(all_triangles >= 0))
+        # tally[ii] = np.min([xi, eta, 1 - xi - eta])
+        in_out = np.min([xi, eta, 1 - xi - eta])
+        in_out = 1.0 if in_out >= 0.0 else 0.0
+        tally[index[ii]] = in_out
+        if in_out == 1.0:
+            break
 
 
-def _inside_rectangle(x, y, rectangles):
+def _inside_rectangle(rectangles, x, y, tally, index):
     """ Checking if point is inside rectangle
     Arguments:
-        x, y (float): x, y coordinates to test
         rectangles (list [(x1, y1), dx, dy]): list of all rectangles 
             staring vertices and widths (in cm), put None if shape not needed
+        x, y (float): x, y coordinates to test
+        tally (int [length materials]): List of which circle to tally
     Returns:
-        True/False integer if point is inside rectangle
+        Updated tally array
     """
-    # Check if exist
-    if rectangles is None:
-        return 0
-    # Create checker for each rectangle
-    all_rectangles = np.zeros((len(rectangles)))
     # Iterate through rectangles
     for ii, [(x1, y1), dx, dy] in enumerate(rectangles):
-        all_rectangles[ii] = (x1 <= x <= (x1 + dx)) and (y1 <= y < (y1 + dy))
-    return int(np.any(all_rectangles))
+        tally[index[ii]] = (x1 <= x <= (x1 + dx)) and (y1 <= y < (y1 + dy))
+        if (x1 <= x <= (x1 + dx)) and (y1 <= y < (y1 + dy)):
+            break
 
 
-def _inside_circle(x, y, circles):
+def _inside_circle(circles, x, y, tally, index):
     """ Checking if point is inside circle
     Arguments:
-        x, y (float): x, y coordinates to test
         circles (list [(x1, y1), (r1, r2)]): list of all circle centers and
             inside and outside radii
+        x, y (float): x, y coordinates to test
+        tally (int [length materials]): List of which circle to tally
     Returns:
-        True/False integer if point is inside circle
+        Updated tally array
     """
-    # Check if exist
-    if circles is None:
-        return 0
     # Create checker for each rectangle
-    all_circles = np.zeros((len(circles)))
     for ii, [(x1, y1), (r1, r2)] in enumerate(circles):
         radius = np.sqrt((x - x1)**2 + (y - y1)**2)
-        all_circles[ii] = (r1 <= radius <= r2)
-    return int(np.any(all_circles))
+        tally[index[ii]] = (r1 <= radius) and (radius <= r2)
+        if (r1 <= radius) and (radius <= r2):
+            break
 
 
-########################################################################
-# To Remove later
-########################################################################
+def _quarter_symmetry(weight_matrix, circles, edges_x, edges_y):
+    # Ensure symmetrical
+    symmetrical_weight_matrix = np.zeros(weight_matrix.shape)
+    # Get center (x1, y1) and radius (r2) of last circle
+    [(x1, y1), (r1, r2)] = circles[-1]
 
-def _cylinder_symmetric(weight_matrix):
-    half_x = int(0.5 * weight_matrix.shape[0])
-    half_y = int(0.5 * weight_matrix.shape[1])
-    # Divide into quarters
-    quarters = np.stack((weight_matrix[:half_x, :half_y].copy(), 
-                         weight_matrix[half_x:, :half_y][::-1].copy(), 
-                         weight_matrix[:half_x, half_y:][:,::-1].copy(),
-                         weight_matrix[half_x:, half_y:][::-1, ::-1].copy()))
-    quarters = np.mean(quarters, axis=0)
-    # Repopulate matrix
-    weight_matrix[:half_x, :half_y] = quarters.copy()
-    weight_matrix[half_x:, :half_y][::-1] = quarters.copy()
-    weight_matrix[:half_x, half_y:][:,::-1] = quarters.copy()
-    weight_matrix[half_x:, half_y:][::-1,::-1] = quarters.copy()
-    assert np.round(np.sum(weight_matrix, axis=2), 10).all() == 1.
-    return weight_matrix
+    # (+x, +y)
+    idx_x1 = np.argwhere((edges_x >= x1) & (edges_x < x1 + r2)).flatten()
+    idx_y1 = np.argwhere((edges_y >= y1) & (edges_y < y1 + r2)).flatten()
+    quarter = 0.25 * weight_matrix[idx_x1][:,idx_y1].copy()
+    idx_x1, idx_y1 = np.meshgrid(idx_x1, idx_y1, indexing="ij")
 
+    # (-x, +y)
+    idx_x2 = np.argwhere((edges_x < x1) & (edges_x >= x1 - r2)).flatten()
+    idx_y2 = np.argwhere((edges_y >= y1) & (edges_y < y1 + r2)).flatten()
 
-def weight_cylinder2d(coordinates, edges_x, edges_y, N=100_000):
-    """ Creating weight matrix for circles in cartesian coordinates
-    Arguments:
-        coordinates (list [tuple, list]): tuple is vertices (x, y) of circle 
-            center and the list is comprised of all the radii
-        edges_x (float [cells_x + 1]): Spatial cell edge values in x direction
-        edges_y (float [cells_y + 1]): Spatial cell edge values in y direction
-        N (int): Optional, number of MC samples, default = 100_000
-    Returns:
-        weight_matrix (float [cells)x, cells_y, len(radii) + 1]): Normalized 
-            weight matrix for percent inside and outside each circle
-    """
-    # Unpack coordinates
-    center, radii = coordinates
-    # Create uniform samples
-    samples = np.random.uniform(size=(N, 2), low=[0, 0], \
-                                high=[np.max(edges_x), np.max(edges_y)])
-    # Create weight matrix (ii x jj x inside/outside bins)
-    weight_matrix = np.zeros((edges_x.shape[0] - 1, edges_y.shape[0] - 1, len(radii) + 1))
-    # Iterate over samples
-    for x, y in zip(samples[:,0], samples[:,1]):
-        idx_x = np.digitize(x, edges_x) - 1
-        idx_y = np.digitize(y, edges_y) - 1
-        where = np.digitize(np.sqrt((x - center[0])**2 + (y - center[1])**2), radii)
-        weight_matrix[idx_x, idx_y, where] += 1
-    # Normalize
-    weight_matrix /= np.sum(weight_matrix, axis=2)[:,:,None]
-    # Make symmetric circle
-    weight_matrix = _cylinder_symmetric(weight_matrix)
-    return weight_matrix
+    quarter += 0.25 * weight_matrix[idx_x2][:,idx_y2][::-1].copy()
+    idx_x2, idx_y2 = np.meshgrid(idx_x2, idx_y2, indexing="ij")
 
+    # (-x, -y)
+    idx_x3 = np.argwhere((edges_x < x1) & (edges_x >= x1 - r2)).flatten()
+    idx_y3 = np.argwhere((edges_y < y1) & (edges_y >= y1 - r2)).flatten()
+    
+    quarter += 0.25 * weight_matrix[idx_x3][:,idx_y3][::-1,::-1].copy()
+    idx_x3, idx_y3 = np.meshgrid(idx_x3, idx_y3, indexing="ij")
 
-def _triangle_transform(x, y, v1, v2, v3):
-    """ Using Finite Element theory to see if point is inside triangle
-    Based off of http://www.alternatievewiskunde.nl/sunall/suna57.htm
-    Arguments:
-        x, y (float): x, y coordinates to test
-        v1, v2, v3 (tuple [float, float]): vertices (x, y) of triangle 
-    Returns:
-        Minimum of transformation, where min >= 0 is inside the triangle
-    """
-    # Unpack vertices
-    x1, y1 = v1
-    x2, y2 = v2
-    x3, y3 = v3
-    # Perform transformation
-    determinant = (x2 - x1) * (y3 - y1) - (x3 - x1) * (y2 - y1)
-    xi = ((y3 - y1) * (x - x1) - (x3 - x1) * (y - y1)) / determinant
-    eta = ((x2 - x1) * (y - y1) - (y2 - y1) * (x - x1)) / determinant
-    # Return minimum
-    return np.min([xi, eta, 1 - xi - eta])
+    # (+x, -y)
+    idx_x4 = np.argwhere((edges_x >= x1) & (edges_x < x1 + r2)).flatten()
+    idx_y4 = np.argwhere((edges_y < y1) & (edges_y >= y1 - r2)).flatten()
+    
+    quarter += 0.25 * weight_matrix[idx_x4][:,idx_y4][:,::-1].copy()
+    idx_x4, idx_y4 = np.meshgrid(idx_x4, idx_y4, indexing="ij")
+    
+    # Populate new matrix
+    symmetrical_weight_matrix[idx_x1, idx_y1] = quarter.copy()
+    symmetrical_weight_matrix[idx_x2, idx_y2] = quarter[::-1].copy()
+    symmetrical_weight_matrix[idx_x3, idx_y3] = quarter[::-1,::-1].copy()
+    symmetrical_weight_matrix[idx_x4, idx_y4] = quarter[:,::-1].copy()
 
-
-def weight_triangle2d(v1, v2, v3, edges_x, edges_y, N=100_000):
-    """ Creating weight matrix for a triangle in cartesian coordinates
-    Arguments:
-        v1, v2, v3 (tuple [float, float]): vertices (x, y) of triangle
-        edges_x (float [cells_x + 1]): Spatial cell edge values in x direction
-        edges_y (float [cells_y + 1]): Spatial cell edge values in y direction
-        N (int): Optional, number of MC samples, default = 100_000
-    Returns:
-        weight_matrix (float [cells)x, cells_y, 2]): Normalized weight
-            matrix for percent inside and outside the triangle
-    """
-    # Create uniform samples
-    samples = np.random.uniform(size=(N, 2), low=[0, 0], \
-                                high=[np.max(edges_x), np.max(edges_y)])
-    # Create weight matrix (ii x jj x inside/outside)
-    weight_matrix = np.zeros((edges_x.shape[0] - 1, edges_y.shape[0] - 1, 2))
-    # Iterate over samples
-    for x, y in zip(samples[:,0], samples[:,1]):
-        idx_x = np.digitize(x, edges_x) - 1
-        idx_y = np.digitize(y, edges_y) - 1
-        where = 0 if _triangle_transform(x, y, v1, v2, v3) >= 0 else 1
-        weight_matrix[idx_x, idx_y, where] += 1
-    # Normalize
-    weight_matrix /= np.sum(weight_matrix, axis=2)[:,:,None]
-    return weight_matrix
+    return symmetrical_weight_matrix

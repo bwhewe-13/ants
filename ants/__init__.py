@@ -19,9 +19,6 @@ from ants.main import gamma_time_steps
 # Creating medium maps
 from ants.main import spatial1d, spatial2d, weight_spatial2d, weight_matrix2d
 
-# To remove later
-from ants.main import weight_triangle2d, weight_cylinder2d
-
 # Creating materials/sources
 from ants.materials import materials
 from ants import boundary1d, external1d

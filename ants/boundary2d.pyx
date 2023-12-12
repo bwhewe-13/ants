@@ -125,9 +125,9 @@ def deuterium_tritium(loc_x, loc_y, edges_g):
     group = np.argmin(abs(edges_g - 14.1E6))
     boundary_x = np.zeros((2, 1, 1, edges_g.shape[0] - 1))
     boundary_y = np.zeros((2, 1, 1, edges_g.shape[0] - 1))
-    if loc_x >= 0:
+    if isinstance(loc_x, list) or loc_x >= 0:
         boundary_x[(loc_x, ..., group)] = 1.0
-    if loc_y >= 0:
+    if isinstance(loc_y, list) or loc_y >= 0:
         boundary_y[(loc_y, ..., group)] = 1.0
     return boundary_x, boundary_y
 

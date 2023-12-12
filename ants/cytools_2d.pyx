@@ -21,6 +21,7 @@
 
 from libc.math cimport sqrt, pow, erfc, ceil
 from cython.view cimport array as cvarray
+from cython.parallel import prange
 
 from ants.parameters cimport params
 
@@ -122,18 +123,23 @@ cdef void _source_total(double[:,:,:,:]& source, double[:,:,:]& flux, \
         double[:,:,:,:]& external, params info):
     # Create (sigma_s + sigma_f) * phi + external function
     # Initialize iterables
-    cdef int ii, jj, nn, ig, og, mat, nn_q, og_q, NN
-    NN = info.angles * info.angles
+    cdef int ii, jj, nn, ig, og, mat, nn_q, og_q
+    cdef int directions = info.angles * info.angles
+
     # Zero out previous values
     source[:,:,:,:] = 0.0
+
     for ii in range(info.cells_x):
         for jj in range(info.cells_y):
             mat = medium_map[ii,jj]
-            for nn in range(NN):
+
+            for nn in range(directions):
                 nn_q = 0 if external.shape[2] == 1 else nn
+
                 for og in range(info.groups):
                     og_q = 0 if external.shape[3] == 1 else og
                     # loc = og + info.groups * (nn + NN * (jj + ii * info.cells_y))
+
                     for ig in range(info.groups):
                         source[ii,jj,nn,og] += flux[ii,jj,ig] * xs_matrix[mat,og,ig]
                     source[ii,jj,nn,og] += external[ii,jj,nn_q,og_q]
@@ -184,11 +190,6 @@ cdef void _initialize_edge_y(double[:]& known_y, double[:,:]& boundary_y, \
     # Pick left / right location
     loc = 0 if angle_y[nn] > 0.0 else 1
     known_y[:] = boundary_y[loc,:]
-    # # Populate known edge value
-    # if info.bcdim_y == 1:
-    #     known_y[:] = boundary_y[loc]
-    # else:
-    #     known_y[:] = boundary_y[loc * info.cells_x:(loc+1) * info.cells_x]
 
 
 cdef void _initialize_edge_x(double[:]& known_x, double[:,:]& boundary_x, \
@@ -206,11 +207,6 @@ cdef void _initialize_edge_x(double[:]& known_x, double[:,:]& boundary_x, \
     # Pick left / right location
     loc = 0 if angle_x[nn] > 0.0 else 1
     known_x[:] = boundary_x[loc,:]
-    # # Populate known edge value
-    # if info.bcdim_x == 1:
-    #     known_x[:] = boundary_x[loc]
-    # else:
-    #     known_x[:] = boundary_x[loc * info.cells_y:(loc+1) * info.cells_y]
 
 
 ########################################################################
@@ -231,15 +227,20 @@ cdef void _time_source_star_bdf1(double[:,:,:,:]& flux, \
         double[:]& velocity, params info):
     # Combining the source (I x J x N^2 x G) with the angular 
     #     flux (I x J x N^2 x G)
+    
     # Initialize iterables
     cdef int ii, jj, nn, gg, nn_q, gg_q
+    cdef int directions = info.angles * info.angles
+
     # Zero out previous values
     q_star[:,:,:,:] = 0.0
     # Iterate over cells, angles, groups
-    for gg in range(info.groups):
-        gg_q = 0 if external.shape[3] == 1 else gg
-        for nn in range(info.angles * info.angles):
-            nn_q = 0 if external.shape[2] == 1 else nn
+    for nn in prange(directions, nogil=True):
+        nn_q = 0 if external.shape[2] == 1 else nn
+    
+        for gg in range(info.groups):
+            gg_q = 0 if external.shape[3] == 1 else gg
+        
             for jj in range(info.cells_y):
                 for ii in range(info.cells_x):
                     # loc = gg + info.groups * (nn + info.angles * info.angles \
@@ -260,7 +261,8 @@ cdef void _time_source_star_cn(double[:,:,:,:]& psi_x, double[:,:,:,:]& psi_y, \
     # external_prev is time step \ell, source is time step \ell + 1
 
     # Initialize iterables
-    cdef int ii, jj, mat, nn, og, ig, nn_q, og_q#, loc
+    cdef int ii, jj, mat, nn, og, ig, nn_q, og_q
+    cdef int directions = info.angles * info.angles
 
     # Initialize angular flux center estimates
     cdef double psi, dpsi_x, dpsi_y
@@ -269,32 +271,36 @@ cdef void _time_source_star_cn(double[:,:,:,:]& psi_x, double[:,:,:,:]& psi_y, \
     q_star[:,:,:,:] = 0.0
 
     # Iterate over all cells, angles, and groups
-    for ii in range(info.cells_x):
-        for jj in range(info.cells_y):
-            mat = medium_map[ii,jj]
-            for nn in range(info.angles * info.angles):
-                nn_q = 0 if external.shape[2] == 1 else nn
+    for nn in prange(directions, nogil=True):
+        nn_q = 0 if external.shape[2] == 1 else nn
+
+        for ii in range(info.cells_x):
+            for jj in range(info.cells_y):
+        
+                mat = medium_map[ii,jj]                
+        
                 for og in range(info.groups):
                     og_q = 0 if external.shape[3] == 1 else og
+                    
                     # Calculate angular flux center
                     psi = 0.25 * (psi_x[ii,jj,nn,og] + psi_x[ii+1,jj,nn,og] \
                                + psi_y[ii,jj,nn,og] + psi_y[ii,jj+1,nn,og])
+                    
                     # Calculate cell flux derivative
                     dpsi_x = (psi_x[ii+1,jj,nn,og] - psi_x[ii,jj,nn,og]) / delta_x[ii]
                     dpsi_y = (psi_y[ii,jj+1,nn,og] - psi_y[ii,jj,nn,og]) / delta_y[jj]
                     # loc = og + info.groups * (nn + info.angles * info.angles \
                     #     * (jj + ii * info.cells_y))
+                    
                     # Add scalar term
                     for ig in range(info.groups):
                         q_star[ii,jj,nn,og] += phi[ii,jj,ig] * xs_scatter[mat,og,ig]
 
                     # Add angular terms
                     q_star[ii,jj,nn,og] += external[ii,jj,nn_q,og_q] \
-                                        - angle_x[nn] * dpsi_x \
-                                        - angle_y[nn] * dpsi_y \
-                                        + psi * (constant / (velocity[og] * info.dt) \
-                                        - xs_total[mat,og]) \
-                                        + external_prev[ii,jj,nn_q,og_q]
+                            - angle_x[nn] * dpsi_x - angle_y[nn] * dpsi_y \
+                            + psi * (constant / (velocity[og] * info.dt) \
+                            - xs_total[mat,og]) + external_prev[ii,jj,nn_q,og_q]
 
 
 cdef void _time_source_star_bdf2(double[:,:,:,:]& flux_1, \
@@ -303,14 +309,19 @@ cdef void _time_source_star_bdf2(double[:,:,:,:]& flux_1, \
     # Combining the source (I x N x G) with the angular flux (I x N x G)
     # flux_1 is time step \ell - 1, flux_2 is time step \ell - 2
     # Initialize iterables
-    cdef int ii, jj, nn, gg, nn_q, gg_q #, loc
+    cdef int ii, jj, nn, gg, nn_q, gg_q
+    cdef int directions = info.angles * info.angles
+
     # Zero out previous values
     q_star[:,:,:,:] = 0.0
+
     # Iterate over all cells, angles, and groups
-    for gg in range(info.groups):
-        gg_q = 0 if external.shape[3] == 1 else gg
-        for nn in range(info.angles * info.angles):
-            nn_q = 0 if external.shape[2] == 1 else nn
+    for nn in prange(directions, nogil=True):
+        nn_q = 0 if external.shape[2] == 1 else nn
+
+        for gg in range(info.groups):
+            gg_q = 0 if external.shape[3] == 1 else gg
+
             for ii in range(info.cells_x):
                 for jj in range(info.cells_y):
                     # loc = gg + info.groups * (nn + info.angles * info.angles \
@@ -329,21 +340,29 @@ cdef void _time_source_star_tr_bdf2(double[:,:,:,:]& psi_x, \
     
     # Initialize iterables
     cdef int ii, jj, nn, gg, nn_q, gg_q
+    cdef int directions = info.angles * info.angles
+
     # Initialize angular flux center
     cdef double psi
+
     # Zero out previous values
     q_star[:,:,:,:] = 0.0
+
     # Iterate over all cells, angles, and groups
-    for gg in range(info.groups):
-        gg_q = 0 if external.shape[3] == 1 else gg
-        for nn in range(info.angles * info.angles):
-            nn_q = 0 if external.shape[2] == 1 else nn
+    for nn in prange(directions, nogil=True):
+        nn_q = 0 if external.shape[2] == 1 else nn
+
+        for gg in range(info.groups):
+            gg_q = 0 if external.shape[3] == 1 else gg
+
             for ii in range(info.cells_x):
                 for jj in range(info.cells_y):
                     # loc = gg + info.groups * (nn + info.angles * info.angles \
                     #         * (jj + ii * info.cells_y))
+
                     psi = 0.25 * (psi_x[ii,jj,nn,gg] + psi_x[ii+1,jj,nn,gg] \
                                + psi_y[ii,jj,nn,gg] + psi_y[ii,jj+1,nn,gg])
+
                     q_star[ii,jj,nn,gg] = external[ii,jj,nn_q,gg_q] \
                             + flux_2[ii,jj,nn,gg] * 1 / (gamma * (1 - gamma) \
                                 * velocity[gg] * info.dt) \
