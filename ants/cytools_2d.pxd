@@ -59,11 +59,15 @@ cdef void _angular_to_scalar(double[:,:,:,:]& angular_flux, \
 cdef void _angular_edge_to_scalar(double[:,:,:,:]& psi_x, double[:,:,:,:]& psi_y, \
         double[:,:,:]& scalar_flux, double[:]& angle_w, params info)
 
-cdef void _initialize_edge_y(double[:]& known_y, double[:,:]& boundary_y, \
-        double[:]& angle_y, double[:]& angle_x, int nn, params info)
+cdef void initialize_known_y(double[:]& known_y, double[:,:]& boundary_y, \
+        double[:,:,:]& reflected_y, double[:]& angle_y, int angle, params info)
 
-cdef void _initialize_edge_x(double[:]& known_x, double[:,:]& boundary_x, \
-        double[:]& angle_x, double[:]& angle_y, int nn, params info)
+cdef void initialize_known_x(double[:]& known_x, double[:,:]& boundary_x, \
+        double[:,:,:]& reflected_x, double[:]& angle_x, int angle, params info)
+
+cdef void update_reflector(double[:]& known_x, double[:,:,:]& reflected_x, \
+        double[:]& angle_x, double[:]& known_y, double[:,:,:]& reflected_y, \
+        double[:]& angle_y, int angle, params info)
 
 ########################################################################
 # Time Dependent functions

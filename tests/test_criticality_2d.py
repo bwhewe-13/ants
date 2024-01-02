@@ -20,64 +20,100 @@ PATH = "data/weight_matrix_2d/"
 
 @pytest.mark.slab2d
 @pytest.mark.power_iteration
-@pytest.mark.parametrize(("finite", "spatial"), [("x", "step"), \
-                         ("x", "diamond"), ("y", "step"), ("y", "diamond")])
-def test_one_group_infinite(finite, spatial):
+@pytest.mark.parametrize(("bc_x"), [[0, 0], [0, 1], [1, 0]])
+def test_one_group_infinite_x(bc_x):
     # Material Parameters
-    if finite == "x":
-        cells_x = 100; length_x = 1.853722 * 2
-        cells_y = 10; length_y = 1000 * 2 
-    else:
-        cells_y = 100; length_y = 1.853722 * 2
-        cells_x = 10; length_x = 1000 * 2
+    cells_x = 100
+    cells_y = 10
     angles = 12
     groups = 1
+
     # Spatial discretization
-    ss = 1 if spatial == "step" else 2
+    length_x = 1.853722 * 2 if bc_x == [0, 0] else 1.853722
     delta_x = np.repeat(length_x / cells_x, cells_x)
+    length_y = 2000
     delta_y = np.repeat(length_y / cells_y, cells_y)
-    medium_map = np.zeros((cells_x, cells_y), dtype=np.int32)
-    # Boundary Conditions
-    bc_x = [0, 0]
     bc_y = [0, 0]
+
+    medium_map = np.zeros((cells_x, cells_y), dtype=np.int32)
+
     # Cross Sections
     xs_total = np.array([[0.32640]])
     xs_scatter = np.array([[[0.225216]]])
     xs_fission = np.array([[[3.24*0.0816]]])
     # Collect problem dictionary
     info = {"cells_x": cells_x, "cells_y": cells_y, "angles": angles, \
-            "groups": groups, "materials": 1, "geometry": 1, "spatial": ss, \
+            "groups": groups, "materials": 1, "geometry": 1, "spatial": 2, \
             "bc_x": bc_x, "bc_y": bc_y}
+
     # Collect angles
     angle_x, angle_y, angle_w = ants.angular_xy(info)
+
+    # Run transport equation
     flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
                        delta_x, delta_y, angle_x, angle_y, angle_w, info)
+
+    assert abs(keff - 1) < 2e-3, "k-effective: " + str(keff)
+
+
+@pytest.mark.slab2d
+@pytest.mark.power_iteration
+@pytest.mark.parametrize(("bc_y"), [[0, 0], [0, 1], [1, 0]])
+def test_one_group_infinite_x(bc_y):
+    # Material Parameters
+    cells_x = 10
+    cells_y = 100
+    angles = 12
+    groups = 1
+
+    # Spatial discretization
+    length_y = 1.853722 * 2 if bc_y == [0, 0] else 1.853722
+    delta_y = np.repeat(length_y / cells_y, cells_y)
+    length_x = 2000
+    delta_x = np.repeat(length_x / cells_x, cells_x)
+    bc_x = [0, 0]
+
+    medium_map = np.zeros((cells_x, cells_y), dtype=np.int32)
+
+    # Cross Sections
+    xs_total = np.array([[0.32640]])
+    xs_scatter = np.array([[[0.225216]]])
+    xs_fission = np.array([[[3.24*0.0816]]])
+    # Collect problem dictionary
+    info = {"cells_x": cells_x, "cells_y": cells_y, "angles": angles, \
+            "groups": groups, "materials": 1, "geometry": 1, "spatial": 2, \
+            "bc_x": bc_x, "bc_y": bc_y}
+
+    # Collect angles
+    angle_x, angle_y, angle_w = ants.angular_xy(info)
+
+    # Run transport equation
+    flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
+                       delta_x, delta_y, angle_x, angle_y, angle_w, info)
+
     assert abs(keff - 1) < 2e-3, "k-effective: " + str(keff)
 
 
 @pytest.mark.smoke
 @pytest.mark.slab2d
 @pytest.mark.power_iteration
-@pytest.mark.parametrize(("finite", "spatial"), [("x", "step"), \
-                         ("x", "diamond"), ("y", "step"), ("y", "diamond")])
-def test_two_group_infinite(finite, spatial):
+@pytest.mark.parametrize(("bc_x"), [[0, 0], [0, 1], [1, 0]])
+def test_two_group_infinite_x(bc_x):
     # Material Parameters
-    if finite == "x":
-        cells_x = 100; length_x = 1.795602 * 2
-        cells_y = 10; length_y = 2000
-    else:
-        cells_y = 100; length_y = 1.795602 * 2
-        cells_x = 10; length_x = 2000
+    cells_x = 100
+    cells_y = 10
+    angles = 10
     groups = 2
-    angles = 10        
+
     # Spatial discretization
-    ss = 1 if spatial == "step" else 2
+    length_x = 1.795602 * 2 if bc_x == [0, 0] else 1.795602
     delta_x = np.repeat(length_x / cells_x, cells_x)
+    length_y = 2000
     delta_y = np.repeat(length_y / cells_y, cells_y)
-    medium_map = np.zeros((cells_x, cells_y), dtype=np.int32)
-    # Boundary Conditions
-    bc_x = [0, 0]
     bc_y = [0, 0]
+    
+    medium_map = np.zeros((cells_x, cells_y), dtype=np.int32)
+
     # Cross Sections
     chi = np.array([[0.425], [0.575]])
     nu = np.array([[2.93, 3.10]])
@@ -88,14 +124,65 @@ def test_two_group_infinite(finite, spatial):
     xs_total = np.array([total])
     xs_scatter = np.array([scatter.T])
     xs_fission = np.array([fission])
+    
     # Collect problem dictionary
     info = {"cells_x": cells_x, "cells_y": cells_y, "angles": angles, \
-            "groups": groups, "materials": 1, "geometry": 1, "spatial": ss, \
+            "groups": groups, "materials": 1, "geometry": 1, "spatial": 2, \
             "bc_x": bc_x, "bc_y": bc_y}
+        
     # Collect angles
     angle_x, angle_y, angle_w = ants.angular_xy(info)
+
+    # Run transport problem
     flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
                        delta_x, delta_y, angle_x, angle_y, angle_w, info)
+    
+    assert abs(keff - 1) < 5e-3, "k-effective: " + str(keff)
+
+
+# @pytest.mark.smoke
+@pytest.mark.slab2d
+@pytest.mark.power_iteration
+@pytest.mark.parametrize(("bc_y"), [[0, 0], [0, 1], [1, 0]])
+def test_two_group_infinite_y(bc_y):
+    # Material Parameters
+    cells_x = 10
+    cells_y = 100
+    angles = 10
+    groups = 2
+
+    # Spatial discretization
+    length_y = 1.795602 * 2 if bc_y == [0, 0] else 1.795602
+    delta_y = np.repeat(length_y / cells_y, cells_y)
+    length_x = 2000
+    delta_x = np.repeat(length_x / cells_x, cells_x)
+    bc_x = [0, 0]
+    
+    medium_map = np.zeros((cells_x, cells_y), dtype=np.int32)
+
+    # Cross Sections
+    chi = np.array([[0.425], [0.575]])
+    nu = np.array([[2.93, 3.10]])
+    sigmaf = np.array([[0.08544, 0.0936]])
+    fission = np.array(chi @ (nu * sigmaf))
+    total = np.array([0.3360,0.2208])
+    scatter = np.array([[0.23616, 0.0],[0.0432, 0.0792]])
+    xs_total = np.array([total])
+    xs_scatter = np.array([scatter.T])
+    xs_fission = np.array([fission])
+    
+    # Collect problem dictionary
+    info = {"cells_x": cells_x, "cells_y": cells_y, "angles": angles, \
+            "groups": groups, "materials": 1, "geometry": 1, "spatial": 2, \
+            "bc_x": bc_x, "bc_y": bc_y}
+    
+    # Collect angles
+    angle_x, angle_y, angle_w = ants.angular_xy(info)
+
+    # Run transport problem
+    flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
+                       delta_x, delta_y, angle_x, angle_y, angle_w, info)
+    
     assert abs(keff - 1) < 5e-3, "k-effective: " + str(keff)
 
 
@@ -145,7 +232,7 @@ def test_two_group_twigl():
     # Collect problem dictionary
     info = {"cells_x": cells_x, "cells_y": cells_y, "angles": angles, \
             "groups": groups, "materials": 3, "geometry": 1, "spatial": 2, \
-            "qdim": 2, "bc_x": bc_x, "bcdim_x": 1, "bc_y": bc_y, "bcdim_y": 1}
+            "bc_x": bc_x, "bc_y": bc_y}
     # Collect angles
     angle_x, angle_y, angle_w = ants.angular_xy(info)
     flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
@@ -158,22 +245,28 @@ def test_two_group_twigl():
 @pytest.mark.power_iteration
 def test_cylinder_two_material():
     # Material Parameters
-    cells_x = cells_y = 50
+    cells_x = 50
+    cells_y = 50
     angles = 6
     groups = 1
+    
     # Spatial layout
     radius = 4.279960
     coordinates = [(radius, radius), [radius]]
+    
     # Inscribed inside circle
     length_x = length_y = 2 * radius
+    
     # Spatial Dimensions
     delta_x = np.repeat(length_x / cells_x, cells_x)
     delta_y = np.repeat(length_y / cells_y, cells_y)
     edges_x = np.linspace(0, length_x, cells_x + 1)
     edges_y = np.linspace(0, length_y, cells_y + 1)
+    
     # Boundary Conditions
     bc_x = [0, 0]
     bc_y = [0, 0]
+    
     # Cross Sections
     xs_total = np.array([[0.32640], [0.0]])
     xs_scatter = np.array([[[0.225216]], [[0.0]]])
@@ -187,12 +280,132 @@ def test_cylinder_two_material():
     # Collect problem dictionary
     info = {"cells_x": cells_x, "cells_y": cells_y, "angles": angles, \
             "groups": groups, "materials": len(xs_total), "geometry": 1, \
-            "spatial": 2, "qdim": 2, "bc_x": bc_x, "bcdim_x": 1, \
-            "bc_y": bc_y, "bcdim_y": 1}
+            "spatial": 2, "bc_x": bc_x, "bc_y": bc_y}
     # Collect angles
     angle_x, angle_y, angle_w = ants.angular_xy(info) 
+    
+    # Run transport problem
     flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
                        delta_x, delta_y, angle_x, angle_y, angle_w, info)
+    
+    assert abs(keff - 1) < 2e-3, "k-effective: " + str(keff)
+
+@pytest.mark.smoke
+@pytest.mark.cylinder2d
+@pytest.mark.power_iteration
+@pytest.mark.parametrize(("bc_x", "bc_y"), [([0, 0], [0, 1]), ([0, 0], [1, 0]), 
+                                            ([0, 1], [0, 0]), ([1, 0], [0, 0])])
+def test_cylinder_two_material_half(bc_x, bc_y):
+    # Material Parameters
+    cells_x = 50 if bc_x == [0, 0] else 25
+    cells_y = 50 if bc_y == [0, 0] else 25
+    angles = 6
+    groups = 1
+    # Spatial layout
+    radius = 4.279960
+    coordinates = [(radius, radius), [radius]]
+    # Inscribed inside circle
+    length_x = 2 * radius if bc_x == [0, 0] else radius
+    length_y = 2 * radius if bc_y == [0, 0] else radius
+    
+    # Spatial Dimensions
+    delta_x = np.repeat(length_x / cells_x, cells_x)
+    delta_y = np.repeat(length_y / cells_y, cells_y)
+    edges_x = np.linspace(0, length_x, cells_x + 1)
+    edges_y = np.linspace(0, length_y, cells_y + 1)
+
+    # Cross Sections
+    xs_total = np.array([[0.32640], [0.0]])
+    xs_scatter = np.array([[[0.225216]], [[0.0]]])
+    xs_fission = np.array([[[2.84*0.0816]], [[0.0]]])
+    
+    # Update cross sections for cylinder
+    # weight_matrix = ants.weight_cylinder2d(coordinates, edges_x, edges_y, N=250_000)
+    # np.save(PATH + "cylinder_two_material", weight_matrix)
+    weight_matrix = np.load(PATH + "cylinder_two_material.npy")
+    if bc_x == [0, 1]:
+        weight_matrix = weight_matrix[:25,:,:].copy()
+    elif bc_x == [1, 0]:
+        weight_matrix = weight_matrix[25:,:,:].copy()
+    elif bc_y == [0, 1]:
+        weight_matrix = weight_matrix[:,:25,:].copy()
+    elif bc_y == [1, 0]:
+        weight_matrix = weight_matrix[:,25:,:].copy()
+
+    medium_map, xs_total, xs_scatter, xs_fission \
+        = ants.weight_spatial2d(weight_matrix, xs_total, xs_scatter, xs_fission)
+    # Collect problem dictionary
+    info = {"cells_x": cells_x, "cells_y": cells_y, "angles": angles, \
+            "groups": groups, "materials": len(xs_total), "geometry": 1, \
+            "spatial": 2, "bc_x": bc_x, "bc_y": bc_y}
+    
+    # Collect angles
+    angle_x, angle_y, angle_w = ants.angular_xy(info) 
+    
+    # Run transport problem
+    flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
+                       delta_x, delta_y, angle_x, angle_y, angle_w, info)
+
+    assert abs(keff - 1) < 2e-3, "k-effective: " + str(keff)
+
+
+
+@pytest.mark.smoke
+@pytest.mark.cylinder2d
+@pytest.mark.power_iteration
+@pytest.mark.parametrize(("bc_x", "bc_y"), [([0, 1], [0, 1]), ([1, 0], [0, 1]), 
+                                            ([0, 1], [1, 0]), ([1, 0], [1, 0])])
+def test_cylinder_two_material_quarter(bc_x, bc_y):
+    # Material Parameters
+    cells_x = 25
+    cells_y = 25
+    angles = 6
+    groups = 1
+    # Spatial layout
+    radius = 4.279960
+    coordinates = [(radius, radius), [radius]]
+    # Inscribed inside circle
+    length_x = radius
+    length_y = radius
+    
+    # Spatial Dimensions
+    delta_x = np.repeat(length_x / cells_x, cells_x)
+    delta_y = np.repeat(length_y / cells_y, cells_y)
+    edges_x = np.linspace(0, length_x, cells_x + 1)
+    edges_y = np.linspace(0, length_y, cells_y + 1)
+
+    # Cross Sections
+    xs_total = np.array([[0.32640], [0.0]])
+    xs_scatter = np.array([[[0.225216]], [[0.0]]])
+    xs_fission = np.array([[[2.84*0.0816]], [[0.0]]])
+    
+    # Update cross sections for cylinder
+    # weight_matrix = ants.weight_cylinder2d(coordinates, edges_x, edges_y, N=250_000)
+    # np.save(PATH + "cylinder_two_material", weight_matrix)
+    weight_matrix = np.load(PATH + "cylinder_two_material.npy")
+    if bc_x == [0, 1]:
+        weight_matrix = weight_matrix[:25,:,:].copy()
+    elif bc_x == [1, 0]:
+        weight_matrix = weight_matrix[25:,:,:].copy()
+    if bc_y == [0, 1]:
+        weight_matrix = weight_matrix[:,:25,:].copy()
+    if bc_y == [1, 0]:
+        weight_matrix = weight_matrix[:,25:,:].copy()
+
+    medium_map, xs_total, xs_scatter, xs_fission \
+        = ants.weight_spatial2d(weight_matrix, xs_total, xs_scatter, xs_fission)
+    # Collect problem dictionary
+    info = {"cells_x": cells_x, "cells_y": cells_y, "angles": angles, \
+            "groups": groups, "materials": len(xs_total), "geometry": 1, \
+            "spatial": 2, "bc_x": bc_x, "bc_y": bc_y}
+    
+    # Collect angles
+    angle_x, angle_y, angle_w = ants.angular_xy(info) 
+    
+    # Run transport problem
+    flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
+                       delta_x, delta_y, angle_x, angle_y, angle_w, info)
+
     assert abs(keff - 1) < 2e-3, "k-effective: " + str(keff)
 
 
@@ -231,8 +444,7 @@ def test_cylinder_three_material(layer):
     # Collect problem dictionary
     info = {"cells_x": cells_x, "cells_y": cells_y, "angles": angles, \
             "groups": groups, "materials": len(xs_total), "geometry": 1, \
-            "spatial": 2, "qdim": 2, "bc_x": bc_x, "bcdim_x": 1, \
-            "bc_y": bc_y, "bcdim_y": 1}
+            "spatial": 2, "bc_x": bc_x, "bc_y": bc_y}
     # Collect angles
     angle_x, angle_y, angle_w = ants.angular_xy(info)    
     flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \

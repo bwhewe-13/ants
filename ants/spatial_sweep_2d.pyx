@@ -51,7 +51,9 @@ cdef void square_ordinates(double[:,:]& flux, double[:,:]& flux_old, \
 
     # Add reflector array
     known_y = tools.array_1d(info.cells_x)
+    reflected_y = tools.array_3d(2, info.cells_x, info.angles * info.angles)
     known_x = tools.array_1d(info.cells_y)
+    reflected_x = tools.array_3d(2, info.cells_y, info.angles * info.angles)
 
     # Set convergence limits
     cdef bint converged = False
@@ -70,18 +72,22 @@ cdef void square_ordinates(double[:,:]& flux, double[:,:]& flux_old, \
             # Determine dimensions of external and boundary sources
             qq = 0 if external.shape[2] == 1 else nn
             bcx = 0 if boundary_x.shape[2] == 1 else nn
-            bcy = 0 if boundary_y.shape[2] == 1 else nn
+            bcy = 0 if boundary_y.shape[2] == 1 else nn        
 
             # Initialize known x and y
-            tools._initialize_edge_y(known_y, boundary_y[:,:,bcy], \
-                                     angle_y, angle_x, nn, info)
-            tools._initialize_edge_x(known_x, boundary_x[:,:,bcx], \
-                                     angle_x, angle_y, nn, info)
+            tools.initialize_known_y(known_y, boundary_y[:,:,bcy], \
+                                     reflected_y, angle_y, nn, info)
+            tools.initialize_known_x(known_x, boundary_x[:,:,bcx], \
+                                     reflected_x, angle_x, nn, info)
 
             # Perform spatial sweep
             square_sweep(flux, flux_old, xs_total, xs_scatter, off_scatter, \
                     external[:,:,qq], known_x, known_y, medium_map, delta_x, \
                     delta_y, angle_x[nn], angle_y[nn], angle_w[nn], info)
+
+            # Save known_x, known_y into reflected
+            tools.update_reflector(known_x, reflected_x, angle_x, known_y, \
+                                   reflected_y, angle_y, nn, info)
 
         # Check for convergence
         change = tools.angle_convergence(flux, flux_old, info)
@@ -283,7 +289,9 @@ cdef void _known_square(double[:,:,:]& flux, double[:]& xs_total, \
 
     # Add reflector array
     known_y = tools.array_1d(info.cells_x)
+    reflected_y = tools.array_3d(2, info.cells_x, info.angles * info.angles)
     known_x = tools.array_1d(info.cells_y)
+    reflected_x = tools.array_3d(2, info.cells_y, info.angles * info.angles)
 
     # Add zero placeholder
     zero_1d = tools.array_1d(info.materials)
@@ -297,10 +305,11 @@ cdef void _known_square(double[:,:,:]& flux, double[:]& xs_total, \
         bcy = 0 if boundary_y.shape[2] == 1 else nn
 
         # Initialize known x and y
-        tools._initialize_edge_y(known_y, boundary_y[:,:,bcy], \
-                                 angle_y, angle_x, nn, info)
-        tools._initialize_edge_x(known_x, boundary_x[:,:,bcx], \
-                                 angle_x, angle_y, nn, info)
+        tools.initialize_known_y(known_y, boundary_y[:,:,bcy], \
+                                 reflected_y, angle_y, nn, info)
+        tools.initialize_known_x(known_x, boundary_x[:,:,bcx], \
+                                 reflected_x, angle_x, nn, info)
+
         if (xdim == 1):
             # Perform spatial sweep - scalar flux
             square_sweep(flux[:,:,0], zero_2d, xs_total, zero_1d, zero_2d, \
@@ -311,6 +320,10 @@ cdef void _known_square(double[:,:,:]& flux, double[:]& xs_total, \
             square_sweep(flux[:,:,nn], zero_2d, xs_total, zero_1d, zero_2d, \
                 source[:,:,qq], known_x, known_y, medium_map, delta_x, \
                 delta_y, angle_x[nn], angle_y[nn], 1.0, info)
+
+        # Save known_x, known_y into reflected
+        tools.update_reflector(known_x, reflected_x, angle_x, known_y, \
+                               reflected_y, angle_y, nn, info)
 
 
 cdef void _known_interface_sweep(double[:,:,:]& flux_edge_x, \
@@ -328,7 +341,9 @@ cdef void _known_interface_sweep(double[:,:,:]& flux_edge_x, \
 
     # Add reflector array
     known_y = tools.array_1d(info.cells_x)
+    reflected_y = tools.array_3d(2, info.cells_x, info.angles * info.angles)
     known_x = tools.array_1d(info.cells_y)
+    reflected_x = tools.array_3d(2, info.cells_y, info.angles * info.angles)
 
     # Iterate over angles
     for nn in range(info.angles * info.angles):
@@ -339,10 +354,10 @@ cdef void _known_interface_sweep(double[:,:,:]& flux_edge_x, \
         bcy = 0 if boundary_y.shape[2] == 1 else nn
         
         # Initialize known x and y
-        tools._initialize_edge_y(known_y, boundary_y[:,:,bcy], \
-                                 angle_y, angle_x, nn, info)
-        tools._initialize_edge_x(known_x, boundary_x[:,:,bcx], \
-                                 angle_x, angle_y, nn, info)
+        tools.initialize_known_y(known_y, boundary_y[:,:,bcy], \
+                                 reflected_y, angle_y, nn, info)
+        tools.initialize_known_x(known_x, boundary_x[:,:,bcx], \
+                                 reflected_x, angle_x, nn, info)
 
         if (xdim == 1):
             # Perform spatial sweep - scalar flux
@@ -354,6 +369,10 @@ cdef void _known_interface_sweep(double[:,:,:]& flux_edge_x, \
             interface_sweep(flux_edge_x[:,:,nn], flux_edge_y[:,:,nn], \
                     xs_total, source[:,:,qq], known_x, known_y, medium_map, \
                     delta_x, delta_y, angle_x[nn], angle_y[nn], 1.0, info)
+
+        # Save known_x, known_y into reflected
+        tools.update_reflector(known_x, reflected_x, angle_x, known_y, \
+                               reflected_y, angle_y, nn, info)
 
 
 cdef void interface_sweep(double[:,:]& flux_edge_x, double[:,:]& flux_edge_y, \

@@ -48,6 +48,18 @@ def angular_xy(info):
         angles = info["angles"]
         bc_x = info["bc_x"]
         bc_y = info["bc_y"]
+    # Get angles and weights from product quadrature
+    angle_x, angle_y, angle_z, angle_w = _product_quadrature(angles)
+    # Take only positive angle_z values
+    angle_x = angle_x[angle_z > 0].copy()
+    angle_y = angle_y[angle_z > 0].copy()
+    angle_w = angle_w[angle_z > 0] / np.sum(angle_w[angle_z > 0])
+    # Order the angles for boundary conditions and return angle_x, angle_y, angle_w
+    return _ordering_angles_xy(angle_x, angle_y, angle_w, bc_x, bc_y)
+    # return angle_x, angle_y, angle_w
+
+
+def _product_quadrature(angles):
     # eta, xi, mu: direction cosines (x,y,z) 
     xx, wx = np.polynomial.legendre.leggauss(angles)
     yy, wy = np.polynomial.chebyshev.chebgauss(angles)
@@ -67,32 +79,35 @@ def angular_xy(info):
             angle_y[idx+1] = np.sqrt(1 - xx[ii]**2) * np.sin(-np.arccos(yy[jj]))
             angle_w[idx:idx+2] = wx[ii] * wy[jj]
             idx += 2
-    # Take only positive angle_z values
-    angle_x = angle_x[angle_z > 0].copy()
-    angle_y = angle_y[angle_z > 0].copy()
-    angle_w = angle_w[angle_z > 0] / np.sum(angle_w[angle_z > 0])
-    # Order for reflected surfaces and return
-    return _ordering_angles_xy(angle_x, angle_y, angle_w, bc_x, bc_y)
+    # Round for reflecting angles
+    angle_x = np.round(angle_x, 12)
+    angle_y = np.round(angle_y, 12)
+    angle_z = np.round(angle_z, 12)
+    angle_w = np.round(angle_w, 12)
+    # Return all angles
+    return angle_x, angle_y, angle_z, angle_w
 
 
 def _ordering_angles_xy(angle_x, angle_y, angle_w, bc_x, bc_y):
     # Get number of discrete ordinates
     angles = int(np.sqrt(angle_x.shape[0]))
     # Get only positive angles
-    matrix = np.fabs(np.round(np.vstack((angle_x, angle_y, angle_w)), 12))
+    matrix = np.fabs(np.vstack((angle_x, angle_y, angle_w)))
     # Get unique combinations and convert to size N**2
     matrix = np.repeat(np.unique(matrix, axis=1), 4, axis=1)
     # signs for [angle_x, angle_y, angle_w]
     directions = np.array([[1, -1, 1, -1], [1, 1, -1, -1], [1, 1, 1, 1]])
     # Only one reflected surface
-    if (bc_x == [0, 0] or bc_x == [0, 1]) and bc_y == [0, 0]:
-        idx = [0, 1, 2, 3]
-    elif bc_x == [0, 0] and bc_y == [1, 0]:
+    # if (bc_x == [0, 0] or bc_x == [0, 1]) and bc_y == [0, 0]:
+    #     idx = [0, 1, 2, 3]
+    if bc_x == [0, 0] and bc_y == [1, 0]:
         idx = [2, 0, 3, 1]
     elif bc_x == [0, 0] and bc_y == [0, 1]:
         idx = [0, 2, 1, 3]
     elif bc_x == [1, 0] and bc_y == [0, 0]:
         idx = [1, 0, 3, 2]
+    else:
+        idx = [0, 1, 2, 3]
     directions = np.tile(directions[:,idx], int(angles**2 / 4))
     return matrix * directions
 

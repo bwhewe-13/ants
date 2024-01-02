@@ -175,38 +175,74 @@ cdef void _angular_edge_to_scalar(double[:,:,:,:]& psi_x, double[:,:,:,:]& psi_y
                             + psi_y[ii,jj,nn,gg] + psi_y[ii,jj+1,nn,gg])
 
 
-cdef void _initialize_edge_y(double[:]& known_y, double[:,:]& boundary_y, \
-        double[:]& angle_y, double[:]& angle_x, int nn, params info):
-    # This is for adding boundary conditions to known edge x
+cdef void initialize_known_y(double[:]& known_y, double[:,:]& boundary_y, \
+        double[:,:,:]& reflected_y, double[:]& angle_y, int angle, params info):
     # Initialize location
-    cdef int loc, width
-    # Keep flux from previous
-    if (angle_y[nn] == -angle_y[nn-1]) and (angle_x[nn] == angle_x[nn-1]) \
-            and (nn > 0) and (((angle_y[nn] > 0.0) and (info.bc_y[0] == 1)) \
-            or ((angle_y[nn] < 0.0) and (info.bc_y[1] == 1))):
-        return
+    cdef int loc
     # Zero out flux
     known_y[:] = 0.0
-    # Pick left / right location
-    loc = 0 if angle_y[nn] > 0.0 else 1
-    known_y[:] = boundary_y[loc,:]
+    # Update with reflected array
+    if (info.bc_y[0] == 1) and (angle_y[angle] > 0.0):
+        known_y[...] = reflected_y[0,:,angle]
+    elif (info.bc_y[1] == 1) and (angle_y[angle] < 0.0):
+        known_y[...] = reflected_y[1,:,angle]
+    else:
+        # Pick left / right location
+        loc = 0 if angle_y[angle] > 0.0 else 1
+        known_y[...] = boundary_y[loc,:]
 
 
-cdef void _initialize_edge_x(double[:]& known_x, double[:,:]& boundary_x, \
-        double[:]& angle_x, double[:]& angle_y, int nn, params info):
-    # This is for adding boundary conditions to known edge x
+cdef void initialize_known_x(double[:]& known_x, double[:,:]& boundary_x, \
+        double[:,:,:]& reflected_x, double[:]& angle_x, int angle, params info):
     # Initialize location
-    cdef int loc, width
-    # Keep flux from previous
-    if (angle_x[nn] == -angle_x[nn-1]) and (angle_y[nn] == angle_y[nn-1]) \
-            and (nn > 0) and (((angle_x[nn] > 0.0) and (info.bc_x[0] == 1)) \
-            or ((angle_x[nn] < 0.0) and (info.bc_x[1] == 1))):
-        return
+    cdef int loc
     # Zero out flux
     known_x[:] = 0.0
-    # Pick left / right location
-    loc = 0 if angle_x[nn] > 0.0 else 1
-    known_x[:] = boundary_x[loc,:]
+    # Update with reflected array
+    if (info.bc_x[0] == 1) and (angle_x[angle] > 0.0):
+        known_x[...] = reflected_x[0,:,angle]
+    elif (info.bc_x[1] == 1) and (angle_x[angle] < 0.0):
+        known_x[...] = reflected_x[1,:,angle]
+    else:
+        # Pick left / right location
+        loc = 0 if angle_x[angle] > 0.0 else 1
+        known_x[...] = boundary_x[loc,:]
+
+
+cdef void update_reflector(double[:]& known_x, double[:,:,:]& reflected_x, \
+        double[:]& angle_x, double[:]& known_y, double[:,:,:]& reflected_y, \
+        double[:]& angle_y, int angle, params info):
+    # Initialize iterables
+    cdef int opp_idx
+    # Return nothing for 4 vacuum boundaries
+    if (info.bc_x == [0, 0]) and (info.bc_y == [0, 0]):
+        return
+    # Update reflected_x
+    if (angle_x[angle] > 0.0) and (info.bc_x[1] == 1):
+        opp_idx = _reflected_index(angle_x, angle_y, angle, info)
+        reflected_x[1,:,opp_idx] = known_x[:]
+    elif (angle_x[angle] < 0.0) and (info.bc_x[0] == 1):
+        opp_idx = _reflected_index(angle_x, angle_y, angle, info)
+        reflected_x[0,:,opp_idx] = known_x[:]
+    # Update reflected_y
+    if (angle_y[angle] > 0.0) and (info.bc_y[1] == 1):
+        opp_idx = _reflected_index(angle_y, angle_x, angle, info)
+        reflected_y[1,:,opp_idx] = known_y[:]
+    elif (angle_y[angle] < 0.0) and (info.bc_y[0] == 1):
+        opp_idx = _reflected_index(angle_y, angle_x, angle, info)
+        reflected_y[0,:,opp_idx] = known_y[:]
+
+
+cdef int _reflected_index(double[:]& angle_opp, double[:]& angle_sim, \
+        int angle, params info):
+    # Initialize iterable
+    cdef int nn
+    for nn in range(info.angles * info.angles):
+        if (angle_opp[nn] == -angle_opp[angle]) \
+                and (angle_sim[nn] == angle_sim[angle]):
+            return nn
+    # Returns error
+    return -1
 
 
 ########################################################################
@@ -520,7 +556,6 @@ cdef void _hybrid_source_collided(double[:,:,:]& flux, double[:,:,:]& xs_scatter
                 for ig in range(info_u.groups):
                     source_c[ii,jj,0,index_c[og]] += flux[ii,jj,ig] \
                                                     * xs_scatter[mat,og,ig]
-                    
 
 
 cdef void _hybrid_source_total(double[:,:,:]& flux_t, double[:,:,:]& flux_u, \
