@@ -33,7 +33,7 @@ centers_y = 0.5 * (edges_y[1:] + edges_y[:-1])
 
 bc = [0, 0]
 
-params = {
+info = {
             "cells_x": cells_x,
             "cells_y": cells_y,
             "angles": angles, 

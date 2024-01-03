@@ -446,7 +446,7 @@ def test_cylinder_three_material(layer):
             "groups": groups, "materials": len(xs_total), "geometry": 1, \
             "spatial": 2, "bc_x": bc_x, "bc_y": bc_y}
     # Collect angles
-    angle_x, angle_y, angle_w = ants.angular_xy(info)    
+    angle_x, angle_y, angle_w = ants.angular_xy(info)
     flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
                        delta_x, delta_y, angle_x, angle_y, angle_w, info)
     assert abs(keff - 1) < 2e-3, "k-effective: " + str(keff)

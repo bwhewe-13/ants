@@ -223,11 +223,11 @@ def spatial2d(medium_map, value, coordinates, edges_x, edges_y):
     # Iterate over coordinates
     for [(x1, y1), span_x, span_y] in coordinates:
         # Get starting locations
-        idx_x1 = np.argwhere(edges_x == x1)[0, 0]
-        idx_y1 = np.argwhere(edges_y == y1)[0, 0]
+        idx_x1 = np.argwhere(edges_x == np.round(x1, 12))[0, 0]
+        idx_y1 = np.argwhere(edges_y == np.round(y1, 12))[0, 0]
         # Get widths of rectangular cells
-        idx_x2 = np.argwhere(edges_x == x1 + span_x)[0, 0]
-        idx_y2 = np.argwhere(edges_y == y1 + span_y)[0, 0]
+        idx_x2 = np.argwhere(edges_x == np.round(x1 + span_x, 12))[0, 0]
+        idx_y2 = np.argwhere(edges_y == np.round(y1 + span_y, 12))[0, 0]
         # Populate with value
         medium_map[idx_x1:idx_x2, idx_y1:idx_y2] = value
     return medium_map
