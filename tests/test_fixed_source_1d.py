@@ -25,8 +25,10 @@ from tests import problems1d
 @pytest.mark.slab1d
 @pytest.mark.source_iteration
 @pytest.mark.parametrize(("angular", "spatial", "edges"), [(True, 1, 0), \
-                         (True, 1, 1), (True, 2, 0), (True, 2, 1), (False, 1, 0), \
-                         (False, 1, 1), (False, 2, 0), (False, 2, 1)])
+                         (True, 1, 1), (True, 2, 0), (True, 2, 1), \
+                         (True, 3, 0), (True, 3, 1), (False, 1, 0), \
+                         (False, 1, 1), (False, 2, 0), (False, 2, 1), \
+                         (False, 3, 0), (False, 3, 1)])
 def test_manufactured_01(angular, spatial, edges):
     xs_total, xs_scatter, xs_fission, external, boundary_x, medium_map, \
         delta_x, angle_x, angle_w, info, edges_x, centers_x \
@@ -48,8 +50,10 @@ def test_manufactured_01(angular, spatial, edges):
 @pytest.mark.slab1d
 @pytest.mark.source_iteration
 @pytest.mark.parametrize(("angular", "spatial", "edges"), [(True, 1, 0), \
-                         (True, 1, 1), (True, 2, 0), (True, 2, 1), (False, 1, 0), \
-                         (False, 1, 1), (False, 2, 0), (False, 2, 1)])
+                         (True, 1, 1), (True, 2, 0), (True, 2, 1), \
+                         (True, 3, 0), (True, 3, 1), (False, 1, 0), \
+                         (False, 1, 1), (False, 2, 0), (False, 2, 1), \
+                         (False, 3, 0), (False, 3, 1)])
 def test_manufactured_02(angular, spatial, edges):
     xs_total, xs_scatter, xs_fission, external, boundary_x, medium_map, \
         delta_x, angle_x, angle_w, info, edges_x, centers_x \
@@ -70,8 +74,10 @@ def test_manufactured_02(angular, spatial, edges):
 @pytest.mark.slab1d
 @pytest.mark.source_iteration
 @pytest.mark.parametrize(("angular", "spatial", "edges"), [(True, 1, 0), \
-                         (True, 1, 1), (True, 2, 0), (True, 2, 1), (False, 1, 0), \
-                         (False, 1, 1), (False, 2, 0), (False, 2, 1)])
+                         (True, 1, 1), (True, 2, 0), (True, 2, 1), \
+                         (True, 3, 0), (True, 3, 1), (False, 1, 0), \
+                         (False, 1, 1), (False, 2, 0), (False, 2, 1), \
+                         (False, 3, 0), (False, 3, 1)])
 def test_manufactured_03(angular, spatial, edges):
     xs_total, xs_scatter, xs_fission, external, boundary_x, medium_map, \
         delta_x, angle_x, angle_w, info, edges_x, centers_x \
@@ -92,8 +98,10 @@ def test_manufactured_03(angular, spatial, edges):
 @pytest.mark.slab1d
 @pytest.mark.source_iteration
 @pytest.mark.parametrize(("angular", "spatial", "edges"), [(True, 1, 0), \
-                         (True, 1, 1), (True, 2, 0), (True, 2, 1), (False, 1, 0), \
-                         (False, 1, 1), (False, 2, 0), (False, 2, 1)])
+                         (True, 1, 1), (True, 2, 0), (True, 2, 1), \
+                         (True, 3, 0), (True, 3, 1), (False, 1, 0), \
+                         (False, 1, 1), (False, 2, 0), (False, 2, 1), \
+                         (False, 3, 0), (False, 3, 1)])
 def test_manufactured_04(angular, spatial, edges):
     xs_total, xs_scatter, xs_fission, external, boundary_x, medium_map, \
         delta_x, angle_x, angle_w, info, edges_x, centers_x \
@@ -114,8 +122,10 @@ def test_manufactured_04(angular, spatial, edges):
 @pytest.mark.slab1d
 @pytest.mark.source_iteration
 @pytest.mark.parametrize(("angular", "spatial", "edges"), [(True, 1, 0), \
-                         (True, 1, 1), (True, 2, 0), (True, 2, 1), (False, 1, 0), \
-                         (False, 1, 1), (False, 2, 0), (False, 2, 1)])
+                         (True, 1, 1), (True, 2, 0), (True, 2, 1), \
+                         (True, 3, 0), (True, 3, 1), (False, 1, 0), \
+                         (False, 1, 1), (False, 2, 0), (False, 2, 1), \
+                         (False, 3, 0), (False, 3, 1)])
 def test_manufactured_05(angular, spatial, edges):
     xs_total, xs_scatter, xs_fission, external, boundary_x, medium_map, \
         delta_x, angle_x, angle_w, info, edges_x, centers_x \

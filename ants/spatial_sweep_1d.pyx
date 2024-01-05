@@ -18,7 +18,7 @@
 # cython: profile=True
 # distutils: language = c++
 
-from libc.math cimport pow, fabs
+from libc.math cimport pow, fabs, tanh
 # from cython.parallel import prange
 
 from ants cimport cytools_1d as tools
@@ -124,6 +124,14 @@ cdef double slab_sweep(double[:]& flux, double[:]& flux_old, double[:]& xs_total
                     external, edge1, medium_map, delta_x, angle_x, angle_w, info)
 
 
+cdef float spatial_coef(int spatial):
+    if (spatial == 1):
+        return 1.0
+    elif (spatial == 2):
+        return 0.0
+    return 0.0
+
+
 cdef double slab_forward(double[:]& flux, double[:]& flux_old, \
         double[:]& xs_total, double[:]& xs_scatter, double[:]& off_scatter, \
         double[:]& external, double edge1, int[:]& medium_map, \
@@ -133,8 +141,9 @@ cdef double slab_forward(double[:]& flux, double[:]& flux_old, \
     # Initialize unknown cell edge
     cdef double edge2 = 0.0
     # Initialize discretization constants
-    cdef float const1 = 0.0 if info.spatial == 1 else -0.5
-    cdef float const2 = 1.0 if info.spatial == 1 else 0.5
+    cdef double tau = 0.0
+    cdef float alpha1 = 0.5 * (1.0 - spatial_coef(info.spatial))
+    cdef float alpha2 = 0.5 * (1.0 + spatial_coef(info.spatial))
     # Determine flux edge
     if info.edges:
         flux[0] += angle_w * edge1
@@ -142,19 +151,20 @@ cdef double slab_forward(double[:]& flux, double[:]& flux_old, \
     for ii in range(info.cells_x):
         # For determining the material cross sections
         mat = medium_map[ii]
+        if info.spatial == 3:
+            tau = xs_total[mat] * delta_x[ii] / angle_x
+            alpha1 = 0.5 * (1.0 - (1.0 / tanh(0.5 * tau) - 2.0 / tau))
+            alpha2 = 0.5 * (1.0 + (1.0 / tanh(0.5 * tau) - 2.0 / tau))
         # Calculate cell edge unknown
         edge2 = (xs_scatter[mat] * flux_old[ii] + external[ii] + off_scatter[ii] \
-                + edge1 * (fabs(angle_x) / delta_x[ii] + const1 * xs_total[mat])) \
-                * 1 / (fabs(angle_x) / delta_x[ii] + const2 * xs_total[mat])
+                + edge1 * (fabs(angle_x) / delta_x[ii] - alpha1 * xs_total[mat])) \
+                * 1 / (fabs(angle_x) / delta_x[ii] + alpha2 * xs_total[mat])
         # Update flux with cell edges
         if info.edges:
             flux[ii+1] += angle_w * edge2
-        # Update flux with step method
-        elif info.spatial == 1:
-            flux[ii] += angle_w * edge2
-        # Update flux with diamond difference
-        elif info.spatial == 2:
-            flux[ii] += 0.5 * angle_w * (edge1 + edge2)
+        # Update flux with cell centers
+        else:
+            flux[ii] += angle_w * (alpha1 * edge1 + edge2 * alpha2)
         # Update unknown cell edge
         edge1 = edge2
     # Return cell at i = I
@@ -166,12 +176,13 @@ cdef double slab_backward(double[:]& flux, double[:]& flux_old, double[:]& xs_to
         double edge1, int[:]& medium_map, double[:]& delta_x, double angle_x, \
         double angle_w, params info):
     # Initialize cell and material iterables
-    cdef int ii, mat, shift
+    cdef int ii, mat
     # Initialize unknown cell edges
     cdef double edge2 = 0.0
     # Initialize discretization constants
-    cdef float const1 = 0.0 if info.spatial == 1 else -0.5
-    cdef float const2 = 1.0 if info.spatial == 1 else 0.5
+    cdef double tau = 0.0
+    cdef float alpha1 = 0.5 * (1.0 - spatial_coef(info.spatial))
+    cdef float alpha2 = 0.5 * (1.0 + spatial_coef(info.spatial))
     # Determine flux edge
     if info.edges:
         flux[info.cells_x] += angle_w * edge1
@@ -179,19 +190,21 @@ cdef double slab_backward(double[:]& flux, double[:]& flux_old, double[:]& xs_to
     for ii in range(info.cells_x-1, -1, -1):
         # For determining the material cross sections
         mat = medium_map[ii]
+        # Step Characteristic
+        if info.spatial == 3:
+            tau = xs_total[mat] * delta_x[ii] / (angle_x)
+            alpha1 = 0.5 * (1.0 - (1.0 / tanh(0.5 * tau) - 2.0 / tau))
+            alpha2 = 0.5 * (1.0 + (1.0 / tanh(0.5 * tau) - 2.0 / tau))
         # Calculate cell edge unknown
         edge2 = (xs_scatter[mat] * flux_old[ii] + external[ii] + off_scatter[ii] \
-                + edge1 * (fabs(angle_x) / delta_x[ii] + const1 * xs_total[mat])) \
-                * 1 / (fabs(angle_x) / delta_x[ii] + const2 * xs_total[mat])
+                + edge1 * (fabs(angle_x) / delta_x[ii] - alpha1 * xs_total[mat])) \
+                * 1 / (fabs(angle_x) / delta_x[ii] + alpha2 * xs_total[mat])
         # Update flux with cell edges
         if info.edges:
             flux[ii] += angle_w * edge2
-        # Update flux with step method
-        elif info.spatial == 1:
-            flux[ii] += angle_w * edge2
-        # Update flux with diamond difference
-        elif info.spatial == 2:
-            flux[ii] += 0.5 * angle_w * (edge1 + edge2)
+        # Update flux with cell centers
+        else:
+            flux[ii] += angle_w * (alpha1 * edge1 + edge2 * alpha2)
         # Update unknown cell edge
         edge1 = edge2
     # Return cell at i = 0
