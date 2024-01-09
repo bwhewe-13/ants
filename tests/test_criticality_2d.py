@@ -140,7 +140,7 @@ def test_two_group_infinite_x(bc_x):
     assert abs(keff - 1) < 5e-3, "k-effective: " + str(keff)
 
 
-# @pytest.mark.smoke
+@pytest.mark.smoke
 @pytest.mark.slab2d
 @pytest.mark.power_iteration
 @pytest.mark.parametrize(("bc_y"), [[0, 0], [0, 1], [1, 0]])
@@ -190,36 +190,43 @@ def test_two_group_infinite_y(bc_y):
 @pytest.mark.power_iteration
 def test_two_group_twigl():
     # Material Properties
-    cells_x = 160; length_x = 160
-    cells_y = 160; length_y = 160
-    groups = 2
+    cells_x = 80
+    cells_y = 80
     angles = 4
+    groups = 2
+    
     # Spatial Dimensions
+    length_x = 80.
     delta_x = np.repeat(length_x / cells_x, cells_x)
-    delta_y = np.repeat(length_y / cells_y, cells_y)
-    edges_x = np.linspace(0, length_x, cells_x + 1)
-    edges_y = np.linspace(0, length_y, cells_y + 1)
+    edges_x = np.round(np.linspace(0, length_x, cells_x + 1), 12)
+
+    length_y = 80.
+    delta_y = np.repeat(length_y / cells_y, cells_y)    
+    edges_y = np.round(np.linspace(0, length_y, cells_y + 1), 12)
+
     # Medium Map
     medium_map = 2 * np.ones((cells_x, cells_y), dtype=np.int32)
-    coords_mat0 = [[(24, 24), 32, 32], [(24, 104), 32, 32], 
-                   [(104, 24), 32, 32], [(104, 104), 32, 32]]
-    coords_mat1 = [[(24, 56), 32, 48], [(56, 24), 48, 32], 
-                   [(104, 56), 32, 48], [(56, 104), 48, 32]]
+    coords_mat0 = [[(24, 24), 32, 32]]
+    coords_mat1 = [[(24, 0), 32, 24], [(0, 24), 24, 32]]
     medium_map = ants.spatial2d(medium_map, 0, coords_mat0, edges_x, edges_y)
     medium_map = ants.spatial2d(medium_map, 1, coords_mat1, edges_x, edges_y)
+    
     # Boundary conditions
-    bc_x = [0, 0]
-    bc_y = [0, 0]
+    bc_x = [1, 0]
+    bc_y = [1, 0]
+    
     # Total Cross Section
     mat1_total = np.array([0.238095,0.83333])
     mat2_total = np.array([0.238095,0.83333])
     mat3_total = np.array([0.25641,0.666667])
     xs_total = np.array([mat1_total, mat2_total, mat3_total])
+    
     # Scatter Cross Section
     mat1_scatter = np.array([[0.218095, 0.01], [0.0, 0.68333]])
     mat2_scatter = np.array([[0.218095, 0.01], [0.0, 0.68333]])
     mat3_scatter = np.array([[0.23841, 0.01], [0.0,0.616667]])
     xs_scatter = np.array([mat1_scatter, mat2_scatter, mat3_scatter])
+    
     # Fission Cross Section
     chi = np.array([1,0]) # All fast
     mat1_nufission = np.array([0.007,0.2])
@@ -229,14 +236,18 @@ def test_two_group_twigl():
     mat3_nufission = np.array([0.003,0.06])
     mat3_fission = chi[:,None] @ mat3_nufission[None,:]
     xs_fission = np.array([mat1_fission.T, mat2_fission.T, mat3_fission.T])
+    
     # Collect problem dictionary
     info = {"cells_x": cells_x, "cells_y": cells_y, "angles": angles, \
             "groups": groups, "materials": 3, "geometry": 1, "spatial": 2, \
             "bc_x": bc_x, "bc_y": bc_y}
     # Collect angles
     angle_x, angle_y, angle_w = ants.angular_xy(info)
+    
+    # Run transport problem
     flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
                        delta_x, delta_y, angle_x, angle_y, angle_w, info)
+
     reference_keff = 0.917507
     assert abs(keff - reference_keff) < 2e-3, "k-effective: " + str(keff)
 

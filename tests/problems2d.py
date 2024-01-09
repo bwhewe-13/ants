@@ -53,7 +53,7 @@ def manufactured_ss_01(cells, angles):
 
     return xs_total, xs_scatter, xs_fission, external, boundary_x, \
         boundary_y, medium_map, delta_x, delta_y, angle_x, angle_y, \
-        angle_w, info, centers_x, centers_y
+        angle_w, info, edges_x, edges_y
 
 
 def manufactured_ss_02(cells, angles):
@@ -91,7 +91,7 @@ def manufactured_ss_02(cells, angles):
 
     return xs_total, xs_scatter, xs_fission, external, boundary_x, \
         boundary_y, medium_map, delta_x, delta_y, angle_x, angle_y, \
-        angle_w, info, centers_x, centers_y
+        angle_w, info, edges_x, edges_y
 
 
 def manufactured_ss_03(cells, angles):
@@ -130,7 +130,7 @@ def manufactured_ss_03(cells, angles):
 
     return xs_total, xs_scatter, xs_fission, external, boundary_x, \
         boundary_y, medium_map, delta_x, delta_y, angle_x, angle_y, \
-        angle_w, info, centers_x, centers_y
+        angle_w, info, edges_x, edges_y
 
 
 def manufactured_ss_04(cells, angles):
@@ -169,7 +169,7 @@ def manufactured_ss_04(cells, angles):
 
     return xs_total, xs_scatter, xs_fission, external, boundary_x, \
         boundary_y, medium_map, delta_x, delta_y, angle_x, angle_y, \
-        angle_w, info, centers_x, centers_y
+        angle_w, info, edges_x, edges_y
 
 
 def manufactured_td_01(cells, angles, edges_t, dt, temporal=1):

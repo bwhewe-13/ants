@@ -113,6 +113,14 @@ cdef void square_sweep(double[:,:]& flux, double[:,:]& flux_old, \
                           delta_y, angle_x, angle_y, angle_w, info)
 
 
+cdef float spatial_coef(int spatial):
+    if (spatial == 1):
+        return 1.0
+    elif (spatial == 2):
+        return 0.0
+    return 1.0
+
+
 cdef void square_forward_y(double[:,:]& flux, double[:,:]& flux_old, \
         double[:]& xs_total, double[:]& xs_scatter, double[:,:]& off_scatter, \
         double[:,:]& external, double[:]& known_x, double[:]& known_y, \
@@ -121,16 +129,16 @@ cdef void square_forward_y(double[:,:]& flux, double[:,:]& flux_old, \
     
     # Initialize iterables
     cdef int jj
-    cdef double coef_y, const
+    cdef double coef_y
     
-    # Step vs Diamond
-    const = 2.0 if info.spatial == 2 else 1.0
+    # Spatial discretization
+    cdef double alpha_y = 2.0 / (1.0 + spatial_coef(info.spatial))
     
     # Iterate over Y spatial cells
     for jj in range(info.cells_y):
 
         # Angular coefficient
-        coef_y = const * angle_y / delta_y[jj]
+        coef_y = alpha_y * angle_y / delta_y[jj]
 
         # Set direction of sweep
         if angle_x > 0.0:
@@ -155,16 +163,16 @@ cdef void square_backward_y(double[:,:]& flux, double[:,:]& flux_old, \
     
     # Initialize iterable
     cdef int jj
-    cdef double coef_y, const
+    cdef double coef_y
     
-    # Step vs Diamond
-    const = 2.0 if info.spatial == 2 else 1.0
-    
+    # Spatial discretization
+    cdef float alpha_y = 2.0 / (1.0 + spatial_coef(info.spatial))
+
     # Iterate over Y spatial cells
     for jj in range(info.cells_y-1, -1, -1):
 
         # Angular coefficient
-        coef_y = -const * angle_y / delta_y[jj]
+        coef_y = -alpha_y * angle_y / delta_y[jj]
 
         # Set direction of sweep
         if angle_x > 0.0:
@@ -189,15 +197,16 @@ cdef double square_forward_x(double[:]& flux, double[:]& flux_old, \
     
     # Initialize iterables
     cdef int ii, mat
-    cdef double center, coef_x, const
+    cdef double center, coef_x
     
-    # Step vs Diamond
-    const = 2.0 if info.spatial == 2 else 1.0
+    # Spatial discretization
+    cdef float alpha = spatial_coef(info.spatial)
+    cdef float alpha_x = 2.0 / (1.0 + alpha)
     
     # Iterate over X spatial cells
     for ii in range(info.cells_x):
         mat = medium_map[ii]
-        coef_x = (const * angle_x / delta_x[ii])
+        coef_x = (alpha_x * angle_x / delta_x[ii])
 
         # Calculate flux center
         center = (coef_x * edge_x + coef_y * edge_y[ii] + xs_scatter[mat] \
@@ -207,15 +216,10 @@ cdef double square_forward_x(double[:]& flux, double[:]& flux_old, \
         # Update flux with cell centers
         flux[ii] += angle_w * center
         
-        # Update known flux with step method
-        if info.spatial == 1:
-            edge_x = center
-            edge_y[ii] = center
-        # Update known flux with diamond difference
-        elif info.spatial == 2:
-            edge_x = 2 * center - edge_x
-            edge_y[ii] = 2 * center - edge_y[ii]
-    
+        # Update known flux
+        edge_x = (2.0 * center - (1.0 - alpha) * edge_x) / (1.0 + alpha)
+        edge_y[ii] = (2.0 * center - (1.0 - alpha) * edge_y[ii]) / (1.0 + alpha)
+
     return edge_x
 
 
@@ -227,15 +231,16 @@ cdef double square_backward_x(double[:]& flux, double[:]& flux_old, \
     
     # Initialize iterables
     cdef int ii, mat
-    cdef double center, coef_x, const
+    cdef double center, coef_x
     
-    # Step vs Diamond
-    const = 2.0 if info.spatial == 2 else 1.0
-    
+    # Spatial discretization
+    cdef double alpha = spatial_coef(info.spatial)
+    cdef double alpha_x = 2.0 / (1.0 + alpha)
+        
     # Iterate over X spatial cells
     for ii in range(info.cells_x-1, -1, -1):
         mat = medium_map[ii]
-        coef_x = (-const * angle_x / delta_x[ii])
+        coef_x = (-alpha_x * angle_x / delta_x[ii])
     
         # Calculate flux center
         center = (coef_x * edge_x + coef_y * edge_y[ii] + xs_scatter[mat] \
@@ -245,14 +250,9 @@ cdef double square_backward_x(double[:]& flux, double[:]& flux_old, \
         # Update flux with cell centers
         flux[ii] += angle_w * center
 
-        # Update known flux with step method
-        if info.spatial == 1:
-            edge_x = center
-            edge_y[ii] = center
-        # Update known flux with diamond difference
-        elif info.spatial == 2:
-            edge_x = 2 * center - edge_x
-            edge_y[ii] = 2 * center - edge_y[ii]
+        # Update known flux
+        edge_x = (2.0 * center - (1.0 - alpha) * edge_x) / (1.0 + alpha)
+        edge_y[ii] = (2.0 * center - (1.0 - alpha) * edge_y[ii]) / (1.0 + alpha)
 
     return edge_x
 
@@ -399,20 +399,23 @@ cdef void interface_forward_y(double[:,:]& flux_edge_x, \
     
     # Initialize iterables
     cdef int ii, jj
-    cdef double coef_y, const
+    cdef double coef_y
     
-    # Step vs Diamond
-    const = 2.0 if info.spatial == 2 else 1.0
-    
+    # Spatial discretization
+    cdef double alpha_y = 2.0 / (1.0 + spatial_coef(info.spatial))
+
     # Iterate over Y spatial cells
     for jj in range(info.cells_y):
     
-        coef_y = const * angle_y / delta_y[jj]
+        # Angular coefficient
+        coef_y = alpha_y * angle_y / delta_y[jj]
+
         if angle_x > 0.0:
             known_x[jj] = interface_forward_x(flux_edge_x[:,jj], \
                                 flux_edge_y[:,jj], xs_total, external[:,jj], \
                                 known_x[jj], known_y, medium_map[:,jj], \
                                 delta_x, angle_x, angle_w, coef_y, info)
+        
         elif angle_x < 0.0:
             known_x[jj] = interface_backward_x(flux_edge_x[:,jj], \
                                 flux_edge_y[:,jj], xs_total, external[:,jj], \
@@ -432,24 +435,29 @@ cdef void interface_backward_y(double[:,:]& flux_edge_x, \
     
     # Initialize iterable
     cdef int ii, jj
-    cdef double coef_y, const
+    cdef double coef_y
     
-    # Step vs Diamond
-    const = 2.0 if info.spatial == 2 else 1.0
+    # Spatial discretization
+    cdef double alpha_y = 2.0 / (1.0 + spatial_coef(info.spatial))
     
     # Iterate over Y spatial cells
     for jj in range(info.cells_y-1, -1, -1):
-        coef_y = -const * angle_y / delta_y[jj]
+
+        # Angular coefficient
+        coef_y = -alpha_y * angle_y / delta_y[jj]
+        
         if angle_x > 0.0:
             known_x[jj] = interface_forward_x(flux_edge_x[:,jj], \
                                 flux_edge_y[:,jj+1], xs_total, external[:,jj], \
                                 known_x[jj], known_y, medium_map[:,jj], \
                                 delta_x, angle_x, angle_w, coef_y, info)
+    
         elif angle_x < 0.0:
             known_x[jj] = interface_backward_x(flux_edge_x[:,jj], \
                                 flux_edge_y[:,jj+1], xs_total, external[:,jj], \
                                 known_x[jj], known_y, medium_map[:,jj], \
                                 delta_x, angle_x, angle_w, coef_y, info)
+    
     # Solve for bottom boundary (flux_edge_y)
     for ii in range(info.cells_x):
         flux_edge_y[ii,0] += angle_w * known_y[ii]
@@ -459,31 +467,37 @@ cdef double interface_forward_x(double[:]& flux_edge_x, double[:]& flux_edge_y, 
         double[:]& xs_total, double[:]& external, double edge_x, \
         double[:]& edge_y, int[:]& medium_map, double[:]& delta_x, \
         double angle_x, double angle_w, double coef_y, params info):
+    
     # Initialize iterables
     cdef int ii, mat
-    cdef double center, coef_x, const
-    # Step vs Diamond
-    const = 2.0 if info.spatial == 2 else 1.0
+    cdef double center, coef_x
+    
+    # Spatial discretization
+    cdef float alpha = spatial_coef(info.spatial)
+    cdef float alpha_x = 2.0 / (1.0 + alpha)
+    
     # Start with initial edge (i-1/2, j)
     flux_edge_x[0] += angle_w * edge_x
+    
     # Iterate over X spatial cells
     for ii in range(info.cells_x):
         mat = medium_map[ii]
-        coef_x = (const * angle_x / delta_x[ii])
+        coef_x = (alpha_x * angle_x / delta_x[ii])
+        
+        # Calculate flux center
         center = (coef_x * edge_x + coef_y * edge_y[ii] + external[ii]) \
                     / (xs_total[mat] + coef_x + coef_y)
+        
         # Update flux_edge_y (i, j-1/2)
         flux_edge_y[ii] += angle_w * edge_y[ii]
-        # Update known flux with step method
-        if info.spatial == 1:
-            edge_x = center
-            edge_y[ii] = center
-        # Update known flux with diamond difference
-        elif info.spatial == 2:
-            edge_x = 2 * center - edge_x
-            edge_y[ii] = 2 * center - edge_y[ii]
+
+        # Update known flux
+        edge_x = (2.0 * center - (1.0 - alpha) * edge_x) / (1.0 + alpha)
+        edge_y[ii] = (2.0 * center - (1.0 - alpha) * edge_y[ii]) / (1.0 + alpha)
+
         # Update flux_edge_x (i+1/2, j)
         flux_edge_x[ii+1] += angle_w * edge_x
+    
     return edge_x
 
 
@@ -491,29 +505,35 @@ cdef double interface_backward_x(double[:]& flux_edge_x, double[:]& flux_edge_y,
         double[:]& xs_total, double[:]& external, double edge_x, \
         double[:]& edge_y, int[:]& medium_map, double[:]& delta_x, \
         double angle_x, double angle_w, double coef_y, params info):
+    
     # Initialize iterables
     cdef int ii, mat
-    cdef double center, coef_x, const
-    # Step vs Diamond
-    const = 2.0 if info.spatial == 2 else 1.0
+    cdef double center, coef_x
+    
+    # Spatial discretization
+    cdef float alpha = spatial_coef(info.spatial)
+    cdef float alpha_x = 2.0 / (1.0 + alpha)
+    
     # Start with initial edge (i+1/2, j)
     flux_edge_x[info.cells_x] += angle_w * edge_x
+    
     # Iterate over X spatial cells
     for ii in range(info.cells_x-1, -1, -1):
         mat = medium_map[ii]
-        coef_x = (-const * angle_x / delta_x[ii])
+        coef_x = (-alpha_x * angle_x / delta_x[ii])
+        
+        # Calculate flux center
         center = (coef_x * edge_x + coef_y * edge_y[ii] + external[ii]) \
                     / (xs_total[mat] + coef_x + coef_y)
+        
         # Update flux_edge_y (i, j-1/2)
         flux_edge_y[ii] += angle_w * edge_y[ii]
-        # Update known flux with step method
-        if info.spatial == 1:
-            edge_x = center
-            edge_y[ii] = center
-        # Update known flux with diamond difference
-        elif info.spatial == 2:
-            edge_x = 2 * center - edge_x
-            edge_y[ii] = 2 * center - edge_y[ii]
+        
+        # Update known flux
+        edge_x = (2.0 * center - (1.0 - alpha) * edge_x) / (1.0 + alpha)
+        edge_y[ii] = (2.0 * center - (1.0 - alpha) * edge_y[ii]) / (1.0 + alpha)
+
         # Update flux_edge_x to (i-1/2, j)
         flux_edge_x[ii] += angle_w * edge_x
+
     return edge_x
