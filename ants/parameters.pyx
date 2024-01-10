@@ -44,6 +44,11 @@ cdef params _to_params(dict pydic):
     info.adjoint = pydic.get("adjoint", False)
     # Flux at cell edges or centers
     info.edges = pydic.get("edges", 0) # 0 = Center, 1 = Edge
+    # Multigroup solver (1 = SI, 2 = DMD)
+    info.mg = pydic.get("mg", 1)
+    # DMD parameters
+    info.dmd_k = pydic.get("dmd_k", 40)
+    info.dmd_r = pydic.get("dmd_r", 2)
     return info
 
 

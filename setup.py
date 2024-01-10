@@ -11,14 +11,17 @@ from distutils.core import Extension, setup
 from Cython.Build import cythonize
 from setuptools import setup, find_packages
 import platform
+import numpy as np
 
 
 if platform.system() == "Darwin":
-    ext = Extension("ants/*", sources=["ants/*.pyx"])
+    ext = Extension("ants/*", sources=["ants/*.pyx"],
+                    include_dirs=[np.get_include()])
 else:
     ext = Extension("ants/*", sources=["ants/*.pyx"], 
                     extra_compile_args=["-fopenmp"], 
-                    extra_link_args=["-fopenmp"])
+                    extra_link_args=["-fopenmp"],
+                    include_dirs=[np.get_include()])
 
 setup(  
         name='ants',

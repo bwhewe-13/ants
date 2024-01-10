@@ -23,13 +23,15 @@ MAX_ENERGY = 100
 MAX_POWER = 100
 
 # Transport Parameters Dictionary
-PARAMS_DICT = {"slab": 1, "sphere": 2,                                  # Geometry
-          "step": 1, "diamond": 2, "step-characteristic": 3,            # Spatial Discretization
-          "vacuum": 0, "reflected": 1,                                  # Boundary Condition
-          "left": 0, "right": 1,                                        # Boundary Location
-          "bdf1": 1, "cn": 2, "bdf2": 3, "tr-bdf2": 4,                  # Temporal Discretization
-          "None": 0,
+PARAMS_DICT = {
+            "slab": 1, "sphere": 2,                                     # Geometry
+            "source-iteration": 1, "dynamic-mode-decomp": 2             # Multigroup Solve
+            "step": 1, "diamond": 2, "step-characteristic": 3,          # Spatial Discretization
+            "vacuum": 0, "reflected": 1,                                # Boundary Condition
+            "left": 0, "right": 1,                                      # Boundary Location
+            "bdf1": 1, "cn": 2, "bdf2": 3, "tr-bdf2": 4                 # Temporal Discretization
           }
+
 # Conversion Between Units 
 MASS_NEUTRON = 1.67493E-27
 EV_TO_JOULES = 1.60218E-19

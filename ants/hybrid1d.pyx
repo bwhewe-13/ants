@@ -508,7 +508,7 @@ cdef void hybrid_method(double[:,:]& flux_u, double[:,:]& flux_c, \
                             medium_map, coarse_idx, info_u, info_c)
     
     # Step 3: Solve Collided Equation (I x G')
-    flux_c[:,:] = mg.source_iteration(flux_c, xs_total_vc, xs_scatter_c, \
+    flux_c[:,:] = mg.multi_group(flux_c, xs_total_vc, xs_scatter_c, \
                                 source_c, boundary_xc, medium_map, \
                                 delta_x, angle_xc, angle_wc, info_c)
     

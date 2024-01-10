@@ -110,13 +110,26 @@ cdef int[:] _material_index(int[:] medium_map, params info):
 ########################################################################
 
 cdef void _xs_matrix(double[:,:,:]& mat1, double[:,:,:]& mat2, \
-    double[:,:,:]& mat3, params info):
+        double[:,:,:]& mat3, params info):
     # Initialize iterables
     cdef int ig, og, mat
     for mat in range(info.materials):
         for og in range(info.groups):
             for ig in range(info.groups):
                 mat1[mat,og,ig] = (mat2[mat,og,ig] + mat3[mat,og,ig])
+
+
+cdef void _dmd_subtraction(double[:,:,:]& y_minus, double[:,:,:]& y_plus, \
+        double[:,:]& flux, double[:,:]& flux_old, int kk, params info):
+    # Initialize iterables
+    cdef int ii, gg
+    for ii in range(info.cells_x):
+        for gg in range(info.groups):
+            if (kk < info.dmd_k - 1):
+                y_minus[ii,gg,kk] = (flux[ii,gg] - flux_old[ii,gg])
+            
+            if (kk > 0):
+                y_plus[ii,gg,kk-1] = (flux[ii,gg] - flux_old[ii,gg])
 
 
 cdef void _off_scatter(double[:,:]& flux, double[:,:]& flux_old, \

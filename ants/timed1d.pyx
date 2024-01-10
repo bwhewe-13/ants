@@ -87,9 +87,9 @@ cdef double[:,:,:] multigroup_bdf1(double[:,:,:]& flux_last, \
                                      velocity, info)
         
         # Solve for the current time step
-        flux_time[step] = mg.source_iteration(scalar_flux, xs_total_v, \
-                                xs_scatter, q_star, boundary_x[bc], \
-                                medium_map, delta_x, angle_x, angle_w, info)
+        flux_time[step] = mg.multi_group(scalar_flux, xs_total_v, xs_scatter, \
+                                         q_star, boundary_x[bc], medium_map, \
+                                         delta_x, angle_x, angle_w, info)
         
         # Update previous time step
         scalar_flux[:,:] = flux_time[step,:,:]
@@ -173,7 +173,7 @@ cdef double[:,:,:] multigroup_cn(double[:,:,:]& flux_last, \
                         external[qq], medium_map, delta_x, angle_x, \
                         2.0, info)
         # Solve for the current time step
-        flux_time[step] = mg.source_iteration(scalar_flux, xs_total_v, \
+        flux_time[step] = mg.multi_group(scalar_flux, xs_total_v, \
                                 xs_scatter, q_star, boundary_x[bc], \
                                 medium_map, delta_x, angle_x, angle_w, info)
         # Update previous time step
@@ -256,7 +256,7 @@ cdef double[:,:,:] multigroup_bdf2(double[:,:,:]& flux_last_1, \
                                         external[qq], velocity, info)
 
         # Solve for the current time step
-        flux_time[step] = mg.source_iteration(scalar_flux, xs_total_v, \
+        flux_time[step] = mg.multi_group(scalar_flux, xs_total_v, \
                                 xs_scatter, q_star, boundary_x[bc], \
                                 medium_map, delta_x, angle_x, angle_w, info)
 
@@ -364,7 +364,7 @@ cdef double[:,:,:] multigroup_tr_bdf2(double[:,:,:]& flux_last_ell, \
                         2.0 / gamma, info)
 
         # Solve for the \ell + gamma time step
-        scalar_flux_gamma = mg.source_iteration(scalar_flux_gamma, xs_total_v_cn, \
+        scalar_flux_gamma = mg.multi_group(scalar_flux_gamma, xs_total_v_cn, \
                                 xs_scatter, q_star, boundary_x[bc], \
                                 medium_map, delta_x, angle_x, angle_w, info)
 
@@ -381,7 +381,7 @@ cdef double[:,:,:] multigroup_tr_bdf2(double[:,:,:]& flux_last_ell, \
         tools._time_source_star_tr_bdf2(flux_last_ell, flux_last_gamma, \
                     q_star, external[qqb], velocity, gamma, info)
         # Solve for the \ell + 1 time step
-        flux_time[step] = mg.source_iteration(scalar_flux_ell, xs_total_v_bdf2, \
+        flux_time[step] = mg.multi_group(scalar_flux_ell, xs_total_v_bdf2, \
                                 xs_scatter, q_star, boundary_x[bca], \
                                 medium_map, delta_x, angle_x, angle_w, info)
         # Update previous time step

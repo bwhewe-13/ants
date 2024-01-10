@@ -72,6 +72,11 @@ cdef struct params:
     bint adjoint
     # Flux at cell edges or centers
     int edges
+    # Multigroup Solve
+    int mg
+    # DMD parameters
+    int dmd_k
+    int dmd_r
 
 
 cdef params _to_params(dict pydic)

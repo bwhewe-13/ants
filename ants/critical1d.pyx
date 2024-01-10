@@ -76,7 +76,7 @@ cdef double[:,:] multigroup_power(double[:,:]& flux_guess, double[:,:]& xs_total
                               info, keff[0])
         
         # Solve for scalar flux
-        flux = mg.source_iteration(flux_old, xs_total, xs_scatter, source, \
+        flux = mg.multi_group(flux_old, xs_total, xs_scatter, source, \
                     boundary_x, medium_map, delta_x, angle_x, angle_w, info)
         
         # Update keffective
@@ -174,7 +174,7 @@ cdef double[:,:] multigroup_nearby(double[:,:]& flux_guess, \
                                      residual, medium_map, info, keff[0])
         
         # Solve for scalar flux
-        flux = mg.source_iteration(flux_old, xs_total, xs_scatter, source, \
+        flux = mg.multi_group(flux_old, xs_total, xs_scatter, source, \
                     boundary_x, medium_map, delta_x, angle_x, angle_w, info)
         
         # Update keffective
