@@ -23,8 +23,8 @@ There are also verification procedures to ensure both the code and solutions are
 | Spatial Discretization    | Temporal Discretization    | Multigroup Solve          | K-Eigenvalue Solve      |
 |---------------------------|----------------------------|---------------------------|-------------------------|
 | &#9745; Step Method       | &#9745; Backward Euler     | &#9745; Source Iteration  | &#9745; Power Iteration |
-| &#9745; Diamond Difference    | &#9745; BDF2           | &#9744; DSA               | &#9744; DMD             |
-| &#9744; Step Characteristic   | &#9745; Crank-Nicolson | &#9744; DMD               | &#9744; Davidson Method |
+| &#9745; Diamond Difference    | &#9745; BDF2           | &#9744; DSA               | &#9745; DMD             |
+| &#9744; Step Characteristic   | &#9745; Crank-Nicolson | &#9745; DMD               | &#9744; Davidson Method |
 | &#9744; Discontinuous Galerkin| &#9745; TR - BDF2      | &#9744; GMRES             |                         |
 
 &nbsp;

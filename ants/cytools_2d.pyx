@@ -102,6 +102,20 @@ cdef void _xs_matrix(double[:,:,:]& mat1, double[:,:,:]& mat2, \
                 mat1[mat,og,ig] = (mat2[mat,og,ig] + mat3[mat,og,ig])
 
 
+cdef void _dmd_subtraction(double[:,:,:,:]& y_minus, double[:,:,:,:]& y_plus, \
+        double[:,:,:]& flux, double[:,:,:]& flux_old, int kk, params info):
+    # Initialize iterables
+    cdef int ii, jj, gg
+    for ii in range(info.cells_x):
+        for jj in range(info.cells_y):            
+            for gg in range(info.groups):
+                if (kk < info.dmd_k - 1):
+                    y_minus[ii,jj,gg,kk] = (flux[ii,jj,gg] - flux_old[ii,jj,gg])
+                
+                if (kk > 0):
+                    y_plus[ii,jj,gg,kk-1] = (flux[ii,jj,gg] - flux_old[ii,jj,gg])
+
+
 cdef void _off_scatter(double[:,:,:]& flux, double[:,:,:]& flux_old, \
         int[:,:]& medium_map, double[:,:,:]& xs_matrix, \
         double[:,:]& off_scatter, params info, int group):

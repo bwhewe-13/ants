@@ -274,6 +274,36 @@ def dmd_1d(flux_old, y_minus, y_plus, K):
     return flux
 
 
+def dmd_2d(flux_old, y_minus, y_plus, K):
+    # Convert from memoryview
+    flux_old = np.asarray(flux_old)
+    y_minus = np.asarray(y_minus)
+    y_plus = np.asarray(y_plus)
+
+    # Collect dimensions
+    cells_x, cells_y, groups = flux_old.shape
+
+    # Flatten y_minus, y_plus
+    y_minus = y_minus.reshape(cells_x * cells_y * groups, K - 1)
+    y_plus = y_plus.reshape(cells_x * cells_y * groups, K - 1)
+
+    # Call SVD
+    U, S, V = _svd_dmd(y_minus, K)
+
+    # Calculate Atilde
+    Atilde = U.T @ y_plus @ V.T @ S.T
+    
+    # Calculate delta_y
+    I = np.identity(Atilde.shape[0])
+    delta_y = np.linalg.solve(I - Atilde, (U.T @ y_plus[:,-1]).T)
+    
+    # Estimate new flux
+    flux = (flux_old.flatten() - y_plus[:,K-2]) + (U @ delta_y).T
+    flux = flux.reshape(cells_x, cells_y, groups)
+
+    return flux
+
+
 def _svd_dmd(A, K):
     residual = 1e-09
 
