@@ -89,13 +89,16 @@ def time_dependence_decay_01(boundary_x, edges_t, off_time):
 def time_dependence_decay_02(boundary_x, edges_t):
     # Turn off boundary by decay 
     steps = edges_t.shape[0] - 1
+    # Find where boundary != 0
+    idx = tuple(np.argwhere(boundary_x != 0.0).flatten())
+    # Repeat over all groups
     boundary_x = np.repeat(boundary_x[None,...], edges_t.shape[0] - 1, axis=0)
     for tt in range(steps):
         dt = edges_t[tt+1] - edges_t[tt]
         # Convert to microseconds
-        t_us = edges_t[tt+1] * 1e6
+        t_us = np.round(edges_t[tt+1] * 1e6, 12)
         if t_us >= 0.2:
             k = ceil((t_us - 0.2) / 0.1)
             err_arg = (t_us - 0.1 * (1 + k)) / (0.01)
-            boundary_x[tt] = pow(0.5, k) * (1 + 2 * erfc(err_arg))
+            boundary_x[tt][idx] = pow(0.5, k) * (1 + 2 * erfc(err_arg))
     return boundary_x

@@ -476,6 +476,8 @@ cdef void _known_sphere(double[:,:]& flux, double[:]& xs_total, \
     cdef double angle_minus, angle_plus, tau
     cdef double alpha_minus, alpha_plus
     half_angle = tools.array_1d(info.cells_x)
+    # Add dummy dimension to run both (I x N) and (I) fluxes
+    cdef int xdim = flux.shape[1]
     # Initialize the half angle coefficient
     angle_minus = -1.0
     # Initialize the angular differencing coefficient
@@ -496,10 +498,16 @@ cdef void _known_sphere(double[:,:]& flux, double[:]& xs_total, \
         alpha_plus = angle_coef_corrector(alpha_minus, angle_x[nn], \
                                           angle_w[nn], nn, info)
         # Iterate over spatial cells
-        sphere_sweep(flux[:,nn], zero, half_angle, xs_total, zero, \
-                     zero, source[:,qq], boundary_x[:,bc], \
-                     medium_map, delta_x, angle_x[nn], angle_w[nn], 1.0, \
-                     tau, alpha_plus, alpha_minus, info)
+        if (xdim == 1):
+            sphere_sweep(flux[:,0], zero, half_angle, xs_total, zero, \
+                        zero, source[:,qq], boundary_x[:,bc], medium_map, \
+                        delta_x, angle_x[nn], angle_w[nn], angle_w[nn], \
+                        tau, alpha_plus, alpha_minus, info)
+        else:
+            sphere_sweep(flux[:,nn], zero, half_angle, xs_total, zero, \
+                        zero, source[:,qq], boundary_x[:,bc], medium_map, \
+                        delta_x, angle_x[nn], angle_w[nn], 1.0, tau, \
+                        alpha_plus, alpha_minus, info)
         # Update the angular differencing coefficient
         alpha_minus = alpha_plus
         # Update the half angle
