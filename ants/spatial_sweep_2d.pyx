@@ -23,7 +23,6 @@
 
 from ants cimport cytools_2d as tools
 from ants.parameters cimport params
-from ants.constants import *
 
 
 cdef void discrete_ordinates(double[:,:]& flux, double[:,:]& flux_old, 
@@ -91,7 +90,7 @@ cdef void square_ordinates(double[:,:]& flux, double[:,:]& flux_old, \
 
         # Check for convergence
         change = tools.angle_convergence(flux, flux_old, info)
-        converged = (change < EPSILON_ANGULAR) or (count >= MAX_ANGULAR)
+        converged = (change < info.change_nn) or (count >= info.count_nn)
         count += 1
 
         # Update old flux

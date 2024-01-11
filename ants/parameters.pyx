@@ -18,37 +18,55 @@
 # cython: profile=True
 # distutils: language = c++
 
+from ants.constants import *
 
 cdef params _to_params(dict pydic):
     # Initialize params struct
     cdef params info
+    
     # Collect Spatial cells, angles, energy groups
     info.cells_x = pydic.get("cells_x", 10)
     info.cells_y = pydic.get("cells_y", 1)
     info.angles = pydic.get("angles", 4)
     info.groups = pydic.get("groups", 1)
     info.materials = pydic.get("materials", 1)
+    
     # Geometry type (slab, sphere)
     info.geometry = pydic.get("geometry", 1)
+    
     # Spatial discretization type
     info.spatial = pydic.get("spatial", 2)
+    
     # Boundary parameters
     info.bc_x = pydic.get("bc_x", [0, 0])
     info.bc_y = pydic.get("bc_y", [0, 0])
+    
     # Time dependent parameters
     info.steps = pydic.get("steps", 0)
     info.dt = pydic.get("dt", 1.0)
+    
     # Angular flux option
     info.angular = pydic.get("angular", False)
-    # Adjoint option, cross section matrices must be transposed
-    info.adjoint = pydic.get("adjoint", False)
+
     # Flux at cell edges or centers
     info.edges = pydic.get("edges", 0) # 0 = Center, 1 = Edge
+    
     # Multigroup solver (1 = SI, 2 = DMD)
     info.mg = pydic.get("mg", 1)
+    
     # DMD parameters
     info.dmd_k = pydic.get("dmd_k", 40)
     info.dmd_r = pydic.get("dmd_r", 2)
+    
+    # Convergence parameters - iterations
+    info.count_nn = pydic.get("count_nn", COUNT_ANGULAR)
+    info.count_gg = pydic.get("count_gg", COUNT_ENERGY)
+    info.count_keff = pydic.get("count_keff", COUNT_POWER)
+    
+    # Convergence parameters - difference
+    info.change_nn = pydic.get("change_nn", CHANGE_ANGULAR)
+    info.change_gg = pydic.get("change_gg", CHANGE_ENERGY)
+    info.change_keff = pydic.get("change_keff", CHANGE_POWER)
     return info
 
 

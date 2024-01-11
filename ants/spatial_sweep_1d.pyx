@@ -18,12 +18,11 @@
 # cython: profile=True
 # distutils: language = c++
 
-from libc.math cimport pow, fabs, tanh
+from libc.math cimport pow, fabs, tanh, M_PI
 # from cython.parallel import prange
 
 from ants cimport cytools_1d as tools
 from ants.parameters cimport params
-from ants.constants import *
 
 
 cdef void discrete_ordinates(double[:]& flux, double[:]& flux_old, \
@@ -90,7 +89,7 @@ cdef void slab_ordinates(double[:]& flux, double[:]& flux_old, \
         # Calculate L2 change
         change = tools.angle_convergence(flux, flux_old, info)
         # Check for convergence
-        converged = (change < EPSILON_ANGULAR) or (count >= MAX_ANGULAR)
+        converged = (change < info.change_nn) or (count >= info.count_nn)
         # Add one to the iteration count
         count += 1
         
@@ -260,7 +259,7 @@ cdef void sphere_ordinates(double[:]& flux, double[:]& flux_old, \
             # Update the half angle
             angle_minus = angle_plus
         change = tools.angle_convergence(flux, flux_old, info)
-        converged = (change < EPSILON_ANGULAR) or (count >= MAX_ANGULAR)
+        converged = (change < info.change_nn) or (count >= info.count_nn)
         count += 1
         flux_old[:] = flux[:]
 
@@ -407,13 +406,13 @@ cdef void sphere_backward(double[:]& flux, double[:]& flux_old, \
 
 
 cdef double edge_surface_area(double rho):
-    # return 4 * PI * pow(rho, 2)
-    return 4 * PI * rho * rho
+    # return 4 * M_PI * pow(rho, 2)
+    return 4 * M_PI * rho * rho
 
 
 cdef double cell_volume(double rho_plus, double rho_minus):
-    # return 4 * PI / 3 * (pow(rho_plus, 3) - pow(rho_minus, 3))
-    return 4/3. * PI * ((rho_plus * rho_plus * rho_plus) \
+    # return 4 * M_PI / 3 * (pow(rho_plus, 3) - pow(rho_minus, 3))
+    return 4/3. * M_PI * ((rho_plus * rho_plus * rho_plus) \
                         - (rho_minus * rho_minus * rho_minus))
 
 

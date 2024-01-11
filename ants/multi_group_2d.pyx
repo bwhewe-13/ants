@@ -28,7 +28,6 @@ from ants.spatial_sweep_2d cimport (
 )
 from ants cimport cytools_2d as tools
 from ants.parameters cimport params
-from ants.constants import *
 from ants.utils.pytools import dmd_2d
 
 
@@ -104,13 +103,11 @@ cdef double[:,:,:] source_iteration(double[:,:,:]& flux_guess, \
         change = tools.group_convergence(flux, flux_old, info)
         if isnan(change) or isinf(change):
             change = 0.5
-        converged = (change < EPSILON_ENERGY) or (count >= MAX_ENERGY)
+        converged = (change < info.change_gg) or (count >= info.count_gg)
         count += 1
 
         # Update old flux
         flux_old[:,:,:] = flux[:,:,:]
-
-    print(count, change)
 
     return flux[:,:,:]
 
@@ -176,7 +173,7 @@ cdef double[:,:,:] dynamic_mode_decomp(double[:,:,:]& flux_guess, \
         change = tools.group_convergence(flux, flux_old, info)
         if isnan(change) or isinf(change):
             change = 0.5
-        converged = (change < EPSILON_ENERGY)
+        converged = (change < info.change_gg)
 
         # Collect difference for DMD on K iterations
         if rk >= info.dmd_r:

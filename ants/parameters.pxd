@@ -50,33 +50,50 @@ cdef struct params:
     # :type dt: double
 
     # """
+    
     # Collect Spatial cells, angles, energy groups
     int cells_x
     int cells_y
     int angles
     int groups
     int materials
+    
     # Geometry type (slab, sphere)
     int geometry
+    
     # Spatial discretization type
     int spatial
+    
     # Boundary parameters
     int bc_x [2]
     int bc_y [2]
+    
     # Time dependent parameters
     int steps
     double dt
+    
     # Angular flux option
     bint angular
-    # Adjoint option
-    bint adjoint
+    
     # Flux at cell edges or centers
     int edges
-    # Multigroup Solve
+    
+    # Multigroup solver (1 = SI, 2 = DMD)
     int mg
+    
     # DMD parameters
     int dmd_k
     int dmd_r
+
+    # Convergence parameters - iterations
+    int count_nn
+    int count_gg
+    int count_keff
+
+    # Convergence parameters - difference
+    double change_nn
+    double change_gg
+    double change_keff
 
 
 cdef params _to_params(dict pydic)

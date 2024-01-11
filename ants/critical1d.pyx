@@ -24,7 +24,6 @@ from ants cimport multi_group_1d as mg
 from ants cimport cytools_1d as tools
 from ants.parameters cimport params
 from ants cimport parameters
-from ants.constants import *
 
 
 def power_iteration(double[:,:] xs_total, double[:,:,:] xs_scatter, \
@@ -90,7 +89,7 @@ cdef double[:,:] multigroup_power(double[:,:]& flux_guess, double[:,:]& xs_total
         change = tools.group_convergence(flux, flux_old, info)
         print("Count: {:>3}\tKeff: {:.8f}".format(str(count).zfill(3), \
                 keff[0]), end="\r")
-        converged = (change < EPSILON_POWER) or (count >= MAX_POWER)
+        converged = (change < info.change_keff) or (count >= info.count_keff)
         count += 1
         flux_old[:,:] = flux[:,:]
     
@@ -188,7 +187,7 @@ cdef double[:,:] multigroup_nearby(double[:,:]& flux_guess, \
         change = tools.group_convergence(flux, flux_old, info)
         print("Count: {:>3}\tKeff: {:.8f}".format(str(count).zfill(3), \
                 keff[0]), end="\r")
-        converged = (change < EPSILON_POWER) or (count >= MAX_POWER)
+        converged = (change < info.change_keff) or (count >= info.count_keff)
         count += 1
         flux_old[:,:] = flux[:,:]
     
