@@ -15,8 +15,8 @@
 # cython: infertypes=True
 # cython: initializedcheck=False
 # cython: cdivision=True
-# distutils: language = c++
 # cython: profile=True
+# distutils: language = c++
 
 from ants.parameters cimport params
 
@@ -119,13 +119,16 @@ cdef double _nearby_keffective(double[:,:]& flux, double rate, params info)
 ########################################################################
 # Hybrid Method Time Dependent Problems
 ########################################################################
-cdef void _hybrid_source_collided(double[:,:]& flux, double[:,:,:]& xs_scatter, \
-        double[:,:,:]& source_c, int[:]& medium_map, int[:]& index_c, \
+cdef void _hybrid_source_collided(double[:,:]& flux_u, double[:,:,:]& xs_scatter, \
+        double[:,:,:]& source_c, int[:]& medium_map, int[:]& coarse_idx, \
         params info_u, params info_c)
 
-cdef void _hybrid_source_total(double[:,:]& flux_t, double[:,:]& flux_u, \
+cdef void _hybrid_source_total(double[:,:]& flux_u, double[:,:]& flux_c, \
         double[:,:,:]& xs_matrix, double[:,:,:]& source, int[:]& medium_map, \
-        int[:]& index_u, double[:]& factor_u, params info_u, params info_c)
+        int[:]& coarse_idx, double[:]& factor_u,  params info_u, params info_c)
 
-cdef void _expand_hybrid_source(double[:,:]& flux_t, double[:,:]& flux_c, \
-        int[:]& index_u, double[:]& factor_u, params info_u, params info_c)
+# cdef void _expand_hybrid_source(double[:,:]& flux_u, double[:,:]& flux_c, \
+#         int[:]& fine_idx, double[:]& factor_u, params info_u, params info_c)
+
+# cdef void _hybrid_source_total(double[:,:]& flux_u, double[:,:,:]& xs_matrix, \
+#         double[:,:,:]& source, int[:]& medium_map, params info_u)

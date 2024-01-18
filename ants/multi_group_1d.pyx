@@ -174,7 +174,6 @@ cdef double[:,:] dynamic_mode_decomp(double[:,:]& flux_guess, \
 
     # Perform DMD
     flux = dmd_1d(flux, y_minus, y_plus, info.dmd_k)
-    print("Performed DMD with", info.dmd_k, "iterations!")
 
     return flux[:,:]
 

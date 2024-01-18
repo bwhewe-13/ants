@@ -16,8 +16,9 @@
 # cython: infertypes=True
 # cython: initializedcheck=False
 # cython: cdivision=True
-# distutils: language = c++
 # cython: profile=True
+# distutils: language = c++
+
 
 from libc.math cimport sqrt, pow, erfc, ceil
 from cython.view cimport array as cvarray
@@ -305,7 +306,7 @@ cdef void _time_right_side(double[:,:,:]& q_star, double[:,:]& flux, \
         double[:,:,:]& xs_scatter, int[:]& medium_map, params info):
     # Create (sigma_s + sigma_f) * phi + external + 1/(v*dt) * psi function
     # Initialize iterables
-    cdef int ii, nn, ig, og, mat, loc
+    cdef int ii, nn, ig, og, mat#, loc
     # Iterate over dimensions
     for ii in range(info.cells_x):
         mat = medium_map[ii]
@@ -420,47 +421,64 @@ cdef double _nearby_keffective(double[:,:]& flux, double rate, params info):
 # Hybrid Method Time Dependent Problems
 ########################################################################
 
-cdef void _hybrid_source_collided(double[:,:]& flux, double[:,:,:]& xs_scatter, \
-        double[:,:,:]& source_c, int[:]& medium_map, int[:]& index_c, \
+cdef void _hybrid_source_collided(double[:,:]& flux_u, double[:,:,:]& xs_scatter, \
+        double[:,:,:]& source_c, int[:]& medium_map, int[:]& coarse_idx, \
         params info_u, params info_c):
     # Initialize iterables
-    cdef int ii, mat, og, ig #, loc
+    cdef int ii, mat, og, ig#, loc
     # Zero out previous source
     source_c[:,:,:] = 0.0
     # Iterate over all spatial cells
     for ii in range(info_u.cells_x):
         mat = medium_map[ii]
         for og in range(info_u.groups):
-            loc = index_c[og] + ii * info_c.groups
+            # loc = coarse_idx[og] + ii * info_c.groups
             for ig in range(info_u.groups):
-                source_c[ii,0,index_c[og]] += flux[ii,ig] * xs_scatter[mat,og,ig]
-                # source_c[loc] += flux[ii,ig] * xs_scatter[mat,og,ig]
+                source_c[ii,0,coarse_idx[og]] += flux_u[ii,ig] * xs_scatter[mat,og,ig]
 
 
-cdef void _hybrid_source_total(double[:,:]& flux_t, double[:,:]& flux_u, \
+cdef void _hybrid_source_total(double[:,:]& flux_u, double[:,:]& flux_c, \
         double[:,:,:]& xs_matrix, double[:,:,:]& source, int[:]& medium_map, \
-        int[:]& index_u, double[:]& factor_u, params info_u, params info_c):
+        int[:]& coarse_idx, double[:]& factor_u,  params info_u, params info_c):
     # Initialize iterables
-    cdef int ii, mat, nn, ig, og#, loc
+    cdef int ii, mat, nn, ig, og
+    cdef double one_group
     # Assume that source is already (Qu + 1 / (v * dt) * psi^{\ell-1})
-    # source[:] = 0.0
     for ii in range(info_u.cells_x):
         mat = medium_map[ii]
-        for nn in range(info_u.angles):
-            for og in range(info_u.groups):
-                # loc = og + info_u.groups * (nn + ii * info_u.angles)
-                for ig in range(info_u.groups):
-                    source[ii,nn,og] += (flux_t[ii,ig] + flux_u[ii,ig]) \
-                                        * xs_matrix[mat,og,ig]
+        for og in range(info_u.groups):
+            flux_u[ii,og] = flux_u[ii,og] + flux_c[ii,coarse_idx[og]] * factor_u[og]
+        for og in range(info_u.groups):
+            one_group = 0.0
+            for ig in range(info_u.groups):
+                one_group += flux_u[ii,ig] * xs_matrix[mat,og,ig]
+            for nn in range(info_u.angles):
+                source[ii,nn,og] += one_group
 
 
-cdef void _expand_hybrid_source(double[:,:]& flux_t, double[:,:]& flux_c, \
-        int[:]& index_u, double[:]& factor_u, params info_u, params info_c):
-    # Initialize iterables
-    cdef int cell, gu, gc
-    flux_t[:,:] = 0.0
-    # Create uncollided flux size
-    for cell in range(info_c.cells_x):
-        for gc in range(info_c.groups):
-            for gu in range(index_u[gc], index_u[gc+1]):
-                flux_t[cell,gu] = flux_c[cell,gc] * factor_u[gu]
+# cdef void _expand_hybrid_source(double[:,:]& flux_u, double[:,:]& flux_c, \
+#         int[:]& fine_idx, double[:]& factor_u, params info_u, params info_c):
+#     # Initialize iterables
+#     cdef int ii, gu, gc
+#     # Create uncollided flux size
+#     for ii in range(info_c.cells_x):
+#         for gc in range(info_c.groups):
+#             for gu in range(fine_idx[gc], fine_idx[gc+1]):
+#                 flux_u[ii,gu] += flux_c[ii,gc] * factor_u[gu]
+
+
+# cdef void _hybrid_source_total(double[:,:]& flux_u, double[:,:,:]& xs_matrix, \
+#         double[:,:,:]& source, int[:]& medium_map, params info_u):
+#     # Initialize iterables
+#     cdef int ii, mat, nn, ig, og
+#     cdef double one_group
+#     # Assume that source is already (Qu + 1 / (v * dt) * psi^{\ell-1})
+#     for ii in range(info_u.cells_x):
+#         mat = medium_map[ii]        
+#         for og in range(info_u.groups):
+#             # loc = og + info_u.groups * (nn + ii * info_u.angles)
+#             one_group = 0.0
+#             for ig in range(info_u.groups):
+#                 one_group += flux_u[ii,ig] * xs_matrix[mat,og,ig]
+#             for nn in range(info_u.angles):
+#                 source[ii,nn,og] += one_group
