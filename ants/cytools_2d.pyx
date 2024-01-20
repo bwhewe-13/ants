@@ -138,7 +138,7 @@ cdef void _source_total(double[:,:,:,:]& source, double[:,:,:]& flux, \
     # Create (sigma_s + sigma_f) * phi + external function
     # Initialize iterables
     cdef int ii, jj, nn, ig, og, mat, nn_q, og_q
-    cdef int directions = info.angles * info.angles
+    cdef double one_group
 
     # Zero out previous values
     source[:,:,:,:] = 0.0
@@ -147,15 +147,16 @@ cdef void _source_total(double[:,:,:,:]& source, double[:,:,:]& flux, \
         for jj in range(info.cells_y):
             mat = medium_map[ii,jj]
 
-            for nn in range(directions):
-                nn_q = 0 if external.shape[2] == 1 else nn
+            for og in range(info.groups):
+                og_q = 0 if external.shape[3] == 1 else og
+                # loc = og + info.groups * (nn + NN * (jj + ii * info.cells_y))
+                one_group = 0.0
+                for ig in range(info.groups):
+                    one_group += flux[ii,jj,ig] * xs_matrix[mat,og,ig]
 
-                for og in range(info.groups):
-                    og_q = 0 if external.shape[3] == 1 else og
-                    # loc = og + info.groups * (nn + NN * (jj + ii * info.cells_y))
-
-                    for ig in range(info.groups):
-                        source[ii,jj,nn,og] += flux[ii,jj,ig] * xs_matrix[mat,og,ig]
+                for nn in range(info.angles * info.angles):
+                    nn_q = 0 if external.shape[2] == 1 else nn
+                    source[ii,jj,nn,og] += one_group
                     source[ii,jj,nn,og] += external[ii,jj,nn_q,og_q]
 
 
@@ -312,7 +313,7 @@ cdef void _time_source_star_cn(double[:,:,:,:]& psi_x, double[:,:,:,:]& psi_y, \
 
     # Initialize iterables
     cdef int ii, jj, mat, nn, og, ig, nn_q, og_q
-    cdef int directions = info.angles * info.angles
+    cdef double one_group
 
     # Initialize angular flux center estimates
     cdef double psi, dpsi_x, dpsi_y
@@ -320,37 +321,29 @@ cdef void _time_source_star_cn(double[:,:,:,:]& psi_x, double[:,:,:,:]& psi_y, \
     # Zero out previous values
     q_star[:,:,:,:] = 0.0
 
-    # Iterate over all cells, angles, and groups
-    for nn in prange(directions, nogil=True):
-        nn_q = 0 if external.shape[2] == 1 else nn
-
-        for ii in range(info.cells_x):
-            for jj in range(info.cells_y):
-        
-                mat = medium_map[ii,jj]                
-        
-                for og in range(info.groups):
-                    og_q = 0 if external.shape[3] == 1 else og
-                    
+    for ii in range(info.cells_x):
+        for jj in range(info.cells_y):
+            mat = medium_map[ii,jj]
+            for og in range(info.groups):
+                og_q = 0 if external.shape[3] == 1 else og
+                one_group = 0.0
+                # Add scalar term
+                for ig in range(info.groups):
+                    one_group += phi[ii,jj,ig] * xs_scatter[mat,og,ig]
+                
+                for nn in range(info.angles * info.angles):
+                    nn_q = 0 if external.shape[2] == 1 else nn
                     # Calculate angular flux center
                     psi = 0.25 * (psi_x[ii,jj,nn,og] + psi_x[ii+1,jj,nn,og] \
                                + psi_y[ii,jj,nn,og] + psi_y[ii,jj+1,nn,og])
-                    
                     # Calculate cell flux derivative
                     dpsi_x = (psi_x[ii+1,jj,nn,og] - psi_x[ii,jj,nn,og]) / delta_x[ii]
                     dpsi_y = (psi_y[ii,jj+1,nn,og] - psi_y[ii,jj,nn,og]) / delta_y[jj]
-                    # loc = og + info.groups * (nn + info.angles * info.angles \
-                    #     * (jj + ii * info.cells_y))
-                    
-                    # Add scalar term
-                    for ig in range(info.groups):
-                        q_star[ii,jj,nn,og] += phi[ii,jj,ig] * xs_scatter[mat,og,ig]
-
                     # Add angular terms
-                    q_star[ii,jj,nn,og] += external[ii,jj,nn_q,og_q] \
-                            - angle_x[nn] * dpsi_x - angle_y[nn] * dpsi_y \
-                            + psi * (constant / (velocity[og] * info.dt) \
-                            - xs_total[mat,og]) + external_prev[ii,jj,nn_q,og_q]
+                    q_star[ii,jj,nn,og] += one_group + external[ii,jj,nn_q,og_q]
+                    q_star[ii,jj,nn,og] += external_prev[ii,jj,nn_q,og_q] \
+                            - angle_x[nn] * dpsi_x - angle_y[nn] * dpsi_y + psi \
+                            * (constant / (velocity[og] * info.dt) - xs_total[mat,og]) 
 
 
 cdef void _time_source_star_bdf2(double[:,:,:,:]& flux_1, \
@@ -423,17 +416,18 @@ cdef void _time_right_side(double[:,:,:,:]& q_star, double[:,:,:]& flux, \
         double[:,:,:]& xs_scatter, int[:,:]& medium_map, params info):
     # Create (sigma_s + sigma_f) * phi + external + 1/(v*dt) * psi function
     # Initialize iterables
-    cdef int ii, jj, nn, ig, og, mat, loc
+    cdef int ii, jj, nn, ig, og, mat
+    cdef double one_group
     # Iterate over dimensions
     for ii in range(info.cells_x):
         for jj in range(info.cells_y):
-            mat = medium_map[ii,jj]
-            for nn in range(info.angles * info.angles):
-                for og in range(info.groups):
-                    # loc = og + info.groups * (nn + info.angles * info.angles \
-                    #                         * (jj + ii * info.cells_y))
-                    for ig in range(info.groups):
-                        q_star[ii,jj,nn,og] += flux[ii,jj,ig] * xs_scatter[mat,og,ig]
+            mat = medium_map[ii,jj]            
+            for og in range(info.groups):
+                one_group = 0.0
+                for ig in range(info.groups):
+                    one_group += flux[ii,jj,ig] * xs_scatter[mat,og,ig]
+                for nn in range(info.angles * info.angles):
+                    q_star[ii,jj,nn,og] += one_group
 
 
 ########################################################################
@@ -552,11 +546,11 @@ cdef double _nearby_keffective(double[:,:,:]& flux, double rate, params info):
 ########################################################################
 
 cdef void _hybrid_source_collided(double[:,:,:]& flux, double[:,:,:]& xs_scatter, \
-        double[:,:,:,:]& source_c, int[:,:]& medium_map, int[:]& index_c, \
+        double[:,:,:,:]& source_c, int[:,:]& medium_map, int[:]& coarse_idx, \
         params info_u, params info_c):
     
     # Initialize iterables
-    cdef int ii, jj, mat, og, ig#, loc
+    cdef int ii, jj, mat, og, ig
     
     # Zero out previous source
     source_c[:,:,:,:] = 0.0
@@ -566,40 +560,63 @@ cdef void _hybrid_source_collided(double[:,:,:]& flux, double[:,:,:]& xs_scatter
         for jj in range(info_u.cells_y):
             mat = medium_map[ii,jj]
             for og in range(info_u.groups):
-                # loc = index_c[og] + info_c.groups * (jj + ii * info_c.cells_y)
+                # loc = coarse_idx[og] + info_c.groups * (jj + ii * info_c.cells_y)
                 for ig in range(info_u.groups):
-                    source_c[ii,jj,0,index_c[og]] += flux[ii,jj,ig] \
+                    source_c[ii,jj,0,coarse_idx[og]] += flux[ii,jj,ig] \
                                                     * xs_scatter[mat,og,ig]
 
 
-cdef void _hybrid_source_total(double[:,:,:]& flux_t, double[:,:,:]& flux_u, \
+cdef void _hybrid_source_total(double[:,:,:]& flux_u, double[:,:,:]& flux_c, \
         double[:,:,:]& xs_matrix, double[:,:,:,:]& source, int[:,:]& medium_map, \
-        int[:]& index_u, double[:]& factor_u, params info_u, params info_c):
+        int[:]& coarse_idx, double[:]& factor_u, params info_u, params info_c):
     # Initialize iterables
-    cdef int ii, jj, mat, nn, NN, ig, og#, loc
+    cdef int ii, jj, mat, nn, ig, og
+    cdef double one_group
     # Assume that source is already (Qu + 1 / (v * dt) * psi^{\ell-1})
-    # Get all angular directions
-    NN = info_u.angles * info_u.angles
-    # source[:] = 0.0
     for ii in range(info_u.cells_x):
         for jj in range(info_u.cells_x):
             mat = medium_map[ii,jj]
-            for nn in range(NN):
-                for og in range(info_u.groups):
-                    # loc = og + info_u.groups * (nn + NN * (jj + ii * info_u.cells_y))
-                    for ig in range(info_u.groups):
-                        source[ii,jj,nn,og] += (flux_t[ii,jj,ig] + flux_u[ii,jj,ig]) \
-                                            * xs_matrix[mat,og,ig]
+            # Combine fluxes
+            for og in range(info_u.groups):
+                flux_u[ii,jj,og] = flux_u[ii,jj,og] \
+                            + flux_c[ii,jj,coarse_idx[og]] * factor_u[og]
+            # Add flux-xs product to source
+            for og in range(info_u.groups):
+                one_group = 0.0
+                for ig in range(info_u.groups):
+                    one_group += flux_u[ii,jj,ig] * xs_matrix[mat,og,ig]
+                for nn in range(info_u.angles * info_u.angles):
+                    source[ii,jj,nn,og] += one_group
 
 
-cdef void _expand_hybrid_source(double[:,:,:]& flux_t, double[:,:,:]& flux_c, \
-        int[:]& index_u, double[:]& factor_u, params info_u, params info_c):
-    # Initialize iterables
-    cdef int ii, jj, gu, gc
-    flux_t[:,:,:] = 0.0
-    # Create uncollided flux size
-    for ii in range(info_c.cells_x):
-        for jj in range(info_c.cells_y):
-            for gc in range(info_c.groups):
-                for gu in range(index_u[gc], index_u[gc+1]):
-                    flux_t[ii,jj,gu] = flux_c[ii,jj,gc] * factor_u[gu]
+# cdef void _hybrid_source_total(double[:,:,:]& flux_t, double[:,:,:]& flux_u, \
+#         double[:,:,:]& xs_matrix, double[:,:,:,:]& source, int[:,:]& medium_map, \
+#         int[:]& index_u, double[:]& factor_u, params info_u, params info_c):
+#     # Initialize iterables
+#     cdef int ii, jj, mat, nn, NN, ig, og#, loc
+#     # Assume that source is already (Qu + 1 / (v * dt) * psi^{\ell-1})
+#     # Get all angular directions
+#     NN = info_u.angles * info_u.angles
+#     # source[:] = 0.0
+#     for ii in range(info_u.cells_x):
+#         for jj in range(info_u.cells_x):
+#             mat = medium_map[ii,jj]
+#             for nn in range(NN):
+#                 for og in range(info_u.groups):
+#                     # loc = og + info_u.groups * (nn + NN * (jj + ii * info_u.cells_y))
+#                     for ig in range(info_u.groups):
+#                         source[ii,jj,nn,og] += (flux_t[ii,jj,ig] + flux_u[ii,jj,ig]) \
+#                                             * xs_matrix[mat,og,ig]
+
+
+# cdef void _expand_hybrid_source(double[:,:,:]& flux_t, double[:,:,:]& flux_c, \
+#         int[:]& index_u, double[:]& factor_u, params info_u, params info_c):
+#     # Initialize iterables
+#     cdef int ii, jj, gu, gc
+#     flux_t[:,:,:] = 0.0
+#     # Create uncollided flux size
+#     for ii in range(info_c.cells_x):
+#         for jj in range(info_c.cells_y):
+#             for gc in range(info_c.groups):
+#                 for gu in range(index_u[gc], index_u[gc+1]):
+#                     flux_t[ii,jj,gu] = flux_c[ii,jj,gc] * factor_u[gu]
