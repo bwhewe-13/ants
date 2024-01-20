@@ -189,8 +189,10 @@ cdef double[:,:,:] _known_source_angular(double[:,:]& xs_total, \
     
     # Initialize angular flux
     angular_flux = tools.array_3d(info.cells_x + info.edges, info.angles, info.groups)
+    
     # Set zero matrix placeholder for scattering
     zero = tools.array_1d(info.cells_x + info.edges)
+    
     # Iterate over groups
     for gg in range(info.groups):
 
