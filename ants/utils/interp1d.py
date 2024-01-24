@@ -268,3 +268,20 @@ class QuinticHermite:
             int_psi[ii] = (t1.T @ self.coefs[:,ii-1]) + (t2.T @ self.coefs[:,ii])
             int_dpsi[ii] = (dt1.T @ self.coefs[:,ii-1]) + (dt2.T @ self.coefs[:,ii])
         return int_psi, int_dpsi
+
+
+class Interpolation:
+    
+    def __init__(self, psi, knots_x, quintic=True):
+        self.quintic = quintic
+        # Quintic
+        if (block):
+            self.instance = QuinticHermite(psi, knots_x)
+        # Cubic
+        else: 
+            self.instance = CubicHermite(psi, knots_x)
+
+
+    def __getattr__(self, name):
+        # assume it is implemented by self.instance
+        return self.instance.__getattribute__(name)
