@@ -599,3 +599,31 @@ class BlockInterpolation:
                 int_dx[x1:x2,y1:y2] = b_int_dx.copy()
                 int_dy[x1:x2,y1:y2] = b_int_dy.copy()
         return int_psi, int_dx, int_dy
+
+
+class Interpolation:
+    
+    def __init__(self, psi, knots_x, knots_y, medium_map=None, \
+                 block=True, quintic=True):
+        self.block = block
+        self.quintic = quintic
+        # Block Quintic
+        if (block) and (quintic):
+            self.instance = BlockInterpolation(QuinticHermite, psi, \
+                                            knots_x, knots_y, medium_map)
+        # Quintic
+        elif (not block) and (quintic):
+            self.instance = QuinticHermite(psi, knots_x, knots_y)
+
+        # Block Cubic
+        elif (block) and (not quintic):
+            self.instance = BlockInterpolation(CubicHermite, psi, \
+                                            knots_x, knots_y, medium_map)
+        # Cubic
+        elif (not block) and (not quintic):
+            self.instance = CubicHermite(psi, knots_x, knots_y)
+
+
+    def __getattr__(self, name):
+        # assume it is implemented by self.instance
+        return self.instance.__getattribute__(name)

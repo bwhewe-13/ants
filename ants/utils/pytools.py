@@ -11,6 +11,43 @@
 
 import numpy as np
 
+########################################################################
+# Evaluating Fluxes
+########################################################################
+def reaction_rates(flux, xs_matrix, medium_map):
+    if len(flux.shape) == 2:
+        return _reaction_rate_1d(flux, xs_matrix, medium_map)
+    elif len(flux.shape) == 3:
+        return _reaction_rate_2d(flux, xs_matrix, medium_map)
+    else:
+        print("Unable to calculate reaction rate")
+
+
+def _reaction_rate_1d(flux, xs_matrix, medium_map):
+    # Flux parameters
+    cells_x, groups = flux.shape
+    # Initialize reaction rate data
+    rate = np.zeros((cells_x, groups))
+    # Iterate over spatial cells
+    for ii, mat in enumerate(medium_map):
+        rate[ii] = flux[ii] @ xs_matrix[mat].T
+    # return reaction rate
+    return rate
+
+
+def _reaction_rate_2d(flux, xs_matrix, medium_map):
+    # Flux parameters
+    cells_x, cells_y, groups = flux.shape
+    # Initialize reaction rate data
+    rate = np.zeros((cells_x, cells_y, groups))
+    # Iterate over spatial cells
+    for ii in range(cells_x):
+        for jj in range(cells_y):
+            mat = medium_map[ii,jj]
+            rate[ii,jj] = flux[ii,jj] @ xs_matrix[mat].T
+    # return reaction rate
+    return rate
+
 
 ########################################################################
 # Manufactured Solutions and Accuracy

@@ -514,22 +514,22 @@ cdef void _nearby_fission_source(double[:,:,:]& flux, \
         double[:,:,:,:]& residual, int[:,:]& medium_map, params info, \
         double keff):
     # Initialize iterables
-    cdef int ii, jj, mat, nn, NN, ig, og, 
-    NN = info.angles * info.angles
+    cdef int ii, jj, mat, nn, ig, og
+    cdef double one_group
     # Zero out previous power iteration
     source[:,:,:,:] = 0.0
     # Iterate over all cells, angles, and groups
     for ii in range(info.cells_x):
         for jj in range(info.cells_y):
             mat = medium_map[ii,jj]
-            for nn in range(NN):
-                for og in range(info.groups):
-                    # loc = og + info.groups * (nn + NN * (jj + ii * info.cells_y))
-                    for ig in range(info.groups):
-                        source[ii,jj,nn,og] += flux[ii,jj,ig] / keff \
-                                            * xs_fission[mat,og,ig]
+            for og in range(info.groups):
+                # loc = og + info.groups * (nn + NN * (jj + ii * info.cells_y))
+                one_group = 0.0
+                for ig in range(info.groups):
+                    one_group += flux[ii,jj,ig] / keff * xs_fission[mat,og,ig]
+                for nn in range(info.angles * info.angles):
                     # Add nearby residual
-                    source[ii,jj,nn,og] += residual[ii,jj,nn,og]
+                    source[ii,jj,nn,og] += one_group + residual[ii,jj,nn,og]
 
 
 cdef double _nearby_keffective(double[:,:,:]& flux, double rate, params info):
