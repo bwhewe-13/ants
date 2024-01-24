@@ -141,7 +141,7 @@ def ambe(x, loc_x, edges_g):
     if np.max(edges_g) > 20.0:
         edges_g *= 1E-6
 
-    centers_g = 0.5 * (edges_g[1:] + edges_g[:-1])
+    centers_g = tools.average_array(edges_g)
     loc_g = lambda x1, x2: np.argwhere((centers_g > x1) & (centers_g <= x2)).flatten()
     
     for ii in range(len(data["magnitude"])):

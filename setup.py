@@ -9,10 +9,12 @@
 
 from distutils.core import Extension, setup
 from Cython.Build import cythonize
+from Cython.Compiler import Options
 from setuptools import setup, find_packages
 import platform
 import numpy as np
 
+Options.warning_errors = True
 
 if platform.system() == "Darwin":
     ext = Extension("ants/*", sources=["ants/*.pyx"],

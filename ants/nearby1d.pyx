@@ -20,9 +20,9 @@
 
 import numpy as np
 
-
 from ants import fixed1d, critical1d
 from ants.utils.interp1d import Interpolation
+from ants.utils.pytools import average_array
 
 from ants cimport cytools_1d as tools
 from ants cimport parameters
@@ -64,7 +64,7 @@ def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x, \
                 psi, dpsi, phi, splits, knots_x, edges_x, angle_w, quintic, info)
     # Knots at cell edges
     else:
-        centers_x = 0.5 * (knots_x[1:] + knots_x[:-1])
+        centers_x = average_array(knots_x)
         _curve_fit_edges(numerical_flux, curve_fit_flux, curve_fit_boundary_x, \
             psi, dpsi, phi, splits, knots_x, centers_x, angle_w, quintic, info)
     
@@ -120,7 +120,7 @@ def residual_fixed(numerical_flux, xs_total, xs_scatter, xs_fission, \
                 psi, dpsi, phi, splits, knots_x, edges_x, angle_w, quintic, info)
     # Knots at cell edges
     else:
-        centers_x = 0.5 * (knots_x[1:] + knots_x[:-1])
+        centers_x = average_array(knots_x)
         _curve_fit_edges(numerical_flux, curve_fit_flux, curve_fit_boundary_x, \
             psi, dpsi, phi, splits, knots_x, centers_x, angle_w, quintic, info)
     
@@ -178,7 +178,7 @@ cdef void _curve_fit_edges(double[:,:,:]& flux, double[:,:,:]& curve_fit, \
         double[:]& knots_x, double[:]& centers_x, double[:]& angle_w, \
         bint quintic, params info):
     # Initialize angle and group
-    cdef int nn, gg, ii, idx1, idx2
+    cdef int nn, gg, ii, iix, idx1, idx2
     # Initialize integral terms
     cdef double psi, dpsi
     # Initialize cell divisions
@@ -268,12 +268,12 @@ def criticality(xs_total, xs_scatter, xs_fission, medium_map, delta_x, \
     print("2. Calculating Analytical Solution...")
     # Knots at cell centers
     if knots_x.shape[0] == info.cells_x:
-        edges_x = memoryview(np.insert(np.cumsum(delta_x), 0, 0))
+        edges_x = np.insert(np.cumsum(delta_x), 0, 0)
         _curve_fit_centers(numerical_flux, curve_fit_flux, curve_fit_boundary_x, \
                 psi, dpsi, phi, splits, knots_x, edges_x, angle_w, quintic, info)
     # Knots at cell edges
     else:
-        centers_x = memoryview(0.5 * (knots_x[1:] + knots_x[:-1]))
+        centers_x = average_array(knots_x)
         _curve_fit_edges(numerical_flux, curve_fit_flux, curve_fit_boundary_x, \
             psi, dpsi, phi, splits, knots_x, centers_x, angle_w, quintic, info)
     

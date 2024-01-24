@@ -49,6 +49,9 @@ def _reaction_rate_2d(flux, xs_matrix, medium_map):
     return rate
 
 
+def average_array(arr):
+    return 0.5 * (arr[1:] + arr[:-1])
+
 ########################################################################
 # Manufactured Solutions and Accuracy
 ########################################################################

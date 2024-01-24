@@ -23,6 +23,7 @@ from tqdm.auto import tqdm
 
 from ants import fixed2d, critical2d
 from ants.utils.interp2d import Interpolation
+from ants.utils.pytools import average_array
 
 from ants cimport cytools_2d as tools
 from ants cimport parameters
@@ -70,8 +71,8 @@ def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x, \
                 knots_x, knots_y, edges_x, edges_y, angle_w, block, quintic, info)
     # Knots at cell edges
     else:
-        centers_x = 0.5 * (knots_x[1:] + knots_x[:-1])
-        centers_y = 0.5 * (knots_y[1:] + knots_y[:-1])
+        centers_x = average_array(knots_x)
+        centers_y = average_array(knots_y)
         _curve_fit_edges(numerical_flux, curve_fit_flux, curve_fit_boundary_x, \
                 curve_fit_boundary_y, int_psi, int_dx, int_dy, int_phi, \
                 medium_map, knots_x, knots_y, centers_x, centers_y, angle_w, \
@@ -84,9 +85,10 @@ def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x, \
                        xs_scatter, xs_fission, external, medium_map, \
                        delta_x, delta_y, angle_x, angle_y, info)
     fangles = str(info.angles).zfill(2)
-    np.save(f"nearby_residual_s{fangles}", np.asarray(residual))
-    np.save(f"nearby_boundary_x_s{fangles}", np.asarray(curve_fit_boundary_x))
-    np.save(f"nearby_boundary_y_s{fangles}", np.asarray(curve_fit_boundary_y))
+    fcells = str(info.cells_x).zfill(3)
+    np.save(f"nearby_residual_x{fcells}_s{fangles}", np.asarray(residual))
+    np.save(f"nearby_boundary_x_x{fcells}_s{fangles}", np.asarray(curve_fit_boundary_x))
+    np.save(f"nearby_boundary_y_x{fcells}_s{fangles}", np.asarray(curve_fit_boundary_y))
     
     # Run Nearby Problem
     print("4. Calculating Nearby Solution...")
@@ -274,8 +276,8 @@ def criticality(xs_total, xs_scatter, xs_fission, medium_map, delta_x, \
     
     # Knots at cell edges
     else:
-        centers_x = 0.5 * (knots_x[1:] + knots_x[:-1])
-        centers_y = 0.5 * (knots_y[1:] + knots_y[:-1])
+        centers_x = average_array(knots_x)
+        centers_y = average_array(knots_y)
         _curve_fit_edges(numerical_flux, curve_fit_flux, curve_fit_boundary_x, \
                 curve_fit_boundary_y, int_psi, int_dx, int_dy, int_phi, \
                 medium_map, knots_x, knots_y, centers_x, centers_y, angle_w, \
@@ -296,7 +298,8 @@ def criticality(xs_total, xs_scatter, xs_fission, medium_map, delta_x, \
             xs_total, xs_scatter, curve_fit_source, medium_map, angle_x, \
             angle_y, curve_fit_keff, info)
     fangles = str(info.angles).zfill(2)
-    np.save(f"nearby_residual_s{fangles}", np.asarray(residual))
+    fcells = str(info.cells_x).zfill(3)
+    np.save(f"nearby_residual_x{fcells}_s{fangles}", np.asarray(residual))
 
     # Run Nearby Problem
     print("4. Calculating Nearby Solution...")
