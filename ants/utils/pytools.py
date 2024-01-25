@@ -111,6 +111,25 @@ def wynn_epsilon(lst, rank):
     return abs(error[-1,-1])
 
 
+def _flux_coarsen_1d(fine_flux, fine_edges_x, coarse_edges_x, ratio):
+    # Set coarse grid cells
+    cells_x = coarse_edges_x.shape[0] - 1
+    # Initialize coarse flux
+    coarse_flux = np.zeros(((cells_x,) + fine_flux.shape[1:]))
+    # Iterate over x cells
+    count_x = 0
+    for ii in range(cells_x):
+        # Keep track of x bounds
+        idx_x = np.argwhere((fine_edges_x < coarse_edges_x[ii+1]) \
+                        & (fine_edges_x >= coarse_edges_x[ii]))
+        count_x += len(idx_x)
+        coarse_flux[ii] = np.sum(fine_flux[idx_x], axis=0) * ratio
+        # coarse_flux[ii] = np.mean(fine_flux[idx_x], axis=0)
+    # Make sure we got all rows
+    assert count_x == fine_flux.shape[0], "Not including all x cells"
+    return coarse_flux
+
+
 def _flux_coarsen_2d(fine_flux, fine_edges_x, fine_edges_y, coarse_edges_x, \
         coarse_edges_y, ratio):
     # Set coarse grid cells

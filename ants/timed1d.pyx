@@ -27,6 +27,7 @@ from ants cimport multi_group_1d as mg
 from ants cimport cytools_1d as tools
 from ants.parameters cimport params
 from ants cimport parameters
+from ants.fixed1d import known_source_calculation as steady_state
 
 
 def backward_euler(double[:,:,:] initial_flux, double[:,:] xs_total, \
@@ -399,3 +400,35 @@ cdef double[:,:,:] multigroup_tr_bdf2(double[:,:,:]& flux_last_ell, \
                                     delta_x, angle_x, angle_w, info_edge)
         
     return flux_time[:,:,:]
+
+
+def known_source_calculation(double[:,:,:] flux, double[:,:] xs_total, \
+        double[:,:,:] xs_scatter, double[:,:,:] xs_fission, \
+        double[:,:,:,:] external, double[:,:,:,:] boundary_x, \
+        int[:] medium_map, double[:] delta_x, double[:] angle_x, \
+        double[:] angle_w, dict params_dict):
+
+    # Initialize iterables
+    cdef int step, qq, bc
+
+    # Convert python dictionary
+    info = parameters._to_params(params_dict)
+
+    # Add fission matrix to scattering
+    xs_matrix = tools.array_3d(info.materials, info.groups, info.groups)
+    tools._xs_matrix(xs_matrix, xs_scatter, xs_fission, info)
+
+    # Initialize angular flux
+    angular_flux = tools.array_4d(info.steps, info.cells_x, info.angles, \
+                                  info.groups)
+
+    for step in range(info.steps):
+        # Determine dimensions of external and boundary sources
+        qq = 0 if external.shape[0] == 1 else step
+        bc = 0 if boundary_x.shape[0] == 1 else step
+
+        angular_flux[step] = steady_state(flux[step], xs_total, xs_matrix, \
+                                external[qq], boundary_x[bc], medium_map, \
+                                delta_x, angle_x, angle_w, params_dict)
+
+    return np.asarray(angular_flux)
