@@ -159,14 +159,13 @@ def coarsen_velocity(vector, edges_gidx):
 # Indexing for Hybrid Methods
 ########################################################################
 
-def indexing(groups_fine, groups_coarse, edges_g, edges_gidx):
+def indexing(edges_g, edges_gidx_fine, edges_gidx_coarse):
     """ Calculate the variables needed for refining and coarsening fluxes
     Arguments:
-        groups_fine (int): Number of fine energy groups
-        groups_coarse (int): Number of coarse energy groups where
-                            groups_fine >= groups_coarse
         edges_g (float [groups_fine + 1]): Energy group bounds for fine grid
-        edges_gidx (int [groups_coarse + 1]): Index of energy group
+        edges_gidx_fine (int [groups_fine + 1]): Index of energy group
+                            bounds for fine energy grid
+        edges_gidx_coarse (int [groups_coarse + 1]): Index of energy group
                             bounds for coarse energy grid
     Returns:
         coarse_idx (int [groups_fine]): Coarse group mapping
@@ -175,14 +174,22 @@ def indexing(groups_fine, groups_coarse, edges_g, edges_gidx):
         factor (float [groups_fine]): Fine energy bin width / coarse energy
                             bin width for specific location
     """
-    fine_idx = _uncollided_index(groups_coarse, edges_gidx)
-    coarse_idx = _collided_index(groups_fine, edges_gidx)
+    # Calculate fine and coarse groups
+    groups_fine = edges_gidx_fine.shape[0] - 1
+    groups_coarse = edges_gidx_coarse.shape[0] - 1
+
+    # Collect indexes
+    fine_idx = _uncollided_index(groups_coarse, edges_gidx_coarse)
+    coarse_idx = _collided_index(groups_fine, edges_gidx_coarse)
+    
     # Convert from memoryview
     edges_g = np.asarray(edges_g)
+    
     # Calculate energy bin widths
-    delta_fine = np.diff(edges_g)
-    delta_coarse = np.diff(edges_g[edges_gidx])
-    factor = _hybrid_factor(delta_fine, delta_coarse, edges_gidx)
+    delta_fine = np.diff(edges_g[edges_gidx_fine])
+    delta_coarse = np.diff(edges_g[edges_gidx_fine][edges_gidx_coarse])
+    factor = _hybrid_factor(delta_fine, delta_coarse, edges_gidx_coarse)
+    
     return fine_idx, coarse_idx, factor
 
 

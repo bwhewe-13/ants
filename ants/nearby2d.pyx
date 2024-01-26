@@ -38,6 +38,7 @@ def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x, \
     # Convert dictionary to type params
     info = parameters._to_params(params_dict)
     parameters._check_nearby2d_fixed_source(info, xs_total.shape[0])
+    block = True if (block) or (info.materials == 1) else False
     
     # Angular directions
     cdef int NN = info.angles * info.angles
@@ -243,6 +244,7 @@ def criticality(xs_total, xs_scatter, xs_fission, medium_map, delta_x, \
     # Convert dictionary to type params
     info = parameters._to_params(params_dict)
     parameters._check_nearby2d_criticality(info)
+    block = True if (block) or (info.materials == 1) else False
     
     # Angular directions
     cdef int NN = info.angles * info.angles
