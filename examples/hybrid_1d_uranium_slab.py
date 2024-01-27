@@ -48,9 +48,9 @@ edges_x = np.linspace(0, length, cells_x+1)
 centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
 
 # Energy Grid
-edges_g, edges_gidx = ants.energy_grid(groups_u, 87)
+edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(87, groups_u, groups_c)
 velocity_u = ants.energy_velocity(groups_u, edges_g)
-velocity_c = hytools.coarsen_velocity(velocity_u, edges_gidx)
+velocity_c = hytools.coarsen_velocity(velocity_u, edges_gidx_c)
 
 # Angular
 angle_xu, angle_wu = ants.angular_x(info_u)
@@ -66,7 +66,7 @@ materials = np.array(layers)[:,1]
 xs_total_u, xs_scatter_u, xs_fission_u = ants.materials(groups_u, materials)
 # Cross Sections - Collided
 xs_total_c, xs_scatter_c, xs_fission_c = hytools.coarsen_materials( \
-        xs_total_u, xs_scatter_u, xs_fission_u, edges_g, edges_gidx)
+        xs_total_u, xs_scatter_u, xs_fission_u, edges_g, edges_gidx_c)
 
 # External and boundary sources
 external = np.zeros((1, cells_x, 1, 1))
@@ -76,7 +76,8 @@ boundary_x = ants.boundary1d.time_dependence_decay_02(boundary_x, edges_t)
 
 
 # Indexing Parameters
-fine_idx, coarse_idx, factor = hytools.indexing(groups_u, groups_c, edges_g, edges_gidx)
+indexing = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
+fine_idx, coarse_idx, factor = indexing
 
 initial_flux = np.zeros((cells_x, angles_u, groups_u))
 

@@ -27,7 +27,7 @@ edges_x = np.linspace(0, length, cells_x+1)
 centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
 
 # Energy Grid
-edges_g, edges_gidx = ants.energy_grid(groups, 87)
+edges_g, edges_gidx = ants.energy_grid(87, groups)
 
 # Angular
 angle_x, angle_w = ants.angular_x(info)

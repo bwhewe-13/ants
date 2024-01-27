@@ -93,12 +93,13 @@ boundary_x = ants.boundary2d.time_dependence_decay_01(boundary_x, edges_t, 0.1)
 boundary_y = np.zeros((1, 2, 1, 1, 1))
 
 # Velocity
-edges_g, edges_gidx = ants.energy_grid(groups_u, 1)
+edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(1, groups_u, groups_c)
 velocity_u = ants.energy_velocity(groups_u, None)
-velocity_c = hytools.coarsen_velocity(velocity_u, edges_gidx)
+velocity_c = hytools.coarsen_velocity(velocity_u, edges_gidx_c)
 
 # Indexing Parameters
-fine_idx, coarse_idx, factor = hytools.indexing(groups_u, groups_c, edges_g, edges_gidx)
+indexing = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
+fine_idx, coarse_idx, factor = indexing
 
 initial_flux = np.zeros((cells_x, cells_x, angles_u**2, groups_u))
 
