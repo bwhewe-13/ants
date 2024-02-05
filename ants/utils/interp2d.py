@@ -498,13 +498,19 @@ class QuinticHermite:
 
 class BlockInterpolation:
 
-    def __init__(self, Splines, psi, knots_x, knots_y, medium_map):
+    def __init__(self, Splines, psi, knots_x, knots_y, medium_map, \
+                 x_splits, y_splits):
         self.Splines = Splines
         self.psi = np.asarray(psi)
         self.knots_x = np.asarray(knots_x)
         self.knots_y = np.asarray(knots_y)
         # Determine knot splits
-        self.x_splits, self.y_splits = pytools._to_block(np.asarray(medium_map))
+        if x_splits.shape[0] > 0:
+            self.x_splits = np.asarray(x_splits).copy()
+            self.y_splits = np.asarray(y_splits).copy()
+        else:
+            medium_map = np.asarray(medium_map)
+            self.x_splits, self.y_splits = pytools._to_block(medium_map)
         self._generate_coefs()
 
 
@@ -603,22 +609,25 @@ class BlockInterpolation:
 
 class Interpolation:
     
-    def __init__(self, psi, knots_x, knots_y, medium_map=None, \
-                 block=True, quintic=True):
+    def __init__(self, psi, knots_x, knots_y, medium_map, x_splits, \
+                 y_splits, block=True, quintic=True):
+
         self.block = block
         self.quintic = quintic
         # Block Quintic
         if (block) and (quintic):
-            self.instance = BlockInterpolation(QuinticHermite, psi, \
-                                            knots_x, knots_y, medium_map)
+            self.instance = BlockInterpolation(QuinticHermite, psi, knots_x, \
+                                    knots_y, medium_map, x_splits, y_splits)
+
         # Quintic
         elif (not block) and (quintic):
             self.instance = QuinticHermite(psi, knots_x, knots_y)
 
         # Block Cubic
         elif (block) and (not quintic):
-            self.instance = BlockInterpolation(CubicHermite, psi, \
-                                            knots_x, knots_y, medium_map)
+            self.instance = BlockInterpolation(CubicHermite, psi, knots_x, \
+                                    knots_y, medium_map, x_splits, y_splits)
+
         # Cubic
         elif (not block) and (not quintic):
             self.instance = CubicHermite(psi, knots_x, knots_y)

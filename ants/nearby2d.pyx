@@ -33,7 +33,7 @@ from ants.parameters cimport params
 def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x, \
         boundary_y, medium_map, delta_x, delta_y, knots_x, knots_y, \
         angle_x, angle_y, angle_w, params_dict, block=True, quintic=True, \
-        zero_bounds=False):
+        zero_bounds=False, x_splits=None, y_splits=None):
     
     # Convert dictionary to type params
     info = parameters._to_params(params_dict)
@@ -43,6 +43,11 @@ def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x, \
     # Angular directions
     cdef int NN = info.angles * info.angles
     
+    # Check for custom x/y splits
+    if x_splits is None:
+        x_splits = np.zeros((0,), dtype=np.int32)
+        y_splits = np.zeros((0,), dtype=np.int32)
+
     # Run Numerical Solution
     print("1. Calculating Numerical Solution...")
     numerical_flux = fixed2d.dynamic_mode_decomp(xs_total, xs_scatter, \
@@ -68,16 +73,17 @@ def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x, \
         edges_x = np.insert(np.cumsum(delta_x), 0, 0)
         edges_y = np.insert(np.cumsum(delta_y), 0, 0)
         _curve_fit_centers(numerical_flux, curve_fit_flux, curve_fit_boundary_x, \
-                curve_fit_boundary_y, int_psi, int_dx, int_dy, int_phi, medium_map, \
-                knots_x, knots_y, edges_x, edges_y, angle_w, block, quintic, info)
+                    curve_fit_boundary_y, int_psi, int_dx, int_dy, int_phi, \
+                    medium_map, knots_x, knots_y, edges_x, edges_y, x_splits, \
+                    y_splits, angle_w, block, quintic, info)
     # Knots at cell edges
     else:
         centers_x = average_array(knots_x)
         centers_y = average_array(knots_y)
         _curve_fit_edges(numerical_flux, curve_fit_flux, curve_fit_boundary_x, \
-                curve_fit_boundary_y, int_psi, int_dx, int_dy, int_phi, \
-                medium_map, knots_x, knots_y, centers_x, centers_y, angle_w, \
-                block, quintic, info)
+                    curve_fit_boundary_y, int_psi, int_dx, int_dy, int_phi, \
+                    medium_map, knots_x, knots_y, centers_x, centers_y, \
+                    x_splits, y_splits, angle_w, block, quintic, info)
     
     # Calculate residual for each cell
     print("3. Calculating Residual...")
@@ -111,8 +117,9 @@ cdef void _curve_fit_centers(double[:,:,:,:]& flux, double[:,:,:,:]& curve_fit, 
         double[:,:,:,:]& integral, double[:,:,:,:]& dxintegral, \
         double[:,:,:,:]& dyintegral, double[:,:,:]& sintegral, \
         int[:,:]& medium_map, double[:]& knots_x, double[:]& knots_y, \
-        double[:]& edges_x, double[:]& edges_y, double[:]& angle_w, \
-        bint block, bint quintic, params info):
+        double[:]& edges_x, double[:]& edges_y, int[:]& x_splits, \
+        int[:]& y_splits, double[:]& angle_w, bint block, bint quintic, \
+        params info):
     
     # Initialize cell, angle, and group
     cdef int ii, jj, nn, gg
@@ -124,14 +131,14 @@ cdef void _curve_fit_centers(double[:,:,:,:]& flux, double[:,:,:,:]& curve_fit, 
     cdef double[:,:] spline, int_psi, int_dx, int_dy, boundary
     cdef double[2] bounds_x = [edges_x[0], edges_x[info.cells_x]]
     cdef double[2] bounds_y = [edges_y[0], edges_y[info.cells_y]]
-    
+
     # Iterate over groups
     for gg in range(info.groups):
         # Iterate over angles
         for nn in tqdm(range(NN), desc="Curve Fit Angles", ascii=True):
             # Create function
             approx = Interpolation(flux[:,:,nn,gg], knots_x, knots_y, \
-                                    medium_map, block, quintic)
+                        medium_map, x_splits, y_splits, block, quintic)
             
             # Interpolate the knots
             spline = approx.interpolate(knots_x, knots_y)
@@ -160,8 +167,9 @@ cdef void _curve_fit_edges(double[:,:,:,:]& flux, double[:,:,:,:]& curve_fit, \
         double[:,:,:,:]& integral, double[:,:,:,:]& dxintegral, \
         double[:,:,:,:]& dyintegral, double[:,:,:]& sintegral, \
         int[:,:]& medium_map, double[:]& knots_x, double[:]& knots_y, \
-        double[:]& centers_x, double[:]& centers_y, double[:]& angle_w, \
-        bint block, bint quintic, params info):
+        double[:]& centers_x, double[:]& centers_y, int[:]& x_splits, \
+        int[:]& y_splits, double[:]& angle_w, bint block, bint quintic, \
+        params info):
     
     # Initialize angle and group
     cdef int ii, jj, nn, gg
@@ -171,9 +179,9 @@ cdef void _curve_fit_edges(double[:,:,:,:]& flux, double[:,:,:,:]& curve_fit, \
         # Iterate over angles
         for nn in range(info.angles * info.angles):
             # Create function
-            # approx = Block(Hermite, flux[:,:,nn,gg], knots_x, knots_y, medium_map)
             approx = Interpolation(flux[:,:,nn,gg], knots_x, knots_y, \
-                                    medium_map, block, quintic)
+                        medium_map, x_splits, y_splits, block, quintic)
+
             # Interpolate the knots
             spline = approx.interpolate(centers_x, centers_y)
             
@@ -239,7 +247,7 @@ cdef void _residual_integral(double[:,:,:,:]& residual, double[:,:,:,:]& psi, \
 
 def criticality(xs_total, xs_scatter, xs_fission, medium_map, delta_x, \
         delta_y, knots_x, knots_y, angle_x, angle_y, angle_w, params_dict, \
-        block=True, quintic=True):
+        block=True, quintic=True, x_splits=None, y_splits=None):
     
     # Convert dictionary to type params
     info = parameters._to_params(params_dict)
@@ -248,7 +256,12 @@ def criticality(xs_total, xs_scatter, xs_fission, medium_map, delta_x, \
     
     # Angular directions
     cdef int NN = info.angles * info.angles
-    
+
+    # Check for custom x/y splits
+    if x_splits is None:
+        x_splits = np.zeros((0,), dtype=np.int32)
+        y_splits = np.zeros((0,), dtype=np.int32)
+
     # Run Numerical Solution
     print("1. Calculating Numerical Solution...")
     numerical_flux, numerical_keff = critical2d.power_iteration(xs_total, \
@@ -273,17 +286,18 @@ def criticality(xs_total, xs_scatter, xs_fission, medium_map, delta_x, \
         edges_x = np.insert(np.cumsum(delta_x), 0, 0)
         edges_y = np.insert(np.cumsum(delta_y), 0, 0)
         _curve_fit_centers(numerical_flux, curve_fit_flux, curve_fit_boundary_x, \
-                curve_fit_boundary_y, int_psi, int_dx, int_dy, int_phi, medium_map, \
-                knots_x, knots_y, edges_x, edges_y, angle_w, block, quintic, info)
+                    curve_fit_boundary_y, int_psi, int_dx, int_dy, int_phi, \
+                    medium_map, knots_x, knots_y, edges_x, edges_y, x_splits, \
+                    y_splits, angle_w, block, quintic, info)
     
     # Knots at cell edges
     else:
         centers_x = average_array(knots_x)
         centers_y = average_array(knots_y)
         _curve_fit_edges(numerical_flux, curve_fit_flux, curve_fit_boundary_x, \
-                curve_fit_boundary_y, int_psi, int_dx, int_dy, int_phi, \
-                medium_map, knots_x, knots_y, centers_x, centers_y, angle_w, \
-                block, quintic, info)
+                    curve_fit_boundary_y, int_psi, int_dx, int_dy, int_phi, \
+                    medium_map, knots_x, knots_y, centers_x, centers_y, \
+                    x_splits, y_splits, angle_w, block, quintic, info)
     
     # Create curve fit source, curve fit keff, nearby reaction rate
     curve_fit_source = tools.array_3d(info.cells_x, info.cells_y, info.groups)
