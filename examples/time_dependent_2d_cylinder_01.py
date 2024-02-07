@@ -22,7 +22,7 @@ steps = 1000
 
 # Spatial Layout
 radius = 4.279960
-coordinates = [(radius, radius), [radius]]
+coords = [[(radius, radius), (0.0, radius)]]
 
 length_x = length_y = 2 * radius
 
@@ -42,9 +42,12 @@ xs_total = np.array([[0.32640], [0.0]])
 xs_scatter = np.array([[[0.225216]], [[0.0]]])
 xs_fission = np.array([[[2.84*0.0816]], [[0.0]]])
 
-weight_matrix = ants.weight_cylinder2d(coordinates, edges_x, edges_y)
-medium_map, xs_total, xs_scatter, xs_fission \
-    = ants.weight_spatial2d(weight_matrix, xs_total, xs_scatter, xs_fission)
+weight_matrix = ants.weight_matrix2d(edges_x, edges_y, materials=2, \
+                            N_particles=cells_x * 50_000, circles=coords, \
+                            circle_index=[0])
+
+weighted = ants.weight_spatial2d(weight_matrix, xs_total, xs_scatter, xs_fission)
+medium_map, xs_total, xs_scatter, xs_fission = weighted
 
 info = {
             "cells_x": cells_x,

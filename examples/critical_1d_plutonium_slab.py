@@ -38,7 +38,7 @@ medium_map = ants.spatial1d(layers, edges_x)
 
 # Cross Sections
 materials = np.array(layers)[:,1]
-xs_total, xs_scatter, xs_fission = ants.materials(groups, materials)
+xs_total, xs_scatter, xs_fission = ants.materials(618, materials)
 
 flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
                              delta_x, angle_x, angle_w, info)

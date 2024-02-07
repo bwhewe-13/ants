@@ -311,11 +311,12 @@ def inscribed_circle(edges_x, edges_y, radii):
     """
     x_splits = []
     y_splits = []
+    center = np.max(radii)
 
     for radius in radii:
         # Vertices
-        left = radius - radius / np.sqrt(2)
-        right = radius + radius / np.sqrt(2)
+        left = center - radius / np.sqrt(2)
+        right = center + radius / np.sqrt(2)
 
         # X direction
         xx = list(np.where((edges_x >= left) & (edges_x < right))[0][[0,-1]])

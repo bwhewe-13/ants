@@ -26,7 +26,7 @@ edges_x = np.linspace(0, length, cells_x+1)
 centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
 
 # Energy Grid
-edges_g, edges_gidx = ants.energy_grid(groups, 87)
+edges_g, edges_gidx = ants.energy_grid(87, groups)
 
 # Angular
 angle_x, angle_w = ants.angular_x(info)
@@ -38,7 +38,7 @@ medium_map = ants.spatial1d(layers, edges_x)
 
 # Cross Sections
 materials = np.array(layers)[:,1]
-xs_total, xs_scatter, xs_fission = ants.materials(groups, materials)
+xs_total, xs_scatter, xs_fission = ants.materials(87, materials)
 
 # External and boundary sources
 external = np.zeros((cells_x, 1, 1))

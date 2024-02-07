@@ -112,7 +112,7 @@ def _ordering_angles_xy(angle_x, angle_y, angle_w, bc_x, bc_y):
     return matrix * directions
 
 
-def energy_grid(grid, groups_fine, groups_coarse):
+def energy_grid(grid, groups_fine, groups_coarse=None):
     """
     Calculate energy grid bounds (MeV) and index for coarsening
     Arguments:
@@ -126,24 +126,32 @@ def energy_grid(grid, groups_fine, groups_coarse):
     if grid in [87, 361, 618]:
         edges_g = np.load(DATA_PATH + "energy_bounds.npz")[str(grid)]
     else:
-        edges_g = np.arange(groups + 1, dtype=float)
+        edges_g = np.arange(groups_fine + 1, dtype=float)
     
     # Calculate the indicies for the specific grid
     if grid == 361:
-        label_fine = str(groups_fine).zfill(3)
-        label_coarse = str(groups_coarse).zfill(3)
         edges_data = np.load(DATA_PATH + "G361_grid_index.npz")
-        edges_gidx_fine = edges_data[label_fine]
-        edges_gidx_coarse = edges_data[label_coarse]
+
+        label_fine = str(groups_fine).zfill(3)
+        edges_gidx_fine = edges_data[label_fine].copy()
+
+        if groups_coarse is not None:
+            label_coarse = str(groups_coarse).zfill(3)
+            edges_gidx_coarse = edges_data[label_coarse].copy()
+
     else:
         edges_gidx_fine = energy_coarse_index(len(edges_g)-1, groups_fine)
-        edges_gidx_coarse = energy_coarse_index(groups_fine, groups_coarse)
+        if groups_coarse is not None:
+            edges_gidx_coarse = energy_coarse_index(groups_fine, groups_coarse)
     
     # Convert to correct type
     edges_gidx_fine = edges_gidx_fine.astype(np.int32)
-    edges_gidx_coarse = edges_gidx_coarse.astype(np.int32)
+    
+    if groups_coarse is not None:
+        edges_gidx_coarse = edges_gidx_coarse.astype(np.int32)
+        return edges_g, edges_gidx_fine, edges_gidx_coarse
 
-    return edges_g, edges_gidx_fine, edges_gidx_coarse
+    return edges_g, edges_gidx_fine
 
 
 def energy_velocity(groups, edges_g=None):
