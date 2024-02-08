@@ -15,15 +15,18 @@ from ants.utils import hybrid as hytools
 
 cells_x = 100
 cells_y = 100
+
 angles_u = 8
 angles_c = 2
+
 groups_u = 1
 groups_c = 1
+
 steps = 100
 
 # Spatial Layout
 radius = 4.279960
-coordinates = [(radius, radius), [radius]]
+coords = [[(radius, radius), (0.0, radius)]]
 
 length_x = length_y = 2 * radius
 
@@ -44,12 +47,20 @@ xs_scatter = np.array([[[0.225216]], [[0.0]]])
 xs_fission = np.array([[[2.84*0.0816]], [[0.0]]])
 
 
-N = cells_x * cells_y * 50
-weight_matrix = ants.weight_cylinder2d(coordinates, edges_x, edges_y, N=N)
-# np.save("cylinder_weight_matrix", weight_matrix)
-# weight_matrix = np.load("cylinder_weight_matrix.npy")
-medium_map, xs_total, xs_scatter, xs_fission \
-    = ants.weight_spatial2d(weight_matrix, xs_total, xs_scatter, xs_fission)
+N_particles = 50 * cells_x * cells_y
+fcells = str(cells_x).zfill(3)
+
+try:
+    weight_matrix = np.load(f"weight_matrix_x{fcells}.npy")
+except:
+    weight_matrix = ants.weight_matrix2d(edges_x, edges_y, materials=2, \
+                            N_particles=N_particles, circles=coords, \
+                            circle_index=[0])
+    np.save(f"weight_matrix_x{fcells}", weight_matrix)
+    weight_matrix = np.load(f"weight_matrix_x{fcells}.npy")
+
+weighted = ants.weight_spatial2d(weight_matrix, xs_total, xs_scatter, xs_fission)
+medium_map, xs_total, xs_scatter, xs_fission = weighted
 
 info_u = {
             "cells_x": cells_x,
@@ -87,19 +98,18 @@ external = np.zeros((1, cells_x, cells_y, 1, 1))
 
 boundary_x = np.zeros((2, 1, 1, 1))
 boundary_x[0] = 1.
-edges_t = np.linspace(0, info["dt"] * steps, steps + 1)
-boundary_x = ants.boundary2d.time_dependence_decay_01(boundary_x, edges_t, 0.1)
+edges_t = np.linspace(0, info_u["dt"] * steps, steps + 1)
+boundary_x = ants.boundary2d.time_dependence_decay_01(boundary_x, edges_t, 8.0)
 
 boundary_y = np.zeros((1, 2, 1, 1, 1))
 
 # Velocity
-edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(1, groups_u, groups_c)
-velocity_u = ants.energy_velocity(groups_u, None)
+edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(None, groups_u, groups_c)
+velocity_u = ants.energy_velocity(groups_u, edges_g)
 velocity_c = hytools.coarsen_velocity(velocity_u, edges_gidx_c)
 
 # Indexing Parameters
-indexing = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
-fine_idx, coarse_idx, factor = indexing
+fine_idx, coarse_idx, factor = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
 
 initial_flux = np.zeros((cells_x, cells_x, angles_u**2, groups_u))
 
@@ -107,7 +117,7 @@ flux = backward_euler(initial_flux, xs_total, xs_total, xs_scatter, \
                     xs_scatter, xs_fission, xs_fission, velocity_u, velocity_c, \
                     external, boundary_x, boundary_y, medium_map, delta_x, \
                     delta_y, angle_x, angle_x, angle_y, angle_y, angle_w, \
-                    angle_w, fine_idx, coarse_idx, factor, info, info_c)
+                    angle_w, fine_idx, coarse_idx, factor, info_u, info_c)
 
 # print(flux.shape)
 nn1 = str(angles_u).zfill(2)

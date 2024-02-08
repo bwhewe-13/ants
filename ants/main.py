@@ -130,19 +130,25 @@ def energy_grid(grid, groups_fine, groups_coarse=None):
     
     # Calculate the indicies for the specific grid
     if grid == 361:
-        label_fine = str(groups_fine).zfill(3)
-        label_coarse = str(groups_coarse).zfill(3)
         edges_data = np.load(DATA_PATH + "G361_grid_index.npz")
-        edges_gidx_fine = edges_data[label_fine]
-        edges_gidx_coarse = edges_data[label_coarse]
+
+        label_fine = str(groups_fine).zfill(3)
+        edges_gidx_fine = edges_data[label_fine].copy()
+
+        if groups_coarse is not None:
+            label_coarse = str(groups_coarse).zfill(3)
+            edges_gidx_coarse = edges_data[label_coarse].copy()
+
     else:
         edges_gidx_fine = energy_coarse_index(len(edges_g)-1, groups_fine)
+
+        if groups_coarse is not None:
+            edges_gidx_coarse = energy_coarse_index(groups_fine, groups_coarse)
+    
     # Convert to correct type
     edges_gidx_fine = edges_gidx_fine.astype(np.int32)
 
-    # Check for multiple energy groups
     if groups_coarse is not None:
-        edges_gidx_coarse = energy_coarse_index(groups_fine, groups_coarse)
         edges_gidx_coarse = edges_gidx_coarse.astype(np.int32)
         return edges_g, edges_gidx_fine, edges_gidx_coarse
 

@@ -41,10 +41,10 @@ def test_backward_euler_01():
         angle_y, angle_w, info \
             = problems2d.manufactured_td_01(cells_x, angles, edges_t, dt, temporal=1)
 
-    edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(groups, 1, 1)
+    edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(None, groups, groups)
     # Indexing Parameters
-    indexing = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
-    fine_idx, coarse_idx, factor = indexing
+    data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
+    fine_idx, coarse_idx, factor = data
 
     # Run Hybrid Method
     approx = hybrid2d.backward_euler(initial_flux, xs_total, xs_total, \
@@ -88,10 +88,11 @@ def test_backward_euler_02():
         angle_y, angle_w, info \
             = problems2d.manufactured_td_02(cells_x, angles, edges_t, dt, temporal=1)
 
-    edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(groups, 1, 1)
+    edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(None, groups, groups)
     # Indexing Parameters
-    indexing = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
-    fine_idx, coarse_idx, factor = indexing
+    data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
+    fine_idx, coarse_idx, factor = data
+
     # Run Hybrid Method
     approx = hybrid2d.backward_euler(initial_flux, xs_total, xs_total, \
                     xs_scatter, xs_scatter, xs_fission, xs_fission, \
@@ -135,10 +136,11 @@ def test_crank_nicolson_01():
         delta_y, angle_x, angle_y, angle_w, info \
             = problems2d.manufactured_td_01(cells_x, angles, edges_t, dt, temporal=2)
 
-    edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(groups, 1, 1)
+    edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(None, groups, groups)
     # Indexing Parameters
-    indexing = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
-    fine_idx, coarse_idx, factor = indexing
+    data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
+    fine_idx, coarse_idx, factor = data
+
     # Run Hybrid Method
     approx = hybrid2d.crank_nicolson(initial_flux_x, initial_flux_y, \
                     xs_total, xs_total, xs_scatter, xs_scatter, xs_fission, \
@@ -181,10 +183,11 @@ def test_crank_nicolson_02():
         delta_y, angle_x, angle_y, angle_w, info \
             = problems2d.manufactured_td_02(cells_x, angles, edges_t, dt, temporal=2)
 
-    edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(groups, 1, 1)
+    edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(None, groups, groups)
     # Indexing Parameters
-    indexing = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
-    fine_idx, coarse_idx, factor = indexing
+    data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
+    fine_idx, coarse_idx, factor = data
+
     # Run Hybrid Method
     approx = hybrid2d.crank_nicolson(initial_flux_x, initial_flux_y, \
                     xs_total, xs_total, xs_scatter, xs_scatter, xs_fission, \
@@ -228,10 +231,11 @@ def test_bdf2_01():
         angle_y, angle_w, info \
             = problems2d.manufactured_td_01(cells_x, angles, edges_t, dt, temporal=3)
 
-    edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(groups, 1, 1)
+    edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(None, groups, groups)
     # Indexing Parameters
-    indexing = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
-    fine_idx, coarse_idx, factor = indexing
+    data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
+    fine_idx, coarse_idx, factor = data
+
     # Run Hybrid Method
     approx = hybrid2d.bdf2(initial_flux, xs_total, xs_total, \
                     xs_scatter, xs_scatter, xs_fission, xs_fission, \
@@ -274,10 +278,11 @@ def test_bdf2_02():
         angle_y, angle_w, info \
             = problems2d.manufactured_td_02(cells_x, angles, edges_t, dt, temporal=3)
 
-    edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(groups, 1, 1)
+    edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(None, groups, groups)
     # Indexing Parameters
-    indexing = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
-    fine_idx, coarse_idx, factor = indexing
+    data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
+    fine_idx, coarse_idx, factor = data
+
     # Run Hybrid Method
     approx = hybrid2d.bdf2(initial_flux, xs_total, xs_total, \
                     xs_scatter, xs_scatter, xs_fission, xs_fission, \
@@ -321,10 +326,11 @@ def test_tr_bdf2_01():
         delta_y, angle_x, angle_y, angle_w, info \
             = problems2d.manufactured_td_01(cells_x, angles, edges_t, dt, temporal=4)
 
-    edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(groups, 1, 1)
+    edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(None, groups, groups)
     # Indexing Parameters
-    indexing = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
-    fine_idx, coarse_idx, factor = indexing
+    data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
+    fine_idx, coarse_idx, factor = data
+
     # Run Hybrid Method
     approx = hybrid2d.tr_bdf2(initial_flux_x, initial_flux_y, \
                     xs_total, xs_total, xs_scatter, xs_scatter, xs_fission, \
@@ -367,10 +373,11 @@ def test_tr_bdf2_02():
         delta_y, angle_x, angle_y, angle_w, info \
             = problems2d.manufactured_td_02(cells_x, angles, edges_t, dt, temporal=4)
 
-    edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(groups, 1, 1)
+    edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(None, groups, groups)
     # Indexing Parameters
-    indexing = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
-    fine_idx, coarse_idx, factor = indexing
+    data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
+    fine_idx, coarse_idx, factor = data
+
     # Run Hybrid Method
     approx = hybrid2d.tr_bdf2(initial_flux_x, initial_flux_y, \
                     xs_total, xs_total, xs_scatter, xs_scatter, xs_fission, \

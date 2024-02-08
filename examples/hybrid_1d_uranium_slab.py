@@ -63,10 +63,11 @@ medium_map = ants.spatial1d(layers, edges_x)
 
 # Cross Sections - Uncollided
 materials = np.array(layers)[:,1]
-xs_total_u, xs_scatter_u, xs_fission_u = ants.materials(groups_u, materials)
+xs_total_u, xs_scatter_u, xs_fission_u = ants.materials(87, materials)
 # Cross Sections - Collided
-xs_total_c, xs_scatter_c, xs_fission_c = hytools.coarsen_materials( \
-        xs_total_u, xs_scatter_u, xs_fission_u, edges_g, edges_gidx_c)
+xs_collided = hytools.coarsen_materials(xs_total_u, xs_scatter_u, xs_fission_u, \
+                                        edges_g[edges_gidx_u], edges_gidx_c)
+xs_total_c, xs_scatter_c, xs_fission_c = xs_collided
 
 # External and boundary sources
 external = np.zeros((1, cells_x, 1, 1))
@@ -76,8 +77,7 @@ boundary_x = ants.boundary1d.time_dependence_decay_02(boundary_x, edges_t)
 
 
 # Indexing Parameters
-indexing = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
-fine_idx, coarse_idx, factor = indexing
+fine_idx, coarse_idx, factor = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
 
 initial_flux = np.zeros((cells_x, angles_u, groups_u))
 

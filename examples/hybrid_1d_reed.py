@@ -47,8 +47,8 @@ edges_x = np.linspace(0, length, cells_x+1)
 centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
 
 # Energy Grid
-edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(1, groups_u, groups_c)
-velocity_u = ants.energy_velocity(groups_u, None)
+edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(None, groups_u, groups_c)
+velocity_u = ants.energy_velocity(groups_u, edges_g)
 velocity_c = hytools.coarsen_velocity(velocity_u, edges_gidx_c)
 
 # Angular
@@ -76,8 +76,7 @@ boundary_x = np.zeros((1, 2, 1, 1))
 
 
 # Indexing Parameters
-indexing = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
-fine_idx, coarse_idx, factor = indexing
+fine_idx, coarse_idx, factor = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
 
 initial_flux = np.zeros((cells_x, angles_u, groups_u))
 

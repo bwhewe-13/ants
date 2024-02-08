@@ -38,7 +38,7 @@ medium_map = ants.spatial1d(layers, edges_x)
 
 # Cross Sections
 materials = np.array(layers)[:,1]
-xs_total, xs_scatter, xs_fission = ants.materials(groups, materials)
+xs_total, xs_scatter, xs_fission = ants.materials(87, materials)
 
 # External and boundary sources
 external = np.zeros((cells_x, 1, 1))

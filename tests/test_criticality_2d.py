@@ -263,7 +263,7 @@ def test_cylinder_two_material():
     
     # Spatial layout
     radius = 4.279960
-    coordinates = [(radius, radius), [radius]]
+    coords = [[(radius, radius), (0.0, radius)]]
     
     # Inscribed inside circle
     length_x = length_y = 2 * radius
@@ -282,12 +282,17 @@ def test_cylinder_two_material():
     xs_total = np.array([[0.32640], [0.0]])
     xs_scatter = np.array([[[0.225216]], [[0.0]]])
     xs_fission = np.array([[[2.84*0.0816]], [[0.0]]])
-    # Update cross sections for cylinder
-    # weight_matrix = ants.weight_cylinder2d(coordinates, edges_x, edges_y, N=250_000)
+    
+    # Update cross sections for cylinder    
+    # weight_matrix = ants.weight_matrix2d(edges_x, edges_y, materials=2, \
+    #                     N_particles=cells_x * 50_000, circles=coords, \
+    #                     circle_index=[0])
     # np.save(PATH + "cylinder_two_material", weight_matrix)
+    
     weight_matrix = np.load(PATH + "cylinder_two_material.npy")
-    medium_map, xs_total, xs_scatter, xs_fission \
-        = ants.weight_spatial2d(weight_matrix, xs_total, xs_scatter, xs_fission)
+    weighted = ants.weight_spatial2d(weight_matrix, xs_total, xs_scatter, xs_fission)
+    medium_map, xs_total, xs_scatter, xs_fission = weighted
+
     # Collect problem dictionary
     info = {"cells_x": cells_x, "cells_y": cells_y, "angles": angles, \
             "groups": groups, "materials": len(xs_total), "geometry": 1, \
@@ -300,6 +305,7 @@ def test_cylinder_two_material():
                        delta_x, delta_y, angle_x, angle_y, angle_w, info)
     
     assert abs(keff - 1) < 2e-3, "k-effective: " + str(keff)
+
 
 @pytest.mark.smoke
 @pytest.mark.cylinder2d
@@ -314,7 +320,7 @@ def test_cylinder_two_material_half(bc_x, bc_y):
     groups = 1
     # Spatial layout
     radius = 4.279960
-    coordinates = [(radius, radius), [radius]]
+    coords = [[(radius, radius), (0.0, radius)]]
     # Inscribed inside circle
     length_x = 2 * radius if bc_x == [0, 0] else radius
     length_y = 2 * radius if bc_y == [0, 0] else radius
@@ -331,8 +337,11 @@ def test_cylinder_two_material_half(bc_x, bc_y):
     xs_fission = np.array([[[2.84*0.0816]], [[0.0]]])
     
     # Update cross sections for cylinder
-    # weight_matrix = ants.weight_cylinder2d(coordinates, edges_x, edges_y, N=250_000)
+    # weight_matrix = ants.weight_matrix2d(edges_x, edges_y, materials=2, \
+    #                     N_particles=cells_x * 50_000, circles=coords, \
+    #                     circle_index=[0])
     # np.save(PATH + "cylinder_two_material", weight_matrix)
+
     weight_matrix = np.load(PATH + "cylinder_two_material.npy")
     if bc_x == [0, 1]:
         weight_matrix = weight_matrix[:25,:,:].copy()
@@ -343,8 +352,10 @@ def test_cylinder_two_material_half(bc_x, bc_y):
     elif bc_y == [1, 0]:
         weight_matrix = weight_matrix[:,25:,:].copy()
 
-    medium_map, xs_total, xs_scatter, xs_fission \
-        = ants.weight_spatial2d(weight_matrix, xs_total, xs_scatter, xs_fission)
+    
+    weighted = ants.weight_spatial2d(weight_matrix, xs_total, xs_scatter, xs_fission)
+    medium_map, xs_total, xs_scatter, xs_fission = weighted
+
     # Collect problem dictionary
     info = {"cells_x": cells_x, "cells_y": cells_y, "angles": angles, \
             "groups": groups, "materials": len(xs_total), "geometry": 1, \
@@ -360,7 +371,6 @@ def test_cylinder_two_material_half(bc_x, bc_y):
     assert abs(keff - 1) < 2e-3, "k-effective: " + str(keff)
 
 
-
 @pytest.mark.smoke
 @pytest.mark.cylinder2d
 @pytest.mark.power_iteration
@@ -374,7 +384,7 @@ def test_cylinder_two_material_quarter(bc_x, bc_y):
     groups = 1
     # Spatial layout
     radius = 4.279960
-    coordinates = [(radius, radius), [radius]]
+    coords = [[(radius, radius), (0.0, radius)]]
     # Inscribed inside circle
     length_x = radius
     length_y = radius
@@ -391,8 +401,11 @@ def test_cylinder_two_material_quarter(bc_x, bc_y):
     xs_fission = np.array([[[2.84*0.0816]], [[0.0]]])
     
     # Update cross sections for cylinder
-    # weight_matrix = ants.weight_cylinder2d(coordinates, edges_x, edges_y, N=250_000)
+    # weight_matrix = ants.weight_matrix2d(edges_x, edges_y, materials=2, \
+    #                     N_particles=cells_x * 50_000, circles=coords, \
+    #                     circle_index=[0])
     # np.save(PATH + "cylinder_two_material", weight_matrix)
+
     weight_matrix = np.load(PATH + "cylinder_two_material.npy")
     if bc_x == [0, 1]:
         weight_matrix = weight_matrix[:25,:,:].copy()
@@ -403,8 +416,9 @@ def test_cylinder_two_material_quarter(bc_x, bc_y):
     if bc_y == [1, 0]:
         weight_matrix = weight_matrix[:,25:,:].copy()
 
-    medium_map, xs_total, xs_scatter, xs_fission \
-        = ants.weight_spatial2d(weight_matrix, xs_total, xs_scatter, xs_fission)
+    weighted = ants.weight_spatial2d(weight_matrix, xs_total, xs_scatter, xs_fission)
+    medium_map, xs_total, xs_scatter, xs_fission = weighted
+
     # Collect problem dictionary
     info = {"cells_x": cells_x, "cells_y": cells_y, "angles": angles, \
             "groups": groups, "materials": len(xs_total), "geometry": 1, \
@@ -427,7 +441,9 @@ def test_cylinder_three_material(layer):
     # Radii
     radius01 = 15.396916 if layer == "small" else 14.606658
     radius02 = radius01 + 1.830563 if layer == "small" else radius01 + 18.30563
-    coordinates = [(radius02, radius02), [radius01, radius02]]
+    coords = [[(radius02, radius02), (0.0, radius01)], 
+              [(radius02, radius02), (radius01, radius02)]]
+
     # Material Parameters
     cells_x = cells_y = 100
     angles = 4
@@ -439,6 +455,7 @@ def test_cylinder_three_material(layer):
     delta_y = np.repeat(length_y / cells_y, cells_y)
     edges_x = np.linspace(0, length_x, cells_x + 1)
     edges_y = np.linspace(0, length_y, cells_y + 1)
+    
     # Boundary Conditions
     bc_x = [0, 0]
     bc_y = [0, 0]
@@ -446,12 +463,17 @@ def test_cylinder_three_material(layer):
     xs_total = np.array([[0.54628], [0.54628], [0.0]])
     xs_scatter = np.array([[[0.464338]], [[0.491652]], [[0.0]]])
     xs_fission = np.array([[[1.70*0.054628]], [[0.0]], [[0.0]]])
+    
     # Update cross sections for cylinder
-    # weight_matrix = ants.weight_cylinder2d(coordinates, edges_x, edges_y, N=500_000)
+    # weight_matrix = ants.weight_matrix2d(edges_x, edges_y, materials=3, \
+    #                         N_particles=cells_x * 50_000, circles=coords, \
+    #                         circle_index=[0,1])
     # np.save(PATH + f"cylinder_three_material_{layer}", weight_matrix)
     weight_matrix = np.load(PATH + f"cylinder_three_material_{layer}.npy")
-    medium_map, xs_total, xs_scatter, xs_fission \
-        = ants.weight_spatial2d(weight_matrix, xs_total, xs_scatter, xs_fission)
+    
+    weighted = ants.weight_spatial2d(weight_matrix, xs_total, xs_scatter, xs_fission)
+    medium_map, xs_total, xs_scatter, xs_fission = weighted
+
     # Collect problem dictionary
     info = {"cells_x": cells_x, "cells_y": cells_y, "angles": angles, \
             "groups": groups, "materials": len(xs_total), "geometry": 1, \

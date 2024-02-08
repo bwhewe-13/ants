@@ -299,6 +299,41 @@ def _to_block(medium_map):
     return x_splits, y_splits
 
 
+def inscribed_circle(edges_x, edges_y, radii):
+    """ Separating medium map into inscribed chunks for MNP for each chunk
+    Arguments:
+        edges_x (float [cells_x + 1]): locations of spatial cell edges (x)
+        edges_y (float [cells_y + 1]): locations of spatial cell edges (y)
+        radii (float [Number of circles]): list of inscribed circle radii
+    Returns:
+        x_splits (int []): array of index for x direction
+        y_splits (int []): array of index for y direction
+    """
+    x_splits = []
+    y_splits = []
+    center = np.max(radii)
+
+    for radius in radii:
+        # Vertices
+        left = center - radius / np.sqrt(2)
+        right = center + radius / np.sqrt(2)
+
+        # X direction
+        xx = list(np.where((edges_x >= left) & (edges_x < right))[0][[0,-1]])
+        xx = np.array([0] + xx + [len(edges_x)-1], dtype=np.int32)
+        x_splits.append(list(xx))
+
+        # Y direction
+        yy = list(np.where((edges_y >= left) & (edges_y < right))[0][[0,-1]])
+        yy = np.array([0] + yy + [len(edges_y)-1], dtype=np.int32)
+        y_splits.append(list(yy))
+
+    # Collect unique values
+    x_splits = np.unique([ii for lst in x_splits for ii in lst])
+    y_splits = np.unique([ii for lst in y_splits for ii in lst])
+    # Return two arrays (might be different lengths)
+    return x_splits, y_splits
+
 ########################################################################
 # One Dimensional DMD
 ########################################################################
