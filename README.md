@@ -3,7 +3,7 @@
 
 A Neutron Transport Solution (ANTS) calculates the neutron flux for both criticality and fixed source problems of one dimensional slabs and spheres and two dimensional slabs using the discrete ordinates method and written in Cython. 
 
-There are a number of different acceleration methods used including a collision-based hybrid method, machine learning DJINN models to predict matrix-vector multiplication, dynamic mode decomposition, and synthetic diffusion acceleration (DSA).
+There are a number of different acceleration methods used including a collision-based hybrid method, machine learning models to predict matrix-vector multiplication, dynamic mode decomposition, and synthetic diffusion acceleration (DSA).
 
 There are also verification procedures to ensure both the code and solutions are correct. For code verification, manufactured solutions are used for one- and two-dimenisonal slab problems to ensure proper discretization. Solution verification uses the method of nearby problems, which uses one spatial grid. 
 
