@@ -315,6 +315,94 @@ cdef double[:,:,:,:] multigroup_bdf2(double[:,:,:,:]& flux_last_1, \
     return flux_time[:,:,:,:]
 
 
+def restart_bdf2(double[:,:,:,:] flux_1, double[:,:,:,:] flux_2, \
+        double[:,:] xs_total, double[:,:,:] xs_scatter, \
+        double[:,:,:] xs_fission, double[:] velocity, \
+        double[:,:,:,:,:] external, double[:,:,:,:,:] boundary_x, \
+        double[:,:,:,:,:] boundary_y, int[:,:] medium_map, \
+        double[:] delta_x, double[:] delta_y, double[:] angle_x, \
+        double[:] angle_y, double[:] angle_w, dict params_dict):
+    
+    # Covert dictionary to type params
+    info = parameters._to_params(params_dict)
+    parameters._check_bdf_timed2d(info, flux_1.shape[0], external.shape[0], \
+            boundary_x.shape[0], boundary_y.shape[0], xs_total.shape[0])
+    
+    # Combine fission and scattering
+    xs_matrix = tools.array_3d(info.materials, info.groups, info.groups)
+    tools._xs_matrix(xs_matrix, xs_scatter, xs_fission, info)
+    
+    # Run BDF2 with 2 known fluxes
+    flux = multigroup_re_bdf2(flux_1.copy(), flux_2.copy(), xs_total, \
+                        xs_matrix, velocity, external, boundary_x.copy(), \
+                        boundary_y.copy(), medium_map, delta_x, delta_y, \
+                        angle_x, angle_y, angle_w, info)
+
+    return np.asarray(flux)
+
+
+cdef double[:,:,:,:] multigroup_re_bdf2(double[:,:,:,:]& flux_last_1, \
+        double[:,:,:,:]& flux_last_2,double[:,:]& xs_total, \
+        double[:,:,:]& xs_scatter, double[:]& velocity, \
+        double[:,:,:,:,:]& external, double[:,:,:,:,:]& boundary_x, \
+        double[:,:,:,:,:]& boundary_y, int[:,:]& medium_map, \
+        double[:]& delta_x, double[:]& delta_y, double[:]& angle_x, \
+        double[:]& angle_y, double[:]& angle_w, params info):
+    # flux_last_1 is \ell - 1, flux_last_2 is \ell - 2
+
+    # Initialize time step, external and boundary indices
+    cdef int step, qq, bcx, bcy
+    
+    # Create sigma_t + 3 / (2 * v * dt) (For BDF2 time steps)
+    xs_total_v = tools.array_2d(info.materials, info.groups)
+    xs_total_v[:,:] = xs_total[:,:]
+    tools._total_velocity(xs_total_v, velocity, 1.5, info)
+
+    # Combine last time step and source term
+    q_star = tools.array_4d(info.cells_x, info.cells_y, \
+                            info.angles * info.angles, info.groups)
+
+    # Initialize scalar flux for previous time step
+    scalar_flux = tools.array_3d(info.cells_x, info.cells_y, info.groups)
+    tools._angular_to_scalar(flux_last_1, scalar_flux, angle_w, info)
+
+    # Initialize array with all scalar flux time steps
+    flux_time = tools.array_4d(info.steps, info.cells_x, info.cells_y, info.groups)
+
+    # Iterate over time steps
+    for step in tqdm(range(info.steps), desc="BDF2    ", ascii=True):
+        
+        # Determine dimensions of external and boundary sources
+        qq = 0 if external.shape[0] == 1 else step
+        bcx = 0 if boundary_x.shape[0] == 1 else step
+        bcy = 0 if boundary_y.shape[0] == 1 else step
+
+        # Run BDF2 on rest of time steps
+        tools._time_source_star_bdf2(flux_last_1, flux_last_2, q_star, \
+                                     external[qq], velocity, info)
+        
+        # Run source iteration
+        flux_time[step] = mg.multi_group(scalar_flux, xs_total_v, \
+                                xs_scatter, q_star, boundary_x[bcx], \
+                                boundary_y[bcy], medium_map, delta_x, \
+                                delta_y, angle_x, angle_y, angle_w, info)
+        
+        # Update previous time step
+        scalar_flux[:,:,:] = flux_time[step,:,:,:]
+        
+        # Create (sigma_s + sigma_f) * phi^{\ell} + external + 1/(v*dt) * psi^{\ell-1}
+        tools._time_right_side(q_star, scalar_flux, xs_scatter, medium_map, info)
+        
+        # Solve for angular flux of previous time step
+        flux_last_2[:,:,:,:] = flux_last_1[:,:,:,:]
+        flux_last_1[:,:,:,:] = mg._known_source_angular(xs_total_v, q_star, \
+                                    boundary_x[bcx], boundary_y[bcy], \
+                                    medium_map, delta_x, delta_y, angle_x, \
+                                    angle_y, angle_w, info)
+
+    return flux_time[:,:,:,:]
+
+
 def tr_bdf2(double[:,:,:,:] initial_flux_x, double[:,:,:,:] initial_flux_y, \
         double[:,:] xs_total, double[:,:,:] xs_scatter, \
         double[:,:,:] xs_fission, double[:] velocity, \
