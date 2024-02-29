@@ -334,7 +334,7 @@ def criticality(xs_total, xs_scatter, xs_fission, medium_map, delta_x, \
 
     # Return numerical, curve fit, and nearby data
     return numerical_scalar, numerical_keff, np.asarray(curve_fit_scalar), \
-            curve_fit_keff, nearby_scalar, nearby_keff
+            curve_fit_keff, nearby_scalar, nearby_keff, nearby_rate
 
 
 cdef (double, double) _curve_fit_fission_source(double[:,:,:,:]& psi, \
