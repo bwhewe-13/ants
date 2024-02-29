@@ -45,6 +45,7 @@ def test_backward_euler_01():
     # Indexing Parameters
     data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
     fine_idx, coarse_idx, factor = data
+
     # Run Hybrid Method
     approx = hybrid2d.backward_euler(initial_flux, xs_total, xs_total, \
                     xs_scatter, xs_scatter, xs_fission, xs_fission, \
@@ -91,6 +92,7 @@ def test_backward_euler_02():
     # Indexing Parameters
     data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
     fine_idx, coarse_idx, factor = data
+
     # Run Hybrid Method
     approx = hybrid2d.backward_euler(initial_flux, xs_total, xs_total, \
                     xs_scatter, xs_scatter, xs_fission, xs_fission, \
@@ -138,6 +140,7 @@ def test_crank_nicolson_01():
     # Indexing Parameters
     data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
     fine_idx, coarse_idx, factor = data
+
     # Run Hybrid Method
     approx = hybrid2d.crank_nicolson(initial_flux_x, initial_flux_y, \
                     xs_total, xs_total, xs_scatter, xs_scatter, xs_fission, \
@@ -184,6 +187,7 @@ def test_crank_nicolson_02():
     # Indexing Parameters
     data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
     fine_idx, coarse_idx, factor = data
+
     # Run Hybrid Method
     approx = hybrid2d.crank_nicolson(initial_flux_x, initial_flux_y, \
                     xs_total, xs_total, xs_scatter, xs_scatter, xs_fission, \
@@ -231,6 +235,7 @@ def test_bdf2_01():
     # Indexing Parameters
     data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
     fine_idx, coarse_idx, factor = data
+
     # Run Hybrid Method
     approx = hybrid2d.bdf2(initial_flux, xs_total, xs_total, \
                     xs_scatter, xs_scatter, xs_fission, xs_fission, \
@@ -277,6 +282,7 @@ def test_bdf2_02():
     # Indexing Parameters
     data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
     fine_idx, coarse_idx, factor = data
+
     # Run Hybrid Method
     approx = hybrid2d.bdf2(initial_flux, xs_total, xs_total, \
                     xs_scatter, xs_scatter, xs_fission, xs_fission, \
@@ -324,6 +330,7 @@ def test_tr_bdf2_01():
     # Indexing Parameters
     data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
     fine_idx, coarse_idx, factor = data
+
     # Run Hybrid Method
     approx = hybrid2d.tr_bdf2(initial_flux_x, initial_flux_y, \
                     xs_total, xs_total, xs_scatter, xs_scatter, xs_fission, \
@@ -370,6 +377,7 @@ def test_tr_bdf2_02():
     # Indexing Parameters
     data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
     fine_idx, coarse_idx, factor = data
+
     # Run Hybrid Method
     approx = hybrid2d.tr_bdf2(initial_flux_x, initial_flux_y, \
                     xs_total, xs_total, xs_scatter, xs_scatter, xs_fission, \

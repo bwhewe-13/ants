@@ -141,12 +141,13 @@ def energy_grid(grid, groups_fine, groups_coarse=None):
 
     else:
         edges_gidx_fine = energy_coarse_index(len(edges_g)-1, groups_fine)
+
         if groups_coarse is not None:
             edges_gidx_coarse = energy_coarse_index(groups_fine, groups_coarse)
     
     # Convert to correct type
     edges_gidx_fine = edges_gidx_fine.astype(np.int32)
-    
+
     if groups_coarse is not None:
         edges_gidx_coarse = edges_gidx_coarse.astype(np.int32)
         return edges_g, edges_gidx_fine, edges_gidx_coarse

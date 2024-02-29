@@ -52,7 +52,7 @@ fcells = str(cells_x).zfill(3)
 
 try:
     weight_matrix = np.load(f"weight_matrix_x{fcells}.npy")
-except:    
+except:
     weight_matrix = ants.weight_matrix2d(edges_x, edges_y, materials=2, \
                             N_particles=N_particles, circles=coords, \
                             circle_index=[0])
