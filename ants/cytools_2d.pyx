@@ -55,6 +55,14 @@ cdef double[:,:,:,:] array_4d(int dim1, int dim2, int dim3, int dim4):
     arr[:,:,:,:] = 0.0
     return arr
 
+cdef double[:,:,:,:,:] array_5d(int dim1, int dim2, int dim3, int dim4, \
+        int dim5):
+    dd5 = cvarray((dim1, dim2, dim3, dim4, dim5), itemsize=sizeof(double), \
+                    format="d")
+    cdef double[:,:,:,:,:] arr = dd5
+    arr[:,:,:,:,:] = 0.0
+    return arr
+
 ########################################################################
 # Convergence functions
 ########################################################################
@@ -301,6 +309,34 @@ cdef void _time_source_star_bdf1(double[:,:,:,:]& flux, \
                                         * 1 / (velocity[gg] * info.dt)
 
 
+cdef void _time_source_total_bdf1(double[:,:,:]& scalar, double[:,:,:,:]& angular, \
+        double[:,:,:]& xs_matrix, double[:]& velocity, double[:,:,:,:]& qstar, \
+        double[:,:,:,:]& external, int[:,:]& medium_map, params info):
+    # Create (sigma_s + sigma_f) * phi + external function
+    # Initialize iterables
+    cdef int ii, jj, nn, ig, og, mat, nn_q, og_q
+    cdef double one_group
+
+    # Zero out previous values
+    qstar[:,:,:,:] = 0.0
+
+    for ii in range(info.cells_x):
+        for jj in range(info.cells_y):
+            mat = medium_map[ii,jj]
+
+            for og in range(info.groups):
+                og_q = 0 if external.shape[3] == 1 else og
+                # loc = og + info.groups * (nn + NN * (jj + ii * info.cells_y))
+                one_group = 0.0
+                for ig in range(info.groups):
+                    one_group += scalar[ii,jj,ig] * xs_matrix[mat,og,ig]
+
+                for nn in range(info.angles * info.angles):
+                    nn_q = 0 if external.shape[2] == 1 else nn
+                    qstar[ii,jj,nn,og] = one_group + external[ii,jj,nn_q,og_q] \
+                            + angular[ii,jj,nn,og] * 1 / (velocity[og] * info.dt)
+
+
 cdef void _time_source_star_cn(double[:,:,:,:]& psi_x, double[:,:,:,:]& psi_y, \
         double[:,:,:]& phi, double[:,:]& xs_total, double[:,:,:]& xs_scatter, \
         double[:]& velocity, double[:,:,:,:]& q_star, \
@@ -372,6 +408,37 @@ cdef void _time_source_star_bdf2(double[:,:,:,:]& flux_1, \
                     q_star[ii,jj,nn,gg] = external[ii,jj,nn_q,gg_q] \
                             + flux_1[ii,jj,nn,gg] * 2 / (velocity[gg] * info.dt) \
                             - flux_2[ii,jj,nn,gg] * 1 / (2 * velocity[gg] * info.dt)
+
+
+cdef void _time_source_total_bdf2(double[:,:,:]& scalar, \
+        double[:,:,:,:]& angular_1, double[:,:,:,:]& angular_2, \
+        double[:,:,:]& xs_matrix, double[:]& velocity, double[:,:,:,:]& qstar, \
+        double[:,:,:,:]& external, int[:,:]& medium_map, params info):
+
+    # Create (sigma_s + sigma_f) * phi + external function
+    # Initialize iterables
+    cdef int ii, jj, nn, ig, og, mat, nn_q, og_q
+    cdef double one_group
+
+    # Zero out previous values
+    qstar[:,:,:,:] = 0.0
+
+    for ii in range(info.cells_x):
+        for jj in range(info.cells_y):
+            mat = medium_map[ii,jj]
+
+            for og in range(info.groups):
+                og_q = 0 if external.shape[3] == 1 else og
+                # loc = og + info.groups * (nn + NN * (jj + ii * info.cells_y))
+                one_group = 0.0
+                for ig in range(info.groups):
+                    one_group += scalar[ii,jj,ig] * xs_matrix[mat,og,ig]
+
+                for nn in range(info.angles * info.angles):
+                    nn_q = 0 if external.shape[2] == 1 else nn
+                    qstar[ii,jj,nn,og] = one_group + external[ii,jj,nn_q,og_q] \
+                            + angular_1[ii,jj,nn,og] * 2 / (velocity[og] * info.dt) \
+                            - angular_2[ii,jj,nn,og] * 1 / (2 * velocity[og] * info.dt)
 
 
 cdef void _time_source_star_tr_bdf2(double[:,:,:,:]& psi_x, \

@@ -352,7 +352,7 @@ cdef double[:,:,:,:] multigroup_re_bdf2(double[:,:,:,:]& flux_last_1, \
 
     # Initialize time step, external and boundary indices
     cdef int step, qq, bcx, bcy
-    
+
     # Create sigma_t + 3 / (2 * v * dt) (For BDF2 time steps)
     xs_total_v = tools.array_2d(info.materials, info.groups)
     xs_total_v[:,:] = xs_total[:,:]
@@ -401,6 +401,109 @@ cdef double[:,:,:,:] multigroup_re_bdf2(double[:,:,:,:]& flux_last_1, \
                                     angle_y, angle_w, info)
 
     return flux_time[:,:,:,:]
+
+
+def angular_bdf2(double[:,:,:,:] scalar_flux, double[:,:,:,:] initial_flux, \
+        double[:,:] xs_total, double[:,:,:] xs_scatter, \
+        double[:,:,:] xs_fission, double[:] velocity, double[:,:,:,:,:] external, \
+        double[:,:,:,:,:] boundary_x, double[:,:,:,:,:] boundary_y, \
+        int[:,:] medium_map, double[:] delta_x, double[:] delta_y, \
+        double[:] angle_x, double[:] angle_y, double[:] angle_w, \
+        dict params_dict, int[:] time_steps):
+
+    # Covert dictionary to type params
+    info = parameters._to_params(params_dict)
+    parameters._check_bdf_timed2d(info, initial_flux.shape[0], \
+                                  external.shape[0], boundary_x.shape[0], \
+                                  boundary_y.shape[0], xs_total.shape[0])
+
+    # Combine fission and scattering
+    xs_matrix = tools.array_3d(info.materials, info.groups, info.groups)
+    tools._xs_matrix(xs_matrix, xs_scatter, xs_fission, info)
+
+    # Run BDF2 with known scalar flux
+    flux = multigroup_angular_bdf2(scalar_flux.copy(), initial_flux.copy(), \
+                xs_total, xs_matrix, velocity, external, boundary_x.copy(), \
+                boundary_y.copy(), medium_map, delta_x, delta_y, angle_x, \
+                angle_y, angle_w, info, time_steps)
+
+    return np.asarray(flux)
+
+
+cdef double[:,:,:,:,:] multigroup_angular_bdf2(double[:,:,:,:]& scalar_flux, \
+        double[:,:,:,:]& flux_last_1, double[:,:]& xs_total, \
+        double[:,:,:]& xs_scatter, double[:]& velocity, \
+        double[:,:,:,:,:]& external, double[:,:,:,:,:]& boundary_x, \
+        double[:,:,:,:,:]& boundary_y, int[:,:]& medium_map, \
+        double[:]& delta_x, double[:]& delta_y, double[:]& angle_x, \
+        double[:]& angle_y, double[:]& angle_w, params info, \
+        int[:]& time_steps):
+    # flux_last_1 is \ell - 1, flux_last_2 is \ell - 2
+
+    # Initialize time step, external and boundary indices
+    cdef int step, qq, bcx, bcy
+    cdef int count = 0
+
+    # Create sigma_t + 3 / (2 * v * dt) (For BDF2 time steps)
+    xs_total_v = tools.array_2d(info.materials, info.groups)
+    xs_total_v[:,:] = xs_total[:,:]
+    tools._total_velocity(xs_total_v, velocity, 1.0, info)
+
+    # Combine last time step and source term
+    q_star = tools.array_4d(info.cells_x, info.cells_y, \
+                            info.angles * info.angles, info.groups)
+
+    # Create angular flux of previous time steps
+    flux_last_2 = tools.array_4d(info.cells_x, info.cells_y, \
+                               info.angles * info.angles, info.groups)
+
+    # Initialize array with all scalar flux time steps
+    flux_time = tools.array_5d(time_steps.shape[0], info.cells_x, info.cells_y, \
+                            info.angles * info.angles, info.groups)
+
+    # Iterate over time steps
+    for step in range(info.steps):
+
+        # Determine dimensions of external and boundary sources
+        qq = 0 if external.shape[0] == 1 else step
+        bcx = 0 if boundary_x.shape[0] == 1 else step
+        bcy = 0 if boundary_y.shape[0] == 1 else step
+
+        # Update q_star
+        if step == 0:
+            # Run BDF1 on first time step
+            tools._time_source_total_bdf1(scalar_flux[step], flux_last_1, \
+                                xs_scatter, velocity, q_star, external[qq],\
+                                medium_map, info)
+        else:
+            # Run BDF2 on rest of time steps
+            tools._time_source_total_bdf2(scalar_flux[step], flux_last_1, \
+                                flux_last_2, xs_scatter, velocity, q_star, \
+                                external[qq], medium_map, info)
+
+
+        # Solve for angular flux of previous time step
+        flux_last_2[:,:,:,:] = flux_last_1[:,:,:,:]
+        flux_last_1[:,:,:,:] = mg._known_source_angular(xs_total_v, q_star, \
+                                            boundary_x[bcx], boundary_y[bcy], \
+                                            medium_map, delta_x, delta_y, angle_x, \
+                                            angle_y, angle_w, info)
+
+        # Keep specific time steps
+        if (step == time_steps[count]):
+            flux_time[count] = flux_last_1[:,:,:,:]
+            count += 1
+
+        # Exit early
+        if (count == time_steps.shape[0]):
+            return flux_time[:,:,:,:,:]
+
+        # Create sigma_t + 3 / (2 * v * dt) (For BDF2 time steps)
+        if step == 0:
+            xs_total_v[:,:] = xs_total[:,:]
+            tools._total_velocity(xs_total_v, velocity, 1.5, info)
+
+    return flux_time[:,:,:,:,:]
 
 
 def tr_bdf2(double[:,:,:,:] initial_flux_x, double[:,:,:,:] initial_flux_y, \

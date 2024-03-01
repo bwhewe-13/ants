@@ -31,6 +31,9 @@ cdef double[:,:,:] array_3d(int dim1, int dim2, int dim3)
 
 cdef double[:,:,:,:] array_4d(int dim1, int dim2, int dim3, int dim4)
 
+cdef double[:,:,:,:,:] array_5d(int dim1, int dim2, int dim3, int dim4, \
+        int dim5)
+
 ########################################################################
 # Convergence functions
 ########################################################################
@@ -82,6 +85,10 @@ cdef void _time_source_star_bdf1(double[:,:,:,:]& flux, \
         double[:,:,:,:]& q_star, double[:,:,:,:]& external, \
         double[:]& velocity, params info)
 
+cdef void _time_source_total_bdf1(double[:,:,:]& scalar, double[:,:,:,:]& angular, \
+        double[:,:,:]& xs_matrix, double[:]& velocity, double[:,:,:,:]& qstar, \
+        double[:,:,:,:]& external, int[:,:]& medium_map, params info)
+
 cdef void _time_source_star_cn(double[:,:,:,:]& psi_x, double[:,:,:,:]& psi_y, \
         double[:,:,:]& phi, double[:,:]& xs_total, double[:,:,:]& xs_scatter, \
         double[:]& velocity, double[:,:,:,:]& q_star, \
@@ -92,6 +99,11 @@ cdef void _time_source_star_cn(double[:,:,:,:]& psi_x, double[:,:,:,:]& psi_y, \
 cdef void _time_source_star_bdf2(double[:,:,:,:]& flux_1, \
         double[:,:,:,:]& flux_2, double[:,:,:,:]& q_star, \
         double[:,:,:,:]& external, double[:]& velocity, params info)
+
+cdef void _time_source_total_bdf2(double[:,:,:]& scalar, \
+        double[:,:,:,:]& angular_1, double[:,:,:,:]& angular_2, \
+        double[:,:,:]& xs_matrix, double[:]& velocity, double[:,:,:,:]& qstar, \
+        double[:,:,:,:]& external, int[:,:]& medium_map, params info)
 
 cdef void _time_source_star_tr_bdf2(double[:,:,:,:]& psi_x, \
         double[:,:,:,:]& psi_y, double[:,:,:,:]& flux_2, \
