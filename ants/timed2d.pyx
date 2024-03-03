@@ -342,7 +342,7 @@ def restart_bdf2(double[:,:,:,:] flux_1, double[:,:,:,:] flux_2, \
 
 
 cdef double[:,:,:,:] multigroup_re_bdf2(double[:,:,:,:]& flux_last_1, \
-        double[:,:,:,:]& flux_last_2,double[:,:]& xs_total, \
+        double[:,:,:,:]& flux_last_2, double[:,:]& xs_total, \
         double[:,:,:]& xs_scatter, double[:]& velocity, \
         double[:,:,:,:,:]& external, double[:,:,:,:,:]& boundary_x, \
         double[:,:,:,:,:]& boundary_y, int[:,:]& medium_map, \
@@ -481,6 +481,7 @@ cdef double[:,:,:,:,:] multigroup_angular_bdf2(double[:,:,:,:]& scalar_flux, \
                                 flux_last_2, xs_scatter, velocity, q_star, \
                                 external[qq], medium_map, info)
 
+        print(step, np.sum(q_star))
 
         # Solve for angular flux of previous time step
         flux_last_2[:,:,:,:] = flux_last_1[:,:,:,:]

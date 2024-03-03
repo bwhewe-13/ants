@@ -613,12 +613,13 @@ cdef double _nearby_keffective(double[:,:,:]& flux, double rate, params info):
 # Hybrid Method Time Dependent Problems
 ########################################################################
 
-cdef void _hybrid_source_collided(double[:,:,:]& flux, double[:,:,:]& xs_scatter, \
-        double[:,:,:,:]& source_c, int[:,:]& medium_map, int[:]& coarse_idx, \
-        params info_u, params info_c):
+cdef void _hybrid_source_collided(double[:,:,:]& flux, \
+        double[:,:,:]& xs_scatter, double[:,:,:,:]& source_c, \
+        int[:,:]& medium_map, int[:]& coarse_idx, params info_u):
     
     # Initialize iterables
     cdef int ii, jj, mat, og, ig
+    cdef double one_group
     
     # Zero out previous source
     source_c[:,:,:,:] = 0.0
@@ -628,10 +629,10 @@ cdef void _hybrid_source_collided(double[:,:,:]& flux, double[:,:,:]& xs_scatter
         for jj in range(info_u.cells_y):
             mat = medium_map[ii,jj]
             for og in range(info_u.groups):
-                # loc = coarse_idx[og] + info_c.groups * (jj + ii * info_c.cells_y)
+                one_group = 0.0
                 for ig in range(info_u.groups):
-                    source_c[ii,jj,0,coarse_idx[og]] += flux[ii,jj,ig] \
-                                                    * xs_scatter[mat,og,ig]
+                    one_group += flux[ii,jj,ig] * xs_scatter[mat,og,ig]
+                source_c[ii,jj,0,coarse_idx[og]] += one_group
 
 
 cdef void _hybrid_source_total(double[:,:,:]& flux_u, double[:,:,:]& flux_c, \

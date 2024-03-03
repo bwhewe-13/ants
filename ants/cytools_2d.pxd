@@ -143,9 +143,9 @@ cdef double _nearby_keffective(double[:,:,:]& flux, double rate, params info)
 ########################################################################
 # Hybrid Method Time Dependent Problems
 ########################################################################
-cdef void _hybrid_source_collided(double[:,:,:]& flux, double[:,:,:]& xs_scatter, \
-        double[:,:,:,:]& source_c, int[:,:]& medium_map, int[:]& coarse_idx, \
-        params info_u, params info_c)
+cdef void _hybrid_source_collided(double[:,:,:]& flux, \
+        double[:,:,:]& xs_scatter, double[:,:,:,:]& source_c, \
+        int[:,:]& medium_map, int[:]& coarse_idx, params info_u)
 
 cdef void _hybrid_source_total(double[:,:,:]& flux_u, double[:,:,:]& flux_c, \
         double[:,:,:]& xs_matrix, double[:,:,:,:]& source, int[:,:]& medium_map, \
