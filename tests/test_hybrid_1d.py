@@ -391,7 +391,9 @@ def test_slab_01_bdf1(angles_c, groups_c):
     centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
 
     # Energy Grid
-    edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(87, groups_u, groups_c)
+    energy_data = ants.energy_grid(87, groups_u, groups_c, optimize=False)
+    edges_g, edges_gidx_u, edges_gidx_c = energy_data
+
     velocity_u = ants.energy_velocity(groups_u, edges_g)
     velocity_c = hytools.coarsen_velocity(velocity_u, edges_gidx_c)
 
