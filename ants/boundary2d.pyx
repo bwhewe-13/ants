@@ -154,3 +154,21 @@ def time_dependence_decay_02(boundary, edges_t):
             err_arg = (t_us - 0.1 * (1 + k)) / (0.01)
             boundary[tt] = pow(0.5, k) * (1 + 2 * erfc(err_arg))
     return boundary
+
+
+def time_dependence_decay_03(boundary, edges_t):
+    # Turn on and decay away linearly
+    steps = edges_t.shape[0] - 1
+    boundary = np.repeat(boundary[None,...], edges_t.shape[0] - 1, axis=0)
+    for tt in range(steps):
+        # Convert to microseconds
+        t_us = edges_t[tt+1] * 1e6
+        if (t_us < 10):
+            boundary[tt][boundary[tt] != 0.0] = 0.1 * t_us
+        elif (t_us >= 10) and (t_us < 20):
+            boundary[tt][boundary[tt] != 0.0] = 1.0
+        elif (t_us >= 20) and (t_us < 40):
+            boundary[tt][boundary[tt] != 0.0] = -0.05 * t_us + 2
+        elif (t_us >= 40):
+            boundary[tt][boundary[tt] != 0.0] = 0.0
+    return boundary

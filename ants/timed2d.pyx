@@ -481,8 +481,6 @@ cdef double[:,:,:,:,:] multigroup_angular_bdf2(double[:,:,:,:]& scalar_flux, \
                                 flux_last_2, xs_scatter, velocity, q_star, \
                                 external[qq], medium_map, info)
 
-        print(step, np.sum(q_star))
-
         # Solve for angular flux of previous time step
         flux_last_2[:,:,:,:] = flux_last_1[:,:,:,:]
         flux_last_1[:,:,:,:] = mg._known_source_angular(xs_total_v, q_star, \
