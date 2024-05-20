@@ -115,11 +115,10 @@ cdef void _dmd_subtraction(double[:,:,:,:]& y_minus, double[:,:,:,:]& y_plus, \
     # Initialize iterables
     cdef int ii, jj, gg
     for ii in range(info.cells_x):
-        for jj in range(info.cells_y):            
+        for jj in range(info.cells_y):
             for gg in range(info.groups):
                 if (kk < info.dmd_k - 1):
                     y_minus[ii,jj,gg,kk] = (flux[ii,jj,gg] - flux_old[ii,jj,gg])
-                
                 if (kk > 0):
                     y_plus[ii,jj,gg,kk-1] = (flux[ii,jj,gg] - flux_old[ii,jj,gg])
 
@@ -570,6 +569,159 @@ cdef void _source_total_critical(double[:,:,:,:]& source, \
                 for ig in range(info.groups):
                     source[ii,jj,0,og] += (flux[ii,jj,ig] * xs_scatter[mat,og,ig]) \
                                + (flux[ii,jj,ig] * xs_fission[mat,og,ig]) / keff
+
+
+########################################################################
+# Nearby Problems Fixed Source Boundary functions
+########################################################################
+
+cdef void _nearby_populate_outer(double[:,:,:,:]& modified_flux, \
+        double[:,:,:,:]& flux_center, double[:,:,:,:]& flux_edge_x, \
+        double[:,:,:,:]& flux_edge_y, params info):
+    # Initialize iterables
+    cdef int ii, jj, nn, gg
+    # Zero out modified flux
+    modified_flux[:,:,:,:] = 0.0
+    # Iterate over all cells, angles, and groups
+    for gg in range(info.groups):
+        for nn in range(info.angles * info.angles):
+            for ii in range(info.cells_x):
+                # Medium edges
+                if (info.bc_x[0] == 1):
+                    modified_flux[ii+1,0,nn,gg] = flux_edge_y[ii,0,nn,gg]
+                if (info.bc_x[1] == 1):
+                    modified_flux[ii+1,info.cells_y+1,nn,gg] = flux_edge_y[ii,info.cells_y,nn,gg]
+                
+                # Center fluxes
+                for jj in range(info.cells_y):
+                    modified_flux[ii+1,jj+1,nn,gg] = flux_center[ii,jj,nn,gg]
+            
+            # Medium edges
+            for jj in range(info.cells_y):
+                if (info.bc_y[0] == 1):
+                    modified_flux[0,jj+1,nn,gg] = flux_edge_x[0,jj,nn,gg]
+                if (info.bc_y[1] == 1):
+                    modified_flux[info.cells_x+1,jj+1,nn,gg] = flux_edge_x[info.cells_x,jj,nn,gg]
+
+            # # Corner average (0, 0)
+            # modified_flux[0,0,nn,gg] = 0.5 * (modified_flux[1,0,nn,gg] \
+            #                                 + modified_flux[0,1,nn,gg])
+            # # Corner average (-1, -1)
+            # modified_flux[info.cells_x+1,info.cells_y+1,nn,gg] = 0.5 \
+            #                     * (modified_flux[info.cells_x,info.cells_y+1,nn,gg] \
+            #                     + modified_flux[info.cells_x+1,info.cells_y,nn,gg])
+            # # Corner average (0, -1)
+            # modified_flux[0,info.cells_y+1,nn,gg] = 0.5 \
+            #                     * (modified_flux[1,info.cells_y+1,nn,gg] \
+            #                     + modified_flux[0,info.cells_y,nn,gg])
+            # # Corner average (-1, 0)
+            # modified_flux[info.cells_x+1,0,nn,gg] = 0.5 \
+            #                     * (modified_flux[info.cells_x,0,nn,gg] \
+            #                     + modified_flux[info.cells_x+1,1,nn,gg])
+
+
+cdef void _nearby_sum_4d(double[:,:,:,:]& modified_flux, \
+        double[:,:,:,:]& flux_center, params info):
+    # Initialize iterables
+    cdef int ii, jj, nn, gg, ii_idx, jj_idx
+    cdef int length_x = modified_flux.shape[0]
+    cdef int length_y = modified_flux.shape[1]
+    # Zero out modified flux
+    flux_center[:,:,:,:] = 0.0
+    # Iterate over all cells, angles, and groups
+    for ii in range(length_x):
+        # Get correct index - x
+        ii_idx = _find_outer_index(ii, length_x)
+        
+        for jj in range(length_y):
+            # Get correct index - y
+            jj_idx = _find_outer_index(jj, length_y)
+
+            # Iterate over angles and groups
+            for nn in range(info.angles * info.angles):
+                for gg in range(info.groups):
+                    flux_center[ii_idx,jj_idx,nn,gg] += modified_flux[ii,jj,nn,gg]
+
+
+cdef double[:,:] _nearby_sum_2d(double[:,:]& modified_arr, params info):
+    # Initialize iterables
+    cdef int ii, jj, ii_idx, jj_idx
+    cdef int length_x = modified_arr.shape[0]
+    cdef int length_y = modified_arr.shape[1]
+    # Create (cells_x * cells_y) array
+    arr = array_2d(info.cells_x, info.cells_y)
+    # Iterate over all cells
+    for ii in range(length_x):
+        # Get correct index - x
+        ii_idx = _find_outer_index(ii, length_x)
+        
+        for jj in range(length_y):
+            # Get correct index - y
+            jj_idx = _find_outer_index(jj, length_y)
+
+            # Sum array
+            arr[ii_idx,jj_idx] += modified_arr[ii,jj]
+
+    return arr
+
+
+cdef double[:,:] _nearby_sum_bc(double[:,:]& modified_arr, params info):
+    # Initialize iterables
+    cdef int ii, ii_idx
+    cdef int length = modified_arr.shape[1]
+    # Create (2 * cells_y) array
+    arr = array_2d(2, length - 2)
+    # Iterate over all cells, angles, and groups
+    for ii in range(length):
+        # Get correct index
+        ii_idx = _find_outer_index(ii, length)
+        # Sum array
+        arr[0,ii_idx] += modified_arr[0,ii]
+        arr[1,ii_idx] += modified_arr[1,ii]
+
+    return arr
+
+
+cdef int _find_outer_index(int iterable, int length):
+    if (iterable < 2):
+        return 0
+    elif (iterable > (length - 3)):
+        return length - 3
+    return iterable - 1    
+
+
+cdef int[:,:] _nearby_adjust_medium(int[:,:] medium_map, params info):
+    # Initialize iterables
+    cdef int ii, jj, ii_idx, jj_idx
+    # Create new medium map
+    dd2 = cvarray((info.cells_x + 2, info.cells_y + 2), itemsize=sizeof(int), format="i")
+    cdef int[:,:] modified_medium_map = dd2
+    # Iterate over all cells
+    for ii in range(info.cells_x):
+        # Medium edges
+        modified_medium_map[ii+1,0] = medium_map[ii,0]
+        modified_medium_map[ii+1,info.cells_y+1] = medium_map[ii,info.cells_y-1]
+        
+        # Center fluxes
+        for jj in range(info.cells_y):
+            modified_medium_map[ii+1,jj+1] = medium_map[ii,jj]
+            
+    # Medium edges
+    for jj in range(info.cells_y):
+        modified_medium_map[0,jj+1] = medium_map[0,jj]
+        modified_medium_map[info.cells_x+1,jj+1] = medium_map[info.cells_x-1,jj]
+    
+    # Corner average (0, 0)
+    modified_medium_map[0,0] = medium_map[1,0]
+    # Corner average (-1, -1)
+    modified_medium_map[info.cells_x+1,info.cells_y+1] \
+                                    = medium_map[info.cells_x-1,info.cells_y-1]
+    # Corner average (0, -1)
+    modified_medium_map[0,info.cells_y+1] = medium_map[1,info.cells_y-1]
+    # Corner average (-1, 0)
+    modified_medium_map[info.cells_x+1,0] = medium_map[info.cells_x-1,0]
+
+    return modified_medium_map
 
 
 ########################################################################

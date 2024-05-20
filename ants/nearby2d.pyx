@@ -25,6 +25,7 @@ from ants import fixed2d, critical2d
 from ants.utils.interp2d import Interpolation
 from ants.utils.pytools import average_array
 
+from ants cimport multi_group_2d as mg
 from ants cimport cytools_2d as tools
 from ants cimport parameters
 from ants.parameters cimport params
@@ -38,7 +39,7 @@ def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x, \
     # Convert dictionary to type params
     info = parameters._to_params(params_dict)
     parameters._check_nearby2d_fixed_source(info, xs_total.shape[0])
-    block = True if (block) or (info.materials == 1) else False
+    block = True if (block) or (info.materials != 1) else False
     
     # Angular directions
     cdef int NN = info.angles * info.angles
@@ -50,7 +51,7 @@ def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x, \
 
     # Run Numerical Solution
     print("1. Calculating Numerical Solution...")
-    numerical_flux = fixed2d.dynamic_mode_decomp(xs_total, xs_scatter, \
+    numerical_flux = fixed2d.source_iteration(xs_total, xs_scatter, \
                                 xs_fission, external, boundary_x, boundary_y, \
                                 medium_map, delta_x, delta_y, angle_x, \
                                 angle_y, angle_w, info)
@@ -77,7 +78,7 @@ def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x, \
                     medium_map, knots_x, knots_y, edges_x, edges_y, x_splits, \
                     y_splits, angle_w, block, quintic, info)
     # Knots at cell edges
-    else:
+    elif knots_x.shape[0] == (info.cells_x + 1):
         centers_x = average_array(knots_x)
         centers_y = average_array(knots_y)
         _curve_fit_edges(numerical_flux, curve_fit_flux, curve_fit_boundary_x, \
@@ -85,6 +86,25 @@ def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x, \
                     medium_map, knots_x, knots_y, centers_x, centers_y, \
                     x_splits, y_splits, angle_w, block, quintic, info)
     
+    # Knots at cell centers and medium edges
+    elif knots_x.shape[0] == (info.cells_x + 2):
+        print("{xx}\n* This method has not been verified\n{xx}".format(xx="*"*50))
+        modified_flux = tools.array_4d(info.cells_x + 2, info.cells_y + 2, \
+                                        NN, info.groups)
+        # Calculate modified flux
+        _modified_flux_centers(modified_flux, numerical_flux, xs_total, \
+                xs_scatter, xs_fission, external, boundary_x, boundary_y, \
+                medium_map, delta_x, delta_y, angle_x, angle_y, angle_w, info)
+
+        edges_x = np.insert(np.cumsum(delta_x), 0, 0)
+        edges_y = np.insert(np.cumsum(delta_y), 0, 0)
+        # Run modified centers
+        _curve_fit_modified_centers(modified_flux, curve_fit_flux, \
+                curve_fit_boundary_x, curve_fit_boundary_y, int_psi, \
+                int_dx, int_dy, int_phi, medium_map, knots_x, knots_y, \
+                edges_x, edges_y, x_splits, y_splits, angle_w, block, \
+                quintic, info)
+
     # Calculate residual for each cell
     print("3. Calculating Residual...")
     residual = tools.array_4d(info.cells_x, info.cells_y, NN, info.groups)
@@ -104,7 +124,7 @@ def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x, \
         print("Removing Analytical Boundary Conditions...")
         curve_fit_boundary_x = boundary_x.copy()
         curve_fit_boundary_y = boundary_y.copy()
-    nearby_flux = fixed2d.dynamic_mode_decomp(xs_total, xs_scatter, xs_fission, \
+    nearby_flux = fixed2d.source_iteration(xs_total, xs_scatter, xs_fission, \
                                 (external + residual), curve_fit_boundary_x, \
                                 curve_fit_boundary_y, medium_map, delta_x, \
                                 delta_y, angle_x, angle_y, angle_w, info)
@@ -120,7 +140,7 @@ def fixed_source_residual(scalar_flux, xs_total, xs_scatter, xs_fission, \
     # Convert dictionary to type params
     info = parameters._to_params(params_dict)
     parameters._check_nearby2d_fixed_source(info, xs_total.shape[0])
-    block = True if (block) or (info.materials == 1) else False
+    block = True if (block) or (info.materials != 1) else False
     
     # Angular directions
     cdef int NN = info.angles * info.angles
@@ -148,7 +168,6 @@ def fixed_source_residual(scalar_flux, xs_total, xs_scatter, xs_fission, \
     int_dy = tools.array_4d(info.cells_x, info.cells_y, NN, info.groups)
     int_phi = tools.array_3d(info.cells_x, info.cells_y, info.groups)
 
-    # Calculate curve fit at knots
     print("2. Calculating Analytical Solution...")
     # Knots at cell centers
     if knots_x.shape[0] == info.cells_x:
@@ -159,14 +178,14 @@ def fixed_source_residual(scalar_flux, xs_total, xs_scatter, xs_fission, \
                     medium_map, knots_x, knots_y, edges_x, edges_y, x_splits, \
                     y_splits, angle_w, block, quintic, info)
     # Knots at cell edges
-    else:
+    elif knots_x.shape[0] == (info.cells_x + 1):
         centers_x = average_array(knots_x)
         centers_y = average_array(knots_y)
         _curve_fit_edges(numerical_flux, curve_fit_flux, curve_fit_boundary_x, \
                     curve_fit_boundary_y, int_psi, int_dx, int_dy, int_phi, \
                     medium_map, knots_x, knots_y, centers_x, centers_y, \
                     x_splits, y_splits, angle_w, block, quintic, info)
-    
+        
     # Calculate residual for each cell
     print("3. Calculating Residual...")
     residual = tools.array_4d(info.cells_x, info.cells_y, NN, info.groups)
@@ -199,9 +218,9 @@ cdef void _curve_fit_centers(double[:,:,:,:]& flux, double[:,:,:,:]& curve_fit, 
     cdef double[2] bounds_y = [edges_y[0], edges_y[info.cells_y]]
 
     # Iterate over groups
-    for gg in range(info.groups):
+    for gg in tqdm(range(info.groups), desc="Curve Fit Groups", ascii=True, position=0):
         # Iterate over angles
-        for nn in tqdm(range(NN), desc="Curve Fit Angles", ascii=True):
+        for nn in tqdm(range(NN), desc="Curve Fit Angles", ascii=True, position=1, leave=False):
             # Create function
             approx = Interpolation(flux[:,:,nn,gg], knots_x, knots_y, \
                         medium_map, x_splits, y_splits, block, quintic)
@@ -228,6 +247,99 @@ cdef void _curve_fit_centers(double[:,:,:,:]& flux, double[:,:,:,:]& curve_fit, 
     tools._angular_to_scalar(integral, sintegral, angle_w, info)
 
 
+cdef void _modified_flux_centers(double[:,:,:,:]& modified_flux, \
+        double[:,:,:,:]& numerical_flux, double[:,:]& xs_total, \
+        double[:,:,:]& xs_scatter, double[:,:,:]& xs_fission, \
+        double[:,:,:,:]& external, double[:,:,:,:]& boundary_x, \
+        double[:,:,:,:]& boundary_y, int[:,:]& medium_map, \
+        double[:]& delta_x, double[:]& delta_y, double[:]& angle_x, \
+        double[:]& angle_y, double[:]& angle_w, params info):
+    ####################################################################
+    # For angular flux at edges
+    info.angular = True
+    info.edges = 1
+    ####################################################################
+    # Add fission matrix to scattering
+    xs_matrix = tools.array_3d(info.materials, info.groups, info.groups)
+    tools._xs_matrix(xs_matrix, xs_scatter, xs_fission, info)
+
+    # Create (sigma_s + sigma_f) * phi + external function
+    source = tools.array_4d(info.cells_x, info.cells_y, \
+                            info.angles * info.angles, info.groups)
+    scalar_flux = tools.array_3d(info.cells_x, info.cells_y, info.groups)
+
+    tools._source_total(source, scalar_flux, xs_matrix, medium_map, external, info)
+    tools._angular_to_scalar(numerical_flux, scalar_flux, angle_w, info)
+
+    # Solve for angular flux cell interfaces
+    flux_edge_x = tools.array_4d(info.cells_x + 1, info.cells_y, \
+                                 info.angles * info.angles, info.groups)
+    flux_edge_y = tools.array_4d(info.cells_x, info.cells_y + 1, \
+                                 info.angles * info.angles, info.groups)
+
+    mg._interface_angular(flux_edge_x, flux_edge_y, xs_total, source, \
+                         boundary_x, boundary_y, medium_map, delta_x, \
+                         delta_y, angle_x, angle_y, angle_w, info)
+
+    # Collect outer edges
+    tools._nearby_populate_outer(modified_flux, numerical_flux, \
+                                flux_edge_x, flux_edge_y, info)
+
+
+cdef void _curve_fit_modified_centers(double[:,:,:,:]& flux, \
+        double[:,:,:,:]& curve_fit, double[:,:,:,:]& boundary_x, \
+        double[:,:,:,:]& boundary_y, double[:,:,:,:]& integral, \
+        double[:,:,:,:]& dxintegral, double[:,:,:,:]& dyintegral, \
+        double[:,:,:]& sintegral, int[:,:]& medium_map, \
+        double[:]& knots_x, double[:]& knots_y, double[:]& edges_x, \
+        double[:]& edges_y, int[:]& x_splits, int[:]& y_splits, \
+        double[:]& angle_w, bint block, bint quintic, params info):
+
+    # Initialize cell, angle, and group
+    cdef int ii, jj, nn, gg
+
+    # Initialize angular directions
+    cdef int NN = info.angles * info.angles
+
+    # Initialize angular and group specific interpolations
+    cdef double[:,:] spline, int_psi, int_dx, int_dy, boundary
+    cdef double[2] bounds_x = [edges_x[0], edges_x[info.cells_x]]
+    cdef double[2] bounds_y = [edges_y[0], edges_y[info.cells_y]]
+
+    # Adjust medium map
+    modified_medium_map = tools._nearby_adjust_medium(medium_map, info)
+
+    # Iterate over groups
+    for gg in range(info.groups):
+        # Iterate over angles
+        for nn in tqdm(range(NN), desc="Curve Fit Angles", ascii=True):
+            # Create function
+            approx = Interpolation(flux[:,:,nn,gg], knots_x, knots_y, \
+                                modified_medium_map, x_splits, y_splits, \
+                                block, quintic)
+
+            # Interpolate the knots
+            spline = approx.interpolate(knots_x, knots_y)
+            curve_fit[...,nn,gg] = tools._nearby_sum_2d(spline, info)
+
+            # Interpolate y boundary
+            boundary = approx.interpolate(knots_x, bounds_y)
+            boundary_y[...,nn,gg] = tools._nearby_sum_bc(boundary[:,:].T, info)
+
+            # Interpolate x boundary
+            boundary = approx.interpolate(bounds_x, knots_y)
+            boundary_x[...,nn,gg] = tools._nearby_sum_bc(boundary, info)
+
+            # Calculate integrals
+            int_psi, int_dx, int_dy = approx.integrate_centers(edges_x, edges_y)
+            integral[...,nn,gg] = tools._nearby_sum_2d(int_psi, info)
+            dxintegral[...,nn,gg] = tools._nearby_sum_2d(int_dx, info)
+            dyintegral[...,nn,gg] = tools._nearby_sum_2d(int_dy, info)
+
+    # Populate sintegral scalar flux
+    tools._angular_to_scalar(integral, sintegral, angle_w, info)
+
+
 cdef void _curve_fit_edges(double[:,:,:,:]& flux, double[:,:,:,:]& curve_fit, \
         double[:,:,:,:]& boundary_x, double[:,:,:,:]& boundary_y, \
         double[:,:,:,:]& integral, double[:,:,:,:]& dxintegral, \
@@ -240,10 +352,13 @@ cdef void _curve_fit_edges(double[:,:,:,:]& flux, double[:,:,:,:]& curve_fit, \
     # Initialize angle and group
     cdef int ii, jj, nn, gg
 
+    # Initialize angular directions
+    cdef int NN = info.angles * info.angles
+
     # Iterate over groups
-    for gg in range(info.groups):
+    for gg in tqdm(range(info.groups), desc="Curve Fit Groups", ascii=True, position=0):
         # Iterate over angles
-        for nn in range(info.angles * info.angles):
+        for nn in tqdm(range(NN), desc="Curve Fit Angles", ascii=True, position=1, leave=False):
             # Create function
             approx = Interpolation(flux[:,:,nn,gg], knots_x, knots_y, \
                         medium_map, x_splits, y_splits, block, quintic)
@@ -318,7 +433,7 @@ def criticality(xs_total, xs_scatter, xs_fission, medium_map, delta_x, \
     # Convert dictionary to type params
     info = parameters._to_params(params_dict)
     parameters._check_nearby2d_criticality(info)
-    block = True if (block) or (info.materials == 1) else False
+    block = True if (block) or (info.materials != 1) else False
     
     # Angular directions
     cdef int NN = info.angles * info.angles

@@ -131,6 +131,22 @@ cdef void _source_total_critical(double[:,:,:,:]& source, \
         params info)
 
 ########################################################################
+# Nearby Problems Fixed Source Boundary functions
+########################################################################
+cdef void _nearby_populate_outer(double[:,:,:,:]& modified_flux, \
+        double[:,:,:,:]& flux_center, double[:,:,:,:]& flux_edge_x, \
+        double[:,:,:,:]& flux_edge_y, params info)
+
+cdef void _nearby_sum_4d(double[:,:,:,:]& modified_flux, \
+        double[:,:,:,:]& flux_center, params info)
+
+cdef double[:,:] _nearby_sum_2d(double[:,:]& modified_arr, params info)
+
+cdef double[:,:] _nearby_sum_bc(double[:,:]& modified_arr, params info)
+
+cdef int[:,:] _nearby_adjust_medium(int[:,:] medium_map, params info)
+
+########################################################################
 # Nearby Problems Criticality functions
 ########################################################################
 cdef void _nearby_fission_source(double[:,:,:]& flux, \

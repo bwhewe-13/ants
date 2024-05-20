@@ -41,5 +41,14 @@ setup(
 
         packages=find_packages(),
         ext_modules=cythonize(ext, language_level="3"),
-        include_package_data=True
+        include_package_data=True,
+        install_requires=[
+            "numpy", 
+            "tqdm", 
+            "cython"
+        ], 
+        extras_requires={
+            "test": ["pytest"], 
+            "examples": ["matplotlib", "seaborn", "h5py"]
+        }
 )
