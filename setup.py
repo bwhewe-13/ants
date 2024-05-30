@@ -26,7 +26,7 @@ else:
                     include_dirs=[np.get_include()])
 
 setup(  
-        name='ants',
+        name="ants",
         description=
         """A Neutron Transport Solution (ANTS) calculates the neutron 
         flux for both criticality and fixed source problems of one 
@@ -34,10 +34,10 @@ setup(
         using the discrete ordinates method. It looks to combine machine
         learning with collision based hybrid methods and speedup through
         Cython.""",
-        version='1.0',
-        author='Ben Whewell',
-        author_email='ben.whewell@pm.me',
-        url='https://github.com',
+        version="0.1.0",
+        author="Ben Whewell",
+        author_email="ben.whewell@pm.me",
+        url="https://github.com",
 
         packages=find_packages(),
         ext_modules=cythonize(ext, language_level="3"),

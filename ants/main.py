@@ -154,9 +154,9 @@ def energy_grid(grid, groups_fine, groups_coarse=None, optimize=True):
 
     # Calculate the indices for the specific coarse grid
     if (grid in [87, 361, 618]) and (optimize):
-        # Predefined coarse grid index            
+        # Predefined coarse grid index
         try:
-            label_coarse = str(groups_coarse).zfill(3)            
+            label_coarse = str(groups_coarse).zfill(3)
             edges_gidx_coarse = edges_data[label_coarse].copy()
         
         except KeyError:

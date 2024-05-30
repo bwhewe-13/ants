@@ -111,54 +111,66 @@ def wynn_epsilon(lst, rank):
     return abs(error[-1,-1])
 
 
-def _flux_coarsen_1d(fine_flux, fine_edges_x, coarse_edges_x, ratio):
+def flux_coarsen_1d(fine_flux, fine_x, coarse_x):
     # Set coarse grid cells
-    cells_x = coarse_edges_x.shape[0] - 1
+    cells_x = coarse_x.shape[0] - 1
     # Initialize coarse flux
     coarse_flux = np.zeros(((cells_x,) + fine_flux.shape[1:]))
     # Iterate over x cells
     count_x = 0
     for ii in range(cells_x):
         # Keep track of x bounds
-        idx_x = np.argwhere((fine_edges_x < coarse_edges_x[ii+1]) \
-                        & (fine_edges_x >= coarse_edges_x[ii]))
+        idx_x = np.argwhere((fine_x < coarse_x[ii+1]) & (fine_x >= coarse_x[ii]))
         count_x += len(idx_x)
-        coarse_flux[ii] = np.sum(fine_flux[idx_x], axis=0) * ratio
-        # coarse_flux[ii] = np.mean(fine_flux[idx_x], axis=0)
+        coarse_flux[ii] = np.mean(fine_flux[idx_x], axis=0)
     # Make sure we got all rows
     assert count_x == fine_flux.shape[0], "Not including all x cells"
     return coarse_flux
 
 
-def _flux_coarsen_2d(fine_flux, fine_edges_x, fine_edges_y, coarse_edges_x, \
-        coarse_edges_y, ratio):
+def flux_propagate_1d(coarse_flux, mult):
+    cells_x = coarse_flux.shape[0]
+    # Initialize fine flux
+    fine_flux = np.zeros(((mult * cells_x,) + coarse_flux.shape[2:]))
+    for ii in range(cells_x):
+        fine_flux[ii*mult:(ii+1)*mult] = coarse_flux[ii,jj]
+    return fine_flux
+
+
+def flux_coarsen_2d(fine_flux, fine_x, fine_y, coarse_x, coarse_y):
     # Set coarse grid cells
-    cells_x = coarse_edges_x.shape[0] - 1
-    cells_y = coarse_edges_y.shape[0] - 1
+    cells_x = coarse_x.shape[0] - 1
+    cells_y = coarse_y.shape[0] - 1
     # Initialize coarse flux
     coarse_flux = np.zeros(((cells_x, cells_y,) + fine_flux.shape[2:]))
     # Iterate over x cells
     count_x = 0
     for ii in range(cells_x):
         # Keep track of x bounds
-        idx_x = np.argwhere((fine_edges_x < coarse_edges_x[ii+1]) \
-                        & (fine_edges_x >= coarse_edges_x[ii]))
+        idx_x = np.argwhere((fine_x < coarse_x[ii+1]) & (fine_x >= coarse_x[ii]))
         count_x += len(idx_x)
         count_y = 0
         # Iterate over y cells
         for jj in range(cells_y):
             # Keep track of y bounds
-            idx_y = np.argwhere((fine_edges_y < coarse_edges_y[jj+1]) \
-                            & (fine_edges_y >= coarse_edges_y[jj]))
+            idx_y = np.argwhere((fine_y < coarse_y[jj+1]) & (fine_y >= coarse_y[jj]))
             count_y += len(idx_y)
-            coarse_flux[ii,jj] = np.sum(fine_flux[idx_x,idx_y], axis=(0,1)) * ratio
-            # coarse_flux[ii,jj] = np.mean(fine_flux[idx_x,idx_y], axis=(0,1))
+            coarse_flux[ii,jj] = np.mean(fine_flux[idx_x,idx_y], axis=(0,1))
         # Make sure we got all columns
         assert count_y == fine_flux.shape[1], "Not including all y cells"
     # Make sure we got all rows
     assert count_x == fine_flux.shape[0], "Not including all x cells"
     return coarse_flux
 
+
+def flux_propagate_2d(coarse_flux, mult):
+    cells_x, cells_y = coarse_flux.shape[:2]
+    # Initialize fine flux
+    fine_flux = np.zeros(((mult * cells_x, mult * cells_y,) + coarse_flux.shape[2:]))
+    for ii in range(cells_x):
+        for jj in range(cells_y):
+            fine_flux[ii*mult:(ii+1)*mult, jj*mult:(jj+1)*mult] = coarse_flux[ii,jj]
+    return fine_flux
 
 ########################################################################
 # Meshing Different Energy Grids
