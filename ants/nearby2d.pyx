@@ -33,19 +33,21 @@ from ants.parameters cimport params
 
 def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x, \
         boundary_y, medium_map, delta_x, delta_y, knots_x, knots_y, \
-        angle_x, angle_y, angle_w, params_dict, block=True, quintic=True, \
-        zero_bounds=False, x_splits=None, y_splits=None):
+        angle_x, angle_y, angle_w, params_dict, **kwargs):
+
+    # Keyword arguments
+    quintic = kwargs.get("quintic", True)
 
     # Convert dictionary to type params
     info = parameters._to_params(params_dict)
     parameters._check_nearby2d_fixed_source(info, xs_total.shape[0])
-    block = True if (block) or (info.materials != 1) else False
-    
+    block = True if kwargs.get("block", True) or (info.materials != 1) else False
+
     # Angular directions
     cdef int NN = info.angles * info.angles
     
     # Check for custom x/y splits
-    if x_splits is None:
+    if kwargs.get("x_splits", None) is None:
         x_splits = np.zeros((0,), dtype=np.int32)
         y_splits = np.zeros((0,), dtype=np.int32)
 
@@ -120,7 +122,7 @@ def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x, \
     # Run Nearby Problem
     print("4. Calculating Nearby Solution...")
     info.edges = 0
-    if zero_bounds:
+    if kwargs.get("zero_bounds", False):
         print("Removing Analytical Boundary Conditions...")
         curve_fit_boundary_x = boundary_x.copy()
         curve_fit_boundary_y = boundary_y.copy()
@@ -134,19 +136,21 @@ def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x, \
 
 def fixed_source_residual(scalar_flux, xs_total, xs_scatter, xs_fission, \
         external, boundary_x, boundary_y, medium_map, delta_x, delta_y, \
-        knots_x, knots_y, angle_x, angle_y, angle_w, params_dict, \
-        block=True, quintic=True, x_splits=None, y_splits=None):
+        knots_x, knots_y, angle_x, angle_y, angle_w, params_dict, **kwargs):
+
+    # Keyword arguments
+    quintic = kwargs.get("quintic", True)
 
     # Convert dictionary to type params
     info = parameters._to_params(params_dict)
     parameters._check_nearby2d_fixed_source(info, xs_total.shape[0])
-    block = True if (block) or (info.materials != 1) else False
+    block = True if kwargs.get("block", True) or (info.materials != 1) else False
     
     # Angular directions
     cdef int NN = info.angles * info.angles
     
     # Check for custom x/y splits
-    if x_splits is None:
+    if kwargs.get("x_splits", None) is None:
         x_splits = np.zeros((0,), dtype=np.int32)
         y_splits = np.zeros((0,), dtype=np.int32)
 
@@ -192,6 +196,53 @@ def fixed_source_residual(scalar_flux, xs_total, xs_scatter, xs_fission, \
     _residual_integral(residual, int_psi, int_dx, int_dy, int_phi, xs_total, \
                        xs_scatter, xs_fission, external, medium_map, \
                        delta_x, delta_y, angle_x, angle_y, info)
+
+    return np.asarray(curve_fit_flux), np.asarray(curve_fit_boundary_x), \
+                np.asarray(curve_fit_boundary_y), np.asarray(residual)
+
+
+def fixed_source_residual_lite(scalar_flux, xs_total, xs_scatter, xs_fission, \
+        external, boundary_x, boundary_y, medium_map, delta_x, delta_y, \
+        knots_x, knots_y, angle_x, angle_y, angle_w, params_dict, **kwargs):
+
+    # Keyword arguments
+    quintic = kwargs.get("quintic", True)
+
+    # Convert dictionary to type params
+    info = parameters._to_params(params_dict)
+    parameters._check_nearby2d_fixed_source(info, xs_total.shape[0])
+    block = True if kwargs.get("block", True) or (info.materials != 1) else False
+
+    # Angular directions
+    cdef int NN = info.angles * info.angles
+
+    # Check for custom x/y splits
+    if kwargs.get("x_splits", None) is None:
+        x_splits = np.zeros((0,), dtype=np.int32)
+        y_splits = np.zeros((0,), dtype=np.int32)
+
+    # Run Numerical Solution
+    print("Calculating Angular Flux Solution...")
+    numerical_flux = fixed2d.known_source_calculation(scalar_flux, xs_total, \
+                            xs_scatter + xs_fission, external, boundary_x, \
+                            boundary_y, medium_map, delta_x, delta_y, \
+                            angle_x, angle_y, angle_w, params_dict)
+
+    # Initialize curve fit and residual
+    curve_fit_boundary_x = tools.array_3d(2, info.cells_y, info.groups)
+    curve_fit_boundary_y = tools.array_3d(2, info.cells_x, info.groups)
+    curve_fit_flux = tools.array_3d(info.cells_x, info.cells_y, info.groups)
+    residual = tools.array_3d(info.cells_x, info.cells_y, info.groups)
+
+    print("Calculating Analytical Solution and Residual...")
+    # Knots at cell centers
+    edges_x = np.insert(np.cumsum(delta_x), 0, 0)
+    edges_y = np.insert(np.cumsum(delta_y), 0, 0)
+    _curve_fit_centers_residual_lite(numerical_flux, curve_fit_flux, \
+            curve_fit_boundary_x, curve_fit_boundary_y, residual, xs_total, \
+            xs_scatter, xs_fission, external, medium_map, delta_x, delta_y, \
+            knots_x, knots_y, edges_x, edges_y, x_splits, y_splits, angle_x, \
+            angle_y, angle_w, block, quintic, info)
 
     return np.asarray(curve_fit_flux), np.asarray(curve_fit_boundary_x), \
                 np.asarray(curve_fit_boundary_y), np.asarray(residual)
@@ -426,20 +477,89 @@ cdef void _residual_integral(double[:,:,:,:]& residual, double[:,:,:,:]& psi, \
                                 - (external[ii,jj,nn,og] * delta_x[ii] * delta_y[jj])
 
 
+cdef void _curve_fit_centers_residual_lite(double[:,:,:,:]& flux, \
+        double[:,:,:]& curve_fit, double[:,:,:]& boundary_x, \
+        double[:,:,:]& boundary_y, double[:,:,:]& residual,
+        double[:,:]& xs_total, double[:,:,:]& xs_scatter, \
+        double[:,:,:]& xs_fission, double[:,:,:,:]& external, \
+        int[:,:]& medium_map, double[:]& delta_x, double[:]& delta_y, \
+        double[:]& knots_x, double[:]& knots_y, double[:]& edges_x, \
+        double[:]& edges_y, int[:]& x_splits, int[:]& y_splits, \
+        double[:]& angle_x, double[:]& angle_y, double[:]& angle_w, \
+        bint block, bint quintic, params info):
+
+    # Initialize angle, group and cell
+    cdef int ii, jj, nn, gg, mat
+
+    # Initialize angular directions
+    cdef int NN = info.angles * info.angles
+
+    # Initialize integrals
+    int_angular = tools.array_2d(info.cells_x, info.cells_y)
+    int_dx_angular = tools.array_2d(info.cells_x, info.cells_y)
+    int_dy_angular = tools.array_2d(info.cells_x, info.cells_y)
+    int_scalar = tools.array_3d(info.cells_x, info.cells_y, info.groups)
+
+    # Initialize group specific interpolations
+    cdef double[2] bounds_x = [edges_x[0], edges_x[info.cells_x]]
+    cdef double[2] bounds_y = [edges_y[0], edges_y[info.cells_y]]
+
+    # Iterate over groups
+    for gg in tqdm(range(info.groups), desc="Curve Fit Groups", ascii=True, position=0):
+
+        # Iterate over angles
+        for nn in tqdm(range(NN), desc="Curve Fit Angles", ascii=True, position=1, leave=False):
+
+            # Create function
+            approx = Interpolation(flux[:,:,nn,gg], knots_x, knots_y, \
+                        medium_map, x_splits, y_splits, block, quintic)
+
+            # Interpolate the knots
+            spline = approx.interpolate(knots_x, knots_y)
+            tools._nearby_flux_to_scalar(curve_fit, spline, angle_w[nn], gg, info)
+
+            # Interpolate y boundary
+            boundary = approx.interpolate(knots_x, bounds_y)
+            tools._nearby_boundary_to_scalar(boundary_y, boundary[:,:].T, angle_w[nn], gg, info)
+
+            # Interpolate x boundary
+            boundary = approx.interpolate(bounds_x, knots_y)
+            tools._nearby_boundary_to_scalar(boundary_x, boundary, angle_w[nn], gg, info)
+
+            # Calculate integrals
+            int_psi, int_dx, int_dy = approx.integrate_centers(edges_x, edges_y)
+            int_angular = int_psi[:,:]
+            int_dx_angular = int_dx[:,:]
+            int_dy_angular = int_dy[:,:]
+            tools._nearby_flux_to_scalar(int_scalar, int_psi, angle_w[nn], gg, info)
+
+            # Update Residual - On scatter
+            tools._nearby_on_scatter(residual, int_angular, int_dx_angular, \
+                int_dy_angular, xs_total, external[:,:,nn,:], medium_map, \
+                delta_x, delta_y, angle_x[nn], angle_y[nn], angle_w[nn], \
+                gg, info)
+
+    tools._nearby_off_scatter(residual, int_scalar, xs_scatter, \
+            xs_fission, medium_map, info)
+
+
 def criticality(xs_total, xs_scatter, xs_fission, medium_map, delta_x, \
-        delta_y, knots_x, knots_y, angle_x, angle_y, angle_w, params_dict, \
-        block=True, quintic=True, x_splits=None, y_splits=None):
+        delta_y, knots_x, knots_y, angle_x, angle_y, angle_w, \
+        params_dict, **kwargs):
+
+    # Keyword arguments
+    quintic = kwargs.get("quintic", True)
 
     # Convert dictionary to type params
     info = parameters._to_params(params_dict)
     parameters._check_nearby2d_criticality(info)
-    block = True if (block) or (info.materials != 1) else False
+    block = True if kwargs.get("block", True) or (info.materials != 1) else False
     
     # Angular directions
     cdef int NN = info.angles * info.angles
 
     # Check for custom x/y splits
-    if x_splits is None:
+    if kwargs.get("x_splits", None) is None:
         x_splits = np.zeros((0,), dtype=np.int32)
         y_splits = np.zeros((0,), dtype=np.int32)
 

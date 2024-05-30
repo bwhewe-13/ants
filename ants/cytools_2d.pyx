@@ -572,8 +572,70 @@ cdef void _source_total_critical(double[:,:,:,:]& source, \
 
 
 ########################################################################
-# Nearby Problems Fixed Source Boundary functions
+# Nearby Problems
 ########################################################################
+
+cdef void _nearby_flux_to_scalar(double[:,:,:]& scalar_flux, \
+        double[:,:]& angular_spatial, double angle_w, int gg, params info):
+    # Initialize iterables
+    cdef int ii, jj
+    # Iterate over all spatial cells
+    for ii in range(info.cells_x):
+        for jj in range(info.cells_y):
+            scalar_flux[ii,jj,gg] += angular_spatial[ii,jj] * angle_w
+
+
+cdef void _nearby_boundary_to_scalar(double[:,:,:]& boundary_flux, \
+        double[:,:]& angular_spatial, double angle_w, int gg, params info):
+    # Initialize iterables
+    cdef int ii
+    cdef int cells = boundary_flux.shape[1]
+    # Iterate over all spatial cells
+    for ii in range(cells):
+        boundary_flux[0,ii,gg] += angular_spatial[0,ii] * angle_w
+        boundary_flux[1,ii,gg] += angular_spatial[1,ii] * angle_w
+
+
+cdef void _nearby_off_scatter(double[:,:,:]& residual, \
+    double[:,:,:]& scalar_flux, double[:,:,:]& xs_scatter, \
+    double[:,:,:]& xs_fission, int[:,:]& medium_map, params info):
+
+    # Initialize iterables
+    cdef int ii, jj, mat, og, ig
+
+    # Initialize off-scattering term
+    cdef float off_scatter
+
+    # Iterate over spatial cells
+    for ii in range(info.cells_x):
+        for jj in range(info.cells_y):
+            mat = medium_map[ii,jj]
+            # Iterate over groups
+            for og in range(info.groups):
+                off_scatter = 0.0
+                for ig in range(info.groups):
+                    off_scatter += scalar_flux[ii,jj,ig] \
+                                * (xs_scatter[mat,og,ig] + xs_fission[mat,og,ig])
+                residual[ii,jj,og] -= (off_scatter)
+
+
+cdef void _nearby_on_scatter(double[:,:,:]& residual, double[:,:]& int_angular, \
+        double[:,:]& int_dx_angular, double[:,:]& int_dy_angular,
+        double[:,:]& xs_total, double[:,:,:]& external, int[:,:]& medium_map, \
+        double[:]& delta_x, double[:]& delta_y, double angle_x, double angle_y, \
+        double angle_w, int gg, params info):
+
+    # Initialize iterables
+    cdef int ii, jj, mat
+
+    for ii in range(info.cells_x):
+        for jj in range(info.cells_y):
+            mat = medium_map[ii,jj]
+            residual[ii,jj,gg] += angle_w * ((angle_x * int_dx_angular[ii,jj]) \
+                            + (angle_y * int_dy_angular[ii,jj]) \
+                            + (int_angular[ii,jj] * xs_total[mat,gg]) \
+                            - (external[ii,jj,gg] * delta_x[ii] * delta_y[jj]))
+
 
 cdef void _nearby_populate_outer(double[:,:,:,:]& modified_flux, \
         double[:,:,:,:]& flux_center, double[:,:,:,:]& flux_edge_x, \
