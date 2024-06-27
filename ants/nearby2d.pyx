@@ -220,6 +220,9 @@ def fixed_source_residual_lite(scalar_flux, xs_total, xs_scatter, xs_fission, \
     if kwargs.get("x_splits", None) is None:
         x_splits = np.zeros((0,), dtype=np.int32)
         y_splits = np.zeros((0,), dtype=np.int32)
+    else:
+        x_splits = kwargs.get("x_splits")
+        y_splits = kwargs.get("y_splits")
 
     # Run Numerical Solution
     print("Calculating Angular Flux Solution...")

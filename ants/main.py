@@ -95,19 +95,51 @@ def _ordering_angles_xy(angle_x, angle_y, angle_w, bc_x, bc_y):
     matrix = np.fabs(np.vstack((angle_x, angle_y, angle_w)))
     # Get unique combinations and convert to size N**2
     matrix = np.repeat(np.unique(matrix, axis=1), 4, axis=1)
+    
     # signs for [angle_x, angle_y, angle_w]
     directions = np.array([[1, -1, 1, -1], [1, 1, -1, -1], [1, 1, 1, 1]])
-    # Only one reflected surface
-    # if (bc_x == [0, 0] or bc_x == [0, 1]) and bc_y == [0, 0]:
-    #     idx = [0, 1, 2, 3]
-    if bc_x == [0, 0] and bc_y == [1, 0]:
-        idx = [2, 0, 3, 1]
-    elif bc_x == [0, 0] and bc_y == [0, 1]:
-        idx = [0, 2, 1, 3]
-    elif bc_x == [1, 0] and bc_y == [0, 0]:
-        idx = [1, 0, 3, 2]
-    else:
-        idx = [0, 1, 2, 3]
+
+    if bc_x == [0, 0]:
+        
+        if bc_y == [0, 0]: 
+            idx = [0, 1, 2, 3]
+        
+        elif bc_y == [1, 0]:
+            # idx = [2, 0, 3, 1]
+            idx = [3, 1, 2, 0]
+
+        elif bc_y == [0, 1]:
+            # idx = [0, 2, 1, 3]
+            idx = [0, 1, 2, 3]
+
+    elif bc_x == [1, 0]:
+        # Good
+        if bc_y == [0, 0]:
+            # idx = [1, 0, 3, 2]
+            idx = [1, 3, 2, 0]
+
+        elif bc_y == [1, 0]:
+            # idx = [3, 2, 1, 0]
+            idx = [3, 1, 2, 0]
+
+        elif bc_y == [0, 1]:
+            # idx = [1, 0, 3, 2]
+            idx = [1, 3, 0, 2]
+
+    elif bc_x == [0, 1]:
+
+        if bc_y == [0, 0]:
+            # idx = [0, 1, 2, 3]
+            idx = [0, 2, 1, 3]
+
+        elif bc_y == [1, 0]:
+            # idx = [2, 3, 0, 1]
+            idx = [2, 0, 3, 1]
+
+        elif bc_y == [0, 1]:
+            # idx = [0, 1, 2, 3]
+            idx = [0, 2, 1, 3]
+
     directions = np.tile(directions[:,idx], int(angles**2 / 4))
     return matrix * directions
 
