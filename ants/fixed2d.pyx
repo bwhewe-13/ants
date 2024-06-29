@@ -45,7 +45,7 @@ def source_iteration(double[:,:] xs_total, double[:,:,:] xs_scatter, \
     
     # Initialize flux_old to zeros
     flux_old = tools.array_3d(info.cells_x, info.cells_y, info.groups)
-    
+
     # Run source iteration
     flux = mg.source_iteration(flux_old, xs_total, xs_matrix, external, \
                             boundary_x, boundary_y, medium_map, delta_x, \
@@ -142,3 +142,25 @@ def known_source_calculation(double[:,:,:] flux, double[:,:] xs_total, \
     
     return -1
     
+
+def known_source_single(double[:,:,:] flux, double[:,:] xs_total, \
+        double[:,:,:] xs_matrix, double[:,:,:,:] external, \
+        double[:,:,:,:] boundary_x, double[:,:,:,:] boundary_y, \
+        int[:,:] medium_map, double[:] delta_x, double[:] delta_y, \
+        double[:] angle_x, double[:] angle_y, double[:] angle_w, \
+        int group, dict params_dict):
+    # This is for solving for angular flux or cell interfaces
+    
+    # Covert dictionary to type params
+    info = parameters._to_params(params_dict)
+    
+    # Create (sigma_s + sigma_f) * phi + external function
+    source = tools.array_4d(info.cells_x, info.cells_y, external.shape[2], 1)
+    tools._source_total_single(source, flux, xs_matrix, medium_map, \
+                                external, group, info)
+    
+    # Solve for angular flux at cell centers
+    angular_flux = mg._known_source_single(xs_total, source, boundary_x, \
+                            boundary_y, medium_map, delta_x, delta_y, \
+                            angle_x, angle_y, angle_w, group, info)
+    return np.asarray(angular_flux)

@@ -346,6 +346,37 @@ def inscribed_circle(edges_x, edges_y, radii):
     # Return two arrays (might be different lengths)
     return x_splits, y_splits
 
+
+def off_scatter_corrector(residual, scalar_flux, xs_scatter, xs_fission, \
+        medium_map, group):
+    """ When calculating one energy group of nearby problems, it corrects
+    for the off-scattering term by using the scalar flux integral
+    Arguments:
+        residual (float [cells_x, cells_y, 1]): single (uncorrected) 
+                                                energy group residual 
+        scalar_flux (float [cells_x, cells_y, groups]): scalar flux integral
+        xs_scatter (float [materials, groups, groups]): problem scattering xs
+        xs_fission (float [materials, groups, groups]): problem fission xs
+        medium_map (int [cells_x, cells_y]): problem medium map
+        group (int): Specific energy group residual is part of
+    Returns:
+        corrected residual (float [cells_x, cells_y, 1])
+    """
+    cells_x, cells_y, groups = scalar_flux.shape
+    residual = residual.copy()
+    # Iterate over spatial cells
+    for ii in range(cells_x):
+        for jj in range(cells_y):
+            mat = medium_map[ii,jj]
+            # Iterate over groups
+            off_scatter = 0.0
+            for ig in range(groups):
+                off_scatter += scalar_flux[ii,jj,ig] \
+                            * (xs_fission[mat,group,ig] + xs_scatter[mat,group,ig])
+            residual[ii,jj,0] -= (off_scatter)
+
+    return residual
+
 ########################################################################
 # One Dimensional DMD
 ########################################################################

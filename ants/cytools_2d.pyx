@@ -55,11 +55,28 @@ cdef double[:,:,:,:] array_4d(int dim1, int dim2, int dim3, int dim4):
     arr[:,:,:,:] = 0.0
     return arr
 
+
 cdef double[:,:,:,:,:] array_5d(int dim1, int dim2, int dim3, int dim4, \
         int dim5):
     dd5 = cvarray((dim1, dim2, dim3, dim4, dim5), itemsize=sizeof(double), \
                     format="d")
     cdef double[:,:,:,:,:] arr = dd5
+    arr[:,:,:,:,:] = 0.0
+    return arr
+
+
+cdef float[:,:,:,:] farray_4d(int dim1, int dim2, int dim3, int dim4):
+    dd4 = cvarray((dim1, dim2, dim3, dim4), itemsize=sizeof(float), format="f")
+    cdef float[:,:,:,:] arr = dd4
+    arr[:,:,:,:] = 0.0
+    return arr
+
+
+cdef float[:,:,:,:,:] farray_5d(int dim1, int dim2, int dim3, int dim4, \
+        int dim5):
+    dd5 = cvarray((dim1, dim2, dim3, dim4, dim5), itemsize=sizeof(float), \
+                    format="d")
+    cdef float[:,:,:,:,:] arr = dd5
     arr[:,:,:,:,:] = 0.0
     return arr
 
@@ -165,6 +182,34 @@ cdef void _source_total(double[:,:,:,:]& source, double[:,:,:]& flux, \
                     nn_q = 0 if external.shape[2] == 1 else nn
                     source[ii,jj,nn,og] += one_group
                     source[ii,jj,nn,og] += external[ii,jj,nn_q,og_q]
+
+
+cdef void _source_total_single(double[:,:,:,:]& source, \
+        double[:,:,:]& flux, double[:,:,:]& xs_matrix, int[:,:]& medium_map, \
+        double[:,:,:,:]& external, int group, params info):
+    # Create (sigma_s + sigma_f) * phi + external function
+    # Initialize iterables
+    cdef int ii, jj, nn, ig, og, mat, nn_q, og_q
+    cdef double one_group
+
+    # Zero out previous values
+    source[:,:,:,:] = 0.0
+
+    for ii in range(info.cells_x):
+        for jj in range(info.cells_y):
+            mat = medium_map[ii,jj]
+
+            for og in range(group, group + 1):
+                og_q = 0 if external.shape[3] == 1 else og
+                # loc = og + info.groups * (nn + NN * (jj + ii * info.cells_y))
+                one_group = 0.0
+                for ig in range(info.groups):
+                    one_group += flux[ii,jj,ig] * xs_matrix[mat,og,ig]
+
+                for nn in range(info.angles * info.angles):
+                    nn_q = 0 if external.shape[2] == 1 else nn
+                    source[ii,jj,nn,0] += one_group
+                    source[ii,jj,nn,0] += external[ii,jj,nn_q,og_q]
 
 
 cdef void _angular_to_scalar(double[:,:,:,:]& angular_flux, \
@@ -623,18 +668,22 @@ cdef void _nearby_on_scatter(double[:,:,:]& residual, double[:,:]& int_angular, 
         double[:,:]& int_dx_angular, double[:,:]& int_dy_angular,
         double[:,:]& xs_total, double[:,:,:]& external, int[:,:]& medium_map, \
         double[:]& delta_x, double[:]& delta_y, double angle_x, double angle_y, \
-        double angle_w, int gg, params info):
+        double angle_w, int gg0, int gg1, params info):
 
     # Initialize iterables
     cdef int ii, jj, mat
 
+    # Allow for energy independent sources
+    cdef int gg_q = 0 if external.shape[2] == 1 else gg1
+
     for ii in range(info.cells_x):
         for jj in range(info.cells_y):
             mat = medium_map[ii,jj]
-            residual[ii,jj,gg] += angle_w * ((angle_x * int_dx_angular[ii,jj]) \
+            
+            residual[ii,jj,gg0] += angle_w * ((angle_x * int_dx_angular[ii,jj]) \
                             + (angle_y * int_dy_angular[ii,jj]) \
-                            + (int_angular[ii,jj] * xs_total[mat,gg]) \
-                            - (external[ii,jj,gg] * delta_x[ii] * delta_y[jj]))
+                            + (int_angular[ii,jj] * xs_total[mat,gg1]) \
+                            - (external[ii,jj,gg_q] * delta_x[ii] * delta_y[jj]))
 
 
 cdef void _nearby_populate_outer(double[:,:,:,:]& modified_flux, \

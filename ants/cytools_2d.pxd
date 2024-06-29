@@ -34,6 +34,11 @@ cdef double[:,:,:,:] array_4d(int dim1, int dim2, int dim3, int dim4)
 cdef double[:,:,:,:,:] array_5d(int dim1, int dim2, int dim3, int dim4, \
         int dim5)
 
+cdef float[:,:,:,:] farray_4d(int dim1, int dim2, int dim3, int dim4)
+
+cdef float[:,:,:,:,:] farray_5d(int dim1, int dim2, int dim3, int dim4, \
+        int dim5)
+
 ########################################################################
 # Convergence functions
 ########################################################################
@@ -58,6 +63,10 @@ cdef void _off_scatter(double[:,:,:]& flux, double[:,:,:]& flux_old, \
 cdef void _source_total(double[:,:,:,:]& source, double[:,:,:]& flux, \
         double[:,:,:]& xs_matrix, int[:,:]& medium_map, \
         double[:,:,:,:]& external, params info)
+
+cdef void _source_total_single(double[:,:,:,:]& source, \
+        double[:,:,:]& flux, double[:,:,:]& xs_matrix, int[:,:]& medium_map, \
+        double[:,:,:,:]& external, int group, params info)
 
 cdef void _angular_to_scalar(double[:,:,:,:]& angular_flux, \
         double[:,:,:]& scalar_flux, double[:]& angle_w, params info)
@@ -143,7 +152,7 @@ cdef void _nearby_on_scatter(double[:,:,:]& residual, double[:,:]& int_angular, 
         double[:,:]& int_dx_angular, double[:,:]& int_dy_angular,
         double[:,:]& xs_total, double[:,:,:]& external, int[:,:]& medium_map, \
         double[:]& delta_x, double[:]& delta_y, double angle_x, double angle_y, \
-        double angle_w, int gg, params info)
+        double angle_w, int gg0, int gg1, params info)
 
 cdef void _nearby_off_scatter(double[:,:,:]& residual, \
     double[:,:,:]& scalar_flux, double[:,:,:]& xs_scatter, \

@@ -55,10 +55,10 @@ cdef double[:,:,:] source_iteration(double[:,:,:]& flux_guess, \
         double[:,:,:,:]& boundary_y, int[:,:]& medium_map, \
         double[:]& delta_x, double[:]& delta_y, double[:]& angle_x, \
         double[:]& angle_y, double[:]& angle_w, params info):
-    
+
     # Initialize components
     cdef int gg, qq, bcx, bcy
-    
+
     # Initialize flux
     flux = tools.array_3d(info.cells_x, info.cells_y, info.groups)
     flux_old = flux_guess.copy()
@@ -71,7 +71,7 @@ cdef double[:,:,:] source_iteration(double[:,:,:]& flux_guess, \
     cdef bint converged = False
     cdef int count = 1
     cdef double change = 0.0
-    
+
     # Iterate until energy group convergence
     while not (converged):
         
@@ -92,7 +92,7 @@ cdef double[:,:,:] source_iteration(double[:,:,:]& flux_guess, \
             # Calculate up and down scattering term using Gauss-Seidel
             tools._off_scatter(flux, flux_old, medium_map, xs_scatter, \
                                off_scatter, info, gg)
-            
+
             # Use discrete ordinates for the angular dimension
             discrete_ordinates(flux[:,:,gg], flux_1g, xs_total[:,gg], \
                     xs_scatter[:,gg,gg], off_scatter, external[:,:,:,qq], \
@@ -252,6 +252,38 @@ cdef double[:,:,:] _known_source_scalar(double[:,:]& xs_total, \
             medium_map, delta_x, delta_y, angle_x, angle_y, angle_w, info)
 
     return scalar_flux[:,:,:,0]
+
+
+cdef double[:,:,:,:] _known_source_single(double[:,:]& xs_total, \
+        double[:,:,:,:]& source, double[:,:,:,:]& boundary_x, \
+        double[:,:,:,:]& boundary_y, int[:,:]& medium_map, \
+        double[:]& delta_x, double[:]& delta_y, double[:]& angle_x, \
+        double[:]& angle_y, double[:]& angle_w, int group, params info):
+    # source = flux * xs_scatter + external source
+
+    # Initialize components
+    cdef int gg, qq, bcx, bcy
+
+    # Initialize angular flux
+    angular_flux = tools.array_4d(info.cells_x, info.cells_y, \
+                                  info.angles * info.angles, 1)
+    # Set zero matrix placeholder for scattering
+    zero_2d = tools.array_2d(info.cells_x, info.cells_y)
+    
+    # Iterate over groups
+    for gg in range(group, group+1):
+
+        # Determine dimensions of external and boundary sources
+        qq = 0 if source.shape[3] == 1 else gg
+        bcx = 0 if boundary_x.shape[3] == 1 else gg
+        bcy = 0 if boundary_y.shape[3] == 1 else gg
+
+        # Perform angular sweep
+        _known_center_sweep(angular_flux[:,:,:,0], xs_total[:,gg], zero_2d, \
+            source[:,:,:,qq], boundary_x[:,:,:,bcx], boundary_y[:,:,:,bcy], \
+            medium_map, delta_x, delta_y, angle_x, angle_y, angle_w, info)
+
+    return angular_flux[:,:,:,:]
 
 
 cdef void _interface_angular(double[:,:,:,:]& flux_edge_x, \
