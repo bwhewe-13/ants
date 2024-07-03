@@ -20,6 +20,7 @@
 
 import numpy as np
 from tqdm.auto import tqdm
+from datetime import datetime
 
 from ants import fixed2d, critical2d
 from ants.utils.interp2d import Interpolation
@@ -631,7 +632,48 @@ cdef void _curve_fit_centers_residual_lite_one(double[:,:,:,:]& flux, \
                             medium_map, delta_x, delta_y, angle_x[nn], \
                             angle_y[nn], angle_w[nn], 0, group, info)
 
-    np.save(f"scalar_flux_integral_group_{str(group).zfill(3)}", np.asarray(int_scalar))
+    time = datetime.now().strftime("%Y%m%d-%H%M%S")
+    np.save(f"scalar_flux_integral_group_{str(group).zfill(3)}-{time}", np.asarray(int_scalar))
+
+
+def off_scatter_corrector(double[:,:,:]& residual, double[:,:,:]& scalar_flux, \
+    double[:,:,:]& xs_scatter, double[:,:,:]& xs_fission, int[:,:]& medium_map):
+    """ When calculating one energy group of nearby problems, it corrects
+    for the off-scattering term by using the scalar flux integral
+    Arguments:
+        residual (float [cells_x, cells_y, 1]): single (uncorrected) 
+                                                energy group residual 
+        scalar_flux (float [cells_x, cells_y, groups]): scalar flux integral
+        xs_scatter (float [materials, groups, groups]): problem scattering xs
+        xs_fission (float [materials, groups, groups]): problem fission xs
+        medium_map (int [cells_x, cells_y]): problem medium map
+        group (int): Specific energy group residual is part of
+    Returns:
+        corrected residual (float [cells_x, cells_y, 1])
+    """
+    # Initialize iterables
+    cdef int ii, jj, mat, og, ig
+
+    # Initialize off-scattering term
+    cdef float off_scatter
+
+    cells_x = residual.shape[0]
+    cells_y = residual.shape[1]
+    groups = residual.shape[2]
+
+    # Iterate over spatial cells
+    for ii in range(cells_x):
+        for jj in range(cells_y):
+            mat = medium_map[ii,jj]
+            # Iterate over groups
+            for og in range(groups):
+                off_scatter = 0.0
+                for ig in range(groups):
+                    off_scatter += scalar_flux[ii,jj,ig] \
+                                * (xs_scatter[mat,og,ig] + xs_fission[mat,og,ig])
+                residual[ii,jj,og] -= (off_scatter)
+    
+    return residual
 
 
 def criticality(xs_total, xs_scatter, xs_fission, medium_map, delta_x, \

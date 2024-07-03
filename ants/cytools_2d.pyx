@@ -189,7 +189,33 @@ cdef void _source_total_single(double[:,:,:,:]& source, \
         double[:,:,:,:]& external, int group, params info):
     # Create (sigma_s + sigma_f) * phi + external function
     # Initialize iterables
-    cdef int ii, jj, nn, ig, og, mat, nn_q, og_q
+    cdef int ii, jj, ig, og, mat, og_q
+    cdef double one_group
+
+    # Zero out previous values
+    source[:,:,:,:] = 0.0
+
+    for ii in range(info.cells_x):
+        for jj in range(info.cells_y):
+            mat = medium_map[ii,jj]
+
+            for og in range(group, group + 1):
+                og_q = 0 if external.shape[3] == 1 else og
+                # loc = og + info.groups * (nn + NN * (jj + ii * info.cells_y))
+                one_group = 0.0
+                for ig in range(info.groups):
+                    one_group += flux[ii,jj,ig] * xs_matrix[mat,og,ig]
+
+                source[ii,jj,0,0] += one_group
+                source[ii,jj,0,0] += external[ii,jj,0,og_q]
+
+
+cdef void _source_total_nsingle(double[:,:,:,:]& source, \
+        double[:,:,:]& flux, double[:,:,:]& xs_matrix, int[:,:]& medium_map, \
+        double[:,:,:,:]& external, int group, params info):
+    # Create (sigma_s + sigma_f) * phi + external function
+    # Initialize iterables
+    cdef int ii, jj, nn, ig, og, mat, og_q
     cdef double one_group
 
     # Zero out previous values
@@ -207,9 +233,8 @@ cdef void _source_total_single(double[:,:,:,:]& source, \
                     one_group += flux[ii,jj,ig] * xs_matrix[mat,og,ig]
 
                 for nn in range(info.angles * info.angles):
-                    nn_q = 0 if external.shape[2] == 1 else nn
                     source[ii,jj,nn,0] += one_group
-                    source[ii,jj,nn,0] += external[ii,jj,nn_q,og_q]
+                    source[ii,jj,nn,0] += external[ii,jj,nn,og_q]
 
 
 cdef void _angular_to_scalar(double[:,:,:,:]& angular_flux, \
@@ -337,6 +362,7 @@ cdef void _time_source_star_bdf1(double[:,:,:,:]& flux, \
 
     # Zero out previous values
     q_star[:,:,:,:] = 0.0
+
     # Iterate over cells, angles, groups
     for nn in prange(directions, nogil=True):
         nn_q = 0 if external.shape[2] == 1 else nn

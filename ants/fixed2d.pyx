@@ -156,8 +156,12 @@ def known_source_single(double[:,:,:] flux, double[:,:] xs_total, \
     
     # Create (sigma_s + sigma_f) * phi + external function
     source = tools.array_4d(info.cells_x, info.cells_y, external.shape[2], 1)
-    tools._source_total_single(source, flux, xs_matrix, medium_map, \
-                                external, group, info)
+    if external.shape[2] == 1:
+        tools._source_total_single(source, flux, xs_matrix, medium_map, \
+                                    external, group, info)
+    else:
+        tools._source_total_nsingle(source, flux, xs_matrix, medium_map, \
+                                    external, group, info)
     
     # Solve for angular flux at cell centers
     angular_flux = mg._known_source_single(xs_total, source, boundary_x, \
