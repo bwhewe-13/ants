@@ -167,17 +167,18 @@ def energy_grid(grid, groups_fine, groups_coarse=None, optimize=True):
 
     else:
         edges_g = np.arange(groups_fine + 1, dtype=float)
+        edges_data = None
     
     # Calculate the indices for the specific fine grid
-    edges_gidx_fine = _group_indexing(grid, edges_data, len(edges_g)-1, \
-                                        groups_fine, optimize=optimize)
+    edges_gidx_fine = _group_indexing(grid, len(edges_g)-1, groups_fine, \
+                                edges_data=edges_data, optimize=optimize)
 
     if groups_coarse is None:
         return edges_g, edges_gidx_fine
     
     # Calculate the indices for the specific coarse grid
-    edges_gidx_coarse = _group_indexing(grid, edges_data, groups_fine, \
-                                        groups_coarse, optimize=optimize)
+    edges_gidx_coarse = _group_indexing(grid, groups_fine, groups_coarse, \
+                                edges_data=edges_data, optimize=optimize)
 
     # Check for both reduced (hybrid splitting)
     if (groups_fine == groups_coarse) and (groups_fine not in [87, 361, 618]):
@@ -186,7 +187,7 @@ def energy_grid(grid, groups_fine, groups_coarse=None, optimize=True):
     return edges_g, edges_gidx_fine, edges_gidx_coarse
 
 
-def _group_indexing(grid, edges_data, groups_fine, groups_coarse, optimize=True):
+def _group_indexing(grid, groups_fine, groups_coarse, edges_data=None, optimize=True):
     # Calculate the indices for the specific grid
     if (grid in [87, 361, 618]) and (optimize):
         # Predefined coarse grid index
