@@ -132,9 +132,12 @@ def reeds(edges_x, bc):
     return external
 
 
-def ambe(x, loc_x, edges_g):
+def ambe(delta_x, loc_x, edges_g):
     # AmBe source in middle of material
-    external = np.zeros((x.shape[0], 1, edges_g.shape[0] - 1))
+    if isinstance(loc_x, int):
+        loc_x = [loc_x]
+    
+    external = np.zeros((delta_x.shape[0], 1, edges_g.shape[0] - 1))
 
     data = np.load(DATA_PATH + "external/AmBe_source_050G.npz")
     # Convert to MeV
@@ -146,10 +149,8 @@ def ambe(x, loc_x, edges_g):
     
     for ii in range(len(data["magnitude"])):
         idx = loc_g(data["edges"][ii], data["edges"][ii+1])
-        external[loc_x, 0, idx] = data["magnitude"][ii]
-
-    # value = tools.resize_array_1d(edges_g, data["edges"], data["magnitude"])    
-    # external[loc_x, 0] = value
+        for xx in loc_x:
+            external[xx, 0, idx] = data["magnitude"][ii] / delta_x[xx]
 
     return external
 
