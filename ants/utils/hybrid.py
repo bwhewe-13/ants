@@ -25,7 +25,7 @@ def energy_coarse_index(fine, coarse):
     Returns:
         array of indicies (int [coarse + 1])
     """
-    index = np.ones((coarse)) * int(fine / coarse)
+    index = np.ones((coarse,)) * int(fine / coarse)
     index[np.linspace(0, coarse-1, fine % coarse, dtype=np.int32)] += 1
     assert (index.sum() == fine)
     return np.cumsum(np.insert(index, 0, 0), dtype=np.int32)

@@ -390,7 +390,7 @@ cdef void sphere_backward(double[:]& flux, double[:]& flux_old, \
                 + xs_total[mat] * volume)
         # Update flux with cell edges
         if info.edges:
-            flux[ii+1] += weight * (2 * center - edge1)
+            flux[ii] += weight * (2 * center - edge1)
         # Update flux with cell centers
         else:
             flux[ii] += weight * center
