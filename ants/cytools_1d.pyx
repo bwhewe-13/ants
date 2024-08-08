@@ -395,8 +395,57 @@ cdef void _source_total_critical(double[:,:,:]& source, double[:,:]& flux, \
 
 
 ########################################################################
-# Nearby Problems Criticality functions
+# Nearby Problems
 ########################################################################
+
+cdef void _nearby_flux_to_scalar(double[:,:]& scalar_flux, \
+        double[:]& angular_spatial, double angle_w, int gg, params info):
+    # Initialize iterables
+    cdef int ii
+    # Iterate over all spatial cells
+    for ii in range(info.cells_x):
+        scalar_flux[ii,gg] += angular_spatial[ii] * angle_w
+
+
+cdef void _nearby_off_scatter(double[:,:]& residual, \
+    double[:,:]& scalar_flux, double[:,:,:]& xs_scatter, \
+    double[:,:,:]& xs_fission, int[:]& medium_map, params info):
+
+    # Initialize iterables
+    cdef int ii, mat, og, ig
+
+    # Initialize off-scattering term
+    cdef float off_scatter
+
+    # Iterate over spatial cells
+    for ii in range(info.cells_x):
+        mat = medium_map[ii]
+        # Iterate over groups
+        for og in range(info.groups):
+            off_scatter = 0.0
+            for ig in range(info.groups):
+                off_scatter += scalar_flux[ii,ig] \
+                            * (xs_scatter[mat,og,ig] + xs_fission[mat,og,ig])
+            residual[ii,og] -= (off_scatter)
+
+
+cdef void _nearby_on_scatter(double[:,:]& residual, double[:]& int_angular, \
+        double[:]& int_dx_angular, double[:,:]& xs_total, \
+        double[:,:]& external, int[:]& medium_map, double[:]& delta_x, \
+        double angle_x, double angle_w, int gg0, int gg1, params info):
+
+    # Initialize iterables
+    cdef int ii, mat
+
+    # Allow for energy independent sources
+    cdef int gg_q = 0 if external.shape[1] == 1 else gg1
+
+    for ii in range(info.cells_x):
+        mat = medium_map[ii]
+        residual[ii,gg0] += angle_w * ((angle_x * int_dx_angular[ii]) \
+                        + (int_angular[ii] * xs_total[mat,gg1]) \
+                        - (external[ii,gg_q] * delta_x[ii]))
+
 
 cdef void _nearby_fission_source(double[:,:]& flux, double[:,:,:]& xs_fission, \
         double[:,:,:]& source, double[:,:,:]& residual, int[:]& medium_map, \

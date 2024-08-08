@@ -108,8 +108,20 @@ cdef void _source_total_critical(double[:,:,:]& source, double[:,:]& flux, \
         int[:]& medium_map, double keff, params info)
 
 ########################################################################
-# Nearby Problems Criticality functions
+# Nearby Problems
 ########################################################################
+cdef void _nearby_flux_to_scalar(double[:,:]& scalar_flux, \
+        double[:]& angular_spatial, double angle_w, int gg, params info)
+
+cdef void _nearby_off_scatter(double[:,:]& residual, \
+    double[:,:]& scalar_flux, double[:,:,:]& xs_scatter, \
+    double[:,:,:]& xs_fission, int[:]& medium_map, params info)
+
+cdef void _nearby_on_scatter(double[:,:]& residual, double[:]& int_angular, \
+        double[:]& int_dx_angular, double[:,:]& xs_total, \
+        double[:,:]& external, int[:]& medium_map, double[:]& delta_x, \
+        double angle_x, double angle_w, int gg0, int gg1, params info)
+
 cdef void _nearby_fission_source(double[:,:]& flux, double[:,:,:]& xs_fission, \
         double[:,:,:]& source, double[:,:,:]& residual, int[:]& medium_map, \
         params info, double keff)

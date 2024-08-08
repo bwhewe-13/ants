@@ -272,7 +272,7 @@ def resize_array_2d(fine, coarse, value):
 
 
 ########################################################################
-# Two Dimensional Nearby Problems
+# Nearby Problems
 ########################################################################
 def _material_index(medium_map):
     """ Finding index of one-dimensional medium map
@@ -297,6 +297,9 @@ def _to_block(medium_map):
         x_splits (int []): array of index for x direction
         y_splits (int []): array of index for y direction
     """
+    # Return one array for one-dimensional
+    if len(medium_map.shape) == 1:
+        return _material_index(medium_map)
     # X direction - for each y cell
     x_splits = []
     for jj in range(medium_map.shape[1]):

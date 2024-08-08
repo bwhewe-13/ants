@@ -13,6 +13,8 @@
 
 import numpy as np
 
+from ants.utils import pytools
+
 
 def first_derivative(psi, x):
     # Ensure same length
@@ -270,15 +272,109 @@ class QuinticHermite:
         return int_psi, int_dpsi
 
 
+class BlockInterpolation:
+
+    def __init__(self, Splines, psi, knots_x, medium_map, x_splits):
+        self.Splines = Splines
+        self.psi = np.asarray(psi)
+        self.knots_x = np.asarray(knots_x)
+        # Determine knot splits
+        if x_splits.shape[0] > 0:
+            self.x_splits = np.asarray(x_splits).copy()
+        else:
+            medium_map = np.asarray(medium_map)
+            self.x_splits = pytools._to_block(medium_map)
+        self._generate_coefs()
+
+
+    def _generate_coefs(self):
+        # Create 2D list of Interpolations
+        self.splines = []
+        for (x1, x2) in zip(self.x_splits[:-1], self.x_splits[1:]):
+            # Initialize new spline section
+            self.splines.append(self.Splines(self.psi[x1:x2], self.knots_x[x1:x2]))
+
+
+    def interpolate(self, nx):
+        if isinstance(nx, float):
+            nx = np.array([nx])
+        nx = np.asarray(nx)
+        # Initialize splines
+        splines_psi = np.zeros((nx.shape[0], ))
+        # Iterate over x blocks
+        for ii, (x1, x2) in enumerate(zip(self.x_splits[:-1], self.x_splits[1:])):
+            print(x1, x2)
+            # Find correct x block
+            if ii == 0:
+                idx_x = np.argwhere(nx < self.knots_x[x2]).flatten()
+            elif ii == (self.x_splits.shape[0] - 2):
+                idx_x = np.argwhere(nx >= self.knots_x[x1]).flatten()
+            else:
+                idx_x = np.argwhere((nx >= self.knots_x[x1]) \
+                                    & (nx < self.knots_x[x2])).flatten()
+            # Interpolate on block
+            splines_psi[idx_x] = self.splines[ii].interpolate(nx[idx_x])
+        return splines_psi
+
+
+   # Integral of X - edges
+    def integrate_edges(self):
+        # Initialize full matrices
+        Nx = self.knots_x.shape[0] - 1
+        int_psi = np.zeros((Nx,))
+        int_dx = np.zeros((Nx,))
+        int_dy = np.zeros((Nx,))
+        # Iterate over each block
+        for (x1, x2) in zip(self.x_splits[:-1], self.x_splits[1:]):
+            # Initialize new spline section
+            approx = self.Splines(self.psi[x1:x2+1], self.knots_x[x1:x2+1])
+            # Interpolate on block
+            b_int_psi, b_int_dx = approx.integrate_edges()
+            int_psi[x1:x2] = b_int_psi.copy()
+            int_dx[x1:x2] = b_int_dx.copy()
+        return int_psi, int_dx
+
+
+    # Integral of X - centers
+    def integrate_centers(self, limits_x):
+        limits_x = np.asarray(limits_x)
+        Nx = self.knots_x.shape[0]
+        int_psi = np.zeros((Nx,))
+        int_dx = np.zeros((Nx,))
+        # Iterate over each block
+        for (x1, x2) in zip(self.x_splits[:-1], self.x_splits[1:]):
+            # Initialize new spline section
+            approx = self.Splines(self.psi[x1:x2], self.knots_x[x1:x2])
+            # Interpolate on block
+            b_int_psi, b_int_dx = approx.integrate_centers(limits_x[x1:x2+1])
+            int_psi[x1:x2] = b_int_psi.copy()
+            int_dx[x1:x2] = b_int_dx.copy()
+        return int_psi, int_dx
+
+
 class Interpolation:
     
-    def __init__(self, psi, knots_x, quintic=True):
+    def __init__(self, psi, knots_x, medium_map, x_splits, block=True, \
+                 quintic=True):
+
+        self.block = block
         self.quintic = quintic
+        # Block Quintic
+        if (block) and (quintic):
+            self.instance = BlockInterpolation(QuinticHermite, psi, knots_x, \
+                                              medium_map, x_splits)
+
         # Quintic
-        if (block):
+        elif (not block) and (quintic):
             self.instance = QuinticHermite(psi, knots_x)
+
+        # Block Cubic
+        elif (block) and (not quintic):
+            self.instance = BlockInterpolation(CubicHermite, psi, knots_x, \
+                                              medium_map, x_splits)
+
         # Cubic
-        else: 
+        elif (not block) and (not quintic):
             self.instance = CubicHermite(psi, knots_x)
 
 
