@@ -46,40 +46,43 @@ def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x, \
         x_splits = np.zeros((0,), dtype=np.int32)
 
     # Run Numerical Solution
-    print("1. Calculating Numerical Solution...")
+    print("Calculating Numerical Solution...")
     numerical_flux = fixed1d.source_iteration(xs_total, xs_scatter, \
                             xs_fission, external, boundary_x, medium_map, \
                             delta_x, angle_x, angle_w, info)
 
     # Initialize curve fit
-    curve_fit_boundary_x = np.zeros((2, info.angles, info.groups))
-    curve_fit_flux = tools.array_3d(info.cells_x, info.angles, info.groups)
+    curve_fit_boundary_x = tools.array_3d(2, info.angles, info.groups)
+    curve_fit_flux = tools.array_2d(info.cells_x, info.groups)
 
     # Initialize curve fit integrals
-    int_psi = tools.array_3d(info.cells_x, info.angles, info.groups)
-    int_dx = tools.array_3d(info.cells_x, info.angles, info.groups)
-    int_phi = tools.array_2d(info.cells_x, info.groups)
+    int_angular = tools.array_3d(info.cells_x, info.angles, info.groups)
+    int_dx_angular = tools.array_3d(info.cells_x, info.angles, info.groups)
+    int_scalar = tools.array_2d(info.cells_x, info.groups)
 
     # Calculate curve fit at knots
-    print("2. Calculating Analytical Solution...")
+    print("Calculating Angular Cuvre Fit Solution...")
     # Knots at cell centers
     if knots_x.shape[0] == info.cells_x:
         edges_x = np.insert(np.cumsum(delta_x), 0, 0)
-        _curve_fit_centers(numerical_flux, curve_fit_flux, curve_fit_boundary_x, \
-                int_psi, int_dx, int_phi, medium_map, x_splits, knots_x, \
-                edges_x, angle_w, block, quintic, info)
+        _angular_curve_fit_centers(numerical_flux, curve_fit_flux, \
+                curve_fit_boundary_x, int_angular, int_dx_angular, \
+                int_scalar, medium_map, x_splits, knots_x, edges_x, \
+                angle_w, block, quintic, info)
     # Knots at cell edges
     else:
         centers_x = average_array(knots_x)
-        _curve_fit_edges(numerical_flux, curve_fit_flux, curve_fit_boundary_x, \
-                int_psi, int_dx, int_phi, medium_map, x_splits, knots_x, \
-                centers_x, angle_w, block, quintic, info)
+        _angular_curve_fit_edges(numerical_flux, curve_fit_flux, \
+                curve_fit_boundary_x, int_angular, int_dx_angular, \
+                int_scalar, medium_map, x_splits, knots_x, centers_x, \
+                angle_w, block, quintic, info)
 
     # Calculate residual for each cell
-    print("3. Calculating Residual...")
+    print("Calculating Angular Residual...")
     residual = tools.array_3d(info.cells_x, info.angles, info.groups)
-    _residual_integral(residual, int_psi, int_dx, int_phi, xs_total, xs_scatter, \
-                xs_fission, external, medium_map, delta_x, angle_x, info)
+    _angular_residual(residual, int_angular, int_dx_angular, int_scalar, \
+            xs_total, xs_scatter, xs_fission, external, medium_map, \
+            delta_x, angle_x, info)
 
     fangles = str(info.angles).zfill(2)
     fcells = str(info.cells_x).zfill(3)
@@ -87,7 +90,7 @@ def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x, \
     np.save(f"nearby_boundary_x_x{fcells}_n{fangles}", np.asarray(curve_fit_boundary_x))
 
     # Run Nearby Problem
-    print("4. Calculating Nearby Solution...")
+    print("Calculating Nearby Solution...")
     info.edges = 0
     if kwargs.get("zero_bounds", False):
         print("Removing Analytical Boundary Conditions...")
@@ -99,9 +102,9 @@ def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x, \
     return numerical_flux, np.asarray(curve_fit_flux), nearby_flux
 
 
-def fixed_source_residual(numerical_flux, xs_total, xs_scatter, xs_fission, \
-        external, boundary_x, medium_map, delta_x, knots_x, angle_x, \
-        angle_w, params_dict, **kwargs):
+def fixed_source_angular_residual(scalar_flux, xs_total, xs_scatter, \
+        xs_fission, external, boundary_x, medium_map, delta_x, knots_x, \
+        angle_x, angle_w, params_dict, **kwargs):
 
     # Keyword arguments
     quintic = kwargs.get("quintic", True)
@@ -109,57 +112,58 @@ def fixed_source_residual(numerical_flux, xs_total, xs_scatter, xs_fission, \
     # Convert dictionary to type params
     info = parameters._to_params(params_dict)
     parameters._check_nearby1d_fixed_source(info, xs_total.shape[0])
-    # block = True if kwargs.get("block", True) or (info.materials != 1) else False
     block = False if (info.materials == 1) else kwargs.get("block", True)
 
     # Check for custom x splits
     if kwargs.get("x_splits", None) is None:
         x_splits = np.zeros((0,), dtype=np.int32)
 
-    # Check for Scalar Flux
-    if len(numerical_flux.shape) == 2:
-        numerical_flux = fixed1d.known_source_calculation(numerical_flux, \
-                            xs_total, xs_scatter + xs_fission, external, \
-                            boundary_x, medium_map, delta_x, angle_x, \
-                            angle_w, params_dict)
+    # Run Numerical Solution
+    print("Calculating Angular Flux Solution...")
+    numerical_flux = fixed1d.known_source_calculation(scalar_flux, xs_total, \
+                            xs_scatter + xs_fission, external, boundary_x, \
+                            medium_map, delta_x, angle_x, angle_w, params_dict)
 
     # Initialize curve fit
     curve_fit_boundary_x = np.zeros((2, info.angles, info.groups))
-    curve_fit_flux = tools.array_3d(info.cells_x, info.angles, info.groups)
+    curve_fit_flux = tools.array_2d(info.cells_x, info.groups)
 
     # Initialize curve fit integrals
-    int_psi = tools.array_3d(info.cells_x, info.angles, info.groups)
-    int_dx = tools.array_3d(info.cells_x, info.angles, info.groups)
-    int_phi = tools.array_2d(info.cells_x, info.groups)
+    int_angular = tools.array_3d(info.cells_x, info.angles, info.groups)
+    int_dx_angular = tools.array_3d(info.cells_x, info.angles, info.groups)
+    int_scalar = tools.array_2d(info.cells_x, info.groups)
 
     # Calculate curve fit at knots
-    print("Calculating Analytical Solution...")
+    print("Calculating Angular Curve Fit Solution...")
     # Knots at cell centers
     if knots_x.shape[0] == info.cells_x:
         edges_x = np.insert(np.cumsum(delta_x), 0, 0)
-        _curve_fit_centers(numerical_flux, curve_fit_flux, curve_fit_boundary_x, \
-                int_psi, int_dx, int_phi, medium_map, x_splits, knots_x, \
-                edges_x, angle_w, block, quintic, info)
+        _angular_curve_fit_centers(numerical_flux, curve_fit_flux, \
+                curve_fit_boundary_x, int_angular, int_dx_angular, \
+                int_scalar, medium_map, x_splits, knots_x, edges_x, \
+                angle_w, block, quintic, info)
     # Knots at cell edges
     else:
         centers_x = average_array(knots_x)
-        _curve_fit_edges(numerical_flux, curve_fit_flux, curve_fit_boundary_x, \
-                int_psi, int_dx, int_phi, medium_map, x_splits, knots_x, \
-                centers_x, angle_w, block, quintic, info)
+        _angular_curve_fit_edges(numerical_flux, curve_fit_flux, \
+                curve_fit_boundary_x, int_angular, int_dx_angular, \
+                int_scalar, medium_map, x_splits, knots_x, centers_x, \
+                angle_w, block, quintic, info)
 
     # Calculate residual for each cell
-    print("Calculating Residual...")
+    print("Calculating Angular Residual...")
     residual = tools.array_3d(info.cells_x, info.angles, info.groups)
-    _residual_integral(residual, int_psi, int_dx, int_phi, xs_total, xs_scatter, \
-                xs_fission, external, medium_map, delta_x, angle_x, info)
+    _angular_residual(residual, int_angular, int_dx_angular, int_scalar, \
+            xs_total, xs_scatter, xs_fission, external, medium_map, \
+            delta_x, angle_x, info)
 
-    return np.asarray(curve_fit_flux), np.asarray(residual), \
-            np.asarray(curve_fit_boundary_x)
+    return np.asarray(curve_fit_flux), np.asarray(curve_fit_boundary_x), \
+            np.asarray(residual)
 
 
-def fixed_source_residual_lite(scalar_flux, xs_total, xs_scatter, xs_fission, \
-        external, boundary_x, medium_map, delta_x, knots_x, angle_x, \
-        angle_w, params_dict, **kwargs):
+def fixed_source_scalar_residual(scalar_flux, xs_total, xs_scatter, \
+        xs_fission, external, boundary_x, medium_map, delta_x, knots_x, \
+        angle_x, angle_w, params_dict, **kwargs):
 
     # Keyword arguments
     quintic = kwargs.get("quintic", True)
@@ -176,33 +180,34 @@ def fixed_source_residual_lite(scalar_flux, xs_total, xs_scatter, xs_fission, \
     # Run Numerical Solution
     print("Calculating Angular Flux Solution...")
     numerical_flux = fixed1d.known_source_calculation(scalar_flux, \
-                        xs_total, xs_scatter + xs_fission, external, \
-                        boundary_x, medium_map, delta_x, angle_x, \
-                        angle_w, params_dict)
+                            xs_total, xs_scatter + xs_fission, external, \
+                            boundary_x, medium_map, delta_x, angle_x, \
+                            angle_w, params_dict)
 
     # Initialize curve fit and residual
-    curve_fit_boundary_x = np.zeros((2, info.groups))
+    curve_fit_boundary_x = tools.array_2d(2, info.groups)
     curve_fit_flux = tools.array_2d(info.cells_x, info.groups)
     residual = tools.array_2d(info.cells_x, info.groups)
 
     # Knots at cell centers
     edges_x = np.insert(np.cumsum(delta_x), 0, 0)
 
-    print("Calculating Analytical Solution and Residual...")
-    _curve_fit_centers_residual_lite(numerical_flux, curve_fit_flux, \
+    print("Calculating Scalar Curve Fit Solution and Residual...")
+    _scalar_curve_fit_residual(numerical_flux, curve_fit_flux, \
             curve_fit_boundary_x, residual, xs_total, xs_scatter, \
             xs_fission, external, medium_map, delta_x, knots_x, edges_x, \
             x_splits, angle_x, angle_w, block, quintic, info)
 
-    return np.asarray(curve_fit_flux), np.asarray(residual), \
-            np.asarray(curve_fit_boundary_x)
+    return np.asarray(curve_fit_flux), np.asarray(curve_fit_boundary_x), \
+            np.asarray(residual)
+            
 
-
-cdef void _curve_fit_centers(double[:,:,:]& flux, double[:,:,:]& curve_fit, \
-        double[:,:,:]& boundary_x, double[:,:,:]& integral, \
-        double[:,:,:]& dxintegral, double[:,:]& sintegral, int[:]& medium_map, \
-        int[:]& x_splits, double[:]& knots_x, double[:]& edges_x, \
-        double[:]& angle_w, bint block, bint quintic, params info):
+cdef void _angular_curve_fit_centers(double[:,:,:]& flux, \
+        double[:,:]& curve_fit, double[:,:,:]& boundary_x, \
+        double[:,:,:]& int_angular, double[:,:,:]& int_dx_angular, \
+        double[:,:]& int_scalar, int[:]& medium_map, int[:]& x_splits, \
+        double[:]& knots_x, double[:]& edges_x, double[:]& angle_w, \
+        bint block, bint quintic, params info):
 
     # Initialize angle and group
     cdef int nn, gg
@@ -212,17 +217,18 @@ cdef void _curve_fit_centers(double[:,:,:]& flux, double[:,:,:]& curve_fit, \
 
     # Iterate over groups
     for gg in tqdm(range(info.groups), desc="Curve Fit Groups", \
-            ascii=True, position=0):
+                ascii=True, position=0):
         # Iterate over angles
         for nn in tqdm(range(info.angles), desc="Curve Fit Angles", \
-                ascii=True, position=1, leave=False):
+                    ascii=True, position=1, leave=False):
             # Create function
             approx = Interpolation(flux[:,nn,gg], knots_x, medium_map, \
                                    x_splits, block, quintic)
 
             # Interpolate the knots
             spline = approx.interpolate(knots_x)
-            curve_fit[:,nn,gg] = spline[:]
+            # curve_fit[:,nn,gg] = spline[:]
+            tools._nearby_flux_to_scalar(curve_fit, spline, angle_w[nn], gg, info)
 
             # Interpolate x boundary
             boundary_x[0,nn,gg] = approx.interpolate(edges_x[0])
@@ -230,18 +236,19 @@ cdef void _curve_fit_centers(double[:,:,:]& flux, double[:,:,:]& curve_fit, \
 
             # Calculate integrals
             int_psi, int_dx = approx.integrate_centers(edges_x)
-            integral[:,nn,gg] = int_psi[:]
-            dxintegral[:,nn,gg] = int_dx[:]
+            int_angular[:,nn,gg] = int_psi[:]
+            int_dx_angular[:,nn,gg] = int_dx[:]
 
-    # Populate sintegral scalar flux
-    tools._angular_to_scalar(integral, sintegral, angle_w, info)
+    # Populate int_scalar scalar flux
+    tools._angular_to_scalar(int_angular, int_scalar, angle_w, info)
 
 
-cdef void _curve_fit_edges(double[:,:,:]& flux, double[:,:,:]& curve_fit, \
-        double[:,:,:]& boundary_x, double[:,:,:]& integral, \
-        double[:,:,:]& dxintegral, double[:,:]& sintegral, int[:]& medium_map, \
-        int[:]& x_splits, double[:]& knots_x, double[:]& centers_x, \
-        double[:]& angle_w, bint block, bint quintic, params info):
+cdef void _angular_curve_fit_edges(double[:,:,:]& flux, \
+        double[:,:]& curve_fit, double[:,:,:]& boundary_x, \
+        double[:,:,:]& int_angular, double[:,:,:]& int_dx_angular, \
+        double[:,:]& int_scalar, int[:]& medium_map, int[:]& x_splits, \
+        double[:]& knots_x, double[:]& centers_x, double[:]& angle_w, \
+        bint block, bint quintic, params info):
 
     # Initialize angle and group
     cdef int ii, nn, gg
@@ -250,15 +257,18 @@ cdef void _curve_fit_edges(double[:,:,:]& flux, double[:,:,:]& curve_fit, \
     cdef double[:] spline, int_psi, int_dx
 
     # Iterate over groups
-    for gg in tqdm(range(info.groups), desc="Curve Fit Groups", ascii=True, position=0):
+    for gg in tqdm(range(info.groups), desc="Curve Fit Groups", \
+                ascii=True, position=0):
         # Iterate over angles
-        for nn in tqdm(range(info.angles), desc="Curve Fit Angles", ascii=True, position=1, leave=False):
+        for nn in tqdm(range(info.angles), desc="Curve Fit Angles", \
+                    ascii=True, position=1, leave=False):
             # Create function
             approx = Interpolation(flux[:,nn,gg], knots_x, medium_map, \
                                    x_splits, block, quintic)
 
             # Interpolate the knots
             spline = approx.interpolate(centers_x)
+            tools._nearby_flux_to_scalar(curve_fit, spline, angle_w[nn], gg, info)
 
             # Interpolate x boundary
             boundary_x[0,nn,gg] = approx.interpolate(knots_x[0])
@@ -266,14 +276,14 @@ cdef void _curve_fit_edges(double[:,:,:]& flux, double[:,:,:]& curve_fit, \
 
             # Calculate integrals
             int_psi, int_dx = approx.integrate_edges()
-            integral[:,nn,gg] = int_psi[:]
-            dxintegral[:,nn,gg] = int_dx[:]
+            int_angular[:,nn,gg] = int_psi[:]
+            int_dx_angular[:,nn,gg] = int_dx[:]
 
-    # Populate sintegral scalar flux
-    tools._angular_to_scalar(integral, sintegral, angle_w, info)
+    # Populate int_scalar scalar flux
+    tools._angular_to_scalar(int_angular, int_scalar, angle_w, info)
                 
 
-cdef void _residual_integral(double[:,:,:]& residual, double[:,:,:]& psi, \
+cdef void _angular_residual(double[:,:,:]& residual, double[:,:,:]& psi, \
         double[:,:,:]& int_dx, double[:,:]& phi, double[:,:]& xs_total, \
         double[:,:,:]& xs_scatter, double[:,:,:]& xs_fission, \
         double[:,:,:]& external, int[:]& medium_map, double[:]& delta_x, \
@@ -307,9 +317,8 @@ cdef void _residual_integral(double[:,:,:]& residual, double[:,:,:]& psi, \
                         - external[ii,nn_q,og_q] * delta_x[ii]
 
 
-cdef void _curve_fit_centers_residual_lite(double[:,:,:]& flux, \
-        double[:,:]& curve_fit, double[:,:]& boundary_x, \
-        double[:,:]& residual, double[:,:]& xs_total, \
+cdef void _scalar_curve_fit_residual(double[:,:,:]& flux, double[:,:]& curve_fit, \
+        double[:,:]& boundary_x, double[:,:]& residual, double[:,:]& xs_total, \
         double[:,:,:]& xs_scatter, double[:,:,:]& xs_fission, \
         double[:,:,:]& external, int[:]& medium_map, double[:]& delta_x, \
         double[:]& knots_x, double[:]& edges_x, int[:]& x_splits, \
@@ -324,12 +333,17 @@ cdef void _curve_fit_centers_residual_lite(double[:,:,:]& flux, \
     int_dx_angular = tools.array_1d(info.cells_x)
     int_scalar = tools.array_2d(info.cells_x, info.groups)
 
+    # Initialize group specific interpolations
+    cdef double[:] spline, int_psi, int_dx
+
     # Iterate over groups
-    for gg in tqdm(range(info.groups), desc="Curve Fit Groups", ascii=True, position=0):
+    for gg in tqdm(range(info.groups), desc="Curve Fit Groups", \
+                ascii=True, position=0):
 
         # Iterate over angles
-        for nn in tqdm(range(info.angles), desc="Curve Fit Angles", ascii=True, position=1, leave=False):
-
+        for nn in tqdm(range(info.angles), desc="Curve Fit Angles", \
+                    ascii=True, position=1, leave=False):
+            
             nn_q = 0 if external.shape[1] == 1 else nn
 
             # Create function
@@ -341,8 +355,8 @@ cdef void _curve_fit_centers_residual_lite(double[:,:,:]& flux, \
             tools._nearby_flux_to_scalar(curve_fit, spline, angle_w[nn], gg, info)
 
             # Interpolate x boundary
-            boundary_x[0,gg] += approx.interpolate(edges_x[0]) * angle_w
-            boundary_x[1,gg] += approx.interpolate(edges_x[info.cells_x]) * angle_w
+            boundary_x[0,gg] += approx.interpolate(edges_x[0]) * angle_w[nn]
+            boundary_x[1,gg] += approx.interpolate(edges_x[info.cells_x]) * angle_w[nn]
 
             # Calculate integrals
             int_psi, int_dx = approx.integrate_centers(edges_x)
@@ -375,53 +389,55 @@ def criticality(xs_total, xs_scatter, xs_fission, medium_map, delta_x, \
         x_splits = np.zeros((0,), dtype=np.int32)
 
     # Run Numerical Solution
-    print("1. Calculating Numerical Solution...")
+    print("Calculating Numerical Solution...")
     numerical_flux, numerical_keff = critical1d.power_iteration(xs_total, \
                                     xs_scatter, xs_fission, medium_map, \
                                     delta_x, angle_x, angle_w, info)
 
     # Initialize curve fit
     curve_fit_boundary_x = tools.array_3d(2, info.angles, info.groups)
-    curve_fit_flux = tools.array_3d(info.cells_x, info.angles, info.groups)
+    curve_fit_scalar = tools.array_2d(info.cells_x, info.groups)
 
     # Initialize curve fit integrals
-    int_psi = tools.array_3d(info.cells_x, info.angles, info.groups)
-    int_dx = tools.array_3d(info.cells_x, info.angles, info.groups)
-    int_phi = tools.array_2d(info.cells_x, info.groups)
+    int_angular = tools.array_3d(info.cells_x, info.angles, info.groups)
+    int_dx_angular = tools.array_3d(info.cells_x, info.angles, info.groups)
+    int_scalar = tools.array_2d(info.cells_x, info.groups)
 
     # Calculate curve fit at knots
-    print("2. Calculating Analytical Solution...")
+    print("Calculating Analytical Solution...")
     # Knots at cell centers
     if knots_x.shape[0] == info.cells_x:
         edges_x = np.insert(np.cumsum(delta_x), 0, 0)
-        _curve_fit_centers(numerical_flux, curve_fit_flux, curve_fit_boundary_x, \
-                        int_psi, int_dx, int_phi, medium_map, x_splits, \
-                        knots_x, edges_x, angle_w, block, quintic, info)
+        _angular_curve_fit_centers(numerical_flux, curve_fit_scalar, \
+                curve_fit_boundary_x, int_angular, int_dx_angular, \
+                int_scalar, medium_map, x_splits, knots_x, edges_x, \
+                angle_w, block, quintic, info)
     # Knots at cell edges
     else:
         centers_x = average_array(knots_x)
-        _curve_fit_edges(numerical_flux, curve_fit_flux, curve_fit_boundary_x, \
-                        int_psi, int_dx, int_phi, medium_map, x_splits, \
-                        knots_x, centers_x, angle_w, block, quintic, info)
+        _angular_curve_fit_edges(numerical_flux, curve_fit_scalar, \
+                curve_fit_boundary_x, int_angular, int_dx_angular, \
+                int_scalar, medium_map, x_splits, knots_x, centers_x, \
+                angle_w, block, quintic, info)
 
     # Create curve fit source, curve fit keff, nearby reaction rate
     curve_fit_source = tools.array_2d(info.cells_x, info.groups)
-    nearby_rate, curve_fit_keff = _curve_fit_fission_source(int_psi, int_dx, \
-                                int_phi, xs_total, xs_scatter, xs_fission, \
-                                curve_fit_source, medium_map, delta_x, \
-                                angle_x, angle_w, info)
+    nearby_rate, curve_fit_keff = _curve_fit_fission_source(int_angular, \
+                            int_dx_angular, int_scalar, xs_total, xs_scatter, \
+                            xs_fission, curve_fit_source, medium_map, delta_x, \
+                            angle_x, angle_w, info)
 
     # Calculate residual for each cell
-    print("3. Calculating Residual...")
+    print("Calculating Residual...")
     residual = np.zeros((info.cells_x, info.angles, info.groups))
-    _residual_integral_critical(residual, int_psi, int_dx, int_phi, xs_total, \
-                                xs_scatter, curve_fit_source, medium_map, \
-                                angle_x, curve_fit_keff, info)
+    _angular_residual_critical(residual, int_angular, int_dx_angular, \
+            int_scalar, xs_total, xs_scatter, curve_fit_source, medium_map, \
+            angle_x, curve_fit_keff, info)
     fangles = str(info.angles).zfill(2)
-    np.save(f"nearby_residual_s{fangles}", np.asarray(residual))
+    np.save(f"nearby_residual_n{fangles}", np.asarray(residual))
 
     # Run Nearby Problem
-    print("4. Calculating Nearby Solution...")
+    print("Calculating Nearby Solution...")
     info.edges = 0
     nearby_scalar, nearby_keff = critical1d.nearby_power(xs_total, xs_scatter, \
                                     xs_fission, residual, medium_map, delta_x, \
@@ -430,10 +446,6 @@ def criticality(xs_total, xs_scatter, xs_fission, medium_map, delta_x, \
     # Convert numerical_flux to scalar flux
     numerical_scalar = tools.array_2d(info.cells_x, info.groups)
     tools._angular_to_scalar(numerical_flux, numerical_scalar, angle_w, info)
-
-    # Convert curve_fit_flux to scalar flux
-    curve_fit_scalar = tools.array_2d(info.cells_x, info.groups)
-    tools._angular_to_scalar(curve_fit_flux, curve_fit_scalar, angle_w, info)
 
     return numerical_scalar, numerical_keff, np.asarray(curve_fit_scalar), \
             curve_fit_keff, nearby_scalar, nearby_keff
@@ -486,7 +498,7 @@ cdef (double, double) _curve_fit_fission_source(double[:,:,:]& int_psi, \
     return nearby_rate, curve_fit_keff
 
 
-cdef void _residual_integral_critical(double[:,:,:]& residual, \
+cdef void _angular_residual_critical(double[:,:,:]& residual, \
         double[:,:,:]& int_psi, double[:,:,:]& int_dx, double[:,:]& int_phi, \
         double[:,:]& xs_total, double[:,:,:]& xs_scatter, \
         double[:,:]& source, int[:]& medium_map, double[:]& angle_x, \

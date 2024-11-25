@@ -303,7 +303,6 @@ class BlockInterpolation:
         splines_psi = np.zeros((nx.shape[0], ))
         # Iterate over x blocks
         for ii, (x1, x2) in enumerate(zip(self.x_splits[:-1], self.x_splits[1:])):
-            print(x1, x2)
             # Find correct x block
             if ii == 0:
                 idx_x = np.argwhere(nx < self.knots_x[x2]).flatten()

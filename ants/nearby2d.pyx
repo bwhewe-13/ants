@@ -41,7 +41,7 @@ def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x, \
     # Convert dictionary to type params
     info = parameters._to_params(params_dict)
     parameters._check_nearby2d_fixed_source(info, xs_total.shape[0])
-    block = True if kwargs.get("block", True) or (info.materials != 1) else False
+    block = False if (info.materials == 1) else kwargs.get("block", True)
 
     # Angular directions
     cdef int NN = info.angles * info.angles
@@ -52,16 +52,17 @@ def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x, \
         y_splits = np.zeros((0,), dtype=np.int32)
 
     # Run Numerical Solution
-    print("1. Calculating Numerical Solution...")
+    print("Calculating Numerical Solution...")
     numerical_flux = fixed2d.source_iteration(xs_total, xs_scatter, \
                             xs_fission, external, boundary_x, boundary_y, \
                             medium_map, delta_x, delta_y, angle_x, angle_y, \
                             angle_w, info)
 
     # Initialize curve fit
-    curve_fit_boundary_x = np.zeros((2, info.cells_y, NN, info.groups))
-    curve_fit_boundary_y = np.zeros((2, info.cells_x, NN, info.groups))
-    curve_fit_flux = np.zeros((info.cells_x, info.cells_y, NN, info.groups))
+    curve_fit_boundary_x = tools.array_4d(2, info.cells_y, NN, info.groups)
+    curve_fit_boundary_y = tools.array_4d(2, info.cells_x, NN, info.groups)
+    # curve_fit_flux = tools.array_4d(info.cells_x, info.cells_y, NN, info.groups)
+    curve_fit_flux = tools.array_3d(info.cells_x, info.cells_y, info.groups)
 
     # Initialize curve fit integrals
     int_angular = tools.array_4d(info.cells_x, info.cells_y, NN, info.groups)
@@ -70,21 +71,21 @@ def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x, \
     int_scalar = tools.array_3d(info.cells_x, info.cells_y, info.groups)
 
     # Calculate curve fit at knots
-    print("2. Calculating Analytical Solution...")    
+    print("Calculating Angular Curve Fit Solution...")    
     # Knots at cell centers
     centers_x = average_array(edges_x)
     centers_y = average_array(edges_y)
     _angular_curve_fit(numerical_flux, curve_fit_flux, curve_fit_boundary_x, \
-                curve_fit_boundary_y, int_angular, int_dx_angular, int_dy_angular, int_scalar, \
-                medium_map, centers_x, centers_y, edges_x, edges_y, x_splits, \
-                y_splits, angle_w, block, quintic, info)
+            curve_fit_boundary_y, int_angular, int_dx_angular, int_dy_angular, \
+            int_scalar, medium_map, centers_x, centers_y, edges_x, edges_y, \
+            x_splits, y_splits, angle_w, block, quintic, info)
 
     # Calculate residual for each cell
-    print("3. Calculating Residual...")
+    print("Calculating Angular Residual...")
     residual = tools.array_4d(info.cells_x, info.cells_y, NN, info.groups)
-    _angular_residual(residual, int_angular, int_dx_angular, int_dy_angular, int_scalar, xs_total, \
-                      xs_scatter, xs_fission, external, medium_map, delta_x, \
-                      delta_y, angle_x, angle_y, info)
+    _angular_residual(residual, int_angular, int_dx_angular, int_dy_angular, \
+            int_scalar, xs_total, xs_scatter, xs_fission, external, \
+            medium_map, delta_x, delta_y, angle_x, angle_y, info)
     
     fangles = str(info.angles).zfill(2)
     fcells = str(info.cells_x).zfill(3)
@@ -93,10 +94,10 @@ def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x, \
     np.save(f"nearby_boundary_y_x{fcells}_n{fangles}", np.asarray(curve_fit_boundary_y))
 
     # Run Nearby Problem
-    print("4. Calculating Nearby Solution...")
+    print("Calculating Nearby Solution...")
     info.edges = 0
     if kwargs.get("zero_bounds", False):
-        print("Removing Analytical Boundary Conditions...")
+        print("Removing Curve Fit Boundary Conditions...")
         curve_fit_boundary_x = boundary_x.copy()
         curve_fit_boundary_y = boundary_y.copy()
 
@@ -119,7 +120,7 @@ def fixed_source_angular_residual(scalar_flux, xs_total, xs_scatter, xs_fission,
     # Convert dictionary to type params
     info = parameters._to_params(params_dict)
     parameters._check_nearby2d_fixed_source(info, xs_total.shape[0])
-    block = True if kwargs.get("block", True) or (info.materials != 1) else False
+    block = False if (info.materials == 1) else kwargs.get("block", True)
     
     # Angular directions
     cdef int NN = info.angles * info.angles
@@ -130,16 +131,17 @@ def fixed_source_angular_residual(scalar_flux, xs_total, xs_scatter, xs_fission,
         y_splits = np.zeros((0,), dtype=np.int32)
 
     # Run Numerical Solution
-    print("1. Calculating Angular Flux Solution...")
+    print("Calculating Angular Flux Solution...")
     numerical_flux = fixed2d.known_source_calculation(scalar_flux, xs_total, \
                             xs_scatter + xs_fission, external, boundary_x, \
                             boundary_y, medium_map, delta_x, delta_y, \
                             angle_x, angle_y, angle_w, params_dict)
 
     # Initialize curve fit
-    curve_fit_boundary_x = np.zeros((2, info.cells_y, NN, info.groups))
-    curve_fit_boundary_y = np.zeros((2, info.cells_x, NN, info.groups))
-    curve_fit_flux = np.zeros((info.cells_x, info.cells_y, NN, info.groups))
+    curve_fit_boundary_x = tools.array_4d(2, info.cells_y, NN, info.groups)
+    curve_fit_boundary_y = tools.array_4d(2, info.cells_x, NN, info.groups)
+    # curve_fit_flux = tools.array_4d(info.cells_x, info.cells_y, NN, info.groups)
+    curve_fit_flux = tools.array_3d(info.cells_x, info.cells_y, info.groups)
 
     # Initialize curve fit integrals
     int_angular = tools.array_4d(info.cells_x, info.cells_y, NN, info.groups)
@@ -147,7 +149,7 @@ def fixed_source_angular_residual(scalar_flux, xs_total, xs_scatter, xs_fission,
     int_dy_angular = tools.array_4d(info.cells_x, info.cells_y, NN, info.groups)
     int_scalar = tools.array_3d(info.cells_x, info.cells_y, info.groups)
 
-    print("2. Calculating Angular Curve Fit Solution...")
+    print("Calculating Angular Curve Fit Solution...")
     # Knots at cell centers
     centers_x = average_array(edges_x)
     centers_y = average_array(edges_y)
@@ -157,7 +159,7 @@ def fixed_source_angular_residual(scalar_flux, xs_total, xs_scatter, xs_fission,
             x_splits, y_splits, angle_w, block, quintic, info)
         
     # Calculate residual for each cell
-    print("3. Calculating Angular Residual...")
+    print("Calculating Angular Residual...")
     residual = tools.array_4d(info.cells_x, info.cells_y, NN, info.groups)
     _angular_residual(residual, int_angular, int_dx_angular, int_dy_angular, \
             int_scalar, xs_total, xs_scatter, xs_fission, external, \
@@ -178,7 +180,7 @@ def fixed_source_scalar_residual(scalar_flux, xs_total, xs_scatter, xs_fission, 
     # Convert dictionary to type params
     info = parameters._to_params(params_dict)
     parameters._check_nearby2d_fixed_source(info, xs_total.shape[0])
-    block = True if kwargs.get("block", True) or (info.materials != 1) else False
+    block = False if (info.materials == 1) else kwargs.get("block", True)
 
     # Angular directions
     cdef int NN = info.angles * info.angles
@@ -235,10 +237,10 @@ def fixed_source_scalar_residual(scalar_flux, xs_total, xs_scatter, xs_fission, 
                 np.asarray(curve_fit_boundary_y), np.asarray(residual)
 
 
-cdef void _angular_curve_fit(double[:,:,:,:]& flux, double[:,:,:,:]& curve_fit, \
+cdef void _angular_curve_fit(double[:,:,:,:]& flux, double[:,:,:]& curve_fit, \
         double[:,:,:,:]& boundary_x, double[:,:,:,:]& boundary_y, \
-        double[:,:,:,:]& integral, double[:,:,:,:]& dxintegral, \
-        double[:,:,:,:]& dyintegral, double[:,:,:]& sintegral, \
+        double[:,:,:,:]& int_angular, double[:,:,:,:]& int_dx_angular, \
+        double[:,:,:,:]& int_dy_angular, double[:,:,:]& int_scalar, \
         int[:,:]& medium_map, double[:]& knots_x, double[:]& knots_y, \
         double[:]& edges_x, double[:]& edges_y, int[:]& x_splits, \
         int[:]& y_splits, double[:]& angle_w, bint block, bint quintic, \
@@ -251,7 +253,7 @@ cdef void _angular_curve_fit(double[:,:,:,:]& flux, double[:,:,:,:]& curve_fit, 
     cdef int NN = info.angles * info.angles
 
     # Initialize angular and group specific interpolations
-    cdef double[:,:] spline, int_angular, int_dx_angular, int_dy_angular, boundary
+    cdef double[:,:] spline, int_psi, int_dx, int_dy, boundary
     cdef double[2] bounds_x = [edges_x[0], edges_x[info.cells_x]]
     cdef double[2] bounds_y = [edges_y[0], edges_y[info.cells_y]]
 
@@ -265,7 +267,8 @@ cdef void _angular_curve_fit(double[:,:,:,:]& flux, double[:,:,:,:]& curve_fit, 
 
             # Interpolate the knots
             spline = approx.interpolate(knots_x, knots_y)
-            curve_fit[...,nn,gg] = spline[:,:]
+            # curve_fit[...,nn,gg] = spline[:,:]
+            tools._nearby_flux_to_scalar(curve_fit, spline, angle_w[nn], gg, info)
 
             # Interpolate y boundary
             boundary = approx.interpolate(knots_x, bounds_y)
@@ -276,13 +279,13 @@ cdef void _angular_curve_fit(double[:,:,:,:]& flux, double[:,:,:,:]& curve_fit, 
             boundary_x[...,nn,gg] = boundary[:,:]
 
             # Calculate integrals
-            int_angular, int_dx_angular, int_dy_angular = approx.integrate_centers(edges_x, edges_y)
-            integral[...,nn,gg] = int_angular[:,:]
-            dxintegral[...,nn,gg] = int_dx_angular[:,:]
-            dyintegral[...,nn,gg] = int_dy_angular[:,:]
+            int_psi, int_dx, int_dy = approx.integrate_centers(edges_x, edges_y)
+            int_angular[...,nn,gg] = int_psi[:,:]
+            int_dx_angular[...,nn,gg] = int_dx[:,:]
+            int_dy_angular[...,nn,gg] = int_dy[:,:]
 
-    # Populate sintegral scalar flux
-    tools._angular_to_scalar(integral, sintegral, angle_w, info)
+    # Populate int_scalar flux
+    tools._angular_to_scalar(int_angular, int_scalar, angle_w, info)
 
 
 cdef void _angular_residual(double[:,:,:,:]& residual, double[:,:,:,:]& psi, \
@@ -344,6 +347,7 @@ cdef void _scalar_curve_fit_residual(double[:,:,:,:]& flux, \
     int_scalar = tools.array_3d(info.cells_x, info.cells_y, info.groups)
 
     # Initialize group specific interpolations
+    cdef double[:,:] spline, int_psi, int_dx, int_dy, boundary
     cdef double[2] bounds_x = [edges_x[0], edges_x[info.cells_x]]
     cdef double[2] bounds_y = [edges_y[0], edges_y[info.cells_y]]
 
@@ -373,11 +377,11 @@ cdef void _scalar_curve_fit_residual(double[:,:,:,:]& flux, \
             tools._nearby_boundary_to_scalar(boundary_x, boundary, angle_w[nn], gg, info)
 
             # Calculate integrals
-            int_angular, int_dx_angular, int_dy_angular = approx.integrate_centers(edges_x, edges_y)
-            int_angular = int_angular[:,:]
-            int_dx_angular = int_dx_angular[:,:]
-            int_dy_angular = int_dy_angular[:,:]
-            tools._nearby_flux_to_scalar(int_scalar, int_angular, angle_w[nn], gg, info)
+            int_psi, int_dx, int_dy = approx.integrate_centers(edges_x, edges_y)
+            int_angular = int_psi[:,:]
+            int_dx_angular = int_dx[:,:]
+            int_dy_angular = int_dy[:,:]
+            tools._nearby_flux_to_scalar(int_scalar, int_psi, angle_w[nn], gg, info)
 
             # Update Residual - On scatter
             tools._nearby_on_scatter(residual, int_angular, int_dx_angular, \
@@ -413,6 +417,7 @@ cdef void _scalar_curve_fit_residual_single(double[:,:,:,:]& flux, \
     int_scalar = tools.array_3d(info.cells_x, info.cells_y, 1)
 
     # Initialize group specific interpolations
+    cdef double[:,:] spline, int_psi, int_dx, int_dy, boundary
     cdef double[2] bounds_x = [edges_x[0], edges_x[info.cells_x]]
     cdef double[2] bounds_y = [edges_y[0], edges_y[info.cells_y]]
 
@@ -440,11 +445,11 @@ cdef void _scalar_curve_fit_residual_single(double[:,:,:,:]& flux, \
         tools._nearby_boundary_to_scalar(boundary_x, boundary, angle_w[nn], 0, info)
 
         # Calculate integrals
-        int_angular, int_dx_angular, int_dy_angular = approx.integrate_centers(edges_x, edges_y)
-        int_angular = int_angular[:,:]
-        int_dx_angular = int_dx_angular[:,:]
-        int_dy_angular = int_dy_angular[:,:]
-        tools._nearby_flux_to_scalar(int_scalar, int_angular, angle_w[nn], 0, info)
+        int_psi, int_dx, int_dy = approx.integrate_centers(edges_x, edges_y)
+        int_angular = int_psi[:,:]
+        int_dx_angular = int_dx[:,:]
+        int_dy_angular = int_dy[:,:]
+        tools._nearby_flux_to_scalar(int_scalar, int_psi, angle_w[nn], 0, info)
 
         # Update Residual - On scatter
         tools._nearby_on_scatter(residual, int_angular, int_dx_angular, \
@@ -507,7 +512,7 @@ def criticality(xs_total, xs_scatter, xs_fission, medium_map, delta_x, \
     # Convert dictionary to type params
     info = parameters._to_params(params_dict)
     parameters._check_nearby2d_criticality(info)
-    block = True if kwargs.get("block", True) or (info.materials != 1) else False
+    block = False if (info.materials == 1) else kwargs.get("block", True)
     
     # Angular directions
     cdef int NN = info.angles * info.angles
@@ -518,7 +523,7 @@ def criticality(xs_total, xs_scatter, xs_fission, medium_map, delta_x, \
         y_splits = np.zeros((0,), dtype=np.int32)
 
     # Run Numerical Solution
-    print("1. Calculating Numerical Solution...")
+    print("Calculating Numerical Solution...")
     numerical_flux, numerical_keff = critical2d.power_iteration(xs_total, \
                     xs_scatter, xs_fission, medium_map, delta_x, delta_y, \
                     angle_x, angle_y, angle_w, info)
@@ -526,7 +531,8 @@ def criticality(xs_total, xs_scatter, xs_fission, medium_map, delta_x, \
     # Initialize curve fit
     curve_fit_boundary_x = np.zeros((2, info.cells_y, NN, info.groups))
     curve_fit_boundary_y = np.zeros((2, info.cells_x, NN, info.groups))
-    curve_fit_flux = tools.array_4d(info.cells_x, info.cells_y, NN, info.groups)
+    # curve_fit_flux = tools.array_4d(info.cells_x, info.cells_y, NN, info.groups)
+    curve_fit_scalar = tools.array_3d(info.cells_x, info.cells_y, info.groups)
 
     # Initialize curve fit integrals
     int_angular = tools.array_4d(info.cells_x, info.cells_y, NN, info.groups)
@@ -535,11 +541,11 @@ def criticality(xs_total, xs_scatter, xs_fission, medium_map, delta_x, \
     int_scalar = tools.array_3d(info.cells_x, info.cells_y, info.groups)
 
     # Calculate curve fit at knots
-    print("2. Calculating Angular Curve Fit Solution...")
+    print("Calculating Angular Curve Fit Solution...")
     # Knots at cell centers
     centers_x = average_array(edges_x)
     centers_y = average_array(edges_y)
-    _angular_curve_fit(numerical_flux, curve_fit_flux, curve_fit_boundary_x, \
+    _angular_curve_fit(numerical_flux, curve_fit_scalar, curve_fit_boundary_x, \
             curve_fit_boundary_y, int_angular, int_dx_angular, int_dy_angular, \
             int_scalar, medium_map, centers_x, centers_y, edges_x, edges_y, \
             x_splits, y_splits, angle_w, block, quintic, info)
@@ -553,7 +559,7 @@ def criticality(xs_total, xs_scatter, xs_fission, medium_map, delta_x, \
                             angle_w, info)
 
     # Calculate residual for each cell
-    print("3. Calculating Residual...")
+    print("Calculating Residual...")
     residual = tools.array_4d(info.cells_x, info.cells_y, NN, info.groups)
     _angular_residual_critical(residual, int_angular, int_dx_angular, \
             int_dy_angular, int_scalar, xs_total, xs_scatter, fission_source, \
@@ -564,7 +570,7 @@ def criticality(xs_total, xs_scatter, xs_fission, medium_map, delta_x, \
     np.save(f"nearby_residual_x{fcells}_n{fangles}", np.asarray(residual))
 
     # Run Nearby Problem
-    print("4. Calculating Nearby Solution...")
+    print("Calculating Nearby Solution...")
     info.edges = 0
     nearby_scalar, nearby_keff = critical2d.nearby_power(xs_total, xs_scatter, \
                         xs_fission, residual, medium_map, delta_x, delta_y, \
@@ -573,10 +579,6 @@ def criticality(xs_total, xs_scatter, xs_fission, medium_map, delta_x, \
     # Convert numerical_flux to scalar flux
     numerical_scalar = tools.array_3d(info.cells_x, info.cells_y, info.groups)
     tools._angular_to_scalar(numerical_flux, numerical_scalar, angle_w, info)
-
-    # Convert curve_fit_flux to scalar flux
-    curve_fit_scalar = tools.array_3d(info.cells_x, info.cells_y, info.groups)
-    tools._angular_to_scalar(curve_fit_flux, curve_fit_scalar, angle_w, info)
 
     # Return numerical, curve fit, and nearby data
     return numerical_scalar, numerical_keff, np.asarray(curve_fit_scalar), \

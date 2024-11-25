@@ -112,23 +112,22 @@ def manufactured_td_02(x, angle_x, edges_t):
 def reeds(edges_x, bc):
     # Spatial dependent source for Reeds Problem
     external = np.zeros((edges_x.shape[0] - 1, 1, 1))
-    source_values = np.array([0.0, 1.0, 0.0, 50.0, 50.0, 0.0, 1.0, 0.0])
-    lhs = np.array([0., 2., 4., 6., 8., 10., 12., 14.])
-    rhs = np.array([2., 4., 6., 8., 10., 12., 14., 16.])
-    
+
+    source = np.array([0.0, 1.0, 0.0, 50.0, 50.0, 0.0, 1.0, 0.0])
+    bounds = np.array([0., 2., 4., 6., 8., 10., 12., 14., 16.])
+
     if np.sum(bc) > 0.0:
         idx = slice(0, 4) if bc == [0, 1] else slice(4, 8)
-        corrector = 0.0 if bc == [0, 1] else 8.0
-        source_values = source_values[idx].copy()
-        lhs = lhs[idx].copy() - corrector
-        rhs = rhs[idx].copy() - corrector
-    
-    loc = lambda x: int(np.argwhere(edges_x == x))
-    bounds = [slice(loc(ii), loc(jj)) for ii, jj in zip(lhs, rhs)]
-    
-    for ii in range(len(bounds)):
-        external[bounds[ii],0,0] = source_values[ii]
-    
+        source = source[idx].copy()
+        bounds = bounds[0:5].copy()
+
+    right_idx = lambda x: np.argwhere(edges_x >= x)[0,0]
+    left_idx = lambda x: np.argwhere(edges_x <= x)[-1,0]
+
+    for ii, (left, right) in enumerate(zip(bounds, bounds[1:])):
+        idx = slice(left_idx(left), right_idx(right))
+        external[idx] = source[ii]
+
     return external
 
 
