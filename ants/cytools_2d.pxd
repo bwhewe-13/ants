@@ -175,13 +175,31 @@ cdef double[:,:] _nearby_sum_bc(double[:,:]& modified_arr, params info)
 
 cdef int[:,:] _nearby_adjust_medium(int[:,:] medium_map, params info)
 
+cdef void _nearby_angular_to_scalar(double[:,:,:,:]& angular, \
+        double[:,:,:,:]& scalar, double[:]& angle_w, params info)
+
 ########################################################################
 # Nearby Problems Criticality functions
 ########################################################################
 cdef void _nearby_fission_source(double[:,:,:]& flux, \
-        double[:,:,:]& xs_fission, double[:,:,:,:]& source, \
+        double[:,:,:]& xs_fission, double[:,:,:,:]& fission_source, \
         double[:,:,:,:]& residual, int[:,:]& medium_map, params info, \
         double keff)
+
+cdef void _nearby_critical_on_scatter(double[:,:,:]& residual, \
+        double[:,:]& int_angular, double[:,:]& int_dx_angular, \
+        double[:,:]& int_dy_angular, double[:,:]& xs_total, \
+        int[:,:]& medium_map, double angle_x, double angle_y, \
+        double angle_w, int gg0, int gg1, params info)
+
+cdef void _nearby_critical_off_scatter(double[:,:,:]& residual, \
+    double[:,:,:]& scalar_flux, double[:,:,:]& xs_scatter, \
+    double[:,:,:]& xs_fission, double[:,:,:]& fission_source, \
+    double[:]& nearby_array, int[:,:]& medium_map, double[:]& delta_x, \
+    double[:]& delta_y, double[:]& angle_w, params info)
+
+cdef void _nearby_critical_residual_source(double[:,:,:]& residual, \
+    double[:,:,:]& fission_source, double curve_fit_keff, params info)
 
 cdef double _nearby_keffective(double[:,:,:]& flux, double rate, params info)
 

@@ -30,21 +30,26 @@ def power_iteration(double[:,:] xs_total, double[:,:,:] xs_scatter, \
         double[:,:,:] xs_fission, int[:,:] medium_map, double[:] delta_x, \
         double[:] delta_y, double[:] angle_x, double[:] angle_y, \
         double[:] angle_w, dict params_dict):
+    
     # Convert dictionary to type params1d
     info = parameters._to_params(params_dict)
     parameters._check_critical2d_power_iteration(info)
+    
     # Initialize keff
     cdef double keff[1]
     keff[0] = 0.95
+    
     # Initialize and normalize flux
     flux_old = np.random.rand(info.cells_x, info.cells_y, info.groups)
     tools._normalize_flux(flux_old, info)
+    
     # Solve using the power iteration
     flux = multigroup_power(flux_old, xs_total, xs_scatter, xs_fission, \
                             medium_map, delta_x, delta_y, angle_x, \
                             angle_y, angle_w, info, keff)    
     if (info.angular == False) and (params_dict.get("edges", 0) == 0):
         return np.asarray(flux), keff[0]
+    
     # For returning angular flux or flux at cell edges
     return known_source_calculation(flux, xs_total, xs_scatter, xs_fission, \
                     medium_map, delta_x, delta_y, angle_x, angle_y, angle_w, \
@@ -56,9 +61,11 @@ cdef double[:,:,:] multigroup_power(double[:,:,:]& flux_guess, \
         double[:,:,:]& xs_fission, int[:,:]& medium_map, double[:]& delta_x, \
         double[:]& delta_y, double[:]& angle_x, double[:]& angle_y, \
         double[:]& angle_w, params info, double[:]& keff):
+    
     # Initialize flux
     flux = tools.array_3d(info.cells_x, info.cells_y, info.groups)
     flux_old = flux_guess.copy()
+    
     # Initialize power source
     source = tools.array_4d(info.cells_x, info.cells_y, 1, info.groups)
     
@@ -77,12 +84,12 @@ cdef double[:,:,:] multigroup_power(double[:,:,:]& flux_guess, \
         # Update power source term
         tools._fission_source(flux_old, xs_fission, source, medium_map, \
                               info, keff[0])
-        
+
         # Solve for scalar flux
         flux = mg.multi_group(flux_old, xs_total, xs_scatter, source, \
                             boundary_x, boundary_y, medium_map, delta_x, \
                             delta_y, angle_x, angle_y, angle_w, info)
-        
+
         # Calculate k-effective
         keff[0] = tools._update_keffective(flux, flux_old, xs_fission, \
                                            medium_map, info, keff[0])
@@ -141,12 +148,15 @@ def nearby_power(double[:,:] xs_total, double[:,:,:] xs_scatter, \
         int[:,:] medium_map, double[:] delta_x, double[:] delta_y, \
         double[:] angle_x, double[:] angle_y, double[:] angle_w, \
         double n_rate, dict params_dict):
+    
     # Convert dictionary to type params1d
     info = parameters._to_params(params_dict)
     parameters._check_critical2d_nearby_power(info)
     
     # Initialize flux
     flux_old = np.random.rand(info.cells_x, info.cells_y, info.groups)
+    tools._normalize_flux(flux_old, info)
+
     # Initialize keffective
     cdef double keff[1]
     
@@ -167,13 +177,13 @@ cdef double[:,:,:] multigroup_nearby(double[:,:,:]& flux_guess, \
         int[:,:]& medium_map, double[:]& delta_x, double[:]& delta_y, \
         double[:]& angle_x, double[:]& angle_y, double[:]& angle_w, \
         params info, double[:]& keff):
+
     # Initialize flux
     flux = tools.array_3d(info.cells_x, info.cells_y, info.groups)
     flux_old = flux_guess.copy()
 
     # Initialize power source
-    source = tools.array_4d(info.cells_x, info.cells_y,\
-                            info.angles * info.angles, info.groups)
+    fission_source = tools.array_4d(info.cells_x, info.cells_y, 1, info.groups)
     
     # Vacuum boundaries
     boundary_x = tools.array_4d(2, 1, 1, 1)
@@ -187,11 +197,11 @@ cdef double[:,:,:] multigroup_nearby(double[:,:,:]& flux_guess, \
     # Iterate until converged
     while not (converged):
         # Update nearby power source term
-        tools._nearby_fission_source(flux_old, xs_fission, source, \
+        tools._nearby_fission_source(flux_old, xs_fission, fission_source, \
                                      residual, medium_map, info, keff[0])
         
         # Solve for scalar flux
-        flux = mg.multi_group(flux_old, xs_total, xs_scatter, source, \
+        flux = mg.multi_group(flux_old, xs_total, xs_scatter, fission_source, \
                             boundary_x, boundary_y, medium_map, delta_x, \
                             delta_y, angle_x, angle_y, angle_w, info)
         

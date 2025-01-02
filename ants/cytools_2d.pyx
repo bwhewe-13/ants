@@ -861,19 +861,38 @@ cdef int[:,:] _nearby_adjust_medium(int[:,:] medium_map, params info):
     return modified_medium_map
 
 
+cdef void _nearby_angular_to_scalar(double[:,:,:,:]& angular, \
+        double[:,:,:,:]& scalar, double[:]& angle_w, params info):
+    
+    # Initialize iterables
+    cdef int ii, jj, nn, gg
+    
+    # Zero out scalar flux term
+    scalar[:,:,:,:] = 0.0
+
+    # Iterate over all spatial cells, angles, energy groups
+    for ii in range(info.cells_x):
+        for jj in range(info.cells_y):
+            for nn in range(info.angles * info.angles):
+                for gg in range(info.groups):
+                    scalar[ii,jj,0,gg] += angle_w[nn] * angular[ii,jj,nn,gg]
+
 ########################################################################
 # Nearby Problems Criticality functions
 ########################################################################
 
 cdef void _nearby_fission_source(double[:,:,:]& flux, \
-        double[:,:,:]& xs_fission, double[:,:,:,:]& source, \
+        double[:,:,:]& xs_fission, double[:,:,:,:]& fission_source, \
         double[:,:,:,:]& residual, int[:,:]& medium_map, params info, \
         double keff):
+    
     # Initialize iterables
     cdef int ii, jj, mat, nn, ig, og, nn_r
     cdef double one_group
+    
     # Zero out previous power iteration
-    source[:,:,:,:] = 0.0
+    fission_source[:,:,:,:] = 0.0
+
     # Iterate over all cells, angles, and groups
     for ii in range(info.cells_x):
         for jj in range(info.cells_y):
@@ -883,10 +902,94 @@ cdef void _nearby_fission_source(double[:,:,:]& flux, \
                 one_group = 0.0
                 for ig in range(info.groups):
                     one_group += flux[ii,jj,ig] / keff * xs_fission[mat,og,ig]
+                # for nn in range(info.angles * info.angles):
+                #     # Add nearby residual
+                #     nn_r = 0 if residual.shape[2] == 1 else nn
+                #     fission_source[ii,jj,nn,og] += one_group + residual[ii,jj,nn_r,og]
+                
+                # Add nearby residual
+                fission_source[ii,jj,0,og] += one_group + residual[ii,jj,0,og]
+
+
+cdef void _nearby_critical_on_scatter(double[:,:,:]& residual, \
+        double[:,:]& int_angular, double[:,:]& int_dx_angular, \
+        double[:,:]& int_dy_angular, double[:,:]& xs_total, \
+        int[:,:]& medium_map, double angle_x, double angle_y, \
+        double angle_w, int gg0, int gg1, params info):
+
+    # Initialize iterables
+    cdef int ii, jj, mat
+
+    for ii in range(info.cells_x):
+        for jj in range(info.cells_y):
+            mat = medium_map[ii,jj]
+            
+            residual[ii,jj,gg0] += angle_w * ((angle_x * int_dx_angular[ii,jj]) \
+                            + (angle_y * int_dy_angular[ii,jj]) \
+                            + (int_angular[ii,jj] * xs_total[mat,gg1]))
+
+
+cdef void _nearby_critical_off_scatter(double[:,:,:]& residual, \
+    double[:,:,:]& scalar_flux, double[:,:,:]& xs_scatter, \
+    double[:,:,:]& xs_fission, double[:,:,:]& fission_source, \
+    double[:]& nearby_array, int[:,:]& medium_map, double[:]& delta_x, \
+    double[:]& delta_y, double[:]& angle_w, params info):
+
+    # Initialize iterables
+    cdef int ii, jj, mat, og, ig
+
+    # Initialize off-scattering term
+    cdef float off_scatter
+    cdef double fission_source_group
+
+    # Initialize critical nearby terms
+    cdef double keff_numerator = 0.0
+    cdef double keff_denominator = 0.0
+    cdef double nearby_rate = 0.0
+
+    # Iterate over spatial cells
+    for ii in range(info.cells_x):
+        for jj in range(info.cells_y):
+            mat = medium_map[ii,jj]
+            # Iterate over groups
+            for og in range(info.groups):
+                fission_source_group = 0.0
+                off_scatter = 0.0
+                for ig in range(info.groups):                    
+                    fission_source_group += scalar_flux[ii,jj,ig] * xs_fission[mat,og,ig]
+                    off_scatter += scalar_flux[ii,jj,ig] * xs_scatter[mat,og,ig]
+
+                # Create curve fit source with only one angle
+                fission_source[ii,jj,og] = fission_source_group
+
+                # Update off-scatter residual
+                residual[ii,jj,og] -= (off_scatter)
+
+                # Update nearby fission rate
+                nearby_rate += fission_source_group / (delta_x[ii] * delta_y[jj])
+
+                # Iterate over angles
                 for nn in range(info.angles * info.angles):
-                    # Add nearby residual
-                    nn_r = 0 if residual.shape[2] == 1 else nn
-                    source[ii,jj,nn,og] += one_group + residual[ii,jj,nn_r,og]
+                    keff_numerator += angle_w[nn] * fission_source_group
+                    keff_denominator += angle_w[nn] * (residual[ii,jj,og])
+
+    # Nearby Reaction Rate and Curve Fit Flux
+    nearby_array[0] = nearby_rate
+    nearby_array[1] = keff_numerator / keff_denominator
+
+
+cdef void _nearby_critical_residual_source(double[:,:,:]& residual, \
+    double[:,:,:]& fission_source, double curve_fit_keff, params info):
+
+    # Initialize iterables
+    cdef int ii, jj, gg
+
+    # Iterate over spatial cells
+    for ii in range(info.cells_x):
+        for jj in range(info.cells_y):
+            # Iterate over groups
+            for gg in range(info.groups):
+                residual[ii,jj,gg] -= fission_source[ii,jj,gg] / curve_fit_keff
 
 
 cdef double _nearby_keffective(double[:,:,:]& flux, double rate, params info):
