@@ -35,6 +35,13 @@ cdef double[:] array_1d(int dim1):
     return arr
 
 
+cdef int[:] int_array_1d(int dim1):
+    dd1 = cvarray((dim1,), itemsize=sizeof(int), format="i")
+    cdef int[:] arr = dd1
+    arr[:] = 0
+    return arr
+
+
 cdef double[:,:] array_2d(int dim1, int dim2):
     dd2 = cvarray((dim1, dim2), itemsize=sizeof(double), format="d")
     cdef double[:,:] arr = dd2
@@ -136,10 +143,13 @@ cdef void _dmd_subtraction(double[:,:,:]& y_minus, double[:,:,:]& y_plus, \
 cdef void _off_scatter(double[:,:]& flux, double[:,:]& flux_old, \
         int[:]& medium_map, double[:,:,:]& xs_matrix, \
         double[:]& off_scatter, params info, int group):
+    
     # Initialize iterables
     cdef int ii, mat, og
+    
     # Zero out previous values
     off_scatter[:] = 0.0
+    
     for ii in range(info.cells_x):
         mat = medium_map[ii]
         for og in range(0, group):
@@ -513,30 +523,176 @@ cdef void _hybrid_source_total(double[:,:]& flux_u, double[:,:]& flux_c, \
             for nn in range(info_u.angles):
                 source[ii,nn,og] += one_group
 
+########################################################################
+# Variable Hybrid Time Dependent Problems
+########################################################################
+    
+cdef void _vhybrid_parameters(int[:] coarse_idx, double[:] factor, \
+        double[:] edges_g, int[:] edges_gidx_c, int groups_c):
 
-# cdef void _expand_hybrid_source(double[:,:]& flux_u, double[:,:]& flux_c, \
-#         int[:]& fine_idx, double[:]& factor_u, params info_u, params info_c):
-#     # Initialize iterables
-#     cdef int ii, gu, gc
-#     # Create uncollided flux size
-#     for ii in range(info_c.cells_x):
-#         for gc in range(info_c.groups):
-#             for gu in range(fine_idx[gc], fine_idx[gc+1]):
-#                 flux_u[ii,gu] += flux_c[ii,gc] * factor_u[gu]
+    cdef int ii, jj
+    cdef int count = 0
+
+    for ii in range(groups_c):
+        for jj in range(edges_gidx_c[ii], edges_gidx_c[ii+1]):
+            coarse_idx[jj] = count
+            factor[jj] = (edges_g[jj + 1] - edges_g[jj]) \
+                        / (edges_g[edges_gidx_c[ii + 1]] - edges_g[edges_gidx_c[ii]])
+        count += 1
 
 
-# cdef void _hybrid_source_total(double[:,:]& flux_u, double[:,:,:]& xs_matrix, \
-#         double[:,:,:]& source, int[:]& medium_map, params info_u):
-#     # Initialize iterables
-#     cdef int ii, mat, nn, ig, og
-#     cdef double one_group
-#     # Assume that source is already (Qu + 1 / (v * dt) * psi^{\ell-1})
-#     for ii in range(info_u.cells_x):
-#         mat = medium_map[ii]
-#         for og in range(info_u.groups):
-#             # loc = og + info_u.groups * (nn + ii * info_u.angles)
-#             one_group = 0.0
-#             for ig in range(info_u.groups):
-#                 one_group += flux_u[ii,ig] * xs_matrix[mat,og,ig]
-#             for nn in range(info_u.angles):
-#                 source[ii,nn,og] += one_group
+cdef void _vhybrid_velocity(double[:] star_coef_c, double[:] velocity_u, \
+        int[:] edges_gidx_c, double constant, params info_c):
+
+    cdef int ii, jj
+    cdef double fine_group_vel
+
+    for ii in range(info_c.groups):
+        fine_group_vel = 0.0
+        for jj in range(edges_gidx_c[ii], edges_gidx_c[ii+1]):
+            fine_group_vel += velocity_u[jj]
+        star_coef_c[ii] = constant * (edges_gidx_c[ii+1] - edges_gidx_c[ii]) \
+                            / (fine_group_vel * info_c.dt)
+
+
+cdef void _vhybrid_source_c(double[:,:]& flux_u, double[:,:,:]& xs_scatter, \
+        double[:,:,:]& source_c, int[:]& medium_map,  int[:]& edges_gidx_c, \
+        params info_u, params info_c):
+    
+    # Initialize iterables
+    cdef int ii, mat, gg, og, ig
+    cdef double source
+    
+    # Zero out previous source
+    source_c[:,:,:] = 0.0
+    
+    # Iterate over all spatial cells
+    for ii in range(info_u.cells_x):
+        mat = medium_map[ii]
+        for gg in range(info_c.groups):
+            source = 0.0
+            for og in range(edges_gidx_c[gg], edges_gidx_c[gg+1]):
+                for ig in range(info_u.groups):
+                    source += flux_u[ii,ig] * xs_scatter[mat,og,ig]
+            source_c[ii,0,gg] = source
+
+
+cdef void _coarsen_flux(double[:,:]& flux_u, double[:,:]& flux_c, \
+        int[:]& edges_gidx_c, params info_c):
+    
+    # Initialize iterables
+    cdef int ii, og, ig
+    cdef double tmp_flux
+
+    # Zero out previous flux
+    flux_c[:,:] = 0.0
+
+    # Iterate over spatial cells and energy groups
+    for ii in range(info_c.cells_x):
+        for og in range(info_c.groups):
+            tmp_flux = 0.0
+            for ig in range(edges_gidx_c[og], edges_gidx_c[og+1]):
+                tmp_flux += flux_u[ii, ig]
+            flux_c[ii,og] = tmp_flux
+
+
+cdef void _variable_cross_sections(double[:]& xs_total_c, double[:,:]& xs_total_u, \
+        double star_coef_c, double[:]& xs_scatter_c, double[:,:,:]& xs_scatter_u, \
+        double[:]& edges_g, int idx1, int idx2, params info_c):
+    
+    # Initialize iterables
+    cdef int mat, ii, jj
+    cdef double delta_coarse = 1.0 / (edges_g[idx2] - edges_g[idx1])
+
+    # Zero out cross sections
+    xs_total_c[:] = 0.0
+    xs_scatter_c[:] = 0.0
+    
+    # Iterate over every material and uncollided energy group
+    for mat in range(info_c.materials):
+        for ii in range(idx1, idx2):
+            xs_total_c[mat] += xs_total_u[mat,ii] * (edges_g[ii+1] - edges_g[ii])
+
+            # Inner iteration for scatter cross section
+            for jj in range(idx1, idx2):
+                xs_scatter_c[mat] += xs_scatter_u[mat,ii,jj] * (edges_g[jj+1] - edges_g[jj])
+        
+        xs_total_c[mat] = xs_total_c[mat] * delta_coarse + star_coef_c
+        xs_scatter_c[mat] *= delta_coarse
+
+
+cdef void _variable_off_scatter(double[:,:]& flux, double[:,:]& flux_old, \
+        int[:]& medium_map, double[:,:,:]& xs_matrix, double[:]& off_scatter, \
+        int group, double[:]& edges_g, int[:]& edges_gidx_c, int out_idx1, \
+        int out_idx2, params info):
+    
+    # Initialize iterables
+    cdef int gg, in_idx1, in_idx2, ii, mat, og, ig
+    cdef double prod_tmp, delta_coarse
+    
+    # Zero out previous values
+    off_scatter[:] = 0.0
+
+    # print("In variable off scatter")
+    
+    # Iterate over collided groups
+    for gg in range(info.groups):
+
+        in_idx1 = edges_gidx_c[gg]
+        in_idx2 = edges_gidx_c[gg + 1]
+        delta_coarse = 1.0 / (edges_g[in_idx2] - edges_g[in_idx1])
+
+        # print("group", gg)
+
+        if gg < group:
+            for ii in range(info.cells_x):
+                mat = medium_map[ii]
+                prod_tmp = 0.0
+                for og in range(out_idx1, out_idx2):
+                    for ig in range(in_idx1, in_idx2):
+                        prod_tmp += xs_matrix[mat, og, ig] * delta_coarse \
+                                     * (edges_g[ig+1] - edges_g[ig]) * flux[ii,gg]
+                off_scatter[ii] += prod_tmp
+
+            # print("After iteration 1")
+
+        elif gg > group:
+            for ii in range(info.cells_x):
+                mat = medium_map[ii]
+                prod_tmp = 0.0
+                for og in range(out_idx1, out_idx2):
+                    for ig in range(in_idx1, in_idx2):
+                        prod_tmp += xs_matrix[mat, og, ig] * delta_coarse \
+                                    * (edges_g[ig+1] - edges_g[ig]) * flux_old[ii,gg]
+                off_scatter[ii] += prod_tmp
+
+            # print("After iteration 2")
+
+
+cdef void _vhybrid_source_total(double[:,:]& flux_u, double[:,:]& flux_c, \
+        double[:,:,:]& xs_matrix_u, double[:,:,:]& source, int[:]& medium_map, \
+        double[:]& edges_g, int[:]& edges_gidx_c, params info_u, params info_c):
+    
+    # Initialize iterables
+    cdef int ii, mat, nn, ig, og, idx1, idx2
+    cdef double one_group, delta_coarse
+    
+    # Assume that source is already (Qu + 1 / (v * dt) * psi^{\ell-1})
+    for ii in range(info_u.cells_x):
+        mat = medium_map[ii]
+        
+        for og in range(info_c.groups):
+            idx1 = edges_gidx_c[og]
+            idx2 = edges_gidx_c[og+1]
+            delta_coarse = 1.0 / (edges_g[idx2] - edges_g[idx1])
+
+            for ig in range(idx1, idx2):
+                flux_u[ii,ig] = flux_u[ii,ig] + flux_c[ii,og] * delta_coarse \
+                                * (edges_g[ig+1] - edges_g[ig])
+        
+        for og in range(info_u.groups):
+            one_group = 0.0
+            for ig in range(info_u.groups):
+                one_group += flux_u[ii,ig] * xs_matrix_u[mat,og,ig]
+            for nn in range(info_u.angles):
+                source[ii,nn,og] += one_group

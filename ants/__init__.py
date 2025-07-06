@@ -1,25 +1,31 @@
 ########################################################################
 #                        ___    _   _____________
 #                       /   |  / | / /_  __/ ___/
-#                      / /| | /  |/ / / /  \__ \ 
-#                     / ___ |/ /|  / / /  ___/ / 
-#                    /_/  |_/_/ |_/ /_/  /____/  
+#                      / /| | /  |/ / / /  \__ \
+#                     / ___ |/ /|  / / /  ___/ /
+#                    /_/  |_/_/ |_/ /_/  /____/
 #
 ########################################################################
 
-# Creating angular dimensions
-from ants.main import angular_x, angular_xy
-
-# Creating energy grids
-from ants.main import energy_velocity, energy_grid
-
-# Time steps
-from ants.main import gamma_time_steps
+from ants import boundary1d, boundary2d, external1d, external2d
 
 # Creating medium maps
-from ants.main import spatial1d, spatial2d, weight_spatial2d, weight_matrix2d
+# Time steps
+# Creating energy grids
+# Creating angular dimensions
+from ants.main import (
+    _angular_x,
+    _energy_grid,
+    angular_x,
+    angular_xy,
+    energy_grid,
+    energy_velocity,
+    gamma_time_steps,
+    spatial1d,
+    spatial2d,
+    weight_matrix2d,
+    weight_spatial2d,
+)
 
 # Creating materials/sources
 from ants.materials import materials
-from ants import boundary1d, external1d
-from ants import boundary2d, external2d

@@ -35,6 +35,14 @@ cdef double[:,:] source_iteration(double[:,:]& flux_guess, \
         double[:]& angle_w, params info)
 
 
+cdef double[:,:] variable_source_iteration(double[:,:]& flux_guess, \
+        double[:,:]& xs_total_u, double[:]& star_coef_c, \
+        double[:,:,:]& xs_scatter_u, double[:,:,:]& external, \
+        double[:,:,:]& boundary_x, int[:]& medium_map, double[:]& delta_x, \
+        double[:]& angle_x, double[:]& angle_w, double[:]& edges_g, \
+        int[:]& edges_gidx_c, params info)
+
+
 cdef double[:,:] dynamic_mode_decomp(double[:,:]& flux_guess, \
         double[:,:]& xs_total, double[:,:,:]& xs_scatter, \
         double[:,:,:]& external, double[:,:,:]& boundary_x, \

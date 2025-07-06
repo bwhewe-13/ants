@@ -118,7 +118,6 @@ cdef double[:,:,:] multigroup_bdf1(double[:,:,:]& flux_last, \
                       boundary_xu[bc], boundary_xc, medium_map, \
                       delta_x, angle_xu, angle_xc, angle_wu, angle_wc, \
                       fine_idx, coarse_idx, factor, info_u, info_c)
-
         
         # Solve for angular flux of time step
         flux_last[:,:,:] = mg._known_source_angular(xs_total_vu, q_star, \
@@ -534,7 +533,7 @@ cdef void hybrid_method(double[:,:]& flux_u, double[:,:]& flux_c, \
     # Step 1: Solve Uncollided Equation known_source (I x N x G) -> (I x G)
     flux_u[:,:] = mg._known_source_scalar(xs_total_vu, q_star, boundary_xu, \
                         medium_map, delta_x, angle_xu, angle_wu, info_u)
-    
+
     # Step 2: Compute collided source (I x G')
     tools._hybrid_source_collided(flux_u, xs_scatter_u, source_c, \
                                   medium_map, coarse_idx, info_u, info_c)
@@ -543,9 +542,7 @@ cdef void hybrid_method(double[:,:]& flux_u, double[:,:]& flux_c, \
     flux_c[:,:] = mg.multi_group(flux_c, xs_total_vc, xs_scatter_c, \
                                 source_c, boundary_xc, medium_map, \
                                 delta_x, angle_xc, angle_wc, info_c)
-    
+
     # Step 4: Create a new source and solve for angular flux
     tools._hybrid_source_total(flux_u, flux_c, xs_scatter_u, q_star, \
                         medium_map, coarse_idx, factor, info_u, info_c)
-    # tools._expand_hybrid_source(flux_u, flux_c, fine_idx, factor, info_u, info_c)
-    # tools._hybrid_source_total(flux_u, xs_scatter_u, q_star, medium_map, info_u)

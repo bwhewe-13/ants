@@ -25,6 +25,8 @@ from ants.parameters cimport params
 ########################################################################
 cdef double[:] array_1d(int dim1)
 
+cdef int[:] int_array_1d(int dim1)
+
 cdef double[:,:] array_2d(int dim1, int dim2)
 
 cdef double[:,:,:] array_3d(int dim1, int dim2, int dim3)
@@ -139,8 +141,32 @@ cdef void _hybrid_source_total(double[:,:]& flux_u, double[:,:]& flux_c, \
         double[:,:,:]& xs_matrix, double[:,:,:]& source, int[:]& medium_map, \
         int[:]& coarse_idx, double[:]& factor_u,  params info_u, params info_c)
 
-# cdef void _expand_hybrid_source(double[:,:]& flux_u, double[:,:]& flux_c, \
-#         int[:]& fine_idx, double[:]& factor_u, params info_u, params info_c)
+########################################################################
+# Variable Hybrid Time Dependent Problems
+########################################################################
 
-# cdef void _hybrid_source_total(double[:,:]& flux_u, double[:,:,:]& xs_matrix, \
-#         double[:,:,:]& source, int[:]& medium_map, params info_u)
+cdef void _vhybrid_parameters(int[:] coarse_idx, double[:] factor, \
+        double[:] edges_g, int[:] edges_gidx_c, int groups_c)
+
+cdef void _vhybrid_velocity(double[:] star_coef_c, double[:] velocity_u, \
+        int[:] edges_gidx_c, double constant, params info_c)
+
+cdef void _vhybrid_source_c(double[:,:]& flux_u, double[:,:,:]& xs_scatter, \
+        double[:,:,:]& source_c, int[:]& medium_map,  int[:]& edges_gidx_c, \
+        params info_u, params info_c)
+
+cdef void _coarsen_flux(double[:,:]& flux_u, double[:,:]& flux_c, \
+        int[:]& edges_gidx_c, params info_c)
+
+cdef void _variable_cross_sections(double[:]& xs_total_c, double[:,:]& xs_total_u, \
+        double star_coef_c, double[:]& xs_scatter_c, double[:,:,:]& xs_scatter_u, \
+        double[:]& edges_g, int idx1, int idx2, params info_c)
+
+cdef void _variable_off_scatter(double[:,:]& flux, double[:,:]& flux_old, \
+        int[:]& medium_map, double[:,:,:]& xs_matrix, double[:]& off_scatter, \
+        int group, double[:]& edges_g, int[:]& edges_gidx_c, int out_idx1, \
+        int out_idx2, params info)
+
+cdef void _vhybrid_source_total(double[:,:]& flux_u, double[:,:]& flux_c, \
+        double[:,:,:]& xs_matrix_u, double[:,:,:]& source, int[:]& medium_map, \
+        double[:]& edges_g, int[:]& edges_gidx_c, params info_u, params info_c)
