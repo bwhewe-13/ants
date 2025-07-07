@@ -1,9 +1,9 @@
 ########################################################################
 #                        ___    _   _____________
 #                       /   |  / | / /_  __/ ___/
-#                      / /| | /  |/ / / /  \__ \ 
-#                     / ___ |/ /|  / / /  ___/ / 
-#                    /_/  |_/_/ |_/ /_/  /____/  
+#                      / /| | /  |/ / / /  \__ \
+#                     / ___ |/ /|  / / /  ___/ /
+#                    /_/  |_/_/ |_/ /_/  /____/
 #
 # Functions for running hybrid problems
 #
@@ -17,8 +17,9 @@ from ants.constants import *
 # Coarsening Arrays for Hybrid Methods
 ########################################################################
 
+
 def energy_coarse_index(fine, coarse):
-    """  Get the indices for resizing matrices
+    """Get the indices for resizing matrices
     Arguments:
         fine (int): larger energy group size
         coarse (int): coarseer energy group size
@@ -26,14 +27,13 @@ def energy_coarse_index(fine, coarse):
         array of indicies (int [coarse + 1])
     """
     index = np.ones((coarse,)) * int(fine / coarse)
-    index[np.linspace(0, coarse-1, fine % coarse, dtype=np.int32)] += 1
-    assert (index.sum() == fine)
+    index[np.linspace(0, coarse - 1, fine % coarse, dtype=np.int32)] += 1
+    assert index.sum() == fine
     return np.cumsum(np.insert(index, 0, 0), dtype=np.int32)
 
 
-def coarsen_materials(xs_total, xs_scatter, xs_fission, edges_g, \
-        edges_gidx):
-    """ Coarsen (materials x groups) arrays to (materials x groups')
+def coarsen_materials(xs_total, xs_scatter, xs_fission, edges_g, edges_gidx):
+    """Coarsen (materials x groups) arrays to (materials x groups')
     Arguments:
         xs_total (float [materials x groups]): Total cross section
         xs_scatter (float [materials x groups x groups]): scatter cross section
@@ -55,7 +55,7 @@ def coarsen_materials(xs_total, xs_scatter, xs_fission, edges_g, \
 
 
 def coarsen_external(external, edges_g, edges_gidx, weight=False):
-    """ Coarsen (... x groups) arrays to (... x groups')
+    """Coarsen (... x groups) arrays to (... x groups')
     Arguments:
         external (float [... x groups]): Array to coarsen
         edges_g (float [groups + 1]): Energy group bounds
@@ -74,17 +74,17 @@ def coarsen_external(external, edges_g, edges_gidx, weight=False):
     delta_fine = np.diff(edges_g)
     delta_coarse = np.diff(np.asarray(edges_g)[edges_gidx])
     # Condition vector with energy bin width
-    fine = external * delta_fine[...,:] if weight else external.copy()
+    fine = external * delta_fine[..., :] if weight else external.copy()
     for gg, (gg1, gg2) in enumerate(zip(edges_gidx[:-1], edges_gidx[1:])):
-        coarse[...,gg] = np.sum(fine[...,gg1:gg2],axis=-1)
+        coarse[..., gg] = np.sum(fine[..., gg1:gg2], axis=-1)
     # Coarsen
     if weight:
-        coarse /= delta_coarse[...,:]
+        coarse /= delta_coarse[..., :]
     return coarse
 
 
 def _xs_vector_coarsen(vector, edges_g, edges_gidx):
-    """ Coarsen (materials x groups) arrays to (materials x groups')
+    """Coarsen (materials x groups) arrays to (materials x groups')
     Arguments:
         vector (float [materials x groups]): Array to coarsen
         edges_g (float [groups + 1]): Energy group bounds
@@ -101,18 +101,20 @@ def _xs_vector_coarsen(vector, edges_g, edges_gidx):
     delta_fine = np.diff(edges_g)
     delta_coarse = np.diff(np.asarray(edges_g)[edges_gidx])
     # Condition vector with energy bin width
-    fine = np.asarray(vector) * delta_fine[None,:]
+    fine = np.asarray(vector) * delta_fine[None, :]
     # Loop over all materials
     for mat in range(materials):
-        coarse[mat] = [np.sum(fine[mat,gg1:gg2]) for gg1, gg2 \
-                        in zip(edges_gidx[:-1], edges_gidx[1:])]
+        coarse[mat] = [
+            np.sum(fine[mat, gg1:gg2])
+            for gg1, gg2 in zip(edges_gidx[:-1], edges_gidx[1:])
+        ]
     # Coarsen
-    coarse /= delta_coarse[None,:]
+    coarse /= delta_coarse[None, :]
     return coarse
 
 
 def _xs_matrix_coarsen(matrix, edges_g, edges_gidx):
-    """ Coarsen (materials x groups x groups) arrays to
+    """Coarsen (materials x groups x groups) arrays to
         (materials x groups' x groups')
     Arguments:
         matrix (float [materials x groups x groups]): Array to coarsen
@@ -129,18 +131,22 @@ def _xs_matrix_coarsen(matrix, edges_g, edges_gidx):
     # Create energy bin widths
     delta_fine = np.diff(edges_g)
     delta_coarse = np.diff(np.asarray(edges_g)[edges_gidx])
-    fine = np.asarray(matrix) * delta_fine[None,:]
+    fine = np.asarray(matrix) * delta_fine[None, :]
     for mat in range(materials):
-        coarse[mat] = [[np.sum(fine[mat][aa1:aa2, bb1:bb2]) for bb1, bb2 \
-                        in zip(edges_gidx[:-1], edges_gidx[1:])] for aa1, aa2 \
-                        in zip(edges_gidx[:-1], edges_gidx[1:])]
+        coarse[mat] = [
+            [
+                np.sum(fine[mat][aa1:aa2, bb1:bb2])
+                for bb1, bb2 in zip(edges_gidx[:-1], edges_gidx[1:])
+            ]
+            for aa1, aa2 in zip(edges_gidx[:-1], edges_gidx[1:])
+        ]
     # Coarsen
-    coarse /= delta_coarse[None,:]
+    coarse /= delta_coarse[None, :]
     return coarse
 
 
 def coarsen_velocity(vector, edges_gidx):
-    """ Coarsen (groups) vector to (groups')
+    """Coarsen (groups) vector to (groups')
     Arguments:
         vector (float [groups]): Array to coarsen
         edges_gidx (int [groups' + 1]): Index of energy group bounds for
@@ -155,12 +161,14 @@ def coarsen_velocity(vector, edges_gidx):
         coarse[gg] = np.mean(vector[gg1:gg2])
     return coarse
 
+
 ########################################################################
 # Indexing for Hybrid Methods
 ########################################################################
 
+
 def indexing(edges_g, edges_gidx_fine, edges_gidx_coarse):
-    """ Calculate the variables needed for refining and coarsening fluxes
+    """Calculate the variables needed for refining and coarsening fluxes
     Arguments:
         edges_g (float [groups_fine + 1]): Energy group bounds for fine grid
         edges_gidx_fine (int [groups_fine + 1]): Index of energy group
@@ -181,20 +189,26 @@ def indexing(edges_g, edges_gidx_fine, edges_gidx_coarse):
     # Collect indexes
     fine_idx = _uncollided_index(groups_coarse, edges_gidx_coarse)
     coarse_idx = _collided_index(groups_fine, edges_gidx_coarse)
-    
+
     # Convert from memoryview
     edges_g = np.asarray(edges_g)
-    
+
     # Calculate energy bin widths
     delta_fine = np.diff(edges_g[edges_gidx_fine])
     delta_coarse = np.diff(edges_g[edges_gidx_fine][edges_gidx_coarse])
-    factor = _hybrid_factor(delta_fine, delta_coarse, edges_gidx_coarse)
-    
+    factor = _hybrid_factor(
+        delta_fine,
+        delta_coarse,
+        edges_gidx_coarse,
+        edges_g,
+        edges_gidx_fine,
+    )
+
     return fine_idx, coarse_idx, factor
 
 
 def _collided_index(groups_fine, edges_gidx):
-    """ Calculate which coarse group a fine energy group is a part of,
+    """Calculate which coarse group a fine energy group is a part of,
     i.e.:
     fine grid:      |---g1---|--g2--|---g3---|--g4--|
     coarse grid:    |-------g1------|-------g2------|
@@ -207,14 +221,14 @@ def _collided_index(groups_fine, edges_gidx):
         coarse_idx (int [groups_fine]): Coarse group mapping
     """
     coarse_idx = np.zeros((groups_fine), dtype=np.int32)
-    splits = [slice(ii,jj) for ii, jj in zip(edges_gidx[:-1], edges_gidx[1:])]
+    splits = [slice(ii, jj) for ii, jj in zip(edges_gidx[:-1], edges_gidx[1:])]
     for count, split in enumerate(splits):
         coarse_idx[split] = count
     return coarse_idx
 
 
 def _uncollided_index(groups_coarse, edges_gidx):
-    """ Calculate the location of edges between the coarse and fine
+    """Calculate the location of edges between the coarse and fine
     energy grids, i.e.:
     edge:           0        1      2        3      4
     fine grid:      |---g1---|--g2--|---g3---|--g4--|
@@ -230,14 +244,14 @@ def _uncollided_index(groups_coarse, edges_gidx):
                             coarse and fine energy grids
     """
     fine_idx = np.zeros((groups_coarse + 1), dtype=np.int32)
-    splits = [slice(ii,jj) for ii, jj in zip(edges_gidx[:-1], edges_gidx[1:])]
+    splits = [slice(ii, jj) for ii, jj in zip(edges_gidx[:-1], edges_gidx[1:])]
     for count, split in enumerate(splits):
-        fine_idx[count+1] = split.stop
+        fine_idx[count + 1] = split.stop
     return fine_idx
 
 
-def _hybrid_factor(delta_fine, delta_coarse, edges_gidx):
-    """ Calculate the fine energy bin width per coarse energy bin width
+def _hybrid_factor(delta_fine, delta_coarse, edges_gidx, edges_g, edges_gidx_u):
+    """Calculate the fine energy bin width per coarse energy bin width
     for specific location, i.e.:
     location (eV):  0        3      5        8      10
     fine grid:      |---g1---|--g2--|---g3---|--g4--|
@@ -254,7 +268,7 @@ def _hybrid_factor(delta_fine, delta_coarse, edges_gidx):
                             bin width for specific location
     """
     factor = delta_fine.copy()
-    splits = [slice(ii,jj) for ii, jj in zip(edges_gidx[:-1], edges_gidx[1:])]
+    splits = [slice(ii, jj) for ii, jj in zip(edges_gidx[:-1], edges_gidx[1:])]
     for count, split in enumerate(splits):
         for ii in range(split.start, split.stop):
             factor[ii] /= delta_coarse[count]

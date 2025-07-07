@@ -1,9 +1,9 @@
 ########################################################################
 #                        ___    _   _____________
 #                       /   |  / | / /_  __/ ___/
-#                      / /| | /  |/ / / /  \__ \ 
-#                     / ___ |/ /|  / / /  ___/ / 
-#                    /_/  |_/_/ |_/ /_/  /____/  
+#                      / /| | /  |/ / / /  \__ \
+#                     / ___ |/ /|  / / /  ___/ /
+#                    /_/  |_/_/ |_/ /_/  /____/
 #
 ########################################################################
 
@@ -13,26 +13,35 @@ COUNT_ENERGY = 100
 COUNT_POWER = 100
 
 # Convergence parameters - difference
-CHANGE_ANGULAR = 1E-12
-CHANGE_ENERGY = 1E-08
-CHANGE_POWER = 1E-06 # For Power Iterations
+CHANGE_ANGULAR = 1e-12
+CHANGE_ENERGY = 1e-08
+CHANGE_POWER = 1e-06  # For Power Iterations
 
 # Transport Parameters Dictionary
 PARAMS_DICT = {
-            "slab": 1, "sphere": 2,                                     # Geometry
-            "source-iteration": 1, "dynamic-mode-decomp": 2,            # Multigroup Solve
-            "step": 1, "diamond": 2, "step-characteristic": 3,          # Spatial Discretization
-            "vacuum": 0, "reflected": 1,                                # Boundary Condition
-            "left": 0, "right": 1,                                      # Boundary Location
-            "bdf1": 1, "cn": 2, "bdf2": 3, "tr-bdf2": 4                 # Temporal Discretization
-          }
+    "slab": 1,
+    "sphere": 2,  # Geometry
+    "source-iteration": 1,
+    "dynamic-mode-decomp": 2,  # Multigroup Solve
+    "step": 1,
+    "diamond": 2,
+    "step-characteristic": 3,  # Spatial Discretization
+    "vacuum": 0,
+    "reflected": 1,  # Boundary Condition
+    "left": 0,
+    "right": 1,  # Boundary Location
+    "bdf1": 1,
+    "cn": 2,
+    "bdf2": 3,
+    "tr-bdf2": 4,  # Temporal Discretization
+}
 
-# Conversion Between Units 
-MASS_NEUTRON = 1.67493E-27
-EV_TO_JOULES = 1.60218E-19
-LIGHT_SPEED = 2.9979246E8
-AVAGADRO = 6.022E23
-CM_TO_BARNS = 1E-24
+# Conversion Between Units
+MASS_NEUTRON = 1.67493e-27
+EV_TO_JOULES = 1.60218e-19
+LIGHT_SPEED = 2.9979246e8
+AVAGADRO = 6.022e23
+CM_TO_BARNS = 1e-24
 PI = 3.141592653589793
 
 
