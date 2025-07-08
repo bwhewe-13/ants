@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools", "cython", "numpy", "tqdm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ants"
+authors = [
+    {name = "Ben Whewell", email = "ben.whewell@pm.me"}
+]
+description = "ANTS (A Neutron Transport Solution)"
+version = "0.1.0"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "cython",
+    "numpy",
+    "tqdm", 
+]
+
+[project.optional-dependencies]
+test = ["pytest"]
+examples = [
+    "h5py",
+    "matplotlib",
+    "seaborn",
+]
+
+[tool.setuptools]
+ext-modules = [
+    {name="ants.boundary1d", sources=["ants/boundary1d.pyx"]},
+    {name="ants.boundary2d", sources=["ants/boundary2d.pyx"]},
+    {name="ants.cytools_1d", sources=["ants/cytools_1d.pyx"]},
+    {name="ants.cytools_2d", sources=["ants/cytools_2d.pyx"]},
+    {name="ants.hybrid1d", sources=["ants/hybrid1d.pyx"]},
+    {name="ants.hybrid2d", sources=["ants/hybrid2d.pyx"]},
+    {name="ants.multi_group_1d", sources=["ants/multi_group_1d.pyx"]},
+    {name="ants.multi_group_2d", sources=["ants/multi_group_2d.pyx"]},
+    {name="ants.parameters", sources=["ants/parameters.pyx"]},
+    {name="ants.spatial_sweep_1d", sources=["ants/spatial_sweep_1d.pyx"]},
+    {name="ants.spatial_sweep_2d", sources=["ants/spatial_sweep_2d.pyx"]},
+    {name="ants.timed1d", sources=["ants/timed1d.pyx"]},
+    {name="ants.timed2d", sources=["ants/timed2d.pyx"]},
+    {name="ants.vhybrid1d", sources=["ants/vhybrid1d.pyx"]},
+
+]
+
+[tool.setuptools.packages]
+find = {}

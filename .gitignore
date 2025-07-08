@@ -18,6 +18,7 @@ sources/
 
 env/
 build/
+dist/
 
 # Sphinx documentation
 docs/_build/

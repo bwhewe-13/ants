@@ -1,11 +1,63 @@
-Metadata-Version: 2.1
+Metadata-Version: 2.4
 Name: ants
 Version: 0.1.0
-Summary: A Neutron Transport Solution (ANTS) calculates the neutron 
+Summary: ANTS (A Neutron Transport Solution)
 Home-page: https://github.com
 Author: Ben Whewell
-Author-email: ben.whewell@pm.me
+Author-email: Ben Whewell <ben.whewell@pm.me>
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
 License-File: LICENSE
+Requires-Dist: cython
 Requires-Dist: numpy
 Requires-Dist: tqdm
-Requires-Dist: cython
+Provides-Extra: test
+Requires-Dist: pytest; extra == "test"
+Provides-Extra: examples
+Requires-Dist: h5py; extra == "examples"
+Requires-Dist: matplotlib; extra == "examples"
+Requires-Dist: seaborn; extra == "examples"
+Dynamic: author
+Dynamic: home-page
+Dynamic: license-file
+
+
+# A Neutron Transport Solution (ANTS)
+
+A Neutron Transport Solution (ANTS) calculates the neutron flux for both criticality and fixed source problems of one dimensional slabs and spheres and two dimensional slabs using the discrete ordinates method and written in Cython. 
+
+There are a number of different acceleration methods used including a collision-based hybrid method, machine learning models to predict matrix-vector multiplication, dynamic mode decomposition, and synthetic diffusion acceleration (DSA).
+
+There are also verification procedures to ensure both the code and solutions are correct. For code verification, manufactured solutions are used for one- and two-dimenisonal slab problems to ensure proper discretization. Solution verification uses the method of nearby problems, which uses one spatial grid. 
+
+&nbsp;
+
+## One Dimensional Features
+| Spatial Discretization    | Temporal Discretization    | Multigroup Solve          | K-Eigenvalue Solve      |
+|---------------------------|----------------------------|---------------------------|-------------------------|
+| &#9745; Step Method       | &#9745; Backward Euler     | &#9745; Source Iteration  | &#9745; Power Iteration |
+| &#9745; Diamond Difference    | &#9745; BDF2           | &#9744; DSA               | &#9744; DJINN           |
+| &#9745; Step Characteristic   | &#9745; Crank-Nicolson | &#9745; DMD               | &#9745; DMD             |
+| &#9744; Discontinuous Galerkin| &#9745; TR - BDF2      | &#9744; GMRES             | &#9744; Davidson Method |
+
+&nbsp;
+
+## Two Dimensional Features
+| Spatial Discretization    | Temporal Discretization    | Multigroup Solve          | K-Eigenvalue Solve      |
+|---------------------------|----------------------------|---------------------------|-------------------------|
+| &#9745; Step Method       | &#9745; Backward Euler     | &#9745; Source Iteration  | &#9745; Power Iteration |
+| &#9745; Diamond Difference    | &#9745; BDF2           | &#9744; DSA               | &#9745; DMD             |
+| &#9744; Step Characteristic   | &#9745; Crank-Nicolson | &#9745; DMD               | &#9744; Davidson Method |
+| &#9744; Discontinuous Galerkin| &#9745; TR - BDF2      | &#9744; GMRES             |                         |
+
+&nbsp;
+
+## Verification
+- [ ] Method of Manufactured Solutions (MMS)
+- [ ] Method of Nearby Problems (MNP)
+
+&nbsp;
+
+### To Do 
+- [ ] 1D / 2D Diffusion Equation
+- [ ] Correct for Ray Effects (2D)
