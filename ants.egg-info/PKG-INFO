@@ -1,8 +1,11 @@
 Metadata-Version: 2.1
 Name: ants
-Version: 1.0
+Version: 0.1.0
 Summary: A Neutron Transport Solution (ANTS) calculates the neutron 
 Home-page: https://github.com
 Author: Ben Whewell
 Author-email: ben.whewell@pm.me
 License-File: LICENSE
+Requires-Dist: numpy
+Requires-Dist: tqdm
+Requires-Dist: cython

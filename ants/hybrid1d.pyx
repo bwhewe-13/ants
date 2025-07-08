@@ -102,7 +102,7 @@ cdef double[:,:,:] multigroup_bdf1(double[:,:,:]& flux_last, \
     boundary_xc = tools.array_3d(2, 1, 1)
 
     # Iterate over time steps
-    for step in tqdm(range(info_u.steps), desc="BDF1*   ", ascii=True):
+    for step in tqdm(range(info_u.steps), desc="BDF1*    ", ascii=True):
         
         # Determine dimensions of external and boundary sources
         qq = 0 if external_u.shape[0] == 1 else step
@@ -210,7 +210,7 @@ cdef double[:,:,:] multigroup_cn(double[:,:,:]& flux_last, \
     boundary_xc = tools.array_3d(2, 1, 1)
 
     # Iterate over time steps
-    for step in tqdm(range(info_u.steps), desc="CN*     ", ascii=True):
+    for step in tqdm(range(info_u.steps), desc="CN*      ", ascii=True):
         
         # Determine dimensions of external and boundary sources
         qqa = 0 if external_u.shape[0] == 1 else step # Previous time step
@@ -321,7 +321,7 @@ cdef double[:,:,:] multigroup_bdf2(double[:,:,:]& flux_last_1, \
     boundary_xc = tools.array_3d(2, 1, 1)
 
     # Iterate over time steps
-    for step in tqdm(range(info_u.steps), desc="BDF2*   ", ascii=True):
+    for step in tqdm(range(info_u.steps), desc="BDF2*    ", ascii=True):
         # Determine dimensions of external and boundary sources
         qq = 0 if external_u.shape[0] == 1 else step
         bc = 0 if boundary_xu.shape[0] == 1 else step
@@ -462,7 +462,7 @@ cdef double[:,:,:] multigroup_tr_bdf2(double[:,:,:]& flux_last_ell, \
     boundary_xc = tools.array_3d(2, 1, 1)
 
     # Iterate over time steps
-    for step in tqdm(range(info_u.steps), desc="TR-BDF2*", ascii=True):
+    for step in tqdm(range(info_u.steps), desc="TR-BDF2* ", ascii=True):
         
         # Determine dimensions of external and boundary sources
         qq = 0 if external_u.shape[0] == 1 else step * 2 # Ell Step
@@ -472,9 +472,9 @@ cdef double[:,:,:] multigroup_tr_bdf2(double[:,:,:]& flux_last_ell, \
         bc = 0 if boundary_xu.shape[0] == 1 else step * 2 # Ell Step
         bca = 0 if boundary_xu.shape[0] == 1 else step * 2 + 1 # Gamma Step
         
-        ################################################################
+        ########################################################################
         # Crank Nicolson
-        ################################################################
+        ########################################################################
         # Update q_star
         tools._time_source_star_cn(flux_last_ell, flux_ell_u, xs_total_u, \
                     xs_scatter_u, velocity_u, q_star, external_u[qq], \
@@ -493,9 +493,9 @@ cdef double[:,:,:] multigroup_tr_bdf2(double[:,:,:]& flux_last_ell, \
                                         boundary_xu[bc], medium_map, \
                                         delta_x, angle_xu, angle_wu, info_u)
         
-        ################################################################
+        ########################################################################
         # BDF2
-        ################################################################
+        ########################################################################
         # Update q_star
         tools._time_source_star_tr_bdf2(flux_last_ell, flux_last_gamma, \
                 q_star, external_u[qqb], velocity_u, gamma, info_u)
