@@ -1,14 +1,14 @@
-########################################################################
-#                        ___    _   _____________
-#                       /   |  / | / /_  __/ ___/
-#                      / /| | /  |/ / / /  \__ \ 
-#                     / ___ |/ /|  / / /  ___/ / 
-#                    /_/  |_/_/ |_/ /_/  /____/  
+################################################################################
+#                             ___    _   _____________
+#                            /   |  / | / /_  __/ ___/
+#                           / /| | /  |/ / / /  \__ \ 
+#                          / ___ |/ /|  / / /  ___/ / 
+#                         /_/  |_/_/ |_/ /_/  /____/  
+#     
+# Functions needed for both fixed source, criticality, and time-dependent 
+# problems in one-dimensional neutron transport 
 #
-# Functions needed for both fixed source, criticality, and 
-# time-dependent problems in one-dimensional neutron transport 
-#
-########################################################################
+################################################################################
 
 # cython: boundscheck=False
 # cython: nonecheck=False
@@ -25,9 +25,9 @@ from cython.view cimport array as cvarray
 
 from ants.parameters cimport params
 
-########################################################################
+################################################################################
 # Memoryview functions
-########################################################################
+################################################################################
 cdef double[:] array_1d(int dim1):
     dd1 = cvarray((dim1,), itemsize=sizeof(double), format="d")
     cdef double[:] arr = dd1
@@ -62,9 +62,9 @@ cdef double[:,:,:,:] array_4d(int dim1, int dim2, int dim3, int dim4):
     arr[:,:,:,:] = 0.0
     return arr
 
-########################################################################
+################################################################################
 # Convergence functions
-########################################################################
+################################################################################
 cdef double group_convergence(double[:,:]& arr1, double[:,:]& arr2, params info):
     # Calculate the L2 convergence of the scalar flux in the energy loop
     cdef int ii, gg
@@ -90,9 +90,9 @@ cdef double angle_convergence(double[:]& arr1, double[:]& arr2, params info):
     change = sqrt(change)
     return change
 
-########################################################################
+################################################################################
 # Material Interface functions
-########################################################################
+################################################################################
 
 cdef int[:] _material_index(int[:] medium_map, params info):
     # Initialize iterable
@@ -113,9 +113,9 @@ cdef int[:] _material_index(int[:] medium_map, params info):
     # Return only necessary values
     return splits[:index+1]
 
-########################################################################
+################################################################################
 # Multigroup functions
-########################################################################
+################################################################################
 
 cdef void _xs_matrix(double[:,:,:]& mat1, double[:,:,:]& mat2, \
         double[:,:,:]& mat3, params info):
@@ -209,9 +209,9 @@ cdef void _angular_edge_to_scalar(double[:,:,:]& angular_flux, \
                                         + angular_flux[ii+1,nn,gg])
 
 
-########################################################################
+################################################################################
 # Time Dependent functions
-########################################################################
+################################################################################
 
 cdef void _total_velocity(double[:,:]& xs_total, double[:]& velocity, \
         double constant, params info):
@@ -333,9 +333,9 @@ cdef void _time_right_side(double[:,:,:]& q_star, double[:,:]& flux, \
             for nn in range(info.angles):    
                 q_star[ii,nn,og] += one_group
 
-########################################################################
+################################################################################
 # Criticality functions
-########################################################################
+################################################################################
 
 cdef void _normalize_flux(double[:,:]& flux, params info):
     cdef int ii, gg
@@ -404,9 +404,9 @@ cdef void _source_total_critical(double[:,:,:]& source, double[:,:]& flux, \
                                  + (flux[ii,ig] * xs_scatter[mat,og,ig])
 
 
-########################################################################
+################################################################################
 # Nearby Problems
-########################################################################
+################################################################################
 
 cdef void _nearby_flux_to_scalar(double[:,:]& scalar_flux, \
         double[:]& angular_spatial, double angle_w, int gg, params info):
@@ -485,9 +485,9 @@ cdef double _nearby_keffective(double[:,:]& flux, double rate, params info):
             keff += rate * flux[ii, gg]
     return keff
 
-########################################################################
+################################################################################
 # Hybrid Method Time Dependent Problems
-########################################################################
+################################################################################
 
 cdef void _hybrid_source_collided(double[:,:]& flux_u, double[:,:,:]& xs_scatter, \
         double[:,:,:]& source_c, int[:]& medium_map, int[:]& coarse_idx, \
@@ -523,9 +523,9 @@ cdef void _hybrid_source_total(double[:,:]& flux_u, double[:,:]& flux_c, \
             for nn in range(info_u.angles):
                 source[ii,nn,og] += one_group
 
-########################################################################
+################################################################################
 # Variable Hybrid Time Dependent Problems
-########################################################################
+################################################################################
     
 cdef void _vhybrid_parameters(int[:] coarse_idx, double[:] factor, \
         double[:] edges_g, int[:] edges_gidx_c, int groups_c):
@@ -632,8 +632,6 @@ cdef void _variable_off_scatter(double[:,:]& flux, double[:,:]& flux_old, \
     
     # Zero out previous values
     off_scatter[:] = 0.0
-
-    # print("In variable off scatter")
     
     # Iterate over collided groups
     for gg in range(info.groups):
@@ -641,8 +639,6 @@ cdef void _variable_off_scatter(double[:,:]& flux, double[:,:]& flux_old, \
         in_idx1 = edges_gidx_c[gg]
         in_idx2 = edges_gidx_c[gg + 1]
         delta_coarse = 1.0 / (edges_g[in_idx2] - edges_g[in_idx1])
-
-        # print("group", gg)
 
         if gg < group:
             for ii in range(info.cells_x):
@@ -654,8 +650,6 @@ cdef void _variable_off_scatter(double[:,:]& flux, double[:,:]& flux_old, \
                                      * (edges_g[ig+1] - edges_g[ig]) * flux[ii,gg]
                 off_scatter[ii] += prod_tmp
 
-            # print("After iteration 1")
-
         elif gg > group:
             for ii in range(info.cells_x):
                 mat = medium_map[ii]
@@ -665,8 +659,6 @@ cdef void _variable_off_scatter(double[:,:]& flux, double[:,:]& flux_old, \
                         prod_tmp += xs_matrix[mat, og, ig] * delta_coarse \
                                     * (edges_g[ig+1] - edges_g[ig]) * flux_old[ii,gg]
                 off_scatter[ii] += prod_tmp
-
-            # print("After iteration 2")
 
 
 cdef void _vhybrid_source_total(double[:,:]& flux_u, double[:,:]& flux_c, \

@@ -559,4 +559,3 @@ cdef void hybrid_method(double[:,:]& flux_u, double[:,:]& flux_c, \
     # Step 4: Create a new source and solve for angular flux
     tools._vhybrid_source_total(flux_u, flux_c, xs_scatter_u, q_star, medium_map, \
                                 edges_g, edges_gidx_c, info_u, info_c)
-
