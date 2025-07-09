@@ -113,7 +113,7 @@ cdef double[:,:,:,:] multigroup_bdf1(double[:,:,:,:]& flux_last, \
     boundary_c = tools.array_4d(2, 1, 1, 1)
 
     # Iterate over time steps
-    for step in tqdm(range(info_u.steps), desc="BDF1*   ", ascii=True):
+    for step in tqdm(range(info_u.steps), desc="BDF1*    ", ascii=True):
         
         # Determine dimensions of external and boundary sources
         qq = 0 if external_u.shape[0] == 1 else step
@@ -234,7 +234,7 @@ cdef double[:,:,:,:] multigroup_cn(double[:,:,:,:]& flux_last_x, \
     boundary_c = tools.array_4d(2, 1, 1, 1)
 
     # Iterate over time steps
-    for step in tqdm(range(info_u.steps), desc="CN*     ", ascii=True):
+    for step in tqdm(range(info_u.steps), desc="CN*      ", ascii=True):
         
         # Determine dimensions of external and boundary sources
         qqa = 0 if external_u.shape[0] == 1 else step # Previous time step
@@ -354,7 +354,7 @@ cdef double[:,:,:,:] multigroup_bdf2(double[:,:,:,:]& flux_last_1, \
     boundary_c = tools.array_4d(2, 1, 1, 1)
 
     # Iterate over time steps
-    for step in tqdm(range(info_u.steps), desc="BDF2*   ", ascii=True):
+    for step in tqdm(range(info_u.steps), desc="BDF2*    ", ascii=True):
         
         # Determine dimensions of external and boundary sources
         qq = 0 if external_u.shape[0] == 1 else step
@@ -480,7 +480,7 @@ cdef double[:,:,:,:] multigroup_re_bdf2(double[:,:,:,:]& flux_last_1, \
     boundary_c = tools.array_4d(2, 1, 1, 1)
 
     # Iterate over time steps
-    for step in tqdm(range(info_u.steps), desc="BDF2*   ", ascii=True):
+    for step in tqdm(range(info_u.steps), desc="BDF2*    ", ascii=True):
         
         # Determine dimensions of external and boundary sources
         qq = 0 if external_u.shape[0] == 1 else step
@@ -619,7 +619,7 @@ cdef double[:,:,:,:] multigroup_tr_bdf2(double[:,:,:,:]& flux_ell_x, \
     boundary_c = tools.array_4d(2, 1, 1, 1)
 
     # Iterate over time steps
-    for step in tqdm(range(info_u.steps), desc="TR-BDF2*", ascii=True):
+    for step in tqdm(range(info_u.steps), desc="TR-BDF2* ", ascii=True):
         
         # Determine dimensions of external and boundary sources
         qq = 0 if external_u.shape[0] == 1 else step * 2 # Ell Step
@@ -701,7 +701,7 @@ cdef void hybrid_method(double[:,:,:]& flux_u, double[:,:,:]& flux_c, \
     # Step 2: Compute collided source (I x G')
     tools._hybrid_source_collided(flux_u, xs_scatter_u, source_c, \
                                   medium_map, coarse_idx, info_u)
-    
+
     # Step 3: Solve Collided Equation (I x G')
     flux_c[:,:,:] = mg.multi_group(flux_c, xs_total_vc, xs_scatter_c, \
                     source_c, boundary_c, boundary_c, medium_map, delta_x, \
@@ -710,7 +710,3 @@ cdef void hybrid_method(double[:,:,:]& flux_u, double[:,:,:]& flux_c, \
     # Step 4: Create a new source and solve for angular flux
     tools._hybrid_source_total(flux_u, flux_c, xs_scatter_u, q_star, \
                         medium_map, coarse_idx, factor, info_u, info_c)
-
-    # tools._expand_hybrid_source(flux_t, flux_c, fine_idx, factor, info_u, info_c)
-    # tools._hybrid_source_total(flux_t, flux_u, xs_scatter_u, q_star, \
-    #                     medium_map, fine_idx, factor, info_u, info_c)

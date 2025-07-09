@@ -41,6 +41,7 @@ ext-modules = [
     {name="ants.timed1d", sources=["ants/timed1d.pyx"]},
     {name="ants.timed2d", sources=["ants/timed2d.pyx"]},
     {name="ants.vhybrid1d", sources=["ants/vhybrid1d.pyx"]},
+    {name="ants.vhybrid2d", sources=["ants/vhybrid2d.pyx"]},
 
 ]
 

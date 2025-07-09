@@ -1,14 +1,14 @@
-########################################################################
-#                        ___    _   _____________
-#                       /   |  / | / /_  __/ ___/
-#                      / /| | /  |/ / / /  \__ \
-#                     / ___ |/ /|  / / /  ___/ /
-#                    /_/  |_/_/ |_/ /_/  /____/
+################################################################################
+#                            ___    _   _____________
+#                           /   |  / | / /_  __/ ___/
+#                          / /| | /  |/ / / /  \__ \
+#                         / ___ |/ /|  / / /  ___/ /
+#                        /_/  |_/_/ |_/ /_/  /____/
 #
 # The main driver for the ants package. This file is automatically
 # loaded with the __init__ file.
 #
-########################################################################
+################################################################################
 
 import numpy as np
 import pkg_resources
@@ -63,6 +63,12 @@ def angular_xy(info):
     # Order the angles for boundary conditions and return angle_x, angle_y, angle_w
     return _ordering_angles_xy(angle_x, angle_y, angle_w, bc_x, bc_y)
     # return angle_x, angle_y, angle_w
+
+
+# Called from cython
+def _angular_xy(angles, bc_x, bc_y):
+    info = {"angles": angles, "bc_x": bc_x, "bc_y": bc_y}
+    return angular_xy(info)
 
 
 def _product_quadrature(angles):

@@ -1,6 +1,4 @@
 ants
-build
-dist
 docs
 examples
 tests

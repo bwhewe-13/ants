@@ -15,6 +15,7 @@ from ants import boundary1d, boundary2d, external1d, external2d
 # Creating angular dimensions
 from ants.main import (
     _angular_x,
+    _angular_xy,
     _energy_grid,
     angular_x,
     angular_xy,
