@@ -13,13 +13,11 @@
 # cython: boundscheck=False
 # cython: nonecheck=False
 # cython: wraparound=False
-# cython: infertypes=True
+# cython: infertypes=False
 # cython: initializedcheck=False
 # cython: cdivision=True
 # cython: profile=True
 # distutils: language = c++
-
-import numpy as np
 
 from libc.math cimport sqrt, pow
 from cython.view cimport array as cvarray
@@ -32,28 +30,28 @@ from ants.parameters cimport params
 ################################################################################
 cdef double[:] array_1d(int dim1):
     dd1 = cvarray((dim1,), itemsize=sizeof(double), format="d")
-    cdef double[:] arr = dd1
+    cdef double[::1] arr = dd1
     arr[:] = 0.0
     return arr
 
 
 cdef double[:,:] array_2d(int dim1, int dim2):
     dd2 = cvarray((dim1, dim2), itemsize=sizeof(double), format="d")
-    cdef double[:,:] arr = dd2
+    cdef double[:,::1] arr = dd2
     arr[:,:] = 0.0
     return arr
 
 
 cdef double[:,:,:] array_3d(int dim1, int dim2, int dim3):
     dd3 = cvarray((dim1, dim2, dim3), itemsize=sizeof(double), format="d")
-    cdef double[:,:,:] arr = dd3
+    cdef double[:,:,::1] arr = dd3
     arr[:,:,:] = 0.0
     return arr
 
 
 cdef double[:,:,:,:] array_4d(int dim1, int dim2, int dim3, int dim4):
     dd4 = cvarray((dim1, dim2, dim3, dim4), itemsize=sizeof(double), format="d")
-    cdef double[:,:,:,:] arr = dd4
+    cdef double[:,:,:,::1] arr = dd4
     arr[:,:,:,:] = 0.0
     return arr
 
@@ -366,7 +364,7 @@ cdef void _time_source_star_bdf1(double[:,:,:,:]& flux, \
     q_star[:,:,:,:] = 0.0
 
     # Iterate over cells, angles, groups
-    for nn in prange(directions, nogil=True):
+    for nn in range(directions): #, nogil=True):
         nn_q = 0 if external.shape[2] == 1 else nn
     
         for gg in range(info.groups):
@@ -467,7 +465,7 @@ cdef void _time_source_star_bdf2(double[:,:,:,:]& flux_1, \
     q_star[:,:,:,:] = 0.0
 
     # Iterate over all cells, angles, and groups
-    for nn in prange(directions, nogil=True):
+    for nn in range(directions): #, nogil=True):
         nn_q = 0 if external.shape[2] == 1 else nn
 
         for gg in range(info.groups):
@@ -531,7 +529,7 @@ cdef void _time_source_star_tr_bdf2(double[:,:,:,:]& psi_x, \
     q_star[:,:,:,:] = 0.0
 
     # Iterate over all cells, angles, and groups
-    for nn in prange(directions, nogil=True):
+    for nn in range(directions): #, nogil=True):
         nn_q = 0 if external.shape[2] == 1 else nn
 
         for gg in range(info.groups):
@@ -1102,7 +1100,7 @@ cdef void _vhybrid_source_c(double[:,:,:]& flux_u, double[:,:,:]& xs_scatter, \
     source_c[:,:,:,:] = 0.0
     
     # Iterate over all spatial cells
-    for ii in range(info_u.cells_x):
+    for ii in range(info_u.cells_x):#, nogil=True):
         for jj in range(info_u.cells_y):
             mat = medium_map[ii,jj]
             for gg in range(info_c.groups):
@@ -1110,7 +1108,7 @@ cdef void _vhybrid_source_c(double[:,:,:]& flux_u, double[:,:,:]& xs_scatter, \
                 for og in range(edges_gidx_c[gg], edges_gidx_c[gg+1]):
                     for ig in range(info_u.groups):
                         source += flux_u[ii,jj,ig] * xs_scatter[mat,og,ig]
-                source_c[ii,jj,0,gg] = source
+                source_c[ii,jj,0,gg] += source
 
 
 cdef void _coarsen_flux(double[:,:,:]& flux_u, double[:,:,:]& flux_c, \
@@ -1124,13 +1122,13 @@ cdef void _coarsen_flux(double[:,:,:]& flux_u, double[:,:,:]& flux_c, \
     flux_c[:,:,:] = 0.0
 
     # Iterate over spatial cells and energy groups
-    for ii in range(info_c.cells_x):
+    for ii in prange(info_c.cells_x, nogil=True):
         for jj in range(info_c.cells_y):
             for og in range(info_c.groups):
                 tmp_flux = 0.0
                 for ig in range(edges_gidx_c[og], edges_gidx_c[og+1]):
                     tmp_flux += flux_u[ii,jj,ig]
-                flux_c[ii,jj,og] = tmp_flux
+                flux_c[ii,jj,og] += tmp_flux
 
 
 cdef void _variable_off_scatter(double[:,:,:]& flux, double[:,:,:]& flux_old, \
@@ -1146,7 +1144,7 @@ cdef void _variable_off_scatter(double[:,:,:]& flux, double[:,:,:]& flux_old, \
     off_scatter[:,:] = 0.0
     
     # Iterate over collided groups
-    for gg in range(info.groups):
+    for gg in prange(info.groups, nogil=True):
 
         in_idx1 = edges_gidx_c[gg]
         in_idx2 = edges_gidx_c[gg + 1]
@@ -1184,7 +1182,7 @@ cdef void _vhybrid_source_total(double[:,:,:]& flux_u, double[:,:,:]& flux_c, \
     cdef double one_group, delta_coarse
     
     # Assume that source is already (Qu + 1 / (v * dt) * psi^{\ell-1})
-    for ii in range(info_u.cells_x):
+    for ii in prange(info_u.cells_x, nogil=True):
         for jj in range(info_u.cells_y):
             mat = medium_map[ii,jj]
             

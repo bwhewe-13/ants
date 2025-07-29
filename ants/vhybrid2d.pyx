@@ -12,7 +12,7 @@
 # cython: boundscheck=False
 # cython: nonecheck=False
 # cython: wraparound=False
-# cython: infertypes=True
+# cython: infertypes=False
 # cython: initializedcheck=False
 # cython: cdivision=True
 # cython: profile=True
@@ -475,6 +475,7 @@ cdef double[:,:,:,:] multigroup_tr_bdf2(int[:] groups_c, int[:] angles_c, \
     xs_total_vu_cn[:,:] = xs_total_u[:,:]
     tools._total_velocity(xs_total_vu_cn, velocity_u, 2.0 / gamma, info_u)
 
+
     # Create sigma_t + (2 - gamma) / ((1 - gamma) * v * dt) - BDF2 Step
     xs_total_vu_bdf2 = tools.array_2d(info_u.materials, info_u.groups)
     xs_total_vu_bdf2[:,:] = xs_total_u[:,:]
@@ -494,6 +495,10 @@ cdef double[:,:,:,:] multigroup_tr_bdf2(int[:] groups_c, int[:] angles_c, \
     xs_scatter_c = tools.array_1d(info_c.materials)
     off_scatter = tools.array_2d(info_c.cells_x, info_c.cells_y)
     boundary_c = tools.array_4d(2, 1, 1, 1)
+
+    xs_total_c = tools.array_1d(info_c.materials)
+    xs_scatter_c = tools.array_1d(info_c.materials)
+    off_scatter = tools.array_2d(info_c.cells_x, info_c.cells_y)
 
     # Iterate over time steps
     for step in tqdm(range(info_u.steps), desc="vTR-BDF2*", ascii=True):

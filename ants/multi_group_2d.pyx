@@ -12,7 +12,7 @@
 # cython: boundscheck=False
 # cython: nonecheck=False
 # cython: wraparound=False
-# cython: infertypes=True
+# cython: infertypes=False
 # cython: initializedcheck=False
 # cython: cdivision=True
 # cython: profile=True
@@ -204,7 +204,6 @@ cdef double[:,:,:] variable_source_iteration(double[:,:,:]& flux_guess, \
     # Initialize flux
     flux = tools.array_3d(info.cells_x, info.cells_y, info.groups)
     flux_old = flux_guess.copy()
-    flux_1g = tools.array_2d(info.cells_x, info.cells_y)
     
     # Set convergence limits
     cdef bint converged = False
@@ -230,9 +229,6 @@ cdef double[:,:,:] variable_source_iteration(double[:,:,:]& flux_guess, \
 
             _variable_cross_sections(xs_total_c, xs_total_u, star_coef_c[gg], \
                         xs_scatter_c, xs_scatter_u, edges_g, idx1, idx2, info)
-                        
-            # Select the specific group from last iteration
-            flux_1g[:,:] = flux_old[:,:,gg]
 
             # Calculate up and down scattering term using Gauss-Seidel
             tools._variable_off_scatter(flux, flux_old, medium_map, xs_scatter_u, \
@@ -240,7 +236,7 @@ cdef double[:,:,:] variable_source_iteration(double[:,:,:]& flux_guess, \
                                         idx1, idx2, info)
 
             # Use discrete ordinates for the angular dimension
-            discrete_ordinates(flux[:,:,gg], flux_1g, xs_total_c, xs_scatter_c, \
+            discrete_ordinates(flux[:,:,gg], flux_old[:,:,gg].copy(), xs_total_c, xs_scatter_c, \
                     off_scatter, external[:,:,:,qq], boundary_x[:,:,bcx], \
                     boundary_y[:,:,bcy], medium_map, delta_x, delta_y, angle_x, \
                     angle_y, angle_w, info)

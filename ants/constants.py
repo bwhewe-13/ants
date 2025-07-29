@@ -10,6 +10,7 @@
 # Convergence parameters - iterations
 COUNT_ANGULAR = 100
 COUNT_ENERGY = 100
+# COUNT_ENERGY = 100000 # Larsen Diffusion
 COUNT_POWER = 100
 
 # Convergence parameters - difference

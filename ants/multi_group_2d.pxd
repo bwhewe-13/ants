@@ -53,7 +53,6 @@ cdef double[:,:,:] variable_source_iteration(double[:,:,:]& flux_guess, \
         double[:]& delta_y, double[:]& angle_x, double[:]& angle_y, double[:]& angle_w, \
         double[:]& edges_g, int[:]& edges_gidx_c, params info)
 
-
 cdef double[:,:,:,:] _known_source_angular(double[:,:]& xs_total, \
         double[:,:,:,:]& source, double[:,:,:,:]& boundary_x, \
         double[:,:,:,:]& boundary_y, int[:,:]& medium_map, \
