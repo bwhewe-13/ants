@@ -550,6 +550,37 @@ cdef void _time_source_star_tr_bdf2(double[:,:,:,:]& psi_x, \
                                 * velocity[gg] * info.dt) \
                             - psi * (1 - gamma) / (gamma * velocity[gg] * info.dt)
 
+cdef void _time_source_star_tr_bdf2_mem(double[:,:,:,:]& psi_x, double[:,:,:,:]& psi_y, \
+        double[:,:,:,:]& flux_2, double[:,:,:,:]& external, double[:]& velocity, \
+        double gamma, params info):
+    # Combining the source (I x J x N^2 x G) with the angular flux (I x J x N^2 x G)
+    # psi_x is time step \ell (edges), flux_2 is time step \ell + gamma (centers)
+    
+    # Initialize iterables
+    cdef int ii, jj, nn, gg, nn_q, gg_q
+    cdef int directions = info.angles * info.angles
+    cdef double gamma_vel_01, gamma_vel_02
+
+    # Initialize angular flux center
+    cdef double psi
+
+    # Iterate over all cells, angles, and groups
+    for nn in prange(directions, nogil=True):
+        nn_q = 0 if external.shape[2] == 1 else nn
+
+        for gg in range(info.groups):
+            gg_q = 0 if external.shape[3] == 1 else gg
+            gamma_vel_01 = 1 / (gamma * (1 - gamma) * velocity[gg] * info.dt)
+            gamma_vel_02 = (1 - gamma) / (gamma * velocity[gg] * info.dt)
+
+            for ii in range(info.cells_x):
+                for jj in range(info.cells_y):
+                    psi = 0.25 * (psi_x[ii,jj,nn,gg] + psi_x[ii+1,jj,nn,gg] \
+                               + psi_y[ii,jj,nn,gg] + psi_y[ii,jj+1,nn,gg])
+
+                    flux_2[ii,jj,nn,gg] = flux_2[ii,jj,nn,gg] * gamma_vel_01 \
+                                    + external[ii,jj,nn_q,gg_q] - psi * gamma_vel_02
+
 
 cdef void _time_right_side(double[:,:,:,:]& q_star, double[:,:,:]& flux, \
         double[:,:,:]& xs_scatter, int[:,:]& medium_map, params info):

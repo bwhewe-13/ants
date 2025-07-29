@@ -123,6 +123,10 @@ cdef void _time_source_star_tr_bdf2(double[:,:,:,:]& psi_x, \
         double[:,:,:,:]& q_star, double[:,:,:,:]& external, \
         double[:]& velocity, double gamma, params info)
 
+cdef void _time_source_star_tr_bdf2_mem(double[:,:,:,:]& psi_x, double[:,:,:,:]& psi_y, \
+        double[:,:,:,:]& flux_2, double[:,:,:,:]& external, double[:]& velocity, \
+        double gamma, params info)
+
 cdef void _time_right_side(double[:,:,:,:]& q_star, double[:,:,:]& flux, \
         double[:,:,:]& xs_scatter, int[:,:]& medium_map, params info)
 
