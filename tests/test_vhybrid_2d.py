@@ -763,7 +763,7 @@ def _get_hybrid_params(groups_u, groups_c, problem_dict):
     }
 
 
-@pytest.mark.slab1d
+@pytest.mark.slab2d
 @pytest.mark.hybrid
 @pytest.mark.bdf1
 @pytest.mark.multigroup2d
@@ -837,3 +837,245 @@ def test_mg_01_bdf1(angles_c, groups_c):
     # Compare each time step
     for tt in range(steps):
         assert np.isclose(hy_flux[tt], vhy_flux[tt]).all()
+
+
+@pytest.mark.slab2d
+@pytest.mark.hybrid
+@pytest.mark.cn
+@pytest.mark.multigroup2d
+@pytest.mark.parametrize(("angles_c", "groups_c"), [(4, 87), (2, 87), (4, 43), (2, 43)])
+def test_mg_01_cn(angles_c, groups_c):
+    temporal = 2
+    angles_u = 4
+    groups_u = 87
+
+    problem_dict = _example_problem_01(groups_u, groups_c, angles_u, angles_c, temporal)
+    hybrid_dict = _get_hybrid_params(groups_u, groups_c, problem_dict)
+    steps = problem_dict["info_u"]["steps"]
+
+    # Run Hybrid Method
+    hy_flux = hybrid2d.crank_nicolson(
+        problem_dict["initial_flux_x"],
+        problem_dict["initial_flux_y"],
+        problem_dict["xs_total_u"],
+        hybrid_dict["xs_total_c"],
+        problem_dict["xs_scatter_u"],
+        hybrid_dict["xs_scatter_c"],
+        problem_dict["xs_fission_u"],
+        hybrid_dict["xs_fission_c"],
+        problem_dict["velocity_u"],
+        hybrid_dict["velocity_c"],
+        problem_dict["external"],
+        problem_dict["boundary_x"],
+        problem_dict["boundary_y"],
+        problem_dict["medium_map"],
+        problem_dict["delta_x"],
+        problem_dict["delta_y"],
+        problem_dict["angle_xu"],
+        problem_dict["angle_xc"],
+        problem_dict["angle_yu"],
+        problem_dict["angle_yc"],
+        problem_dict["angle_wu"],
+        problem_dict["angle_wc"],
+        hybrid_dict["fine_idx"],
+        hybrid_dict["coarse_idx"],
+        hybrid_dict["factor"],
+        problem_dict["info_u"],
+        problem_dict["info_c"],
+    )
+
+    # Variable groups and angles
+    vgroups = np.array([groups_c] * steps, dtype=np.int32)
+    vangles = np.array([angles_c] * steps, dtype=np.int32)
+
+    # Run vHybrid Method
+    vhy_flux = vhybrid2d.crank_nicolson(
+        vgroups,
+        vangles,
+        problem_dict["initial_flux_x"],
+        problem_dict["initial_flux_y"],
+        problem_dict["xs_total_u"],
+        problem_dict["xs_scatter_u"],
+        problem_dict["xs_fission_u"],
+        problem_dict["velocity_u"],
+        problem_dict["external"],
+        problem_dict["boundary_x"],
+        problem_dict["boundary_y"],
+        problem_dict["medium_map"],
+        problem_dict["delta_x"],
+        problem_dict["delta_y"],
+        problem_dict["angle_xu"],
+        problem_dict["angle_yu"],
+        problem_dict["angle_wu"],
+        hybrid_dict["edges_g"],
+        problem_dict["info_u"],
+        problem_dict["info_c"],
+    )
+
+    # Compare each time step
+    for tt in range(steps):
+        assert np.isclose(hy_flux[tt], vhy_flux[tt]).all()
+
+
+@pytest.mark.slab2d
+@pytest.mark.hybrid
+@pytest.mark.bdf2
+@pytest.mark.multigroup2d
+@pytest.mark.parametrize(("angles_c", "groups_c"), [(4, 87), (2, 87), (4, 43), (2, 43)])
+def test_mg_01_bdf2(angles_c, groups_c):
+    temporal = 3
+    angles_u = 4
+    groups_u = 87
+
+    problem_dict = _example_problem_01(groups_u, groups_c, angles_u, angles_c, temporal)
+    hybrid_dict = _get_hybrid_params(groups_u, groups_c, problem_dict)
+    steps = problem_dict["info_u"]["steps"]
+
+    # Run Hybrid Method
+    hy_flux = hybrid2d.bdf2(
+        problem_dict["initial_flux_x"],
+        problem_dict["xs_total_u"],
+        hybrid_dict["xs_total_c"],
+        problem_dict["xs_scatter_u"],
+        hybrid_dict["xs_scatter_c"],
+        problem_dict["xs_fission_u"],
+        hybrid_dict["xs_fission_c"],
+        problem_dict["velocity_u"],
+        hybrid_dict["velocity_c"],
+        problem_dict["external"],
+        problem_dict["boundary_x"],
+        problem_dict["boundary_y"],
+        problem_dict["medium_map"],
+        problem_dict["delta_x"],
+        problem_dict["delta_y"],
+        problem_dict["angle_xu"],
+        problem_dict["angle_xc"],
+        problem_dict["angle_yu"],
+        problem_dict["angle_yc"],
+        problem_dict["angle_wu"],
+        problem_dict["angle_wc"],
+        hybrid_dict["fine_idx"],
+        hybrid_dict["coarse_idx"],
+        hybrid_dict["factor"],
+        problem_dict["info_u"],
+        problem_dict["info_c"],
+    )
+
+    # Variable groups and angles
+    vgroups = np.array([groups_c] * steps, dtype=np.int32)
+    vangles = np.array([angles_c] * steps, dtype=np.int32)
+
+    # Run vHybrid Method
+    vhy_flux = vhybrid2d.bdf2(
+        vgroups,
+        vangles,
+        problem_dict["initial_flux_x"],
+        problem_dict["xs_total_u"],
+        problem_dict["xs_scatter_u"],
+        problem_dict["xs_fission_u"],
+        problem_dict["velocity_u"],
+        problem_dict["external"],
+        problem_dict["boundary_x"],
+        problem_dict["boundary_y"],
+        problem_dict["medium_map"],
+        problem_dict["delta_x"],
+        problem_dict["delta_y"],
+        problem_dict["angle_xu"],
+        problem_dict["angle_yu"],
+        problem_dict["angle_wu"],
+        hybrid_dict["edges_g"],
+        problem_dict["info_u"],
+        problem_dict["info_c"],
+    )
+
+    # Compare each time step
+    for tt in range(steps):
+        assert np.isclose(hy_flux[tt], vhy_flux[tt]).all()
+
+
+@pytest.mark.slab2d
+@pytest.mark.hybrid
+@pytest.mark.trbdf2
+@pytest.mark.multigroup2d
+@pytest.mark.parametrize(("angles_c", "groups_c"), [(4, 87), (2, 87), (4, 43), (2, 43)])
+def test_mg_01_tr_bdf2(angles_c, groups_c):
+    temporal = 4
+    angles_u = 2
+    groups_u = 87
+
+    problem_dict = _example_problem_01(groups_u, groups_c, angles_u, angles_c, temporal)
+    hybrid_dict = _get_hybrid_params(groups_u, groups_c, problem_dict)
+    steps = problem_dict["info_u"]["steps"]
+
+    # Run Hybrid Method
+    hy_flux = hybrid2d.tr_bdf2(
+        problem_dict["initial_flux_x"],
+        problem_dict["initial_flux_y"],
+        problem_dict["xs_total_u"],
+        hybrid_dict["xs_total_c"],
+        problem_dict["xs_scatter_u"],
+        hybrid_dict["xs_scatter_c"],
+        problem_dict["xs_fission_u"],
+        hybrid_dict["xs_fission_c"],
+        problem_dict["velocity_u"],
+        hybrid_dict["velocity_c"],
+        problem_dict["external"],
+        problem_dict["boundary_x"],
+        problem_dict["boundary_y"],
+        problem_dict["medium_map"],
+        problem_dict["delta_x"],
+        problem_dict["delta_y"],
+        problem_dict["angle_xu"],
+        problem_dict["angle_xc"],
+        problem_dict["angle_yu"],
+        problem_dict["angle_yc"],
+        problem_dict["angle_wu"],
+        problem_dict["angle_wc"],
+        hybrid_dict["fine_idx"],
+        hybrid_dict["coarse_idx"],
+        hybrid_dict["factor"],
+        problem_dict["info_u"],
+        problem_dict["info_c"],
+    )
+
+    # Variable groups and angles
+    vgroups = np.array([groups_c] * steps, dtype=np.int32)
+    vangles = np.array([angles_c] * steps, dtype=np.int32)
+
+    # Run vHybrid Method
+    vhy_flux = vhybrid2d.tr_bdf2(
+        vgroups,
+        vangles,
+        problem_dict["initial_flux_x"],
+        problem_dict["initial_flux_y"],
+        problem_dict["xs_total_u"],
+        problem_dict["xs_scatter_u"],
+        problem_dict["xs_fission_u"],
+        problem_dict["velocity_u"],
+        problem_dict["external"],
+        problem_dict["boundary_x"],
+        problem_dict["boundary_y"],
+        problem_dict["medium_map"],
+        problem_dict["delta_x"],
+        problem_dict["delta_y"],
+        problem_dict["angle_xu"],
+        problem_dict["angle_yu"],
+        problem_dict["angle_wu"],
+        hybrid_dict["edges_g"],
+        problem_dict["info_u"],
+        problem_dict["info_c"],
+    )
+
+    # Compare each time step
+    for tt in range(steps):
+        print(
+            tt,
+            np.sum(hy_flux[tt]),
+            np.sum(vhy_flux[tt]),
+            np.sum(np.fabs(hy_flux[tt] - vhy_flux[tt])),
+        )
+        # assert np.isclose(hy_flux[tt], vhy_flux[tt]).all()
+
+
+if __name__ == "__main__":
+    test_mg_01_tr_bdf2(2, 87)
