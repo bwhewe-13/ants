@@ -475,7 +475,6 @@ cdef double[:,:,:,:] multigroup_tr_bdf2(int[:] groups_c, int[:] angles_c, \
     xs_total_vu_cn[:,:] = xs_total_u[:,:]
     tools._total_velocity(xs_total_vu_cn, velocity_u, 2.0 / gamma, info_u)
 
-
     # Create sigma_t + (2 - gamma) / ((1 - gamma) * v * dt) - BDF2 Step
     xs_total_vu_bdf2 = tools.array_2d(info_u.materials, info_u.groups)
     xs_total_vu_bdf2[:,:] = xs_total_u[:,:]
@@ -486,8 +485,8 @@ cdef double[:,:,:,:] multigroup_tr_bdf2(int[:] groups_c, int[:] angles_c, \
                                info_u.angles * info_u.angles, info_u.groups)
 
     # Initialize scalar fluxes - Uncollided
-    flux_ell_u = tools.array_3d(info_u.cells_x, info_u.cells_y, info_u.groups)
-    tools._angular_edge_to_scalar(flux_ell_x, flux_ell_y, flux_ell_u, angle_wu, info_u)
+    flux_u = tools.array_3d(info_u.cells_x, info_u.cells_y, info_u.groups)
+    tools._angular_edge_to_scalar(flux_ell_x, flux_ell_y, flux_u, angle_wu, info_u)
 
     # Initialize time flux, collided terms
     flux_time = tools.array_4d(info_u.steps, info_u.cells_x, info_u.cells_y, info_u.groups)
@@ -495,10 +494,6 @@ cdef double[:,:,:,:] multigroup_tr_bdf2(int[:] groups_c, int[:] angles_c, \
     xs_scatter_c = tools.array_1d(info_c.materials)
     off_scatter = tools.array_2d(info_c.cells_x, info_c.cells_y)
     boundary_c = tools.array_4d(2, 1, 1, 1)
-
-    xs_total_c = tools.array_1d(info_c.materials)
-    xs_scatter_c = tools.array_1d(info_c.materials)
-    off_scatter = tools.array_2d(info_c.cells_x, info_c.cells_y)
 
     # Iterate over time steps
     for step in tqdm(range(info_u.steps), desc="vTR-BDF2*", ascii=True):
@@ -547,12 +542,12 @@ cdef double[:,:,:,:] multigroup_tr_bdf2(int[:] groups_c, int[:] angles_c, \
         # Crank Nicolson
         ################################################################
         # Update q_star for CN step
-        tools._time_source_star_cn(flux_ell_x, flux_ell_y, flux_ell_u, xs_total_u, \
+        tools._time_source_star_cn(flux_ell_x, flux_ell_y, flux_u, xs_total_u, \
                 xs_scatter_u, velocity_u, flux_last_gamma, external_u[qq], external_u[qqa], \
                 medium_map, delta_x, delta_y, angle_xu, angle_yu, 2.0 / gamma, info_u)
 
         # Run hybrid method
-        hybrid_method(flux_ell_u, flux_c, xs_total_u, xs_total_c, xs_total_vu_cn, \
+        hybrid_method(flux_u, flux_c, xs_total_u, xs_total_c, xs_total_vu_cn, \
                 xs_scatter_u, xs_scatter_c, flux_last_gamma, off_scatter, source_c, \
                 boundary_xu[bcx], boundary_yu[bcy], boundary_c, medium_map, delta_x, \
                 delta_y, angle_xu, angle_xc, angle_yu, angle_yc, angle_wu, angle_wc, \
@@ -569,7 +564,7 @@ cdef double[:,:,:,:] multigroup_tr_bdf2(int[:] groups_c, int[:] angles_c, \
         tools._time_source_star_tr_bdf2_mem(flux_ell_x, flux_ell_y, flux_last_gamma, \
                             external_u[qqb], velocity_u, gamma, info_u)
 
-        hybrid_method(flux_ell_u, flux_c, xs_total_u, xs_total_c, xs_total_vu_bdf2, \
+        hybrid_method(flux_u, flux_c, xs_total_u, xs_total_c, xs_total_vu_bdf2, \
                 xs_scatter_u, xs_scatter_c, flux_last_gamma, off_scatter, source_c, \
                 boundary_xu[bcxa], boundary_yu[bcya], boundary_c, medium_map, \
                 delta_x, delta_y, angle_xu, angle_xc, angle_yu, angle_yc, angle_wu, \
@@ -583,7 +578,7 @@ cdef double[:,:,:,:] multigroup_tr_bdf2(int[:] groups_c, int[:] angles_c, \
         # Step 5: Update flux_time and repeat
         tools._angular_edge_to_scalar(flux_ell_x, flux_ell_y, flux_time[step], \
                                       angle_wu, info_u)
-        flux_ell_u[:,:,:] = flux_time[step,:,:,:]
+        flux_u[:,:,:] = flux_time[step,:,:,:]
 
     return flux_time[:,:,:,:]
 
