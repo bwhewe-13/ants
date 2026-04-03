@@ -18,6 +18,7 @@ import ants
 from ants.fixed2d import source_iteration
 from ants.utils import manufactured_2d as mms
 from ants.utils import pytools as tools
+from ants.datatypes import CrossSections, QuadratureData, SpatialGrid
 from tests import problems2d
 
 
@@ -35,9 +36,10 @@ def test_step_mms_center_01(angular):
         info["angular"] = angular
         info["spatial"] = 1
         # Run Source Iteration
-        flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
-                                boundary_x, boundary_y, medium_map, delta_x, \
-                                delta_y, angle_x, angle_y, angle_w, info)
+        flux = source_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                                external, boundary_x, boundary_y, medium_map, \
+                                SpatialGrid(delta_x, delta_y), \
+                                QuadratureData(angle_x, angle_w, angle_y), info)
 
         centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
         centers_y = 0.5 * (edges_y[1:] + edges_y[:-1])
@@ -70,9 +72,10 @@ def test_step_mms_edge_01(angular):
         info["spatial"] = 1
         info["edges"] = 1
         # Run Source Iteration
-        flux_x, flux_y = source_iteration(xs_total, xs_scatter, xs_fission, \
+        flux_x, flux_y = source_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
                             external, boundary_x, boundary_y, medium_map, \
-                            delta_x, delta_y, angle_x, angle_y, angle_w, info)
+                            SpatialGrid(delta_x, delta_y), \
+                            QuadratureData(angle_x, angle_w, angle_y), info)
         flux_c = 0.25 * (flux_x[:-1] + flux_x[1:] + flux_y[:,1:] + flux_y[:,:-1])
 
         centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
@@ -110,9 +113,10 @@ def test_dd_mms_center_01(angular):
         info["angular"] = angular
         info["spatial"] = 2
         # Run Source Iteration 
-        flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
-                                boundary_x, boundary_y, medium_map, delta_x, \
-                                delta_y, angle_x, angle_y, angle_w, info)
+        flux = source_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                                external, boundary_x, boundary_y, medium_map, \
+                                SpatialGrid(delta_x, delta_y), \
+                                QuadratureData(angle_x, angle_w, angle_y), info)
         centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
         centers_y = 0.5 * (edges_y[1:] + edges_y[:-1])
         exact = mms.solution_ss_01(centers_x, centers_y, angle_x, angle_y)
@@ -143,9 +147,10 @@ def test_dd_mms_edge_01(angular):
         info["spatial"] = 2
         info["edges"] = 1
         # Run Source Iteration
-        flux_x, flux_y = source_iteration(xs_total, xs_scatter, xs_fission, \
+        flux_x, flux_y = source_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
                             external, boundary_x, boundary_y, medium_map, \
-                            delta_x, delta_y, angle_x, angle_y, angle_w, info)
+                            SpatialGrid(delta_x, delta_y), \
+                            QuadratureData(angle_x, angle_w, angle_y), info)
         flux_c = 0.25 * (flux_x[:-1] + flux_x[1:] + flux_y[:,1:] + flux_y[:,:-1])
 
         centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
@@ -182,9 +187,10 @@ def test_step_mms_center_02(angular):
         info["angular"] = angular
         info["spatial"] = 1
         # Run Source Iteration 
-        flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
-                                boundary_x, boundary_y, medium_map, delta_x, \
-                                delta_y, angle_x, angle_y, angle_w, info)
+        flux = source_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                                external, boundary_x, boundary_y, medium_map, \
+                                SpatialGrid(delta_x, delta_y), \
+                                QuadratureData(angle_x, angle_w, angle_y), info)
 
         centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
         centers_y = 0.5 * (edges_y[1:] + edges_y[:-1])
@@ -215,9 +221,10 @@ def test_step_mms_edge_02(angular):
         info["spatial"] = 1
         info["edges"] = 1
         # Run Source Iteration
-        flux_x, flux_y = source_iteration(xs_total, xs_scatter, xs_fission, \
+        flux_x, flux_y = source_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
                             external, boundary_x, boundary_y, medium_map, \
-                            delta_x, delta_y, angle_x, angle_y, angle_w, info)
+                            SpatialGrid(delta_x, delta_y), \
+                            QuadratureData(angle_x, angle_w, angle_y), info)
         flux_c = 0.25 * (flux_x[:-1] + flux_x[1:] + flux_y[:,1:] + flux_y[:,:-1])
 
         centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
@@ -254,9 +261,10 @@ def test_dd_mms_center_02(angular):
         info["angular"] = angular
         info["spatial"] = 2
         # Run Source Iteration 
-        flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
-                                boundary_x, boundary_y, medium_map, delta_x, \
-                                delta_y, angle_x, angle_y, angle_w, info)
+        flux = source_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                                external, boundary_x, boundary_y, medium_map, \
+                                SpatialGrid(delta_x, delta_y), \
+                                QuadratureData(angle_x, angle_w, angle_y), info)
         
         centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
         centers_y = 0.5 * (edges_y[1:] + edges_y[:-1])
@@ -287,9 +295,10 @@ def test_dd_mms_edge_02(angular):
         info["spatial"] = 2
         info["edges"] = 1
         # Run Source Iteration
-        flux_x, flux_y = source_iteration(xs_total, xs_scatter, xs_fission, \
+        flux_x, flux_y = source_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
                             external, boundary_x, boundary_y, medium_map, \
-                            delta_x, delta_y, angle_x, angle_y, angle_w, info)
+                            SpatialGrid(delta_x, delta_y), \
+                            QuadratureData(angle_x, angle_w, angle_y), info)
         flux_c = 0.25 * (flux_x[:-1] + flux_x[1:] + flux_y[:,1:] + flux_y[:,:-1])
 
         centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
@@ -326,9 +335,10 @@ def test_step_mms_center_04(angular):
         info["angular"] = angular
         info["spatial"] = 1
         # Run Source Iteration
-        flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
-                                boundary_x, boundary_y, medium_map, delta_x, \
-                                delta_y, angle_x, angle_y, angle_w, info)
+        flux = source_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                                external, boundary_x, boundary_y, medium_map, \
+                                SpatialGrid(delta_x, delta_y), \
+                                QuadratureData(angle_x, angle_w, angle_y), info)
 
         centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
         centers_y = 0.5 * (edges_y[1:] + edges_y[:-1])
@@ -359,9 +369,10 @@ def test_step_mms_edge_04(angular):
         info["spatial"] = 1
         info["edges"] = 1
         # Run Source Iteration
-        flux_x, flux_y = source_iteration(xs_total, xs_scatter, xs_fission, \
+        flux_x, flux_y = source_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
                             external, boundary_x, boundary_y, medium_map, \
-                            delta_x, delta_y, angle_x, angle_y, angle_w, info)
+                            SpatialGrid(delta_x, delta_y), \
+                            QuadratureData(angle_x, angle_w, angle_y), info)
         flux_c = 0.25 * (flux_x[:-1] + flux_x[1:] + flux_y[:,1:] + flux_y[:,:-1])
 
         centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
@@ -398,9 +409,10 @@ def test_dd_mms_center_04(angular):
         info["angular"] = angular
         info["spatial"] = 2
         # Run Source Iteration 
-        flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
-                                boundary_x, boundary_y, medium_map, delta_x, \
-                                delta_y, angle_x, angle_y, angle_w, info)
+        flux = source_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                                external, boundary_x, boundary_y, medium_map, \
+                                SpatialGrid(delta_x, delta_y), \
+                                QuadratureData(angle_x, angle_w, angle_y), info)
         
         centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
         centers_y = 0.5 * (edges_y[1:] + edges_y[:-1])
@@ -431,9 +443,10 @@ def test_dd_mms_edge_04(angular):
         info["spatial"] = 2
         info["edges"] = 1
         # Run Source Iteration
-        flux_x, flux_y = source_iteration(xs_total, xs_scatter, xs_fission, \
+        flux_x, flux_y = source_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
                             external, boundary_x, boundary_y, medium_map, \
-                            delta_x, delta_y, angle_x, angle_y, angle_w, info)
+                            SpatialGrid(delta_x, delta_y), \
+                            QuadratureData(angle_x, angle_w, angle_y), info)
         flux_c = 0.25 * (flux_x[:-1] + flux_x[1:] + flux_y[:,1:] + flux_y[:,:-1])
 
         centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])

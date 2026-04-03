@@ -1,27 +1,45 @@
 # Python
 __pycache__/
 *.py[cod]
+*$py.class
 *.ipynb
+.ipynb_checkpoints/
 
-# Cython Extensions
-*.so
-*.cpp
+# Cython extensions and local binary outputs
 *.c
-*.DS_Store
+*.cpp
+*.so
+*.pyd
+*.dylib
 
 # Data files
 sources/
 
-# Packaging
+# Testing and coverage
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.hypothesis/
+
+# Packaging and build outputs
 *.egg-info/
 *.egg
-
 env/
+.venv/
+venv/
 build/
 dist/
+pip-wheel-metadata/
 
 # Sphinx documentation
 docs/_build/
 
-#IDEA config files
+# IDE/editor settings
 .idea/
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db

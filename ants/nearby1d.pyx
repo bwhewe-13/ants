@@ -18,16 +18,21 @@
 # cython: profile=True
 # distutils: language = c++
 
+import logging
+
 import numpy as np
 from tqdm.auto import tqdm
 
 from ants import fixed1d, critical1d
+from ants.datatypes import CrossSections, QuadratureData, SpatialGrid
 from ants.utils.interp1d import Interpolation
 from ants.utils.pytools import average_array
 
 from ants cimport cytools_1d as tools
 from ants cimport parameters
 from ants.parameters cimport params
+
+logger = logging.getLogger(__name__)
 
 
 def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x, \
@@ -46,10 +51,10 @@ def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x, \
         x_splits = np.zeros((0,), dtype=np.int32)
 
     # Run Numerical Solution
-    print("Calculating Numerical Solution...")
-    numerical_flux = fixed1d.source_iteration(xs_total, xs_scatter, \
-                            xs_fission, external, boundary_x, medium_map, \
-                            delta_x, angle_x, angle_w, info)
+    logger.info("Calculating Numerical Solution...")
+    numerical_flux = fixed1d.source_iteration(CrossSections(xs_total, xs_scatter, \
+                            xs_fission), external, boundary_x, medium_map, \
+                            SpatialGrid(delta_x), QuadratureData(angle_x, angle_w), info)
 
     # Initialize curve fit
     curve_fit_boundary_x = tools.array_3d(2, info.angles, info.groups)
@@ -61,7 +66,7 @@ def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x, \
     int_scalar = tools.array_2d(info.cells_x, info.groups)
 
     # Calculate curve fit at knots
-    print("Calculating Angular Cuvre Fit Solution...")
+    logger.info("Calculating Angular Curve Fit Solution...")
     # Knots at cell centers
     if knots_x.shape[0] == info.cells_x:
         edges_x = np.insert(np.cumsum(delta_x), 0, 0)
@@ -78,7 +83,7 @@ def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x, \
                 angle_w, block, quintic, info)
 
     # Calculate residual for each cell
-    print("Calculating Angular Residual...")
+    logger.info("Calculating Angular Residual...")
     residual = tools.array_3d(info.cells_x, info.angles, info.groups)
     _angular_residual(residual, int_angular, int_dx_angular, int_scalar, \
             xs_total, xs_scatter, xs_fission, external, medium_map, \
@@ -90,14 +95,15 @@ def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x, \
     np.save(f"nearby_boundary_x_x{fcells}_n{fangles}", np.asarray(curve_fit_boundary_x))
 
     # Run Nearby Problem
-    print("Calculating Nearby Solution...")
+    logger.info("Calculating Nearby Solution...")
     info.edges = 0
     if kwargs.get("zero_bounds", False):
-        print("Removing Analytical Boundary Conditions...")
+        logger.info("Removing Analytical Boundary Conditions...")
         curve_fit_boundary_x = boundary_x.copy()
-    nearby_flux = fixed1d.source_iteration(xs_total, xs_scatter, xs_fission, \
-                            (external + residual), curve_fit_boundary_x, \
-                            medium_map, delta_x, angle_x, angle_w, info)
+    nearby_flux = fixed1d.source_iteration(CrossSections(xs_total, xs_scatter, \
+                            xs_fission), (external + residual), \
+                            curve_fit_boundary_x, medium_map, SpatialGrid(delta_x), \
+                            QuadratureData(angle_x, angle_w), info)
 
     return numerical_flux, np.asarray(curve_fit_flux), nearby_flux
 
@@ -119,10 +125,11 @@ def fixed_source_angular_residual(scalar_flux, xs_total, xs_scatter, \
         x_splits = np.zeros((0,), dtype=np.int32)
 
     # Run Numerical Solution
-    print("Calculating Angular Flux Solution...")
+    logger.info("Calculating Angular Flux Solution...")
     numerical_flux = fixed1d.known_source_calculation(scalar_flux, xs_total, \
                             xs_scatter + xs_fission, external, boundary_x, \
-                            medium_map, delta_x, angle_x, angle_w, params_dict)
+                            medium_map, SpatialGrid(delta_x), \
+                            QuadratureData(angle_x, angle_w), params_dict)
 
     # Initialize curve fit
     curve_fit_boundary_x = np.zeros((2, info.angles, info.groups))
@@ -134,7 +141,7 @@ def fixed_source_angular_residual(scalar_flux, xs_total, xs_scatter, \
     int_scalar = tools.array_2d(info.cells_x, info.groups)
 
     # Calculate curve fit at knots
-    print("Calculating Angular Curve Fit Solution...")
+    logger.info("Calculating Angular Curve Fit Solution...")
     # Knots at cell centers
     if knots_x.shape[0] == info.cells_x:
         edges_x = np.insert(np.cumsum(delta_x), 0, 0)
@@ -151,7 +158,7 @@ def fixed_source_angular_residual(scalar_flux, xs_total, xs_scatter, \
                 angle_w, block, quintic, info)
 
     # Calculate residual for each cell
-    print("Calculating Angular Residual...")
+    logger.info("Calculating Angular Residual...")
     residual = tools.array_3d(info.cells_x, info.angles, info.groups)
     _angular_residual(residual, int_angular, int_dx_angular, int_scalar, \
             xs_total, xs_scatter, xs_fission, external, medium_map, \
@@ -178,11 +185,11 @@ def fixed_source_scalar_residual(scalar_flux, xs_total, xs_scatter, \
         x_splits = np.zeros((0,), dtype=np.int32)
 
     # Run Numerical Solution
-    print("Calculating Angular Flux Solution...")
+    logger.info("Calculating Angular Flux Solution...")
     numerical_flux = fixed1d.known_source_calculation(scalar_flux, \
                             xs_total, xs_scatter + xs_fission, external, \
-                            boundary_x, medium_map, delta_x, angle_x, \
-                            angle_w, params_dict)
+                            boundary_x, medium_map, SpatialGrid(delta_x), \
+                            QuadratureData(angle_x, angle_w), params_dict)
 
     # Initialize curve fit and residual
     curve_fit_boundary_x = tools.array_2d(2, info.groups)
@@ -192,7 +199,7 @@ def fixed_source_scalar_residual(scalar_flux, xs_total, xs_scatter, \
     # Knots at cell centers
     edges_x = np.insert(np.cumsum(delta_x), 0, 0)
 
-    print("Calculating Scalar Curve Fit Solution and Residual...")
+    logger.info("Calculating Scalar Curve Fit Solution and Residual...")
     _scalar_curve_fit_residual(numerical_flux, curve_fit_flux, \
             curve_fit_boundary_x, residual, xs_total, xs_scatter, \
             xs_fission, external, medium_map, delta_x, knots_x, edges_x, \
@@ -373,7 +380,7 @@ cdef void _scalar_curve_fit_residual(double[:,:,:]& flux, double[:,:]& curve_fit
             xs_fission, medium_map, info)
 
 
-def criticality(xs_total, xs_scatter, xs_fission, medium_map, delta_x, \
+def keigenvalue(xs_total, xs_scatter, xs_fission, medium_map, delta_x, \
         knots_x, angle_x, angle_w, params_dict, **kwargs):
 
     # Keyword arguments
@@ -389,10 +396,11 @@ def criticality(xs_total, xs_scatter, xs_fission, medium_map, delta_x, \
         x_splits = np.zeros((0,), dtype=np.int32)
 
     # Run Numerical Solution
-    print("Calculating Numerical Solution...")
-    numerical_flux, numerical_keff = critical1d.power_iteration(xs_total, \
-                                    xs_scatter, xs_fission, medium_map, \
-                                    delta_x, angle_x, angle_w, info)
+    logger.info("Calculating Numerical Solution...")
+    numerical_flux, numerical_keff = critical1d.power_iteration( \
+                                    CrossSections(xs_total, xs_scatter, xs_fission), \
+                                    medium_map, SpatialGrid(delta_x), \
+                                    QuadratureData(angle_x, angle_w), info)
 
     # Initialize curve fit
     curve_fit_boundary_x = tools.array_3d(2, info.angles, info.groups)
@@ -404,7 +412,7 @@ def criticality(xs_total, xs_scatter, xs_fission, medium_map, delta_x, \
     int_scalar = tools.array_2d(info.cells_x, info.groups)
 
     # Calculate curve fit at knots
-    print("Calculating Analytical Solution...")
+    logger.info("Calculating Analytical Solution...")
     # Knots at cell centers
     if knots_x.shape[0] == info.cells_x:
         edges_x = np.insert(np.cumsum(delta_x), 0, 0)
@@ -428,7 +436,7 @@ def criticality(xs_total, xs_scatter, xs_fission, medium_map, delta_x, \
                             angle_x, angle_w, info)
 
     # Calculate residual for each cell
-    print("Calculating Residual...")
+    logger.info("Calculating Residual...")
     residual = np.zeros((info.cells_x, info.angles, info.groups))
     _angular_residual_critical(residual, int_angular, int_dx_angular, \
             int_scalar, xs_total, xs_scatter, curve_fit_source, medium_map, \
@@ -437,11 +445,12 @@ def criticality(xs_total, xs_scatter, xs_fission, medium_map, delta_x, \
     np.save(f"nearby_residual_n{fangles}", np.asarray(residual))
 
     # Run Nearby Problem
-    print("Calculating Nearby Solution...")
+    logger.info("Calculating Nearby Solution...")
     info.edges = 0
-    nearby_scalar, nearby_keff = critical1d.nearby_power(xs_total, xs_scatter, \
-                                    xs_fission, residual, medium_map, delta_x, \
-                                    angle_x, angle_w, nearby_rate, info)
+    nearby_scalar, nearby_keff = critical1d.nearby_power( \
+                                    CrossSections(xs_total, xs_scatter, xs_fission), \
+                                    residual, medium_map, SpatialGrid(delta_x), \
+                                    QuadratureData(angle_x, angle_w), nearby_rate, info)
 
     # Convert numerical_flux to scalar flux
     numerical_scalar = tools.array_2d(info.cells_x, info.groups)

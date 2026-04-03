@@ -9,7 +9,11 @@
 # 
 ########################################################################
 
+import logging
+
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 ########################################################################
 # Evaluating Fluxes
@@ -20,7 +24,7 @@ def reaction_rates(flux, xs_matrix, medium_map):
     elif len(flux.shape) == 3:
         return _reaction_rate_2d(flux, xs_matrix, medium_map)
     else:
-        print("Unable to calculate reaction rate")
+        logger.warning("Unable to calculate reaction rate")
 
 
 def _reaction_rate_1d(flux, xs_matrix, medium_map):

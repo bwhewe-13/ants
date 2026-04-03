@@ -17,6 +17,7 @@ import ants
 from ants import hybrid2d
 from ants.utils import hybrid as hytools
 from ants.utils import manufactured_2d as mms
+from ants.datatypes import CrossSections, HybridMapping, QuadratureData, SpatialGrid
 from tests import problems2d
 
 
@@ -59,34 +60,15 @@ def test_backward_euler_01():
     data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
     fine_idx, coarse_idx, factor = data
 
+    xs = CrossSections(xs_total, xs_scatter, xs_fission)
+    grid = SpatialGrid(delta_x, delta_y)
+    quad = QuadratureData(angle_x, angle_w, angle_y)
+    mapping = HybridMapping(fine_idx, coarse_idx, factor)
+
     # Run Hybrid Method
     approx = hybrid2d.backward_euler(
-        initial_flux,
-        xs_total,
-        xs_total,
-        xs_scatter,
-        xs_scatter,
-        xs_fission,
-        xs_fission,
-        velocity,
-        velocity,
-        external,
-        boundary_x,
-        boundary_y,
-        medium_map,
-        delta_x,
-        delta_y,
-        angle_x,
-        angle_x,
-        angle_y,
-        angle_y,
-        angle_w,
-        angle_w,
-        fine_idx,
-        coarse_idx,
-        factor,
-        info,
-        info,
+        initial_flux, xs, xs, velocity, velocity, external,
+        boundary_x, boundary_y, medium_map, grid, quad, quad, mapping, info, info,
     )
 
     edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
@@ -141,34 +123,15 @@ def test_backward_euler_02():
     data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
     fine_idx, coarse_idx, factor = data
 
+    xs = CrossSections(xs_total, xs_scatter, xs_fission)
+    grid = SpatialGrid(delta_x, delta_y)
+    quad = QuadratureData(angle_x, angle_w, angle_y)
+    mapping = HybridMapping(fine_idx, coarse_idx, factor)
+
     # Run Hybrid Method
     approx = hybrid2d.backward_euler(
-        initial_flux,
-        xs_total,
-        xs_total,
-        xs_scatter,
-        xs_scatter,
-        xs_fission,
-        xs_fission,
-        velocity,
-        velocity,
-        external,
-        boundary_x,
-        boundary_y,
-        medium_map,
-        delta_x,
-        delta_y,
-        angle_x,
-        angle_x,
-        angle_y,
-        angle_y,
-        angle_w,
-        angle_w,
-        fine_idx,
-        coarse_idx,
-        factor,
-        info,
-        info,
+        initial_flux, xs, xs, velocity, velocity, external,
+        boundary_x, boundary_y, medium_map, grid, quad, quad, mapping, info, info,
     )
 
     edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
@@ -225,35 +188,15 @@ def test_crank_nicolson_01():
     data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
     fine_idx, coarse_idx, factor = data
 
+    xs = CrossSections(xs_total, xs_scatter, xs_fission)
+    grid = SpatialGrid(delta_x, delta_y)
+    quad = QuadratureData(angle_x, angle_w, angle_y)
+    mapping = HybridMapping(fine_idx, coarse_idx, factor)
+
     # Run Hybrid Method
     approx = hybrid2d.crank_nicolson(
-        initial_flux_x,
-        initial_flux_y,
-        xs_total,
-        xs_total,
-        xs_scatter,
-        xs_scatter,
-        xs_fission,
-        xs_fission,
-        velocity,
-        velocity,
-        external,
-        boundary_x,
-        boundary_y,
-        medium_map,
-        delta_x,
-        delta_y,
-        angle_x,
-        angle_x,
-        angle_y,
-        angle_y,
-        angle_w,
-        angle_w,
-        fine_idx,
-        coarse_idx,
-        factor,
-        info,
-        info,
+        initial_flux_x, initial_flux_y, xs, xs, velocity, velocity, external,
+        boundary_x, boundary_y, medium_map, grid, quad, quad, mapping, info, info,
     )
 
     edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
@@ -309,35 +252,15 @@ def test_crank_nicolson_02():
     data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
     fine_idx, coarse_idx, factor = data
 
+    xs = CrossSections(xs_total, xs_scatter, xs_fission)
+    grid = SpatialGrid(delta_x, delta_y)
+    quad = QuadratureData(angle_x, angle_w, angle_y)
+    mapping = HybridMapping(fine_idx, coarse_idx, factor)
+
     # Run Hybrid Method
     approx = hybrid2d.crank_nicolson(
-        initial_flux_x,
-        initial_flux_y,
-        xs_total,
-        xs_total,
-        xs_scatter,
-        xs_scatter,
-        xs_fission,
-        xs_fission,
-        velocity,
-        velocity,
-        external,
-        boundary_x,
-        boundary_y,
-        medium_map,
-        delta_x,
-        delta_y,
-        angle_x,
-        angle_x,
-        angle_y,
-        angle_y,
-        angle_w,
-        angle_w,
-        fine_idx,
-        coarse_idx,
-        factor,
-        info,
-        info,
+        initial_flux_x, initial_flux_y, xs, xs, velocity, velocity, external,
+        boundary_x, boundary_y, medium_map, grid, quad, quad, mapping, info, info,
     )
 
     edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
@@ -393,34 +316,15 @@ def test_bdf2_01():
     data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
     fine_idx, coarse_idx, factor = data
 
+    xs = CrossSections(xs_total, xs_scatter, xs_fission)
+    grid = SpatialGrid(delta_x, delta_y)
+    quad = QuadratureData(angle_x, angle_w, angle_y)
+    mapping = HybridMapping(fine_idx, coarse_idx, factor)
+
     # Run Hybrid Method
     approx = hybrid2d.bdf2(
-        initial_flux,
-        xs_total,
-        xs_total,
-        xs_scatter,
-        xs_scatter,
-        xs_fission,
-        xs_fission,
-        velocity,
-        velocity,
-        external,
-        boundary_x,
-        boundary_y,
-        medium_map,
-        delta_x,
-        delta_y,
-        angle_x,
-        angle_x,
-        angle_y,
-        angle_y,
-        angle_w,
-        angle_w,
-        fine_idx,
-        coarse_idx,
-        factor,
-        info,
-        info,
+        initial_flux, xs, xs, velocity, velocity, external,
+        boundary_x, boundary_y, medium_map, grid, quad, quad, mapping, info, info,
     )
 
     edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
@@ -475,34 +379,15 @@ def test_bdf2_02():
     data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
     fine_idx, coarse_idx, factor = data
 
+    xs = CrossSections(xs_total, xs_scatter, xs_fission)
+    grid = SpatialGrid(delta_x, delta_y)
+    quad = QuadratureData(angle_x, angle_w, angle_y)
+    mapping = HybridMapping(fine_idx, coarse_idx, factor)
+
     # Run Hybrid Method
     approx = hybrid2d.bdf2(
-        initial_flux,
-        xs_total,
-        xs_total,
-        xs_scatter,
-        xs_scatter,
-        xs_fission,
-        xs_fission,
-        velocity,
-        velocity,
-        external,
-        boundary_x,
-        boundary_y,
-        medium_map,
-        delta_x,
-        delta_y,
-        angle_x,
-        angle_x,
-        angle_y,
-        angle_y,
-        angle_w,
-        angle_w,
-        fine_idx,
-        coarse_idx,
-        factor,
-        info,
-        info,
+        initial_flux, xs, xs, velocity, velocity, external,
+        boundary_x, boundary_y, medium_map, grid, quad, quad, mapping, info, info,
     )
 
     edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
@@ -559,35 +444,15 @@ def test_tr_bdf2_01():
     data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
     fine_idx, coarse_idx, factor = data
 
+    xs = CrossSections(xs_total, xs_scatter, xs_fission)
+    grid = SpatialGrid(delta_x, delta_y)
+    quad = QuadratureData(angle_x, angle_w, angle_y)
+    mapping = HybridMapping(fine_idx, coarse_idx, factor)
+
     # Run Hybrid Method
     approx = hybrid2d.tr_bdf2(
-        initial_flux_x,
-        initial_flux_y,
-        xs_total,
-        xs_total,
-        xs_scatter,
-        xs_scatter,
-        xs_fission,
-        xs_fission,
-        velocity,
-        velocity,
-        external,
-        boundary_x,
-        boundary_y,
-        medium_map,
-        delta_x,
-        delta_y,
-        angle_x,
-        angle_x,
-        angle_y,
-        angle_y,
-        angle_w,
-        angle_w,
-        fine_idx,
-        coarse_idx,
-        factor,
-        info,
-        info,
+        initial_flux_x, initial_flux_y, xs, xs, velocity, velocity, external,
+        boundary_x, boundary_y, medium_map, grid, quad, quad, mapping, info, info,
     )
 
     edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
@@ -643,35 +508,15 @@ def test_tr_bdf2_02():
     data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
     fine_idx, coarse_idx, factor = data
 
+    xs = CrossSections(xs_total, xs_scatter, xs_fission)
+    grid = SpatialGrid(delta_x, delta_y)
+    quad = QuadratureData(angle_x, angle_w, angle_y)
+    mapping = HybridMapping(fine_idx, coarse_idx, factor)
+
     # Run Hybrid Method
     approx = hybrid2d.tr_bdf2(
-        initial_flux_x,
-        initial_flux_y,
-        xs_total,
-        xs_total,
-        xs_scatter,
-        xs_scatter,
-        xs_fission,
-        xs_fission,
-        velocity,
-        velocity,
-        external,
-        boundary_x,
-        boundary_y,
-        medium_map,
-        delta_x,
-        delta_y,
-        angle_x,
-        angle_x,
-        angle_y,
-        angle_y,
-        angle_w,
-        angle_w,
-        fine_idx,
-        coarse_idx,
-        factor,
-        info,
-        info,
+        initial_flux_x, initial_flux_y, xs, xs, velocity, velocity, external,
+        boundary_x, boundary_y, medium_map, grid, quad, quad, mapping, info, info,
     )
 
     edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)

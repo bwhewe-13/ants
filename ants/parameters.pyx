@@ -18,7 +18,10 @@
 # cython: profile=True
 # distutils: language = c++
 
-from ants.constants import *
+from ants.constants import (
+    CHANGE_ANGULAR, CHANGE_ENERGY, CHANGE_POWER,
+    COUNT_ANGULAR, COUNT_ENERGY, COUNT_POWER,
+)
 
 cdef params _to_params(dict pydic):
     # Initialize params struct

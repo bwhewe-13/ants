@@ -30,3 +30,6 @@ from ants.main import (
 
 # Creating materials/sources
 from ants.materials import materials
+
+# Custom datatypes for bundling solver arguments
+from ants.datatypes import CrossSections, HybridMapping, QuadratureData, SpatialGrid

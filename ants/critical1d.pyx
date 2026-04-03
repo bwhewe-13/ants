@@ -18,17 +18,35 @@
 # cython: profile=True
 # distutils: language = c++
 
+import logging
+
 import numpy as np
 
 from ants cimport multi_group_1d as mg
 from ants cimport cytools_1d as tools
 from ants.parameters cimport params
 from ants cimport parameters
+from ants.datatypes import CrossSections, QuadratureData, SpatialGrid
+
+logger = logging.getLogger(__name__)
 
 
-def power_iteration(double[:,:] xs_total, double[:,:,:] xs_scatter, \
-        double[:,:,:] xs_fission, int[:] medium_map, double[:] delta_x, \
-        double[:] angle_x, double[:] angle_w, dict params_dict):
+def power_iteration(xs, int[:] medium_map, grid, \
+        quad, dict params_dict):
+
+    _xs_total = xs.total
+    cdef double[:,:] xs_total = _xs_total
+    _xs_scatter = xs.scatter
+    cdef double[:,:,:] xs_scatter = _xs_scatter
+    _xs_fission = xs.fission
+    cdef double[:,:,:] xs_fission = _xs_fission
+    _delta_x = grid.delta_x
+    cdef double[:] delta_x = _delta_x
+    _angle_x = quad.angle_x
+    cdef double[:] angle_x = _angle_x
+    _angle_w = quad.angle_w
+    cdef double[:] angle_w = _angle_w
+
     # Convert dictionary to type params
     info = parameters._to_params(params_dict)
     parameters._check_critical1d_power_iteration(info)
@@ -44,8 +62,8 @@ def power_iteration(double[:,:] xs_total, double[:,:,:] xs_scatter, \
     if (info.angular == False) and (params_dict.get("edges", 0) == 0):
         return np.asarray(flux), keff[0]
     # For returning angular flux or flux at cell edges
-    return known_source_calculation(flux, xs_total, xs_scatter, xs_fission, \
-        medium_map, delta_x, angle_x, angle_w, keff[0], params_dict), keff[0]
+    return known_source_calculation(flux, xs, medium_map, grid, quad, \
+                                    keff[0], params_dict), keff[0]
 
 
 cdef double[:,:] multigroup_power(double[:,:]& flux_guess, double[:,:]& xs_total, \
@@ -87,49 +105,73 @@ cdef double[:,:] multigroup_power(double[:,:]& flux_guess, double[:,:]& xs_total
         
         # Check for convergence
         change = tools.group_convergence(flux, flux_old, info)
-        print("Count: {:>3}\tKeff: {:.8f}".format(str(count).zfill(3), \
-                keff[0]), end="\r")
+        logger.info("Count: %s\tKeff: %.8f", str(count).zfill(3), keff[0])
         converged = (change < info.change_keff) or (count >= info.count_keff)
         count += 1
         flux_old[:,:] = flux[:,:]
     
-    print("\nConvergence: {:2.6e}".format(change))
+    logger.info("Convergence: %2.6e", change)
     return flux[:,:]
 
 
-def known_source_calculation(double[:,:] flux, double[:,:] xs_total, \
-        double[:,:,:] xs_scatter, double[:,:,:] xs_fission, \
-        int[:] medium_map, double[:] delta_x, double[:] angle_x, \
-        double[:] angle_w, double keff, dict params_dict):
-    
+def known_source_calculation(double[:,:] flux, xs, \
+        int[:] medium_map, grid, quad, \
+        double keff, dict params_dict):
+
+    _xs_total = xs.total
+    cdef double[:,:] xs_total = _xs_total
+    _xs_scatter = xs.scatter
+    cdef double[:,:,:] xs_scatter = _xs_scatter
+    _xs_fission = xs.fission
+    cdef double[:,:,:] xs_fission = _xs_fission
+    _delta_x = grid.delta_x
+    cdef double[:] delta_x = _delta_x
+    _angle_x = quad.angle_x
+    cdef double[:] angle_x = _angle_x
+    _angle_w = quad.angle_w
+    cdef double[:] angle_w = _angle_w
+
     # Covert dictionary to type params
     info = parameters._to_params(params_dict)
-    
+
     # Create (sigma_s + sigma_f) * phi + external function
     source = tools.array_3d(info.cells_x, 1, info.groups)
     tools._source_total_critical(source, flux, xs_scatter, xs_fission, \
                                  medium_map, keff, info)
-    
+
     # Need zero array for boundary
     boundary_x = tools.array_3d(2, 1, 1)
-    
+
     # Return scalar flux cell edges
     if (info.angular == False) and (info.edges == 1):
         scalar_flux = mg._known_source_scalar(xs_total, source, boundary_x, \
                             medium_map, delta_x, angle_x, angle_w, info)
         return np.asarray(scalar_flux)
-    
-    # Solve for angular flux 
+
+    # Solve for angular flux
     angular_flux = mg._known_source_angular(xs_total, source, boundary_x, \
                             medium_map, delta_x, angle_x, angle_w, info)
     # Return angular flux (either edges or centers)
     return np.asarray(angular_flux)
 
 
-def nearby_power(double[:,:] xs_total, double[:,:,:] xs_scatter, \
-        double[:,:,:] xs_fission, double[:,:,:] residual, int[:] medium_map, \
-        double[:] delta_x, double[:] angle_x, double[:] angle_w, \
-        double n_rate, dict params_dict):
+def nearby_power(xs, double[:,:,:] residual, int[:] medium_map, \
+        grid, quad, double n_rate, \
+        dict params_dict):
+
+    _xs_total = xs.total
+    cdef double[:,:] xs_total = _xs_total
+    _xs_scatter = xs.scatter
+    cdef double[:,:,:] xs_scatter = _xs_scatter
+    _xs_fission = xs.fission
+    cdef double[:,:,:] xs_fission = _xs_fission
+    _delta_x = grid.delta_x
+    cdef double[:] delta_x = _delta_x
+    _angle_x = quad.angle_x
+    cdef double[:] angle_x = _angle_x
+    _angle_w = quad.angle_w
+    cdef double[:] angle_w = _angle_w
+
     # Convert dictionary to type params1d
     info = parameters._to_params(params_dict)
     parameters._check_critical1d_nearby_power(info)
@@ -185,11 +227,10 @@ cdef double[:,:] multigroup_nearby(double[:,:]& flux_guess, \
         
         # Check for convergence
         change = tools.group_convergence(flux, flux_old, info)
-        print("Count: {:>3}\tKeff: {:.8f}".format(str(count).zfill(3), \
-                keff[0]), end="\r")
+        logger.info("Count: %s\tKeff: %.8f", str(count).zfill(3), keff[0])
         converged = (change < info.change_keff) or (count >= info.count_keff)
         count += 1
         flux_old[:,:] = flux[:,:]
     
-    print("\nConvergence: {:2.6e}".format(change))
+    logger.info("Convergence: %2.6e", change)
     return flux[:,:]

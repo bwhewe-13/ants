@@ -29,33 +29,50 @@ from ants.cytools_1d cimport _vhybrid_velocity, int_array_1d
 from ants cimport multi_group_2d as mg
 from ants.parameters cimport params
 from ants cimport parameters
+from ants.datatypes import CrossSections, QuadratureData, SpatialGrid
 
 # Uncollided is fine grid (N^2 x G)
 # Collided is coarse grid (N'^2 x G')
 
 
 def backward_euler(int[:] groups_c, int[:] angles_c, double[:,:,:,:] initial_flux, \
-        double[:,:] xs_total_u, double[:,:,:] xs_scatter_u, double[:,:,:] xs_fission_u, \
-        double[:] velocity_u, double[:,:,:,:,:] external_u, double[:,:,:,:,:] boundary_xu, \
-        double[:,:,:,:,:] boundary_yu, int[:,:] medium_map, double[:] delta_x, \
-        double[:] delta_y, double[:] angle_xu, double[:] angle_yu, double[:] angle_wu, \
+        xs_u, double[:] velocity_u, double[:,:,:,:,:] external_u, \
+        double[:,:,:,:,:] boundary_xu, double[:,:,:,:,:] boundary_yu, \
+        int[:,:] medium_map, grid, quad_u, \
         double[:] edges_g, dict params_dict_u, dict params_dict_c):
-    
+
+    _xs_total_u = xs_u.total
+    cdef double[:,:] xs_total_u = _xs_total_u
+    _xs_scatter_u = xs_u.scatter
+    cdef double[:,:,:] xs_scatter_u = _xs_scatter_u
+    _xs_fission_u = xs_u.fission
+    cdef double[:,:,:] xs_fission_u = _xs_fission_u
+    _delta_x = grid.delta_x
+    cdef double[:] delta_x = _delta_x
+    _delta_y = grid.delta_y
+    cdef double[:] delta_y = _delta_y
+    _angle_xu = quad_u.angle_x
+    cdef double[:] angle_xu = _angle_xu
+    _angle_wu = quad_u.angle_w
+    cdef double[:] angle_wu = _angle_wu
+    _angle_yu = quad_u.angle_y
+    cdef double[:] angle_yu = _angle_yu
+
     # Convert uncollided dictionary to type params
     info_u = parameters._to_params(params_dict_u)
     parameters._check_bdf_timed2d(info_u, initial_flux.shape[0], \
                                   external_u.shape[0], boundary_xu.shape[0], \
                                   boundary_yu.shape[0], xs_total_u.shape[0])
-    
+
     # Convert collided dictionary to type params
     info_c = parameters._to_params(params_dict_c)
 
     # Combine fission and scattering - Uncollided groups
     xs_matrix_u = tools.array_3d(info_u.materials, info_u.groups, info_u.groups)
     tools._xs_matrix(xs_matrix_u, xs_scatter_u, xs_fission_u, info_u)
-    
+
     # Run Backward Euler
-    flux = multigroup_bdf1(groups_c, angles_c, initial_flux.copy(), xs_total_u, 
+    flux = multigroup_bdf1(groups_c, angles_c, initial_flux.copy(), xs_total_u,
                     xs_matrix_u, velocity_u, external_u, boundary_xu.copy(), \
                     boundary_yu.copy(), medium_map, delta_x, delta_y, angle_xu, \
                     angle_yu, angle_wu, edges_g, info_u, info_c)
@@ -152,30 +169,46 @@ cdef double[:,:,:,:] multigroup_bdf1(int[:] groups_c, int[:] angles_c, \
 
 
 def crank_nicolson(int[:] groups_c, int[:] angles_c, double[:,:,:,:] initial_flux_x, \
-        double[:,:,:,:] initial_flux_y, double[:,:] xs_total_u, double[:,:,:] xs_scatter_u, \
-        double[:,:,:] xs_fission_u, double[:] velocity_u, double[:,:,:,:,:] external_u, \
-        double[:,:,:,:,:] boundary_xu, double[:,:,:,:,:] boundary_yu, \
-        int[:,:] medium_map, double[:] delta_x, double[:] delta_y, double[:] angle_xu, \
-        double[:] angle_yu, double[:] angle_wu, double[:] edges_g, dict params_dict_u, \
+        double[:,:,:,:] initial_flux_y, xs_u, double[:] velocity_u, \
+        double[:,:,:,:,:] external_u, double[:,:,:,:,:] boundary_xu, \
+        double[:,:,:,:,:] boundary_yu, int[:,:] medium_map, grid, \
+        quad_u, double[:] edges_g, dict params_dict_u, \
         dict params_dict_c):
-    
+
+    _xs_total_u = xs_u.total
+    cdef double[:,:] xs_total_u = _xs_total_u
+    _xs_scatter_u = xs_u.scatter
+    cdef double[:,:,:] xs_scatter_u = _xs_scatter_u
+    _xs_fission_u = xs_u.fission
+    cdef double[:,:,:] xs_fission_u = _xs_fission_u
+    _delta_x = grid.delta_x
+    cdef double[:] delta_x = _delta_x
+    _delta_y = grid.delta_y
+    cdef double[:] delta_y = _delta_y
+    _angle_xu = quad_u.angle_x
+    cdef double[:] angle_xu = _angle_xu
+    _angle_wu = quad_u.angle_w
+    cdef double[:] angle_wu = _angle_wu
+    _angle_yu = quad_u.angle_y
+    cdef double[:] angle_yu = _angle_yu
+
     # Convert uncollided dictionary to type params
     info_u = parameters._to_params(params_dict_u)
     parameters._check_cn_timed2d(info_u, initial_flux_x.shape[0], \
             initial_flux_y.shape[1], external_u.shape[0], boundary_xu.shape[0], \
             boundary_yu.shape[0], xs_total_u.shape[0])
-    
+
     # Convert collided dictionary to type params
     info_c = parameters._to_params(params_dict_c)
-    
+
     # Create params with edges for CN method
     info_edge = parameters._to_params(params_dict_u)
     info_edge.edges = 1
-    
+
     # Combine fission and scattering - Uncollided groups
     xs_matrix_u = tools.array_3d(info_u.materials, info_u.groups, info_u.groups)
     tools._xs_matrix(xs_matrix_u, xs_scatter_u, xs_fission_u, info_u)
-        
+
     # Run Crank Nicolson
     flux = multigroup_cn(groups_c, angles_c, initial_flux_x.copy(), initial_flux_y.copy(), \
                 xs_total_u, xs_matrix_u, velocity_u, external_u, boundary_xu.copy(), \
@@ -284,25 +317,41 @@ cdef double[:,:,:,:] multigroup_cn(int[:] groups_c, int[:] angles_c, \
 
 
 def bdf2(int[:] groups_c, int[:] angles_c, double[:,:,:,:] initial_flux, \
-        double[:,:] xs_total_u, double[:,:,:] xs_scatter_u, double[:,:,:] xs_fission_u, \
-        double[:] velocity_u, double[:,:,:,:,:] external_u, double[:,:,:,:,:] boundary_xu, \
-        double[:,:,:,:,:] boundary_yu, int[:,:] medium_map, double[:] delta_x, \
-        double[:] delta_y, double[:] angle_xu, double[:] angle_yu, double[:] angle_wu, \
+        xs_u, double[:] velocity_u, double[:,:,:,:,:] external_u, \
+        double[:,:,:,:,:] boundary_xu, double[:,:,:,:,:] boundary_yu, \
+        int[:,:] medium_map, grid, quad_u, \
         double[:] edges_g, dict params_dict_u, dict params_dict_c):
+
+    _xs_total_u = xs_u.total
+    cdef double[:,:] xs_total_u = _xs_total_u
+    _xs_scatter_u = xs_u.scatter
+    cdef double[:,:,:] xs_scatter_u = _xs_scatter_u
+    _xs_fission_u = xs_u.fission
+    cdef double[:,:,:] xs_fission_u = _xs_fission_u
+    _delta_x = grid.delta_x
+    cdef double[:] delta_x = _delta_x
+    _delta_y = grid.delta_y
+    cdef double[:] delta_y = _delta_y
+    _angle_xu = quad_u.angle_x
+    cdef double[:] angle_xu = _angle_xu
+    _angle_wu = quad_u.angle_w
+    cdef double[:] angle_wu = _angle_wu
+    _angle_yu = quad_u.angle_y
+    cdef double[:] angle_yu = _angle_yu
 
     # Convert uncollided dictionary to type params
     info_u = parameters._to_params(params_dict_u)
     parameters._check_bdf_timed2d(info_u, initial_flux.shape[0], \
                                   external_u.shape[0], boundary_xu.shape[0], \
                                   boundary_yu.shape[0], xs_total_u.shape[0])
-    
+
     # Convert collided dictionary to type params
     info_c = parameters._to_params(params_dict_c)
-    
+
     # Combine fission and scattering - Uncollided groups
     xs_matrix_u = tools.array_3d(info_u.materials, info_u.groups, info_u.groups)
     tools._xs_matrix(xs_matrix_u, xs_scatter_u, xs_fission_u, info_u)
-        
+
     # Run BDF2
     flux = multigroup_bdf2(groups_c, angles_c, initial_flux.copy(), xs_total_u, \
                 xs_matrix_u, velocity_u, external_u, boundary_xu.copy(), \
@@ -423,29 +472,46 @@ cdef double[:,:,:,:] multigroup_bdf2(int[:]& groups_c, int[:]& angles_c, \
 
 
 def tr_bdf2(int[:] groups_c, int[:] angles_c, double[:,:,:,:] initial_flux_x, \
-        double[:,:,:,:] initial_flux_y, double[:,:] xs_total_u, double[:,:,:] xs_scatter_u, \
-        double[:,:,:] xs_fission_u, double[:] velocity_u, double[:,:,:,:,:] external_u, \
-        double[:,:,:,:,:] boundary_xu, double[:,:,:,:,:] boundary_yu, int[:,:] medium_map, \
-        double[:] delta_x, double[:] delta_y, double[:] angle_xu, double[:] angle_yu,
-        double[:] angle_wu, double[:] edges_g, dict params_dict_u, dict params_dict_c):
-    
+        double[:,:,:,:] initial_flux_y, xs_u, double[:] velocity_u, \
+        double[:,:,:,:,:] external_u, double[:,:,:,:,:] boundary_xu, \
+        double[:,:,:,:,:] boundary_yu, int[:,:] medium_map, grid, \
+        quad_u, double[:] edges_g, dict params_dict_u, \
+        dict params_dict_c):
+
+    _xs_total_u = xs_u.total
+    cdef double[:,:] xs_total_u = _xs_total_u
+    _xs_scatter_u = xs_u.scatter
+    cdef double[:,:,:] xs_scatter_u = _xs_scatter_u
+    _xs_fission_u = xs_u.fission
+    cdef double[:,:,:] xs_fission_u = _xs_fission_u
+    _delta_x = grid.delta_x
+    cdef double[:] delta_x = _delta_x
+    _delta_y = grid.delta_y
+    cdef double[:] delta_y = _delta_y
+    _angle_xu = quad_u.angle_x
+    cdef double[:] angle_xu = _angle_xu
+    _angle_wu = quad_u.angle_w
+    cdef double[:] angle_wu = _angle_wu
+    _angle_yu = quad_u.angle_y
+    cdef double[:] angle_yu = _angle_yu
+
     # Convert uncollided dictionary to type params
     info_u = parameters._to_params(params_dict_u)
     parameters._check_tr_bdf_timed2d(info_u, initial_flux_x.shape[0], \
             initial_flux_y.shape[1], external_u.shape[0], boundary_xu.shape[0], \
             boundary_yu.shape[0], xs_total_u.shape[0])
-    
+
     # Convert collided dictionary to type params
     info_c = parameters._to_params(params_dict_c)
-    
+
     # Create params with edges for CN method
     info_edge = parameters._to_params(params_dict_u)
     info_edge.edges = 1
-    
+
     # Combine fission and scattering - Uncollided groups
     xs_matrix_u = tools.array_3d(info_u.materials, info_u.groups, info_u.groups)
     tools._xs_matrix(xs_matrix_u, xs_scatter_u, xs_fission_u, info_u)
-    
+
     # Run TR-BDF2
     flux = multigroup_tr_bdf2(groups_c, angles_c, initial_flux_x.copy(), \
             initial_flux_y.copy(), xs_total_u, xs_matrix_u, velocity_u, external_u, \

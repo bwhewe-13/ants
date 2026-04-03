@@ -10,16 +10,36 @@
 #
 ################################################################################
 
-import numpy as np
-import pkg_resources
+import os
+from importlib.resources import files
 
-from ants.constants import *
+import numpy as np
+
+from ants.constants import EV_TO_JOULES, LIGHT_SPEED, MASS_NEUTRON
 from ants.utils.hybrid import energy_coarse_index
 
-DATA_PATH = pkg_resources.resource_filename("ants", "sources/energy/")
+DATA_PATH = str(files("ants").joinpath("sources/energy/"))
+
+# Decimal places used when rounding coordinates for edge-matching
+_COORD_PRECISION = 12
 
 
 def angular_x(info):
+    """Compute 1D Gauss-Legendre quadrature angles and weights.
+
+    Parameters
+    ----------
+    info : int or dict
+        Number of angles (int) or problem info dict with keys ``"angles"``
+        and ``"bc_x"`` (list of two ints, 1 = reflected boundary).
+
+    Returns
+    -------
+    angle_x : ndarray, shape (angles,)
+        Quadrature direction cosines, ordered for boundary conditions.
+    angle_w : ndarray, shape (angles,)
+        Normalized quadrature weights summing to 1.
+    """
     if isinstance(info, int):
         angles = info
         bc_x = [0, 0]
@@ -46,6 +66,27 @@ def _angular_x(angles, bc_x):
 
 
 def angular_xy(info):
+    """Compute 2D product quadrature angles and weights for slab geometry.
+
+    Builds a Legendre × Chebyshev product quadrature set, keeps only the
+    N² directions with positive polar cosine (upper hemisphere), and
+    reorders them to satisfy reflective boundary conditions.
+
+    Parameters
+    ----------
+    info : int or dict
+        Number of angles per dimension (int) or problem info dict with keys
+        ``"angles"``, ``"bc_x"``, and ``"bc_y"``.
+
+    Returns
+    -------
+    angle_x : ndarray, shape (angles**2,)
+        x-direction cosines, ordered for boundary conditions.
+    angle_y : ndarray, shape (angles**2,)
+        y-direction cosines, ordered for boundary conditions.
+    angle_w : ndarray, shape (angles**2,)
+        Normalized quadrature weights summing to 1.
+    """
     if isinstance(info, int):
         angles = info
         bc_x = [0, 0]
@@ -62,7 +103,6 @@ def angular_xy(info):
     angle_w = angle_w[angle_z > 0] / np.sum(angle_w[angle_z > 0])
     # Order the angles for boundary conditions and return angle_x, angle_y, angle_w
     return _ordering_angles_xy(angle_x, angle_y, angle_w, bc_x, bc_y)
-    # return angle_x, angle_y, angle_w
 
 
 # Called from cython
@@ -72,7 +112,26 @@ def _angular_xy(angles, bc_x, bc_y):
 
 
 def _product_quadrature(angles):
-    # eta, xi, mu: direction cosines (x,y,z)
+    """Build a Legendre × Chebyshev product quadrature set over the full sphere.
+
+    Uses Gauss-Legendre points for the polar cosine (z-direction, mu) and
+    Chebyshev points for the azimuthal angle (mapped to x/y direction cosines
+    eta/xi). Each (mu, phi) pair gives ±phi, producing 2*angles² directions
+    covering the full sphere before filtering to the upper hemisphere.
+
+    Parameters
+    ----------
+    angles : int
+        Number of quadrature points per dimension.
+
+    Returns
+    -------
+    angle_x, angle_y, angle_z : ndarray, shape (2*angles**2,)
+        Direction cosines for x, y, z axes over the full sphere.
+    angle_w : ndarray, shape (2*angles**2,)
+        Quadrature weights (un-normalized product of Legendre × Chebyshev weights).
+    """
+    # Polar cosine (mu) via Gauss-Legendre; azimuthal (phi) via Chebyshev
     xx, wx = np.polynomial.legendre.leggauss(angles)
     yy, wy = np.polynomial.chebyshev.chebgauss(angles)
     # Create arrays for each angle
@@ -171,11 +230,11 @@ def energy_grid(grid, groups_fine, groups_coarse=None, optimize=True):
     """
     # Create energy grid
     if grid in [87, 361, 618]:
-        edges_g = np.load(DATA_PATH + "energy_grids.npz")[str(grid)]
+        edges_g = np.load(os.path.join(DATA_PATH, "energy_grids.npz"))[str(grid)]
 
         # Collect grid boundary indices
         fgrid = str(grid).zfill(3)
-        edges_data = np.load(DATA_PATH + f"G{fgrid}_grid_index.npz")
+        edges_data = np.load(os.path.join(DATA_PATH, f"G{fgrid}_grid_index.npz"))
 
     else:
         edges_g = np.arange(groups_fine + 1, dtype=float)
@@ -228,13 +287,21 @@ def _group_indexing(grid, groups_fine, groups_coarse, edges_data=None, optimize=
 
 
 def energy_velocity(groups, edges_g=None):
-    """Convert energy edges to speed at cell centers, Relative Physics
-    Arguments:
-        groups: Number of energy groups
-        edges_g: energy grid bounds
-    Returns:
-        speeds at cell centers (cm/s)"""
-    if np.all(edges_g == None):
+    """Convert energy group edges to relativistic neutron speeds at cell centers.
+
+    Parameters
+    ----------
+    groups : int
+        Number of energy groups.
+    edges_g : ndarray, shape (groups + 1,), optional
+        Energy group bounds in MeV. If None, returns unit velocities.
+
+    Returns
+    -------
+    velocity : ndarray, shape (groups,)
+        Neutron speed at each group center (cm/s).
+    """
+    if edges_g is None:
         return np.ones((groups,))
     centers_gg = 0.5 * (edges_g[1:] + edges_g[:-1])
     gamma = (EV_TO_JOULES * centers_gg) / (MASS_NEUTRON * LIGHT_SPEED**2) + 1
@@ -265,17 +332,21 @@ def gamma_time_steps(edges_t, gamma=0.5, half_step=True):
 
 
 def spatial1d(layers, edges_x):
-    """Creating one-dimensional medium map
+    """Create a one-dimensional material medium map.
 
-    :param layers: list of lists where each layer is a new material. A
-        layer is comprised of an index (int), material name (str), and
-        the width (str) in the form [index, material, width]. The width
-        is the starting and ending points of the material (in cm)
-        separated by a dash. If there are multiple regions, a comma can
-        separate them. I.E. layer = [0, "plutonium", "0 - 2, 3 - 4"].
-    :param edges_x: Array of length I + 1 with the location of the cell edges
-    :return: One-dimensional array of length I, identifying the locations
-        of the materials
+    Parameters
+    ----------
+    layers : list of [int, str, str]
+        Each entry is ``[index, material_name, regions]`` where ``regions``
+        is a comma-separated list of ``"start - stop"`` pairs in cm.
+        Example: ``[0, "plutonium", "0 - 2, 3 - 4"]``.
+    edges_x : ndarray, shape (cells_x + 1,)
+        Spatial cell edge locations in cm.
+
+    Returns
+    -------
+    medium_map : ndarray of int32, shape (cells_x,)
+        Material index for each spatial cell.
     """
     # Initialize medium_map
     medium_map = np.ones((len(edges_x) - 1), dtype=np.int32) * -1
@@ -289,6 +360,16 @@ def spatial1d(layers, edges_x):
     # Verify all cells are filled
     assert np.all(medium_map != -1)
     return medium_map
+
+
+def _find_edge_index(edges, value, axis_name):
+    matches = np.argwhere(edges == np.round(value, _COORD_PRECISION))
+    if len(matches) == 0:
+        raise ValueError(
+            f"{value} does not match any {axis_name} edge "
+            f"(rounded to {_COORD_PRECISION} decimal places)"
+        )
+    return matches[0, 0]
 
 
 def spatial2d(medium_map, value, coordinates, edges_x, edges_y):
@@ -312,11 +393,11 @@ def spatial2d(medium_map, value, coordinates, edges_x, edges_y):
     # Iterate over coordinates
     for [(x1, y1), span_x, span_y] in coordinates:
         # Get starting locations
-        idx_x1 = np.argwhere(edges_x == np.round(x1, 12))[0, 0]
-        idx_y1 = np.argwhere(edges_y == np.round(y1, 12))[0, 0]
+        idx_x1 = _find_edge_index(edges_x, x1, "edges_x")
+        idx_y1 = _find_edge_index(edges_y, y1, "edges_y")
         # Get widths of rectangular cells
-        idx_x2 = np.argwhere(edges_x == np.round(x1 + span_x, 12))[0, 0]
-        idx_y2 = np.argwhere(edges_y == np.round(y1 + span_y, 12))[0, 0]
+        idx_x2 = _find_edge_index(edges_x, x1 + span_x, "edges_x")
+        idx_y2 = _find_edge_index(edges_y, y1 + span_y, "edges_y")
         # Populate with value
         medium_map[idx_x1:idx_x2, idx_y1:idx_y2] = value
     return medium_map
@@ -359,7 +440,6 @@ def weight_spatial2d(weight_matrix, xs_total, xs_scatter, xs_fission):
     weights = np.unique(weight_matrix.reshape(-1, weight_matrix.shape[2]), axis=0)
     # Iterate over all weights
     for mat, weight in enumerate(weights):
-        # print(weight.shape)
         new_xs_total.append(np.sum(xs_total * weight[:, None], axis=0))
         new_xs_scatter.append(np.sum(xs_scatter * weight[:, None, None], axis=0))
         new_xs_fission.append(np.sum(xs_fission * weight[:, None, None], axis=0))
@@ -532,4 +612,5 @@ def _quarter_symmetry(weight_matrix, circles, edges_x, edges_y):
     symmetrical_weight_matrix[idx_x3, idx_y3] = quarter[::-1, ::-1].copy()
     symmetrical_weight_matrix[idx_x4, idx_y4] = quarter[:, ::-1].copy()
 
+    return symmetrical_weight_matrix
     return symmetrical_weight_matrix

@@ -1,4 +1,0 @@
-ants
-docs
-examples
-tests

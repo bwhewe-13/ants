@@ -8,7 +8,7 @@ authors = [
     {name = "Ben Whewell", email = "ben.whewell@pm.me"}
 ]
 description = "ANTS (A Neutron Transport Solution)"
-version = "0.1.0"
+version = "0.1.0-dev"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
@@ -19,31 +19,58 @@ dependencies = [
 
 [project.optional-dependencies]
 test = ["pytest"]
+style = [
+    "black",
+    "isort",
+    "ruff",
+]
 examples = [
     "h5py",
     "matplotlib",
     "seaborn",
 ]
 
-[tool.setuptools]
-ext-modules = [
-    {name="ants.boundary1d", sources=["ants/boundary1d.pyx"]},
-    {name="ants.boundary2d", sources=["ants/boundary2d.pyx"]},
-    {name="ants.cytools_1d", sources=["ants/cytools_1d.pyx"]},
-    {name="ants.cytools_2d", sources=["ants/cytools_2d.pyx"]},
-    {name="ants.hybrid1d", sources=["ants/hybrid1d.pyx"]},
-    {name="ants.hybrid2d", sources=["ants/hybrid2d.pyx"]},
-    {name="ants.multi_group_1d", sources=["ants/multi_group_1d.pyx"]},
-    {name="ants.multi_group_2d", sources=["ants/multi_group_2d.pyx"]},
-    {name="ants.parameters", sources=["ants/parameters.pyx"]},
-    {name="ants.spatial_sweep_1d", sources=["ants/spatial_sweep_1d.pyx"]},
-    {name="ants.spatial_sweep_2d", sources=["ants/spatial_sweep_2d.pyx"]},
-    {name="ants.timed1d", sources=["ants/timed1d.pyx"]},
-    {name="ants.timed2d", sources=["ants/timed2d.pyx"]},
-    {name="ants.vhybrid1d", sources=["ants/vhybrid1d.pyx"]},
-    {name="ants.vhybrid2d", sources=["ants/vhybrid2d.pyx"]},
-
-]
-
 [tool.setuptools.packages]
 find = {}
+
+[tool.pytest.ini_options]
+python_files = ["test_*"]
+python_classes = ["*Tests"]
+python_functions = ["test_*"]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
+markers = [
+    "smoke: All critical smoke tests",
+    "slab1d: One-dimensional slab problems",
+    "sphere1d: One-dimensional sphere problems",
+    "source_iteration: Checks scalar and angular flux calculations",
+    "power_iteration: Checks scalar flux and keffective calculations",
+    "bdf1: Runs Backward Euler time dependent problems",
+    "cn: Runs Crank Nicolson time dependent problems",
+    "bdf2: Runs Backward Differentiation Formula 2 time dependent problems",
+    "trbdf2: Runs Trapezoidal Step Backward Differentiation Formula 2",
+    "hybrid: Runs hybrid method",
+    "multigroup1d: Higher number of energy groups (G = 87, 618) - longer times",
+    "multigroup2d: Higher number of energy groups (G = 87, 618) - longer times",
+    "slab2d: Two-dimensional slab problems",
+    "cylinder2d: Two-dimensional cylinder (circular) problems",
+    "dimensions: Check the different dimensions of external and boundary sources",
+    "math: test math functions - interpolation, error estimation, etc.",
+]
+
+[tool.black]
+line-length = 88
+target-version = ["py39"]
+extend-exclude = '''
+/( 
+    build
+    |ants\.egg-info
+    |docs/_build
+)/
+'''
+
+[tool.isort]
+profile = "black"
+py_version = 39
+skip_glob = ["build/**", "ants.egg-info/**", "docs/_build/**"]

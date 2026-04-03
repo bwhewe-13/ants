@@ -15,6 +15,7 @@ import numpy as np
 
 import ants
 from ants.critical1d import power_iteration
+from ants.datatypes import CrossSections, QuadratureData, SpatialGrid
 from tests import problems1d
 
 def normalize(flux, boundary):
@@ -46,8 +47,9 @@ def test_one_group_slab_plutonium_01a(boundary):
     length = 1.853722 * 2 if np.sum(boundary) == 0 else 1.853722
     edges_x = np.linspace(0, length, info["cells_x"]+1)
     delta_x = np.repeat(length / info["cells_x"], info["cells_x"])
-    flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
-                                 delta_x, angle_x, angle_w, info)
+    flux, keff = power_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                                 medium_map, SpatialGrid(delta_x), \
+                                 QuadratureData(angle_x, angle_w), info)
     assert abs(keff - 1.) < 2e-3, str(keff) + " not critical"
 
 
@@ -67,8 +69,9 @@ def test_one_group_slab_plutonium_01b(boundary):
     medium_map = np.zeros((info["cells_x"]), dtype=np.int32)
     edges_x = np.linspace(0, length, info["cells_x"]+1)
     delta_x = np.repeat(length / info["cells_x"], info["cells_x"])
-    flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
-                                 delta_x, angle_x, angle_w, info)
+    flux, keff = power_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                                 medium_map, SpatialGrid(delta_x), \
+                                 QuadratureData(angle_x, angle_w), info)
     ref_flux = np.array([0.9701734, 0.8810540, 0.7318131, 0.4902592])
     flux = normalize(flux.flatten(), info["bc_x"])
     assert np.all(np.isclose(flux, ref_flux, atol=1e-2)), "flux not accurate"
@@ -89,8 +92,9 @@ def test_one_group_sphere_plutonium_01b():
     medium_map = np.zeros((info["cells_x"]), dtype=np.int32)
     edges_x = np.linspace(0, length, info["cells_x"]+1)
     delta_x = np.repeat(length / info["cells_x"], info["cells_x"])
-    flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
-                                 delta_x, angle_x, angle_w, info)
+    flux, keff = power_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                                 medium_map, SpatialGrid(delta_x), \
+                                 QuadratureData(angle_x, angle_w), info)
     ref_flux = np.array([0.93538006, 0.75575352, 0.49884364, 0.19222603])
     flux = normalize(flux.flatten(), info["bc_x"])
     assert np.all(np.isclose(flux, ref_flux, atol=1e-2)), "flux not accurate"
@@ -112,8 +116,9 @@ def test_one_group_slab_plutonium_02a():
     materials = [[0, "fuel", "0 - 2.956802"], \
                 [1, "moderator", "2.956802 - 6.020527"]]
     medium_map = ants.spatial1d(materials, edges_x)
-    flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
-                                 delta_x, angle_x, angle_w, info)
+    flux, keff = power_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                                 medium_map, SpatialGrid(delta_x), \
+                                 QuadratureData(angle_x, angle_w), info)
     assert abs(keff - 1.) < 2e-3, str(keff) + " not critical"
 
 
@@ -132,8 +137,9 @@ def test_one_group_slab_plutonium_02b():
     materials = [[0, "fuel", "1.531863 - 4.167525"], \
                 [1, "moderator", "0 - 1.531863, 4.167525 - 5.699388"]]
     medium_map = ants.spatial1d(materials, edges_x)
-    flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
-                                 delta_x, angle_x, angle_w, info)
+    flux, keff = power_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                                 medium_map, SpatialGrid(delta_x), \
+                                 QuadratureData(angle_x, angle_w), info)
     assert abs(keff - 1.) < 2e-3, str(keff) + " not critical"
 
 
@@ -152,8 +158,9 @@ def test_one_group_slab_uranium_01a(boundary):
     edges_x = np.linspace(0, length, info["cells_x"]+1)
     delta_x = np.repeat(length / info["cells_x"], info["cells_x"])
     medium_map = np.zeros((info["cells_x"]), dtype=np.int32)
-    flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
-                                 delta_x, angle_x, angle_w, info)
+    flux, keff = power_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                                 medium_map, SpatialGrid(delta_x), \
+                                 QuadratureData(angle_x, angle_w), info)
     ref_flux = np.array([0.9669506, 0.8686259, 0.7055218, 0.4461912])
     flux = normalize(flux.flatten(), info["bc_x"])
     assert np.all(np.isclose(flux, ref_flux, atol=1e-2)), "flux not accurate"
@@ -173,8 +180,9 @@ def test_one_group_sphere_uranium_01a():
     edges_x = np.linspace(0, length, info["cells_x"]+1)
     delta_x = np.repeat(length / info["cells_x"], info["cells_x"])
     medium_map = np.zeros((info["cells_x"]), dtype=np.int32)
-    flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
-                                 delta_x, angle_x, angle_w, info)
+    flux, keff = power_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                                 medium_map, SpatialGrid(delta_x), \
+                                 QuadratureData(angle_x, angle_w), info)
     ref_flux = np.array([0.93244907, 0.74553332, 0.48095413, 0.17177706])
     flux = normalize(flux.flatten(), info["bc_x"])
     assert np.all(np.isclose(flux, ref_flux, atol=1e-2)), "flux not accurate"
@@ -196,8 +204,9 @@ def test_one_group_slab_heavy_water_01a(boundary):
     edges_x = np.linspace(0, length, info["cells_x"]+1)
     delta_x = np.repeat(length / info["cells_x"], info["cells_x"])
     medium_map = np.zeros((info["cells_x"]), dtype=np.int32)
-    flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
-                                 delta_x, angle_x, angle_w, info)
+    flux, keff = power_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                                 medium_map, SpatialGrid(delta_x), \
+                                 QuadratureData(angle_x, angle_w), info)
     ref_flux = np.array([0.93945236, 0.76504084, 0.49690627, 0.13893858])
     flux = normalize(flux.flatten(), info["bc_x"])
     assert np.all(np.isclose(flux, ref_flux, atol=1e-2)), "flux not accurate"
@@ -217,8 +226,9 @@ def test_one_group_sphere_heavy_water_01a():
     edges_x = np.linspace(0, length, info["cells_x"]+1)
     delta_x = np.repeat(length / info["cells_x"], info["cells_x"])
     medium_map = np.zeros((info["cells_x"]), dtype=np.int32)
-    flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
-                                 delta_x, angle_x, angle_w, info)
+    flux, keff = power_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                                 medium_map, SpatialGrid(delta_x), \
+                                 QuadratureData(angle_x, angle_w), info)
     ref_flux = np.array([0.91063756, 0.67099621, 0.35561622, 0.04678614])
     flux = normalize(flux.flatten(), info["bc_x"])
     assert np.all(np.isclose(flux, ref_flux, atol=1e-2)), "flux not accurate"
@@ -238,8 +248,9 @@ def test_one_group_slab_uranium_reactor_01a():
     edges_x = np.linspace(0, length, info["cells_x"]+1)
     delta_x = np.repeat(length / info["cells_x"], info["cells_x"])
     medium_map = np.zeros((info["cells_x"]), dtype=np.int32)
-    flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
-                                 delta_x, angle_x, angle_w, info)
+    flux, keff = power_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                                 medium_map, SpatialGrid(delta_x), \
+                                 QuadratureData(angle_x, angle_w), info)
     kinfinite = 2.1806667
     assert abs(keff - kinfinite) < 2e-3, str(keff) + " not infinite value"
 
@@ -263,8 +274,9 @@ def test_two_group_slab_plutonium_01(boundary):
     edges_x = np.linspace(0, length, info["cells_x"]+1)
     delta_x = np.repeat(length / info["cells_x"], info["cells_x"])
     medium_map = np.zeros((info["cells_x"]), dtype=np.int32)
-    flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
-                                 delta_x, angle_x, angle_w, info)
+    flux, keff = power_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                                 medium_map, SpatialGrid(delta_x), \
+                                 QuadratureData(angle_x, angle_w), info)
     assert abs(keff - 1.) < 2e-3, str(keff) + " not critical"
 
 
@@ -285,8 +297,9 @@ def test_two_group_sphere_plutonium_01():
     edges_x = np.linspace(0, length, info["cells_x"]+1)
     delta_x = np.repeat(length / info["cells_x"], info["cells_x"])
     medium_map = np.zeros((info["cells_x"]), dtype=np.int32)
-    flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
-                                 delta_x, angle_x, angle_w, info)
+    flux, keff = power_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                                 medium_map, SpatialGrid(delta_x), \
+                                 QuadratureData(angle_x, angle_w), info)
     assert abs(keff - 1.) < 2e-3, str(keff) + " not critical"
 
 
@@ -309,8 +322,9 @@ def test_two_group_slab_uranium_01(boundary):
     edges_x = np.linspace(0, length, info["cells_x"]+1)
     delta_x = np.repeat(length / info["cells_x"], info["cells_x"])
     medium_map = np.zeros((info["cells_x"]), dtype=np.int32)
-    flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
-                                 delta_x, angle_x, angle_w, info)
+    flux, keff = power_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                                 medium_map, SpatialGrid(delta_x), \
+                                 QuadratureData(angle_x, angle_w), info)
     assert abs(keff - 1.) < 2e-3, str(keff) + " not critical"
 
 
@@ -331,8 +345,9 @@ def test_two_group_sphere_uranium_01():
     edges_x = np.linspace(0, length, info["cells_x"]+1)
     delta_x = np.repeat(length / info["cells_x"], info["cells_x"])
     medium_map = np.zeros((info["cells_x"]), dtype=np.int32)
-    flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
-                                 delta_x, angle_x, angle_w, info)
+    flux, keff = power_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                                 medium_map, SpatialGrid(delta_x), \
+                                 QuadratureData(angle_x, angle_w), info)
     assert abs(keff - 1.) < 2e-3, str(keff) + " not critical"
 
 
@@ -354,8 +369,9 @@ def test_two_group_slab_uranium_aluminum(boundary):
     edges_x = np.linspace(0, length, info["cells_x"]+1)
     delta_x = np.repeat(length / info["cells_x"], info["cells_x"])
     medium_map = np.zeros((info["cells_x"]), dtype=np.int32)
-    flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
-                                 delta_x, angle_x, angle_w, info)
+    flux, keff = power_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                                 medium_map, SpatialGrid(delta_x), \
+                                 QuadratureData(angle_x, angle_w), info)
     assert abs(keff - 1.) < 2e-3, str(keff) + " not critical"
 
 
@@ -375,8 +391,9 @@ def test_two_group_sphere_uranium_aluminum():
     edges_x = np.linspace(0, length, info["cells_x"]+1)
     delta_x = np.repeat(length / info["cells_x"], info["cells_x"])
     medium_map = np.zeros((info["cells_x"]), dtype=np.int32)
-    flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
-                                 delta_x, angle_x, angle_w, info)
+    flux, keff = power_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                                 medium_map, SpatialGrid(delta_x), \
+                                 QuadratureData(angle_x, angle_w), info)
     assert abs(keff - 1.) < 2e-3, str(keff) + " not critical"
 
 
@@ -398,8 +415,9 @@ def test_two_group_slab_uranium_reactor_01(boundary):
     edges_x = np.linspace(0, length, info["cells_x"]+1)
     delta_x = np.repeat(length / info["cells_x"], info["cells_x"])
     medium_map = np.zeros((info["cells_x"]), dtype=np.int32)
-    flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
-                                 delta_x, angle_x, angle_w, info)
+    flux, keff = power_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                                 medium_map, SpatialGrid(delta_x), \
+                                 QuadratureData(angle_x, angle_w), info)
     assert abs(keff - 1.) < 2e-3, str(keff) + " not critical"
 
 
@@ -419,8 +437,9 @@ def test_two_group_sphere_uranium_reactor_01():
     edges_x = np.linspace(0, length, info["cells_x"]+1)
     delta_x = np.repeat(length / info["cells_x"], info["cells_x"])
     medium_map = np.zeros((info["cells_x"]), dtype=np.int32)
-    flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
-                                 delta_x, angle_x, angle_w, info)
+    flux, keff = power_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                                 medium_map, SpatialGrid(delta_x), \
+                                 QuadratureData(angle_x, angle_w), info)
     assert abs(keff - 1.) < 2e-3, str(keff) + " not critical"
 
 
@@ -428,7 +447,11 @@ def test_two_group_sphere_uranium_reactor_01():
 @pytest.mark.power_iteration
 @pytest.mark.multigroup1d
 def test_sphere_01_power_iteration():
-    flux, keff = power_iteration(*problems1d.sphere_01("critical"))
+    xs_total, xs_scatter, xs_fission, medium_map, delta_x, angle_x, angle_w, info \
+        = problems1d.sphere_01("critical")
+    flux, keff = power_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                                 medium_map, SpatialGrid(delta_x), \
+                                 QuadratureData(angle_x, angle_w), info)
     reference_flux = np.load(problems1d.PATH + "uranium_sphere_power_iteration_flux.npy")
     reference_keff = np.load(problems1d.PATH + "uranium_sphere_power_iteration_keff.npy")
     assert np.isclose(flux, reference_flux).all()

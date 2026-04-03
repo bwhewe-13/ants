@@ -15,6 +15,7 @@ import numpy as np
 
 import ants
 from ants.critical2d import power_iteration
+from ants.datatypes import CrossSections, QuadratureData, SpatialGrid
 
 PATH = "data/weight_matrix_2d/"
 
@@ -50,8 +51,9 @@ def test_one_group_infinite_x(bc_x):
     angle_x, angle_y, angle_w = ants.angular_xy(info)
 
     # Run transport equation
-    flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
-                       delta_x, delta_y, angle_x, angle_y, angle_w, info)
+    flux, keff = power_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                       medium_map, SpatialGrid(delta_x, delta_y), \
+                       QuadratureData(angle_x, angle_w, angle_y), info)
 
     assert abs(keff - 1) < 2e-3, "k-effective: " + str(keff)
 
@@ -88,8 +90,9 @@ def test_one_group_infinite_x(bc_y):
     angle_x, angle_y, angle_w = ants.angular_xy(info)
 
     # Run transport equation
-    flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
-                       delta_x, delta_y, angle_x, angle_y, angle_w, info)
+    flux, keff = power_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                       medium_map, SpatialGrid(delta_x, delta_y), \
+                       QuadratureData(angle_x, angle_w, angle_y), info)
 
     assert abs(keff - 1) < 2e-3, "k-effective: " + str(keff)
 
@@ -134,8 +137,9 @@ def test_two_group_infinite_x(bc_x):
     angle_x, angle_y, angle_w = ants.angular_xy(info)
 
     # Run transport problem
-    flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
-                       delta_x, delta_y, angle_x, angle_y, angle_w, info)
+    flux, keff = power_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                       medium_map, SpatialGrid(delta_x, delta_y), \
+                       QuadratureData(angle_x, angle_w, angle_y), info)
     
     assert abs(keff - 1) < 5e-3, "k-effective: " + str(keff)
 
@@ -180,8 +184,9 @@ def test_two_group_infinite_y(bc_y):
     angle_x, angle_y, angle_w = ants.angular_xy(info)
 
     # Run transport problem
-    flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
-                       delta_x, delta_y, angle_x, angle_y, angle_w, info)
+    flux, keff = power_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                       medium_map, SpatialGrid(delta_x, delta_y), \
+                       QuadratureData(angle_x, angle_w, angle_y), info)
     
     assert abs(keff - 1) < 5e-3, "k-effective: " + str(keff)
 
@@ -245,8 +250,9 @@ def test_two_group_twigl():
     angle_x, angle_y, angle_w = ants.angular_xy(info)
     
     # Run transport problem
-    flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
-                       delta_x, delta_y, angle_x, angle_y, angle_w, info)
+    flux, keff = power_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                       medium_map, SpatialGrid(delta_x, delta_y), \
+                       QuadratureData(angle_x, angle_w, angle_y), info)
 
     reference_keff = 0.917507
     assert abs(keff - reference_keff) < 2e-3, "k-effective: " + str(keff)
@@ -301,8 +307,9 @@ def test_cylinder_two_material():
     angle_x, angle_y, angle_w = ants.angular_xy(info) 
     
     # Run transport problem
-    flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
-                       delta_x, delta_y, angle_x, angle_y, angle_w, info)
+    flux, keff = power_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                       medium_map, SpatialGrid(delta_x, delta_y), \
+                       QuadratureData(angle_x, angle_w, angle_y), info)
     
     assert abs(keff - 1) < 2e-3, "k-effective: " + str(keff)
 
@@ -365,8 +372,9 @@ def test_cylinder_two_material_half(bc_x, bc_y):
     angle_x, angle_y, angle_w = ants.angular_xy(info) 
     
     # Run transport problem
-    flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
-                       delta_x, delta_y, angle_x, angle_y, angle_w, info)
+    flux, keff = power_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                       medium_map, SpatialGrid(delta_x, delta_y), \
+                       QuadratureData(angle_x, angle_w, angle_y), info)
 
     assert abs(keff - 1) < 2e-3, "k-effective: " + str(keff)
 
@@ -428,8 +436,9 @@ def test_cylinder_two_material_quarter(bc_x, bc_y):
     angle_x, angle_y, angle_w = ants.angular_xy(info) 
     
     # Run transport problem
-    flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
-                       delta_x, delta_y, angle_x, angle_y, angle_w, info)
+    flux, keff = power_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                       medium_map, SpatialGrid(delta_x, delta_y), \
+                       QuadratureData(angle_x, angle_w, angle_y), info)
 
     assert abs(keff - 1) < 2e-3, "k-effective: " + str(keff)
 
@@ -480,6 +489,7 @@ def test_cylinder_three_material(layer):
             "spatial": 2, "bc_x": bc_x, "bc_y": bc_y}
     # Collect angles
     angle_x, angle_y, angle_w = ants.angular_xy(info)
-    flux, keff = power_iteration(xs_total, xs_scatter, xs_fission, medium_map, \
-                       delta_x, delta_y, angle_x, angle_y, angle_w, info)
+    flux, keff = power_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                       medium_map, SpatialGrid(delta_x, delta_y), \
+                       QuadratureData(angle_x, angle_w, angle_y), info)
     assert abs(keff - 1) < 2e-3, "k-effective: " + str(keff)
