@@ -30,7 +30,14 @@ release = "1.0"
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named "sphinx.ext.*") or your custom
 # ones.
-extensions = ["sphinx.ext.mathjax", "sphinxcontrib.bibtex"]
+extensions = [
+                "sphinx.ext.mathjax", 
+                "sphinxcontrib.bibtex", 
+                "sphinx.ext.autodoc", 
+                "sphinx.ext.viewcode",
+                "sphinx.ext.doctest",
+            ]
+
 bibtex_bibfiles = ["refs.bib"]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -49,13 +56,16 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 #
 html_theme = "agogo"
 html_theme_options = {
-    #"relbarbgcolor": "black",
+    # "relbarbgcolor": "black",
     "body_max_width": "auto",
-	"rightsidebar": "False"
+	"rightsidebar": "False", 
 }
+
+# pygments_style = "sphinx"
+
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
-# html_css_files = ["basic.css"]
+html_css_files = ["basic.css"]
