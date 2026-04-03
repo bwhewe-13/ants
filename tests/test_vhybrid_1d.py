@@ -17,6 +17,7 @@ import ants
 from ants import vhybrid1d, hybrid1d
 from ants.utils import hybrid as hytools
 from ants.utils import manufactured_1d as mms
+from ants.datatypes import CrossSections, HybridMapping, QuadratureData, SpatialGrid
 from tests import problems1d
 
 # Path for reference solutions
@@ -59,22 +60,11 @@ def test_backward_euler_01():
 
     # Run vHybrid Method
     approx = vhybrid1d.backward_euler(
-        vgroups,
-        vangles,
-        initial_flux,
-        xs_total,
-        xs_scatter,
-        xs_fission,
-        velocity,
-        external,
-        boundary_x,
-        medium_map,
-        delta_x,
-        angle_x,
-        angle_w,
-        edges_g,
-        info,
-        info,
+        vgroups, vangles, initial_flux,
+        CrossSections(xs_total, xs_scatter, xs_fission),
+        velocity, external, boundary_x, medium_map,
+        SpatialGrid(delta_x), QuadratureData(angle_x, angle_w),
+        edges_g, info, info,
     )
 
     edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
@@ -122,22 +112,11 @@ def test_backward_euler_02():
 
     # Run vHybrid Method
     approx = vhybrid1d.backward_euler(
-        vgroups,
-        vangles,
-        initial_flux,
-        xs_total,
-        xs_scatter,
-        xs_fission,
-        velocity,
-        external,
-        boundary_x,
-        medium_map,
-        delta_x,
-        angle_x,
-        angle_w,
-        edges_g,
-        info,
-        info,
+        vgroups, vangles, initial_flux,
+        CrossSections(xs_total, xs_scatter, xs_fission),
+        velocity, external, boundary_x, medium_map,
+        SpatialGrid(delta_x), QuadratureData(angle_x, angle_w),
+        edges_g, info, info,
     )
 
     edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
@@ -186,22 +165,11 @@ def test_crank_nicolson_01():
 
     # Run vHybrid Method
     approx = vhybrid1d.crank_nicolson(
-        vgroups,
-        vangles,
-        initial_flux,
-        xs_total,
-        xs_scatter,
-        xs_fission,
-        velocity,
-        external,
-        boundary_x,
-        medium_map,
-        delta_x,
-        angle_x,
-        angle_w,
-        edges_g,
-        info,
-        info,
+        vgroups, vangles, initial_flux,
+        CrossSections(xs_total, xs_scatter, xs_fission),
+        velocity, external, boundary_x, medium_map,
+        SpatialGrid(delta_x), QuadratureData(angle_x, angle_w),
+        edges_g, info, info,
     )
 
     edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
@@ -249,22 +217,11 @@ def test_crank_nicolson_02():
 
     # Run vHybrid Method
     approx = vhybrid1d.crank_nicolson(
-        vgroups,
-        vangles,
-        initial_flux,
-        xs_total,
-        xs_scatter,
-        xs_fission,
-        velocity,
-        external,
-        boundary_x,
-        medium_map,
-        delta_x,
-        angle_x,
-        angle_w,
-        edges_g,
-        info,
-        info,
+        vgroups, vangles, initial_flux,
+        CrossSections(xs_total, xs_scatter, xs_fission),
+        velocity, external, boundary_x, medium_map,
+        SpatialGrid(delta_x), QuadratureData(angle_x, angle_w),
+        edges_g, info, info,
     )
 
     edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
@@ -313,22 +270,11 @@ def test_bdf2_01():
 
     # Run vHybrid Method
     approx = vhybrid1d.bdf2(
-        vgroups,
-        vangles,
-        initial_flux,
-        xs_total,
-        xs_scatter,
-        xs_fission,
-        velocity,
-        external,
-        boundary_x,
-        medium_map,
-        delta_x,
-        angle_x,
-        angle_w,
-        edges_g,
-        info,
-        info,
+        vgroups, vangles, initial_flux,
+        CrossSections(xs_total, xs_scatter, xs_fission),
+        velocity, external, boundary_x, medium_map,
+        SpatialGrid(delta_x), QuadratureData(angle_x, angle_w),
+        edges_g, info, info,
     )
 
     edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
@@ -376,22 +322,11 @@ def test_bdf2_02():
 
     # Run vHybrid Method
     approx = vhybrid1d.bdf2(
-        vgroups,
-        vangles,
-        initial_flux,
-        xs_total,
-        xs_scatter,
-        xs_fission,
-        velocity,
-        external,
-        boundary_x,
-        medium_map,
-        delta_x,
-        angle_x,
-        angle_w,
-        edges_g,
-        info,
-        info,
+        vgroups, vangles, initial_flux,
+        CrossSections(xs_total, xs_scatter, xs_fission),
+        velocity, external, boundary_x, medium_map,
+        SpatialGrid(delta_x), QuadratureData(angle_x, angle_w),
+        edges_g, info, info,
     )
 
     edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
@@ -440,22 +375,11 @@ def test_tr_bdf2_01():
 
     # Run vHybrid Method
     approx = vhybrid1d.tr_bdf2(
-        vgroups,
-        vangles,
-        initial_flux,
-        xs_total,
-        xs_scatter,
-        xs_fission,
-        velocity,
-        external,
-        boundary_x,
-        medium_map,
-        delta_x,
-        angle_x,
-        angle_w,
-        edges_g,
-        info,
-        info,
+        vgroups, vangles, initial_flux,
+        CrossSections(xs_total, xs_scatter, xs_fission),
+        velocity, external, boundary_x, medium_map,
+        SpatialGrid(delta_x), QuadratureData(angle_x, angle_w),
+        edges_g, info, info,
     )
 
     edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
@@ -503,22 +427,11 @@ def test_tr_bdf2_02():
 
     # Run vHybrid Method
     approx = vhybrid1d.tr_bdf2(
-        vgroups,
-        vangles,
-        initial_flux,
-        xs_total,
-        xs_scatter,
-        xs_fission,
-        velocity,
-        external,
-        boundary_x,
-        medium_map,
-        delta_x,
-        angle_x,
-        angle_w,
-        edges_g,
-        info,
-        info,
+        vgroups, vangles, initial_flux,
+        CrossSections(xs_total, xs_scatter, xs_fission),
+        velocity, external, boundary_x, medium_map,
+        SpatialGrid(delta_x), QuadratureData(angle_x, angle_w),
+        edges_g, info, info,
     )
 
     edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
@@ -673,30 +586,23 @@ def test_mg_01_bdf1(angles_c, groups_c):
     hybrid_dict = _get_hybrid_params(groups_u, groups_c, problem_dict)
     steps = problem_dict["info_u"]["steps"]
 
+    xs_u = CrossSections(problem_dict["xs_total_u"], problem_dict["xs_scatter_u"],
+                         problem_dict["xs_fission_u"])
+    xs_c = CrossSections(hybrid_dict["xs_total_c"], hybrid_dict["xs_scatter_c"],
+                         hybrid_dict["xs_fission_c"])
+    grid = SpatialGrid(problem_dict["delta_x"])
+    quad_u = QuadratureData(problem_dict["angle_xu"], problem_dict["angle_wu"])
+    quad_c = QuadratureData(problem_dict["angle_xc"], problem_dict["angle_wc"])
+    mapping = HybridMapping(hybrid_dict["fine_idx"], hybrid_dict["coarse_idx"],
+                            hybrid_dict["factor"])
+
     # Run Hybrid Method
     hy_flux = hybrid1d.backward_euler(
-        problem_dict["initial_flux"],
-        problem_dict["xs_total_u"],
-        hybrid_dict["xs_total_c"],
-        problem_dict["xs_scatter_u"],
-        hybrid_dict["xs_scatter_c"],
-        problem_dict["xs_fission_u"],
-        hybrid_dict["xs_fission_c"],
-        problem_dict["velocity_u"],
-        hybrid_dict["velocity_c"],
-        problem_dict["external"],
-        problem_dict["boundary_x"],
-        problem_dict["medium_map"],
-        problem_dict["delta_x"],
-        problem_dict["angle_xu"],
-        problem_dict["angle_xc"],
-        problem_dict["angle_wu"],
-        problem_dict["angle_wc"],
-        hybrid_dict["fine_idx"],
-        hybrid_dict["coarse_idx"],
-        hybrid_dict["factor"],
-        problem_dict["info_u"],
-        problem_dict["info_c"],
+        problem_dict["initial_flux"], xs_u, xs_c,
+        problem_dict["velocity_u"], hybrid_dict["velocity_c"],
+        problem_dict["external"], problem_dict["boundary_x"],
+        problem_dict["medium_map"], grid, quad_u, quad_c, mapping,
+        problem_dict["info_u"], problem_dict["info_c"],
     )
 
     # Variable groups and angles
@@ -705,22 +611,14 @@ def test_mg_01_bdf1(angles_c, groups_c):
 
     # Run vHybrid Method
     vhy_flux = vhybrid1d.backward_euler(
-        vgroups,
-        vangles,
-        problem_dict["initial_flux"],
-        problem_dict["xs_total_u"],
-        problem_dict["xs_scatter_u"],
-        problem_dict["xs_fission_u"],
-        problem_dict["velocity_u"],
-        problem_dict["external"],
-        problem_dict["boundary_x"],
-        problem_dict["medium_map"],
-        problem_dict["delta_x"],
-        problem_dict["angle_xu"],
-        problem_dict["angle_wu"],
-        hybrid_dict["edges_g"],
-        problem_dict["info_u"],
-        problem_dict["info_c"],
+        vgroups, vangles, problem_dict["initial_flux"],
+        CrossSections(problem_dict["xs_total_u"], problem_dict["xs_scatter_u"],
+                      problem_dict["xs_fission_u"]),
+        problem_dict["velocity_u"], problem_dict["external"],
+        problem_dict["boundary_x"], problem_dict["medium_map"],
+        SpatialGrid(problem_dict["delta_x"]),
+        QuadratureData(problem_dict["angle_xu"], problem_dict["angle_wu"]),
+        hybrid_dict["edges_g"], problem_dict["info_u"], problem_dict["info_c"],
     )
 
     # Compare each time step
@@ -742,30 +640,23 @@ def test_mg_01_cn(angles_c, groups_c):
     hybrid_dict = _get_hybrid_params(groups_u, groups_c, problem_dict)
     steps = problem_dict["info_u"]["steps"]
 
+    xs_u = CrossSections(problem_dict["xs_total_u"], problem_dict["xs_scatter_u"],
+                         problem_dict["xs_fission_u"])
+    xs_c = CrossSections(hybrid_dict["xs_total_c"], hybrid_dict["xs_scatter_c"],
+                         hybrid_dict["xs_fission_c"])
+    grid = SpatialGrid(problem_dict["delta_x"])
+    quad_u = QuadratureData(problem_dict["angle_xu"], problem_dict["angle_wu"])
+    quad_c = QuadratureData(problem_dict["angle_xc"], problem_dict["angle_wc"])
+    mapping = HybridMapping(hybrid_dict["fine_idx"], hybrid_dict["coarse_idx"],
+                            hybrid_dict["factor"])
+
     # Run Hybrid Method
     hy_flux = hybrid1d.crank_nicolson(
-        problem_dict["initial_flux"],
-        problem_dict["xs_total_u"],
-        hybrid_dict["xs_total_c"],
-        problem_dict["xs_scatter_u"],
-        hybrid_dict["xs_scatter_c"],
-        problem_dict["xs_fission_u"],
-        hybrid_dict["xs_fission_c"],
-        problem_dict["velocity_u"],
-        hybrid_dict["velocity_c"],
-        problem_dict["external"],
-        problem_dict["boundary_x"],
-        problem_dict["medium_map"],
-        problem_dict["delta_x"],
-        problem_dict["angle_xu"],
-        problem_dict["angle_xc"],
-        problem_dict["angle_wu"],
-        problem_dict["angle_wc"],
-        hybrid_dict["fine_idx"],
-        hybrid_dict["coarse_idx"],
-        hybrid_dict["factor"],
-        problem_dict["info_u"],
-        problem_dict["info_c"],
+        problem_dict["initial_flux"], xs_u, xs_c,
+        problem_dict["velocity_u"], hybrid_dict["velocity_c"],
+        problem_dict["external"], problem_dict["boundary_x"],
+        problem_dict["medium_map"], grid, quad_u, quad_c, mapping,
+        problem_dict["info_u"], problem_dict["info_c"],
     )
 
     # Variable groups and angles
@@ -774,22 +665,14 @@ def test_mg_01_cn(angles_c, groups_c):
 
     # Run vHybrid Method
     vhy_flux = vhybrid1d.crank_nicolson(
-        vgroups,
-        vangles,
-        problem_dict["initial_flux"],
-        problem_dict["xs_total_u"],
-        problem_dict["xs_scatter_u"],
-        problem_dict["xs_fission_u"],
-        problem_dict["velocity_u"],
-        problem_dict["external"],
-        problem_dict["boundary_x"],
-        problem_dict["medium_map"],
-        problem_dict["delta_x"],
-        problem_dict["angle_xu"],
-        problem_dict["angle_wu"],
-        hybrid_dict["edges_g"],
-        problem_dict["info_u"],
-        problem_dict["info_c"],
+        vgroups, vangles, problem_dict["initial_flux"],
+        CrossSections(problem_dict["xs_total_u"], problem_dict["xs_scatter_u"],
+                      problem_dict["xs_fission_u"]),
+        problem_dict["velocity_u"], problem_dict["external"],
+        problem_dict["boundary_x"], problem_dict["medium_map"],
+        SpatialGrid(problem_dict["delta_x"]),
+        QuadratureData(problem_dict["angle_xu"], problem_dict["angle_wu"]),
+        hybrid_dict["edges_g"], problem_dict["info_u"], problem_dict["info_c"],
     )
 
     # Compare each time step
@@ -811,30 +694,23 @@ def test_mg_01_bdf2(angles_c, groups_c):
     hybrid_dict = _get_hybrid_params(groups_u, groups_c, problem_dict)
     steps = problem_dict["info_u"]["steps"]
 
+    xs_u = CrossSections(problem_dict["xs_total_u"], problem_dict["xs_scatter_u"],
+                         problem_dict["xs_fission_u"])
+    xs_c = CrossSections(hybrid_dict["xs_total_c"], hybrid_dict["xs_scatter_c"],
+                         hybrid_dict["xs_fission_c"])
+    grid = SpatialGrid(problem_dict["delta_x"])
+    quad_u = QuadratureData(problem_dict["angle_xu"], problem_dict["angle_wu"])
+    quad_c = QuadratureData(problem_dict["angle_xc"], problem_dict["angle_wc"])
+    mapping = HybridMapping(hybrid_dict["fine_idx"], hybrid_dict["coarse_idx"],
+                            hybrid_dict["factor"])
+
     # Run Hybrid Method
     hy_flux = hybrid1d.bdf2(
-        problem_dict["initial_flux"],
-        problem_dict["xs_total_u"],
-        hybrid_dict["xs_total_c"],
-        problem_dict["xs_scatter_u"],
-        hybrid_dict["xs_scatter_c"],
-        problem_dict["xs_fission_u"],
-        hybrid_dict["xs_fission_c"],
-        problem_dict["velocity_u"],
-        hybrid_dict["velocity_c"],
-        problem_dict["external"],
-        problem_dict["boundary_x"],
-        problem_dict["medium_map"],
-        problem_dict["delta_x"],
-        problem_dict["angle_xu"],
-        problem_dict["angle_xc"],
-        problem_dict["angle_wu"],
-        problem_dict["angle_wc"],
-        hybrid_dict["fine_idx"],
-        hybrid_dict["coarse_idx"],
-        hybrid_dict["factor"],
-        problem_dict["info_u"],
-        problem_dict["info_c"],
+        problem_dict["initial_flux"], xs_u, xs_c,
+        problem_dict["velocity_u"], hybrid_dict["velocity_c"],
+        problem_dict["external"], problem_dict["boundary_x"],
+        problem_dict["medium_map"], grid, quad_u, quad_c, mapping,
+        problem_dict["info_u"], problem_dict["info_c"],
     )
 
     # Variable groups and angles
@@ -843,22 +719,14 @@ def test_mg_01_bdf2(angles_c, groups_c):
 
     # Run vHybrid Method
     vhy_flux = vhybrid1d.bdf2(
-        vgroups,
-        vangles,
-        problem_dict["initial_flux"],
-        problem_dict["xs_total_u"],
-        problem_dict["xs_scatter_u"],
-        problem_dict["xs_fission_u"],
-        problem_dict["velocity_u"],
-        problem_dict["external"],
-        problem_dict["boundary_x"],
-        problem_dict["medium_map"],
-        problem_dict["delta_x"],
-        problem_dict["angle_xu"],
-        problem_dict["angle_wu"],
-        hybrid_dict["edges_g"],
-        problem_dict["info_u"],
-        problem_dict["info_c"],
+        vgroups, vangles, problem_dict["initial_flux"],
+        CrossSections(problem_dict["xs_total_u"], problem_dict["xs_scatter_u"],
+                      problem_dict["xs_fission_u"]),
+        problem_dict["velocity_u"], problem_dict["external"],
+        problem_dict["boundary_x"], problem_dict["medium_map"],
+        SpatialGrid(problem_dict["delta_x"]),
+        QuadratureData(problem_dict["angle_xu"], problem_dict["angle_wu"]),
+        hybrid_dict["edges_g"], problem_dict["info_u"], problem_dict["info_c"],
     )
 
     # Compare each time step
@@ -880,30 +748,23 @@ def test_mg_01_tr_bdf2(angles_c, groups_c):
     hybrid_dict = _get_hybrid_params(groups_u, groups_c, problem_dict)
     steps = problem_dict["info_u"]["steps"]
 
+    xs_u = CrossSections(problem_dict["xs_total_u"], problem_dict["xs_scatter_u"],
+                         problem_dict["xs_fission_u"])
+    xs_c = CrossSections(hybrid_dict["xs_total_c"], hybrid_dict["xs_scatter_c"],
+                         hybrid_dict["xs_fission_c"])
+    grid = SpatialGrid(problem_dict["delta_x"])
+    quad_u = QuadratureData(problem_dict["angle_xu"], problem_dict["angle_wu"])
+    quad_c = QuadratureData(problem_dict["angle_xc"], problem_dict["angle_wc"])
+    mapping = HybridMapping(hybrid_dict["fine_idx"], hybrid_dict["coarse_idx"],
+                            hybrid_dict["factor"])
+
     # Run Hybrid Method
     hy_flux = hybrid1d.tr_bdf2(
-        problem_dict["initial_flux"],
-        problem_dict["xs_total_u"],
-        hybrid_dict["xs_total_c"],
-        problem_dict["xs_scatter_u"],
-        hybrid_dict["xs_scatter_c"],
-        problem_dict["xs_fission_u"],
-        hybrid_dict["xs_fission_c"],
-        problem_dict["velocity_u"],
-        hybrid_dict["velocity_c"],
-        problem_dict["external"],
-        problem_dict["boundary_x"],
-        problem_dict["medium_map"],
-        problem_dict["delta_x"],
-        problem_dict["angle_xu"],
-        problem_dict["angle_xc"],
-        problem_dict["angle_wu"],
-        problem_dict["angle_wc"],
-        hybrid_dict["fine_idx"],
-        hybrid_dict["coarse_idx"],
-        hybrid_dict["factor"],
-        problem_dict["info_u"],
-        problem_dict["info_c"],
+        problem_dict["initial_flux"], xs_u, xs_c,
+        problem_dict["velocity_u"], hybrid_dict["velocity_c"],
+        problem_dict["external"], problem_dict["boundary_x"],
+        problem_dict["medium_map"], grid, quad_u, quad_c, mapping,
+        problem_dict["info_u"], problem_dict["info_c"],
     )
 
     # Variable groups and angles
@@ -912,22 +773,14 @@ def test_mg_01_tr_bdf2(angles_c, groups_c):
 
     # Run vHybrid Method
     vhy_flux = vhybrid1d.tr_bdf2(
-        vgroups,
-        vangles,
-        problem_dict["initial_flux"],
-        problem_dict["xs_total_u"],
-        problem_dict["xs_scatter_u"],
-        problem_dict["xs_fission_u"],
-        problem_dict["velocity_u"],
-        problem_dict["external"],
-        problem_dict["boundary_x"],
-        problem_dict["medium_map"],
-        problem_dict["delta_x"],
-        problem_dict["angle_xu"],
-        problem_dict["angle_wu"],
-        hybrid_dict["edges_g"],
-        problem_dict["info_u"],
-        problem_dict["info_c"],
+        vgroups, vangles, problem_dict["initial_flux"],
+        CrossSections(problem_dict["xs_total_u"], problem_dict["xs_scatter_u"],
+                      problem_dict["xs_fission_u"]),
+        problem_dict["velocity_u"], problem_dict["external"],
+        problem_dict["boundary_x"], problem_dict["medium_map"],
+        SpatialGrid(problem_dict["delta_x"]),
+        QuadratureData(problem_dict["angle_xu"], problem_dict["angle_wu"]),
+        hybrid_dict["edges_g"], problem_dict["info_u"], problem_dict["info_c"],
     )
 
     # Compare each time step

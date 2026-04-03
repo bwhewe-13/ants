@@ -18,6 +18,7 @@ import ants
 from ants import timed1d
 from ants.utils import manufactured_1d as mms
 from ants.utils import pytools as tools
+from ants.datatypes import CrossSections, QuadratureData, SpatialGrid
 from tests import problems1d
 
 
@@ -44,8 +45,13 @@ def test_backward_euler_01():
         dt = T / (steps)
         edges_t = np.linspace(0, T, steps + 1)
 
-        approx = timed1d.backward_euler(*problems1d.manufactured_td_01(\
-                                cells_x, angles, edges_t, dt, temporal=1))
+        initial_flux, xs_total, xs_scatter, xs_fission, velocity, external, \
+            boundary_x, medium_map, delta_x, angle_x, angle_w, info_td \
+            = problems1d.manufactured_td_01(cells_x, angles, edges_t, dt, temporal=1)
+        approx = timed1d.backward_euler(initial_flux, \
+                    CrossSections(xs_total, xs_scatter, xs_fission), velocity, \
+                    external, boundary_x, medium_map, SpatialGrid(delta_x), \
+                    QuadratureData(angle_x, angle_w), info_td)
 
         exact = mms.solution_td_01(centers_x, angle_x, edges_t[1:])
         exact = np.sum(exact * angle_w[None,None,:,None], axis=2)
@@ -84,8 +90,13 @@ def test_backward_euler_02():
         dt = T / (steps)
         edges_t = np.linspace(0, T, steps + 1)
 
-        approx = timed1d.backward_euler(*problems1d.manufactured_td_02(\
-                                cells_x, angles, edges_t, dt, temporal=1))
+        initial_flux, xs_total, xs_scatter, xs_fission, velocity, external, \
+            boundary_x, medium_map, delta_x, angle_x, angle_w, info_td \
+            = problems1d.manufactured_td_02(cells_x, angles, edges_t, dt, temporal=1)
+        approx = timed1d.backward_euler(initial_flux, \
+                    CrossSections(xs_total, xs_scatter, xs_fission), velocity, \
+                    external, boundary_x, medium_map, SpatialGrid(delta_x), \
+                    QuadratureData(angle_x, angle_w), info_td)
 
         exact = mms.solution_td_02(centers_x, angle_x, edges_t[1:])
         exact = np.sum(exact * angle_w[None,None,:,None], axis=2)
@@ -125,8 +136,13 @@ def test_crank_nicolson_01():
         dt = T / (steps)
         edges_t = np.linspace(0, T, steps + 1)
 
-        approx = timed1d.crank_nicolson(*problems1d.manufactured_td_01(\
-                                cells_x, angles, edges_t, dt, temporal=2))
+        initial_flux, xs_total, xs_scatter, xs_fission, velocity, external, \
+            boundary_x, medium_map, delta_x, angle_x, angle_w, info_td \
+            = problems1d.manufactured_td_01(cells_x, angles, edges_t, dt, temporal=2)
+        approx = timed1d.crank_nicolson(initial_flux, \
+                    CrossSections(xs_total, xs_scatter, xs_fission), velocity, \
+                    external, boundary_x, medium_map, SpatialGrid(delta_x), \
+                    QuadratureData(angle_x, angle_w), info_td)
 
         exact = mms.solution_td_01(centers_x, angle_x, edges_t[1:])
         exact = np.sum(exact * angle_w[None,None,:,None], axis=2)
@@ -165,8 +181,13 @@ def test_crank_nicolson_02():
         dt = T / (steps)
         edges_t = np.linspace(0, T, steps + 1)
 
-        approx = timed1d.crank_nicolson(*problems1d.manufactured_td_02(\
-                                cells_x, angles, edges_t, dt, temporal=2))
+        initial_flux, xs_total, xs_scatter, xs_fission, velocity, external, \
+            boundary_x, medium_map, delta_x, angle_x, angle_w, info_td \
+            = problems1d.manufactured_td_02(cells_x, angles, edges_t, dt, temporal=2)
+        approx = timed1d.crank_nicolson(initial_flux, \
+                    CrossSections(xs_total, xs_scatter, xs_fission), velocity, \
+                    external, boundary_x, medium_map, SpatialGrid(delta_x), \
+                    QuadratureData(angle_x, angle_w), info_td)
 
         exact = mms.solution_td_02(centers_x, angle_x, edges_t[1:])
         exact = np.sum(exact * angle_w[None,None,:,None], axis=2)
@@ -206,8 +227,13 @@ def test_bdf2_01():
         dt = T / (steps)
         edges_t = np.linspace(0, T, steps + 1)
 
-        approx = timed1d.bdf2(*problems1d.manufactured_td_01(cells_x, \
-                                        angles, edges_t, dt, temporal=3))
+        initial_flux, xs_total, xs_scatter, xs_fission, velocity, external, \
+            boundary_x, medium_map, delta_x, angle_x, angle_w, info_td \
+            = problems1d.manufactured_td_01(cells_x, angles, edges_t, dt, temporal=3)
+        approx = timed1d.bdf2(initial_flux, \
+                    CrossSections(xs_total, xs_scatter, xs_fission), velocity, \
+                    external, boundary_x, medium_map, SpatialGrid(delta_x), \
+                    QuadratureData(angle_x, angle_w), info_td)
 
         exact = mms.solution_td_01(centers_x, angle_x, edges_t[1:])
         exact = np.sum(exact * angle_w[None,None,:,None], axis=2)
@@ -246,8 +272,13 @@ def test_bdf2_02():
         dt = T / (steps)
         edges_t = np.linspace(0, T, steps + 1)
 
-        approx = timed1d.bdf2(*problems1d.manufactured_td_02(cells_x, \
-                                        angles, edges_t, dt, temporal=3))
+        initial_flux, xs_total, xs_scatter, xs_fission, velocity, external, \
+            boundary_x, medium_map, delta_x, angle_x, angle_w, info_td \
+            = problems1d.manufactured_td_02(cells_x, angles, edges_t, dt, temporal=3)
+        approx = timed1d.bdf2(initial_flux, \
+                    CrossSections(xs_total, xs_scatter, xs_fission), velocity, \
+                    external, boundary_x, medium_map, SpatialGrid(delta_x), \
+                    QuadratureData(angle_x, angle_w), info_td)
 
         exact = mms.solution_td_02(centers_x, angle_x, edges_t[1:])
         exact = np.sum(exact * angle_w[None,None,:,None], axis=2)
@@ -287,8 +318,13 @@ def test_tr_bdf2_01():
         dt = T / (steps)
         edges_t = np.linspace(0, T, steps + 1)
 
-        approx = timed1d.tr_bdf2(*problems1d.manufactured_td_01(cells_x, \
-                                        angles, edges_t, dt, temporal=4))
+        initial_flux, xs_total, xs_scatter, xs_fission, velocity, external, \
+            boundary_x, medium_map, delta_x, angle_x, angle_w, info_td \
+            = problems1d.manufactured_td_01(cells_x, angles, edges_t, dt, temporal=4)
+        approx = timed1d.tr_bdf2(initial_flux, \
+                    CrossSections(xs_total, xs_scatter, xs_fission), velocity, \
+                    external, boundary_x, medium_map, SpatialGrid(delta_x), \
+                    QuadratureData(angle_x, angle_w), info_td)
 
         exact = mms.solution_td_01(centers_x, angle_x, edges_t[1:])
         exact = np.sum(exact * angle_w[None,None,:,None], axis=2)
@@ -327,8 +363,13 @@ def test_tr_bdf2_02():
         dt = T / (steps)
         edges_t = np.linspace(0, T, steps + 1)
 
-        approx = timed1d.tr_bdf2(*problems1d.manufactured_td_02(cells_x, \
-                                        angles, edges_t, dt, temporal=4))
+        initial_flux, xs_total, xs_scatter, xs_fission, velocity, external, \
+            boundary_x, medium_map, delta_x, angle_x, angle_w, info_td \
+            = problems1d.manufactured_td_02(cells_x, angles, edges_t, dt, temporal=4)
+        approx = timed1d.tr_bdf2(initial_flux, \
+                    CrossSections(xs_total, xs_scatter, xs_fission), velocity, \
+                    external, boundary_x, medium_map, SpatialGrid(delta_x), \
+                    QuadratureData(angle_x, angle_w), info_td)
 
         exact = mms.solution_td_02(centers_x, angle_x, edges_t[1:])
         exact = np.sum(exact * angle_w[None,None,:,None], axis=2)

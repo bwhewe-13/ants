@@ -18,6 +18,7 @@ import numpy as np
 import ants
 from ants.fixed1d import source_iteration
 from ants.utils import manufactured_1d as mms
+from ants.datatypes import CrossSections, QuadratureData, SpatialGrid
 from tests import problems1d
 
 
@@ -36,8 +37,9 @@ def test_manufactured_01(angular, spatial, edges):
     info["angular"] = angular
     info["spatial"] = spatial
     info["edges"] = edges
-    flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
-                boundary_x, medium_map, delta_x, angle_x, angle_w, info)
+    flux = source_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                external, boundary_x, medium_map, SpatialGrid(delta_x), \
+                QuadratureData(angle_x, angle_w), info)
     space_x = edges_x.copy() if edges else centers_x.copy()
     exact = mms.solution_ss_01(space_x, angle_x)
     if not angular:
@@ -61,8 +63,9 @@ def test_manufactured_02(angular, spatial, edges):
     info["angular"] = angular
     info["spatial"] = spatial
     info["edges"] = edges
-    flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
-                boundary_x, medium_map, delta_x, angle_x, angle_w, info)
+    flux = source_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                external, boundary_x, medium_map, SpatialGrid(delta_x), \
+                QuadratureData(angle_x, angle_w), info)
     space_x = edges_x.copy() if edges else centers_x.copy()
     exact = mms.solution_ss_02(space_x, angle_x)
     if not angular:
@@ -85,8 +88,9 @@ def test_manufactured_03(angular, spatial, edges):
     info["angular"] = angular
     info["spatial"] = spatial
     info["edges"] = edges
-    flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
-                boundary_x, medium_map, delta_x, angle_x, angle_w, info)
+    flux = source_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                external, boundary_x, medium_map, SpatialGrid(delta_x), \
+                QuadratureData(angle_x, angle_w), info)
     space_x = edges_x.copy() if edges else centers_x.copy()
     exact = mms.solution_ss_03(space_x, angle_x)
     if not angular:
@@ -109,8 +113,9 @@ def test_manufactured_04(angular, spatial, edges):
     info["angular"] = angular
     info["spatial"] = spatial
     info["edges"] = edges
-    flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
-                boundary_x, medium_map, delta_x, angle_x, angle_w, info)
+    flux = source_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                external, boundary_x, medium_map, SpatialGrid(delta_x), \
+                QuadratureData(angle_x, angle_w), info)
     space_x = edges_x.copy() if edges else centers_x.copy()
     exact = mms.solution_ss_04(space_x, angle_x)
     if not angular:
@@ -133,8 +138,9 @@ def test_manufactured_05(angular, spatial, edges):
     info["angular"] = angular
     info["spatial"] = spatial
     info["edges"] = edges
-    flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
-                boundary_x, medium_map, delta_x, angle_x, angle_w, info)
+    flux = source_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                external, boundary_x, medium_map, SpatialGrid(delta_x), \
+                QuadratureData(angle_x, angle_w), info)
     space_x = edges_x.copy() if edges else centers_x.copy()
     exact = mms.solution_ss_05(space_x, angle_x)
     if not angular:
@@ -147,6 +153,10 @@ def test_manufactured_05(angular, spatial, edges):
 @pytest.mark.source_iteration
 @pytest.mark.multigroup1d
 def test_sphere_01_source_iteration():
-    flux = source_iteration(*problems1d.sphere_01("fixed"))
+    xs_total, xs_scatter, xs_fission, external, boundary_x, medium_map, \
+        delta_x, angle_x, angle_w, info = problems1d.sphere_01("fixed")
+    flux = source_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                external, boundary_x, medium_map, SpatialGrid(delta_x), \
+                QuadratureData(angle_x, angle_w), info)
     reference = np.load(problems1d.PATH + "uranium_sphere_source_iteration_flux.npy")
     assert np.isclose(flux, reference).all()

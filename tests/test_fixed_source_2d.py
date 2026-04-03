@@ -16,6 +16,7 @@ import numpy as np
 import ants
 from ants.fixed2d import source_iteration
 from ants.utils import manufactured_2d as mms
+from ants.datatypes import CrossSections, QuadratureData, SpatialGrid
 from tests import problems2d
 
 
@@ -30,11 +31,12 @@ def test_manufactured_01(angular, spatial):
         edges_x, edges_y = problems2d.manufactured_ss_01(200, 2)
     info["angular"] = angular
     info["spatial"] = spatial
-    # Run Source Iteration 
-    flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
-                            boundary_x, boundary_y, medium_map, delta_x, \
-                            delta_y, angle_x, angle_y, angle_w, info)
-    
+    # Run Source Iteration
+    flux = source_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                            external, boundary_x, boundary_y, medium_map, \
+                            SpatialGrid(delta_x, delta_y), \
+                            QuadratureData(angle_x, angle_w, angle_y), info)
+
     centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
     centers_y = 0.5 * (edges_y[1:] + edges_y[:-1])
     exact = mms.solution_ss_01(centers_x, centers_y, angle_x, angle_y)
@@ -57,11 +59,12 @@ def test_manufactured_02(angular, spatial):
         edges_x, edges_y = problems2d.manufactured_ss_02(200, 2)
     info["angular"] = angular
     info["spatial"] = spatial
-    # Run Source Iteration 
-    flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
-                            boundary_x, boundary_y, medium_map, delta_x, \
-                            delta_y, angle_x, angle_y, angle_w, info)
-    
+    # Run Source Iteration
+    flux = source_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                            external, boundary_x, boundary_y, medium_map, \
+                            SpatialGrid(delta_x, delta_y), \
+                            QuadratureData(angle_x, angle_w, angle_y), info)
+
     centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
     centers_y = 0.5 * (edges_y[1:] + edges_y[:-1])
     exact = mms.solution_ss_02(centers_x, centers_y, angle_x, angle_y)
@@ -84,11 +87,12 @@ def test_manufactured_03(angular, spatial):
         edges_x, edges_y = problems2d.manufactured_ss_03(200, 4)
     info["angular"] = angular
     info["spatial"] = spatial
-    # Run Source Iteration 
-    flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
-                        boundary_x, boundary_y, medium_map, delta_x, \
-                        delta_y, angle_x, angle_y, angle_w, info)
-    
+    # Run Source Iteration
+    flux = source_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                        external, boundary_x, boundary_y, medium_map, \
+                        SpatialGrid(delta_x, delta_y), \
+                        QuadratureData(angle_x, angle_w, angle_y), info)
+
     centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
     centers_y = 0.5 * (edges_y[1:] + edges_y[:-1])
     exact = mms.solution_ss_03(centers_x, centers_y, angle_x, angle_y)
@@ -111,10 +115,11 @@ def test_manufactured_04(angular, spatial):
         edges_x, edges_y = problems2d.manufactured_ss_04(200, 4)
     info["angular"] = angular
     info["spatial"] = spatial
-    # Run Source Iteration 
-    flux = source_iteration(xs_total, xs_scatter, xs_fission, external, \
-                        boundary_x, boundary_y, medium_map, delta_x, \
-                        delta_y, angle_x, angle_y, angle_w, info)
+    # Run Source Iteration
+    flux = source_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
+                        external, boundary_x, boundary_y, medium_map, \
+                        SpatialGrid(delta_x, delta_y), \
+                        QuadratureData(angle_x, angle_w, angle_y), info)
 
     centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
     centers_y = 0.5 * (edges_y[1:] + edges_y[:-1])

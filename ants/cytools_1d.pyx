@@ -20,10 +20,16 @@
 # distutils: language = c++
 
 
-from libc.math cimport sqrt, pow, erfc, ceil
 from cython.view cimport array as cvarray
 
 from ants.parameters cimport params
+from ants.cytools_shared cimport (
+    group_convergence as _shared_group_convergence,
+    angle_convergence as _shared_angle_convergence,
+    _normalize_flux as _shared_normalize_flux,
+    _update_keffective as _shared_update_keffective,
+    _total_velocity as _shared_total_velocity,
+)
 
 ################################################################################
 # Memoryview functions
@@ -66,29 +72,15 @@ cdef double[:,:,:,:] array_4d(int dim1, int dim2, int dim3, int dim4):
 # Convergence functions
 ################################################################################
 cdef double group_convergence(double[:,:]& arr1, double[:,:]& arr2, params info):
-    # Calculate the L2 convergence of the scalar flux in the energy loop
-    cdef int ii, gg
-    cdef double change = 0.0
-    for gg in range(info.groups):
-        for ii in range(info.cells_x):
-            if arr1[ii,gg] == 0.0:
-                continue
-            change += pow((arr1[ii,gg] - arr2[ii,gg]) / arr1[ii,gg] \
-                          / info.cells_x, 2)
-    change = sqrt(change)
-    return change
+    cdef double[:,:] _arr1 = arr1
+    cdef double[:,:] _arr2 = arr2
+    return _shared_group_convergence(_arr1, _arr2, info)
 
 
 cdef double angle_convergence(double[:]& arr1, double[:]& arr2, params info):
-    # Calculate the L2 convergence of the scalar flux in the ordinates loop
-    cdef int ii
-    cdef double change = 0.0
-    for ii in range(info.cells_x):
-        if arr1[ii] == 0.0:
-            continue
-        change += pow((arr1[ii] - arr2[ii]) / arr1[ii] / info.cells_x, 2)
-    change = sqrt(change)
-    return change
+    cdef double[:] _arr1 = arr1
+    cdef double[:] _arr2 = arr2
+    return _shared_angle_convergence(_arr1, _arr2, info)
 
 ################################################################################
 # Material Interface functions
@@ -215,11 +207,9 @@ cdef void _angular_edge_to_scalar(double[:,:,:]& angular_flux, \
 
 cdef void _total_velocity(double[:,:]& xs_total, double[:]& velocity, \
         double constant, params info):
-    # Create sigma_t + constant / (v * dt)
-    cdef int mm, gg
-    for gg in range(info.groups):
-        for mm in range(info.materials):
-            xs_total[mm,gg] += constant / (velocity[gg] * info.dt)
+    cdef double[:,:] _xs_total = xs_total
+    cdef double[:] _velocity = velocity
+    _shared_total_velocity(_xs_total, _velocity, constant, info)
 
 
 cdef void _time_source_star_bdf1(double[:,:,:]& flux, double[:,:,:]& q_star, \
@@ -338,15 +328,8 @@ cdef void _time_right_side(double[:,:,:]& q_star, double[:,:]& flux, \
 ################################################################################
 
 cdef void _normalize_flux(double[:,:]& flux, params info):
-    cdef int ii, gg
-    cdef double keff = 0.0
-    for gg in range(info.groups):
-        for ii in range(info.cells_x):
-            keff += pow(flux[ii,gg], 2)
-    keff = sqrt(keff)
-    for gg in range(info.groups):
-        for ii in range(info.cells_x):
-            flux[ii,gg] /= keff
+    cdef double[:,:] _flux = flux
+    _shared_normalize_flux(_flux, info)
 
 
 cdef void _fission_source(double[:,:]& flux, double[:,:,:]& xs_fission, \
@@ -368,19 +351,7 @@ cdef void _fission_source(double[:,:]& flux, double[:,:,:]& xs_fission, \
 
 cdef double _update_keffective(double[:,:] flux_new, double[:,:] flux_old, \
         double[:,:,:] xs_fission, int[:] medium_map, params info, double keff):
-    # Initialize iterables
-    cdef int ii, mat, ig, og
-    # Initialize fission rates for 2 fluxes
-    cdef double rate_new = 0.0
-    cdef double rate_old = 0.0
-    # Iterate over cells and groups
-    for ii in range(info.cells_x):
-        mat = medium_map[ii]
-        for og in range(info.groups):
-            for ig in range(info.groups):
-                rate_new += flux_new[ii,ig] * xs_fission[mat,og,ig]
-                rate_old += flux_old[ii,ig] * xs_fission[mat,og,ig]
-    return (rate_new * keff) / rate_old
+    return _shared_update_keffective(flux_new, flux_old, xs_fission, medium_map, info, keff)
 
 
 cdef void _source_total_critical(double[:,:,:]& source, double[:,:]& flux, \
