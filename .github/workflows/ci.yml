@@ -21,7 +21,10 @@ jobs:
       - name: Install style tools
         run: |
           python -m pip install --upgrade pip
-          python -m pip install black isort ruff
+          python -m pip install black isort flake8 pre-commit
+
+      - name: Run pre-commit
+        run: pre-commit run --all-files --show-diff-on-failure
 
       - name: Run Black
         run: black --check ants tests examples docs/conf.py setup.py
@@ -29,11 +32,11 @@ jobs:
       - name: Run isort
         run: isort --check-only ants tests examples docs/conf.py setup.py
 
-      - name: Run Ruff
-        run: ruff check ants tests examples docs/conf.py setup.py
+      - name: Run Flake8
+        run: flake8 ants tests examples docs/conf.py setup.py
 
-  smoke-tests:
-    name: Smoke Tests
+  tests:
+    name: Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -48,10 +51,10 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install ".[test]"
+          python -m pip install ".[dev]"
 
-      - name: Run smoke tests
-        run: pytest tests -m smoke
+      - name: Run tests with coverage
+        run: pytest tests --cov=ants --cov-report=term-missing --cov-report=xml
 
   docs:
     name: Docs Build

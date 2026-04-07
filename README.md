@@ -2,16 +2,16 @@
 # A Neutron Transport Solution (ANTS)
 
 [![Python Versions](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue)](https://pypi.org/project/ants/)
-[![Tests](https://github.com/bwhewe-13/ants/actions/workflows/tests.yml/badge.svg)](https://github.com/bwhewe-13/ants/actions/workflows/tests.yml)
+[![Tests](https://img.shields.io/github/actions/workflow/status/bwhewe-13/ants/ci.yml?label=Tests)](https://github.com/bwhewe-13/ants/actions/workflows/ci.yml?query=job%3Atests)
 [![Coverage](https://codecov.io/gh/bwhewe-13/ants/graph/badge.svg)](https://codecov.io/gh/bwhewe-13/ants)
-[![Docs](https://github.com/bwhewe-13/ants/actions/workflows/docs.yml/badge.svg)](https://github.com/bwhewe-13/ants/actions/workflows/docs.yml)
+[![Docs](https://img.shields.io/github/actions/workflow/status/bwhewe-13/ants/ci.yml?label=Docs)](https://github.com/bwhewe-13/ants/actions/workflows/ci.yml?query=job%3Adocs)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-A Neutron Transport Solution (ANTS) calculates the neutron flux for both criticality and fixed source problems of one dimensional slabs and spheres and two dimensional slabs using the discrete ordinates method and written in Cython. 
+A Neutron Transport Solution (ANTS) calculates the neutron flux for both criticality and fixed source problems of one dimensional slabs and spheres and two dimensional slabs using the discrete ordinates method and written in Cython.
 
 There are a number of different acceleration methods used including a collision-based hybrid method, machine learning models to predict matrix-vector multiplication, dynamic mode decomposition, and synthetic diffusion acceleration (DSA).
 
-There are also verification procedures to ensure both the code and solutions are correct. For code verification, manufactured solutions are used for one- and two-dimenisonal slab problems to ensure proper discretization. Solution verification uses the method of nearby problems, which uses one spatial grid. 
+There are also verification procedures to ensure both the code and solutions are correct. For code verification, manufactured solutions are used for one- and two-dimenisonal slab problems to ensure proper discretization. Solution verification uses the method of nearby problems, which uses one spatial grid.
 
 &nbsp;
 
@@ -28,10 +28,15 @@ python -m pip install --upgrade pip
 python -m pip install .
 ```
 
-### Install for development (tests + examples)
+### Install for development (tests + style)
 ```bash
 python -m pip install --upgrade pip
-python -m pip install -e ".[test,examples]"
+python -m pip install -e ".[dev]"
+```
+
+### Enable pre-commit hooks
+```bash
+pre-commit install
 ```
 
 ## Running ANTS
@@ -57,8 +62,12 @@ pytest tests -m smoke
 
 ### Generate coverage locally
 ```bash
-python -m pip install pytest-cov
 pytest tests --cov=ants --cov-report=term --cov-report=xml
+```
+
+### Run formatting and lint checks locally
+```bash
+pre-commit run --all-files
 ```
 
 ### Build docs locally
@@ -101,7 +110,7 @@ make -C docs html
     - &#9745; &#9745; Crank-Nicolson
     - &#9745; &#9745; TR - BDF2
 - &#9745; &#9745; Criticality Benchmarks \
-    (Analytical Benchmark Test Set for Criticality Code Verification, Sood et al) 
+    (Analytical Benchmark Test Set for Criticality Code Verification, Sood et al)
 - &#9745; &#9745; Method of Nearby Problems (MNP)
 
 &nbsp;

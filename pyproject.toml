@@ -14,20 +14,17 @@ requires-python = ">=3.9"
 dependencies = [
     "cython",
     "numpy",
-    "tqdm", 
+    "tqdm",
 ]
 
 [project.optional-dependencies]
-test = ["pytest"]
-style = [
+dev = [
+    "pytest",
+    "pytest-cov",
     "black",
     "isort",
-    "ruff",
-]
-examples = [
-    "h5py",
-    "matplotlib",
-    "seaborn",
+    "flake8",
+    "pre-commit",
 ]
 
 [tool.setuptools.packages]
@@ -64,7 +61,7 @@ markers = [
 line-length = 88
 target-version = ["py39"]
 extend-exclude = '''
-/( 
+/(
     build
     |ants\.egg-info
     |docs/_build
