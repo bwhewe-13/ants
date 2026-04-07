@@ -11,6 +11,8 @@
 
 import numpy as np
 
+from ants.datatypes import HybridData
+
 ########################################################################
 # Coarsening Arrays for Hybrid Methods
 ########################################################################
@@ -165,7 +167,7 @@ def coarsen_velocity(vector, edges_gidx):
 ########################################################################
 
 
-def indexing(edges_g, edges_gidx_fine, edges_gidx_coarse):
+def indexing(edges_g, edges_gidx_fine, edges_gidx_coarse, datatype=True):
     """Calculate the variables needed for refining and coarsening fluxes
     Arguments:
         edges_g (float [groups_fine + 1]): Energy group bounds for fine grid
@@ -202,6 +204,8 @@ def indexing(edges_g, edges_gidx_fine, edges_gidx_coarse):
         edges_gidx_fine,
     )
 
+    if datatype:
+        return HybridData(coarse_idx=coarse_idx, fine_idx=fine_idx, factor=factor)
     return fine_idx, coarse_idx, factor
 
 

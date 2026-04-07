@@ -89,7 +89,7 @@ cdef void slab_ordinates(double[:]& flux, double[:]& flux_old, \
         # Calculate L2 change
         change = tools.angle_convergence(flux, flux_old, info)
         # Check for convergence
-        converged = (change < info.change_nn) or (count >= info.count_nn)
+        converged = (change < info.tol_angular) or (count >= info.max_iter_angular)
         # Add one to the iteration count
         count += 1
         
@@ -144,7 +144,7 @@ cdef double slab_forward(double[:]& flux, double[:]& flux_old, \
     cdef float alpha1 = 0.5 * (1.0 - spatial_coef(info.spatial))
     cdef float alpha2 = 0.5 * (1.0 + spatial_coef(info.spatial))
     # Determine flux edge
-    if info.edges:
+    if info.flux_at_edges:
         flux[0] += angle_w * edge1
     # Iterate over cells from 0 -> I, edge1 is known
     for ii in range(info.cells_x):
@@ -159,7 +159,7 @@ cdef double slab_forward(double[:]& flux, double[:]& flux_old, \
                 + edge1 * (fabs(angle_x) / delta_x[ii] - alpha1 * xs_total[mat])) \
                 * 1 / (fabs(angle_x) / delta_x[ii] + alpha2 * xs_total[mat])
         # Update flux with cell edges
-        if info.edges:
+        if info.flux_at_edges:
             flux[ii+1] += angle_w * edge2
         # Update flux with cell centers
         else:
@@ -183,7 +183,7 @@ cdef double slab_backward(double[:]& flux, double[:]& flux_old, double[:]& xs_to
     cdef float alpha1 = 0.5 * (1.0 - spatial_coef(info.spatial))
     cdef float alpha2 = 0.5 * (1.0 + spatial_coef(info.spatial))
     # Determine flux edge
-    if info.edges:
+    if info.flux_at_edges:
         flux[info.cells_x] += angle_w * edge1
     # Iterate over cells from I -> 0, edge1 is known
     for ii in range(info.cells_x-1, -1, -1):
@@ -199,7 +199,7 @@ cdef double slab_backward(double[:]& flux, double[:]& flux_old, double[:]& xs_to
                 + edge1 * (fabs(angle_x) / delta_x[ii] - alpha1 * xs_total[mat])) \
                 * 1 / (fabs(angle_x) / delta_x[ii] + alpha2 * xs_total[mat])
         # Update flux with cell edges
-        if info.edges:
+        if info.flux_at_edges:
             flux[ii] += angle_w * edge2
         # Update flux with cell centers
         else:
@@ -259,7 +259,7 @@ cdef void sphere_ordinates(double[:]& flux, double[:]& flux_old, \
             # Update the half angle
             angle_minus = angle_plus
         change = tools.angle_convergence(flux, flux_old, info)
-        converged = (change < info.change_nn) or (count >= info.count_nn)
+        converged = (change < info.tol_angular) or (count >= info.max_iter_angular)
         count += 1
         flux_old[:] = flux[:]
 
@@ -320,7 +320,7 @@ cdef void sphere_forward(double[:]& flux, double[:]& flux_old, \
     # Initialize known cell edge
     cdef double edge1 = half_angle[0]
     # Determine flux edge
-    if info.edges:
+    if info.flux_at_edges:
         flux[0] += weight * edge1
     # Initialize surface area on cell edges, cell volume, flux center
     cdef double area1, area2, center, volume
@@ -341,7 +341,7 @@ cdef void sphere_forward(double[:]& flux, double[:]& flux_old, \
                 / (2 * angle_x * area2 + 2 / angle_w * (area2 - area1) * alpha_plus \
                 + xs_total[mat] * volume)
         # Update flux with cell edges
-        if info.edges:
+        if info.flux_at_edges:
             flux[ii+1] += weight * (2 * center - edge1)
         # Update flux with cell centers
         else:
@@ -368,7 +368,7 @@ cdef void sphere_backward(double[:]& flux, double[:]& flux_old, \
     # Initialize known cell edge
     cdef double edge1 = boundary_x
     # Determine flux edge
-    if info.edges:
+    if info.flux_at_edges:
         flux[info.cells_x] += weight * edge1
     # Initialize surface area on cell edges, cell volume, flux center
     cdef double area1, area2, center, volume
@@ -389,7 +389,7 @@ cdef void sphere_backward(double[:]& flux, double[:]& flux_old, \
                 / (2 * fabs(angle_x) * area1 + 2 / angle_w * (area2 - area1) * alpha_plus \
                 + xs_total[mat] * volume)
         # Update flux with cell edges
-        if info.edges:
+        if info.flux_at_edges:
             flux[ii] += weight * (2 * center - edge1)
         # Update flux with cell centers
         else:

@@ -14,8 +14,10 @@ import os
 from importlib.resources import files
 
 import numpy as np
+from scipy.special import erf
 
 from ants.constants import EV_TO_JOULES, LIGHT_SPEED, MASS_NEUTRON
+from ants.datatypes import ProblemParameters, QuadratureData
 from ants.utils.hybrid import energy_coarse_index
 
 DATA_PATH = str(files("ants").joinpath("sources/energy/"))
@@ -24,12 +26,12 @@ DATA_PATH = str(files("ants").joinpath("sources/energy/"))
 _COORD_PRECISION = 12
 
 
-def angular_x(info):
+def angular_x(angles, bc_x=[0, 0], datatype=True):
     """Compute 1D Gauss-Legendre quadrature angles and weights.
 
     Parameters
     ----------
-    info : int or dict
+    angles : int
         Number of angles (int) or problem info dict with keys ``"angles"``
         and ``"bc_x"`` (list of two ints, 1 = reflected boundary).
 
@@ -40,12 +42,7 @@ def angular_x(info):
     angle_w : ndarray, shape (angles,)
         Normalized quadrature weights summing to 1.
     """
-    if isinstance(info, int):
-        angles = info
-        bc_x = [0, 0]
-    else:
-        angles = info["angles"]
-        bc_x = info["bc_x"]
+
     angle_x, angle_w = np.polynomial.legendre.leggauss(angles)
     angle_w /= np.sum(angle_w)
     # Ordering for reflective boundaries
@@ -56,13 +53,14 @@ def angular_x(info):
             idx = angle_x.argsort()[::-1]
         angle_x = angle_x[idx].copy()
         angle_w = angle_w[idx].copy()
+    if datatype:
+        return QuadratureData(angle_x=angle_x, angle_w=angle_w)
     return angle_x, angle_w
 
 
 # Called from cython
 def _angular_x(angles, bc_x):
-    info = {"angles": angles, "bc_x": bc_x}
-    return angular_x(info)
+    return angular_x(angles, bc_x, False)
 
 
 def angular_xy(info):
@@ -92,9 +90,9 @@ def angular_xy(info):
         bc_x = [0, 0]
         bc_y = [0, 0]
     else:
-        angles = info["angles"]
-        bc_x = info["bc_x"]
-        bc_y = info["bc_y"]
+        angles = info.angles
+        bc_x = info.bc_x
+        bc_y = info.bc_y
     # Get angles and weights from product quadrature
     angle_x, angle_y, angle_z, angle_w = _product_quadrature(angles)
     # Take only positive angle_z values
@@ -107,12 +105,65 @@ def angular_xy(info):
 
 # Called from cython
 def _angular_xy(angles, bc_x, bc_y):
-    info = {"angles": angles, "bc_x": bc_x, "bc_y": bc_y}
-    return angular_xy(info)
+    return angular_xy(ProblemParameters(angles=angles, bc_x=bc_x, bc_y=bc_y))
+
+
+def artificial_scatter_matrix(angle_x, angle_y, angle_w, sigma_as, beta):
+    """Compute the normalized artificial scattering matrix M_as[N, N].
+
+    Implements the forward-peaked scattering kernel from Frank et al. (2020),
+    "Ray Effect Mitigation for the Discrete Ordinates Method Using Artificial
+    Scattering", Nuclear Science and Engineering.
+
+    The kernel is s_ε(μ) = (2 / (√π ε Erf(2/ε))) * exp(-(1 - μ)² / ε²)
+    with ε = β / N_q, where N_q is the number of ordinates.
+
+    Parameters
+    ----------
+    angle_x : ndarray, shape (N,)
+        x-direction cosines for 2D.
+    angle_y : ndarray, shape (N,)
+        y-direction cosines for 2D.
+    angle_w : ndarray, shape (N,)
+        Normalized quadrature weights (sum to 1).
+    sigma_as : float
+        Artificial scattering strength parameter. Set to 0 to disable.
+    beta : float
+        Kernel width parameter. Typical values: 4.5 (explicit), 4.0 (implicit).
+
+    Returns
+    -------
+    M_as : ndarray, shape (N, N)
+        Normalized artificial scattering matrix.
+    """
+    N = len(angle_x)
+    eps = beta / N if N > 0 else 1.0
+
+    # Compute pairwise dot products
+    dots = np.outer(angle_x, angle_x) + np.outer(angle_y, angle_y)  # (N, N)
+
+    # Kernel Eq. (6) from Frank et al.
+    if eps > 1e-15:
+        erf_val = erf(2.0 / eps)
+    else:
+        erf_val = 1.0
+    prefactor = 2.0 / (np.sqrt(np.pi) * eps * erf_val)
+    S = prefactor * np.exp(-((1.0 - dots) ** 2) / eps**2)  # (N, N)
+
+    # Weight by quadrature weights: M_as[n,m]
+    WS = S * angle_w[np.newaxis, :]  # (N, N)
+
+    # Per-ordinate normalization factor c_n
+    c_n = WS.sum(axis=1, keepdims=True)  # (N, 1)
+    c_n = np.where(c_n > 0, c_n, 1.0)  # avoid division by zero
+
+    # Final normalized matrix
+    M_as = sigma_as * WS / c_n  # (N, N)
+    return M_as.astype(np.float64)
 
 
 def _product_quadrature(angles):
-    """Build a Legendre × Chebyshev product quadrature set over the full sphere.
+    """Build a Legendre * Chebyshev product quadrature set over the full sphere.
 
     Uses Gauss-Legendre points for the polar cosine (z-direction, mu) and
     Chebyshev points for the azimuthal angle (mapped to x/y direction cosines
@@ -129,7 +180,7 @@ def _product_quadrature(angles):
     angle_x, angle_y, angle_z : ndarray, shape (2*angles**2,)
         Direction cosines for x, y, z axes over the full sphere.
     angle_w : ndarray, shape (2*angles**2,)
-        Quadrature weights (un-normalized product of Legendre × Chebyshev weights).
+        Quadrature weights (un-normalized product of Legendre * Chebyshev weights).
     """
     # Polar cosine (mu) via Gauss-Legendre; azimuthal (phi) via Chebyshev
     xx, wx = np.polynomial.legendre.leggauss(angles)

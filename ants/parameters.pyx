@@ -18,58 +18,59 @@
 # cython: profile=True
 # distutils: language = c++
 
-from ants.constants import (
-    CHANGE_ANGULAR, CHANGE_ENERGY, CHANGE_POWER,
-    COUNT_ANGULAR, COUNT_ENERGY, COUNT_POWER,
-)
-
-cdef params _to_params(dict pydic):
+cdef params _to_params(object pydic):
     # Initialize params struct
     cdef params info
-    
+
     # Collect Spatial cells, angles, energy groups
-    info.cells_x = pydic.get("cells_x", 10)
-    info.cells_y = pydic.get("cells_y", 1)
-    info.angles = pydic.get("angles", 4)
-    info.groups = pydic.get("groups", 1)
-    info.materials = pydic.get("materials", 1)
-    
+    info.cells_x = pydic.cells_x
+    info.cells_y = pydic.cells_y
+    info.angles = pydic.angles
+    info.groups = pydic.groups
+    info.materials = pydic.materials
+
     # Geometry type (slab, sphere)
-    info.geometry = pydic.get("geometry", 1)
-    
+    info.geometry = pydic.geometry
+
     # Spatial discretization type
-    info.spatial = pydic.get("spatial", 2)
-    
+    info.spatial = pydic.space_disc
+
     # Boundary parameters
-    info.bc_x = pydic.get("bc_x", [0, 0])
-    info.bc_y = pydic.get("bc_y", [0, 0])
-    
+    info.bc_x = pydic.bc_x
+    info.bc_y = pydic.bc_y
+
     # Time dependent parameters
-    info.steps = pydic.get("steps", 0)
-    info.dt = pydic.get("dt", 1.0)
-    
+    info.steps = pydic.steps
+    info.dt = pydic.dt
+
     # Angular flux option
-    info.angular = pydic.get("angular", False)
+    info.angular = pydic.angular
 
     # Flux at cell edges or centers
-    info.edges = pydic.get("edges", 0) # 0 = Center, 1 = Edge
-    
+    info.flux_at_edges = pydic.flux_at_edges
+
     # Multigroup solver (1 = SI, 2 = DMD)
-    info.mg = pydic.get("mg", 1)
-    
+    info.mg_solver = pydic.mg_solver
+
     # DMD parameters
-    info.dmd_k = pydic.get("dmd_k", 40)
-    info.dmd_r = pydic.get("dmd_r", 2)
-    
+    info.dmd_snapshots = pydic.dmd_snapshots
+    info.dmd_rank = pydic.dmd_rank
+
+    # Artificial scattering parameters (ray effect mitigation)
+    info.sigma_as = pydic.sigma_as
+    info.beta_as = pydic.beta_as
+
     # Convergence parameters - iterations
-    info.count_nn = pydic.get("count_nn", COUNT_ANGULAR)
-    info.count_gg = pydic.get("count_gg", COUNT_ENERGY)
-    info.count_keff = pydic.get("count_keff", COUNT_POWER)
-    
+    info.max_iter_angular = pydic.max_iter_angular
+    info.max_iter_energy = pydic.max_iter_energy
+    info.max_iter_keff = pydic.max_iter_keff
+
     # Convergence parameters - difference
-    info.change_nn = pydic.get("change_nn", CHANGE_ANGULAR)
-    info.change_gg = pydic.get("change_gg", CHANGE_ENERGY)
-    info.change_keff = pydic.get("change_keff", CHANGE_POWER)
+    info.tol_angular = pydic.tol_angular
+    info.tol_energy = pydic.tol_energy
+    info.tol_keff = pydic.tol_keff
+
+
     return info
 
 
@@ -148,13 +149,13 @@ cdef int _check_tr_bdf_timed1d(params info, int psi_shape, int q_shape, \
 
 cdef int _check_critical1d_power_iteration(params info) except -1:
     assert info.angles % 2 == 0, "Need an even number of angles"
-    # assert info.edges == 0, "Cannot currently use cell edges"
+    # assert info.flux_at_edges == 0, "Cannot currently use cell edges"
     return 0
 
 
 cdef int _check_critical1d_nearby_power(params info) except -1:
     assert info.angles % 2 == 0, "Need an even number of angles"
-    # assert info.edges == 0, "Cannot currently use cell edges"
+    # assert info.flux_at_edges == 0, "Cannot currently use cell edges"
     return 0
 
 
@@ -245,11 +246,11 @@ cdef int _check_tr_bdf_timed2d(params info, int psi_x_shape, int psi_y_shape, \
 
 cdef int _check_critical2d_power_iteration(params info) except -1:
     assert info.angles % 2 == 0, "Need an even number of angles"
-    assert info.edges == 0, "Cannot currently use cell edges"
+    assert info.flux_at_edges == 0, "Cannot currently use cell edges"
     return 0
 
 
 cdef int _check_critical2d_nearby_power(params info) except -1:
     assert info.angles % 2 == 0, "Need an even number of angles"
-    assert info.edges == 0, "Cannot currently use cell edges"
+    assert info.flux_at_edges == 0, "Cannot currently use cell edges"
     return 0

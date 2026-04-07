@@ -34,11 +34,11 @@ cdef double[:,:] multi_group(double[:,:]& flux_guess, \
         int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
         double[:]& angle_w, params info):
     # Source Iteration
-    if info.mg == 1:
+    if info.mg_solver == 1:
         return source_iteration(flux_guess, xs_total, xs_scatter, external, \
                     boundary_x, medium_map, delta_x, angle_x, angle_w, info)
     # Dynamic Mode Decomposition
-    elif info.mg == 2:
+    elif info.mg_solver == 2:
         return dynamic_mode_decomp(flux_guess, xs_total, xs_scatter, external, \
                     boundary_x, medium_map, delta_x, angle_x, angle_w, info)
 
@@ -95,7 +95,7 @@ cdef double[:,:] source_iteration(double[:,:]& flux_guess, \
         change = tools.group_convergence(flux, flux_old, info)
         if isnan(change) or isinf(change):
             change = 0.5
-        converged = (change < info.change_gg) or (count >= info.count_gg)
+        converged = (change < info.tol_energy) or (count >= info.max_iter_energy)
         count += 1
 
         # Update old flux
@@ -165,7 +165,7 @@ cdef double[:,:] variable_source_iteration(double[:,:]& flux_guess, \
         change = tools.group_convergence(flux, flux_old, info)
         if isnan(change) or isinf(change):
             change = 0.5
-        converged = (change < info.change_gg) or (count >= info.count_gg)
+        converged = (change < info.tol_energy) or (count >= info.max_iter_energy)
         count += 1
 
         # Update old flux
@@ -189,8 +189,8 @@ cdef double[:,:] dynamic_mode_decomp(double[:,:]& flux_guess, \
     flux_1g = tools.array_1d(info.cells_x)
 
     # Initialize Y_plus and Y_minus
-    y_plus = tools.array_3d(info.cells_x, info.groups, info.dmd_k - 1)
-    y_minus = tools.array_3d(info.cells_x, info.groups, info.dmd_k - 1)
+    y_plus = tools.array_3d(info.cells_x, info.groups, info.dmd_snapshots - 1)
+    y_minus = tools.array_3d(info.cells_x, info.groups, info.dmd_snapshots - 1)
     
     # Create off-scattering term
     off_scatter = tools.array_1d(info.cells_x)
@@ -200,7 +200,7 @@ cdef double[:,:] dynamic_mode_decomp(double[:,:]& flux_guess, \
     cdef double change = 0.0
     
     # Iterate over removed source iterations
-    for rk in range(info.dmd_r + info.dmd_k):
+    for rk in range(info.dmd_rank + info.dmd_snapshots):
 
         # Return flux if there is convergence
         if converged:
@@ -233,19 +233,19 @@ cdef double[:,:] dynamic_mode_decomp(double[:,:]& flux_guess, \
         change = tools.group_convergence(flux, flux_old, info)
         if isnan(change) or isinf(change):
             change = 0.5
-        converged = (change < info.change_gg)
+        converged = (change < info.tol_energy)
 
         # Collect difference for DMD on K iterations
-        if rk >= info.dmd_r:
+        if rk >= info.dmd_rank:
             # Get indexing
-            kk = rk - info.dmd_r
+            kk = rk - info.dmd_rank
             tools._dmd_subtraction(y_minus, y_plus, flux, flux_old, kk, info)
         
         # Update old flux
         flux_old[:,:] = flux[:,:]
 
     # Perform DMD
-    flux = dmd_1d(flux, y_minus, y_plus, info.dmd_k)
+    flux = dmd_1d(flux, y_minus, y_plus, info.dmd_snapshots)
 
     return flux[:,:]
 
@@ -260,10 +260,10 @@ cdef double[:,:,:] _known_source_angular(double[:,:]& xs_total, \
     cdef int gg, qq, bc
     
     # Initialize angular flux
-    angular_flux = tools.array_3d(info.cells_x + info.edges, info.angles, info.groups)
+    angular_flux = tools.array_3d(info.cells_x + info.flux_at_edges, info.angles, info.groups)
     
     # Set zero matrix placeholder for scattering
-    zero = tools.array_1d(info.cells_x + info.edges)
+    zero = tools.array_1d(info.cells_x + info.flux_at_edges)
     
     # Iterate over groups
     for gg in range(info.groups):
@@ -290,10 +290,10 @@ cdef double[:,:] _known_source_scalar(double[:,:]& xs_total, \
     cdef int gg, qq, bc
     
     # Initialize angular flux
-    scalar_flux = tools.array_3d(info.cells_x + info.edges, info.groups, 1)
+    scalar_flux = tools.array_3d(info.cells_x + info.flux_at_edges, info.groups, 1)
     
     # Set zero matrix placeholder for scattering
-    zero = tools.array_1d(info.cells_x + info.edges)
+    zero = tools.array_1d(info.cells_x + info.flux_at_edges)
     
     # Iterate over groups
     for gg in range(info.groups):

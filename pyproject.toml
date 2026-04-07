@@ -46,6 +46,7 @@ markers = [
     "sphere1d: One-dimensional sphere problems",
     "source_iteration: Checks scalar and angular flux calculations",
     "power_iteration: Checks scalar flux and keffective calculations",
+    "time_dependent: Runs time dependent problems",
     "bdf1: Runs Backward Euler time dependent problems",
     "cn: Runs Crank Nicolson time dependent problems",
     "bdf2: Runs Backward Differentiation Formula 2 time dependent problems",

@@ -65,8 +65,8 @@ cdef struct params:
     int spatial
     
     # Boundary parameters
-    int bc_x [2]
-    int bc_y [2]
+    int[2] bc_x
+    int[2] bc_y
     
     # Time dependent parameters
     int steps
@@ -76,27 +76,31 @@ cdef struct params:
     bint angular
     
     # Flux at cell edges or centers
-    int edges
-    
+    int flux_at_edges
+
     # Multigroup solver (1 = SI, 2 = DMD)
-    int mg
-    
+    int mg_solver
+
     # DMD parameters
-    int dmd_k
-    int dmd_r
+    int dmd_snapshots
+    int dmd_rank
 
     # Convergence parameters - iterations
-    int count_nn
-    int count_gg
-    int count_keff
+    int max_iter_angular
+    int max_iter_energy
+    int max_iter_keff
 
     # Convergence parameters - difference
-    double change_nn
-    double change_gg
-    double change_keff
+    double tol_angular
+    double tol_energy
+    double tol_keff
+
+    # Artificial scattering parameters (ray effect mitigation)
+    double sigma_as
+    double beta_as
 
 
-cdef params _to_params(dict pydic)
+cdef params _to_params(object pydic)
 
 ########################################################################
 # One-dimensional functions
