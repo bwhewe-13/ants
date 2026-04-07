@@ -96,7 +96,7 @@ def fixed_source(xs_total, xs_scatter, xs_fission, external, boundary_x, \
 
     # Run Nearby Problem
     logger.info("Calculating Nearby Solution...")
-    info.edges = 0
+    info.flux_at_edges = 0
     if kwargs.get("zero_bounds", False):
         logger.info("Removing Analytical Boundary Conditions...")
         curve_fit_boundary_x = boundary_x.copy()
@@ -446,7 +446,7 @@ def keigenvalue(xs_total, xs_scatter, xs_fission, medium_map, delta_x, \
 
     # Run Nearby Problem
     logger.info("Calculating Nearby Solution...")
-    info.edges = 0
+    info.flux_at_edges = 0
     nearby_scalar, nearby_keff = critical1d.nearby_power( \
                                     CrossSections(xs_total, xs_scatter, xs_fission), \
                                     residual, medium_map, SpatialGrid(delta_x), \

@@ -38,25 +38,25 @@ Core Parameters
 Optional Parameters
 -------------------
 
-   :param int edges: Flux location: 0 = cell centers, 1 = cell edges. Defaults to 0.
+   :param int flux_at_edges: Flux location: 0 = cell centers, 1 = cell edges. Defaults to 0.
 
-   :param int mg: Multigroup solver: 1 = source iteration, 2 = DMD. Defaults to 1.
+   :param int mg_solver: Multigroup solver: 1 = source iteration, 2 = DMD. Defaults to 1.
 
-   :param int dmd_k: DMD basis size. Defaults to 40.
+   :param int dmd_snapshots: DMD basis size. Defaults to 40.
 
-   :param int dmd_r: DMD matrix rank. Defaults to 2.
+   :param int dmd_rank: DMD matrix rank. Defaults to 2.
 
-   :param int count_nn: Angular convergence max iterations. Defaults to 100.
+   :param int max_iter_angular: Angular convergence max iterations. Defaults to 100.
 
-   :param int count_gg: Energy group convergence max iterations. Defaults to 100.
+   :param int max_iter_energy: Energy group convergence max iterations. Defaults to 100.
 
-   :param int count_keff: Power iteration convergence max iterations. Defaults to 100.
+   :param int max_iter_keff: Power iteration convergence max iterations. Defaults to 100.
 
-   :param float change_nn: Angular convergence tolerance. Defaults to 1e-6.
+   :param float tol_angular: Angular convergence tolerance. Defaults to 1e-6.
 
-   :param float change_gg: Energy group convergence tolerance. Defaults to 1e-6.
+   :param float tol_energy: Energy group convergence tolerance. Defaults to 1e-6.
 
-   :param float change_keff: Power iteration convergence tolerance. Defaults to 1e-6.
+   :param float tol_keff: Power iteration convergence tolerance. Defaults to 1e-6.
 
 
 Examples
@@ -224,25 +224,25 @@ Core Parameters
 Optional Parameters
 -------------------
 
-   :param int edges: Flux location: 0 = cell centers, 1 = cell edges. Defaults to 0.
+   :param int flux_at_edges: Flux location: 0 = cell centers, 1 = cell edges. Defaults to 0.
 
-   :param int mg: Multigroup solver: 1 = source iteration, 2 = DMD. Defaults to 1.
+   :param int mg_solver: Multigroup solver: 1 = source iteration, 2 = DMD. Defaults to 1.
 
-   :param int dmd_k: DMD basis size. Defaults to 40.
+   :param int dmd_snapshots: DMD basis size. Defaults to 40.
 
-   :param int dmd_r: DMD matrix rank. Defaults to 2.
+   :param int dmd_rank: DMD matrix rank. Defaults to 2.
 
-   :param int count_nn: Angular convergence max iterations. Defaults to 100.
+   :param int max_iter_angular: Angular convergence max iterations. Defaults to 100.
 
-   :param int count_gg: Energy group convergence max iterations. Defaults to 100.
+   :param int max_iter_energy: Energy group convergence max iterations. Defaults to 100.
 
-   :param int count_keff: Power iteration convergence max iterations. Defaults to 100.
+   :param int max_iter_keff: Power iteration convergence max iterations. Defaults to 100.
 
-   :param float change_nn: Angular convergence tolerance. Defaults to 1e-6.
+   :param float tol_angular: Angular convergence tolerance. Defaults to 1e-6.
 
-   :param float change_gg: Energy group convergence tolerance. Defaults to 1e-6.
+   :param float tol_energy: Energy group convergence tolerance. Defaults to 1e-6.
 
-   :param float change_keff: Power iteration convergence tolerance. Defaults to 1e-6.
+   :param float tol_keff: Power iteration convergence tolerance. Defaults to 1e-6.
 
 
 Examples
