@@ -458,7 +458,7 @@ cdef double[:,:,:] tr_bdf2(int[:] groups_c, int[:] angles_c, \
                     2.0 / gamma, info_u)
 
         # Run Hybrid Method
-        hybrid_method(flux_gamma_u, flux_c, xs_total_u, xs_total_vu_cn, \
+        hybrid_method(flux_u, flux_c, xs_total_u, xs_total_vu_cn, \
                     xs_scatter_u, q_star, source_c, boundary_xu[bc], boundary_xc,
                     medium_map, delta_x, angle_xu, angle_xc, angle_wu, angle_wc, \
                     star_coef_cn_c, edges_g, edges_gidx_c, info_u, info_c)

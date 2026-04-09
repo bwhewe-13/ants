@@ -320,15 +320,24 @@ cdef double[:,:,:] tr_bdf2(double[:,:,:]& flux_last_ell, double[:,:]& xs_total, 
         # Crank Nicolson
         ################################################################
         # Update q_star for CN step
-        tools._time_source_star_cn(flux_last_ell, scalar_flux, xs_total, \
+        tools._time_source_star_cn(flux_last_ell, scalar_flux_ell, xs_total, \
                         xs_scatter, velocity, q_star, external[qq], \
                         external[qqa], medium_map, delta_x, angle_x, \
                         2.0 / gamma, info)
 
         # Solve for the \ell + gamma time step
-        scalar_flux[:,:] = mg.multi_group(scalar_flux, xs_total_v_cn, \
-                                xs_scatter, q_star, boundary_x[bc], \
-                                medium_map, delta_x, angle_x, angle_w, info)
+        scalar_flux_gamma[:,:] = mg.multi_group(
+            scalar_flux_ell,
+            xs_total_v_cn,
+            xs_scatter,
+            q_star,
+            boundary_x[bc],
+            medium_map,
+            delta_x,
+            angle_x,
+            angle_w,
+            info,
+        )
 
         # Create (sigma_s + sigma_f) * phi^{\ell} + Q*
         tools._time_right_side(q_star, scalar_flux_gamma, xs_scatter, medium_map, info)
@@ -345,9 +354,18 @@ cdef double[:,:,:] tr_bdf2(double[:,:,:]& flux_last_ell, double[:,:]& xs_total, 
                     q_star, external[qqb], velocity, gamma, info)
 
         # Solve for the \ell + 1 time step
-        flux_time[step] = mg.multi_group(scalar_flux, xs_total_v_bdf2, \
-                                xs_scatter, q_star, boundary_x[bca], \
-                                medium_map, delta_x, angle_x, angle_w, info)
+        flux_time[step] = mg.multi_group(
+            scalar_flux_gamma,
+            xs_total_v_bdf2,
+            xs_scatter,
+            q_star,
+            boundary_x[bca],
+            medium_map,
+            delta_x,
+            angle_x,
+            angle_w,
+            info,
+        )
 
         # Update previous time step
         scalar_flux_ell[:,:] = flux_time[step,:,:]

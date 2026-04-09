@@ -293,6 +293,7 @@ cdef double[:,:,:] bdf2(double[:,:,:]& flux_last_1, double[:,:]& xs_total_u, \
     # Initialize uncollided scalar flux
     flux_u = tools.array_2d(info_u.cells_x, info_u.groups)
     tools._angular_to_scalar(flux_last_1, flux_u, angle_wu, info_u)
+    flux_c = tools.array_2d(info_c.cells_x, info_c.groups)
 
     # Initialize time flux, scalar terms
     flux_time = tools.array_3d(info_u.steps, info_u.cells_x, info_u.groups)
