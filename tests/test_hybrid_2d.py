@@ -5,19 +5,18 @@
 #                     / ___ |/ /|  / / /  ___/ /
 #                    /_/  |_/_/ |_/ /_/  /____/
 #
-# Tests for large multigroup problems (G >= 87) and focuses on fixed
-# source, time dependent, and criticality problems.
+# Tests for two-dimensional time-dependent problems. Includes tests for
+# Backward Euler, Crank-Nicolson, BDF2, and TR-BDF2.
 #
 ########################################################################
 
-import pytest
 import numpy as np
+import pytest
 
 import ants
 from ants import hybrid2d
 from ants.utils import hybrid as hytools
 from ants.utils import manufactured_2d as mms
-from ants.datatypes import CrossSections, HybridMapping, QuadratureData, SpatialGrid
 from tests import problems2d
 
 
@@ -28,57 +27,43 @@ from tests import problems2d
 def test_backward_euler_01():
     # General parameters
     cells_x = 100
-    cells_y = 100
     angles = 4
     groups = 1
     # Time parameters
     T = 1.0
     steps = 20
-    dt = T / (steps)
+    dt = T / steps
     edges_t = np.linspace(0, T, steps + 1)
 
-    (
-        initial_flux,
-        xs_total,
-        xs_scatter,
-        xs_fission,
-        velocity,
-        external,
-        boundary_x,
-        boundary_y,
-        medium_map,
-        delta_x,
-        delta_y,
-        angle_x,
-        angle_y,
-        angle_w,
-        info,
-    ) = problems2d.manufactured_td_01(cells_x, angles, edges_t, dt, temporal=1)
-
-    edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(None, groups, groups)
-    # Indexing Parameters
-    data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
-    fine_idx, coarse_idx, factor = data
-
-    xs = CrossSections(xs_total, xs_scatter, xs_fission)
-    grid = SpatialGrid(delta_x, delta_y)
-    quad = QuadratureData(angle_x, angle_w, angle_y)
-    mapping = HybridMapping(fine_idx, coarse_idx, factor)
-
-    # Run Hybrid Method
-    approx = hybrid2d.backward_euler(
-        initial_flux, xs, xs, velocity, velocity, external,
-        boundary_x, boundary_y, medium_map, grid, quad, quad, mapping, info, info,
+    mat_data, sources, geometry, quadrature, solver, time_data = (
+        problems2d.manufactured_td_01(cells_x, angles, edges_t, dt, temporal=1)
     )
 
-    edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
-    centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
+    edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(None, groups, groups)
+    hybrid_data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
 
-    edges_y = np.round(np.insert(np.cumsum(delta_y), 0, 0), 12)
+    # Run Hybrid Method
+    approx = hybrid2d.time_dependent(
+        mat_data,
+        mat_data,
+        sources,
+        geometry,
+        quadrature,
+        quadrature,
+        solver,
+        time_data,
+        hybrid_data,
+    )
+
+    edges_x = np.concatenate(([0.0], np.cumsum(geometry.delta_x)))
+    centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
+    edges_y = np.concatenate(([0.0], np.cumsum(geometry.delta_y)))
     centers_y = 0.5 * (edges_y[1:] + edges_y[:-1])
 
-    exact = mms.solution_td_01(centers_x, centers_y, angle_x, angle_y, edges_t[1:])
-    exact = np.sum(exact * angle_w[None, None, None, :, None], axis=3)
+    exact = mms.solution_td_01(
+        centers_x, centers_y, quadrature.angle_x, quadrature.angle_y, edges_t[1:]
+    )
+    exact = np.sum(exact * quadrature.angle_w[None, None, None, :, None], axis=3)
 
     atol = 5e-3
     for tt in range(steps):
@@ -91,57 +76,43 @@ def test_backward_euler_01():
 def test_backward_euler_02():
     # General parameters
     cells_x = 50
-    cells_y = 50
     angles = 4
     groups = 1
     # Time parameters
     T = 1.0
     steps = 20
-    dt = T / (steps)
+    dt = T / steps
     edges_t = np.linspace(0, T, steps + 1)
 
-    (
-        initial_flux,
-        xs_total,
-        xs_scatter,
-        xs_fission,
-        velocity,
-        external,
-        boundary_x,
-        boundary_y,
-        medium_map,
-        delta_x,
-        delta_y,
-        angle_x,
-        angle_y,
-        angle_w,
-        info,
-    ) = problems2d.manufactured_td_02(cells_x, angles, edges_t, dt, temporal=1)
-
-    edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(None, groups, groups)
-    # Indexing Parameters
-    data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
-    fine_idx, coarse_idx, factor = data
-
-    xs = CrossSections(xs_total, xs_scatter, xs_fission)
-    grid = SpatialGrid(delta_x, delta_y)
-    quad = QuadratureData(angle_x, angle_w, angle_y)
-    mapping = HybridMapping(fine_idx, coarse_idx, factor)
-
-    # Run Hybrid Method
-    approx = hybrid2d.backward_euler(
-        initial_flux, xs, xs, velocity, velocity, external,
-        boundary_x, boundary_y, medium_map, grid, quad, quad, mapping, info, info,
+    mat_data, sources, geometry, quadrature, solver, time_data = (
+        problems2d.manufactured_td_02(cells_x, angles, edges_t, dt, temporal=1)
     )
 
-    edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
-    centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
+    edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(None, groups, groups)
+    hybrid_data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
 
-    edges_y = np.round(np.insert(np.cumsum(delta_y), 0, 0), 12)
+    # Run Hybrid Method
+    approx = hybrid2d.time_dependent(
+        mat_data,
+        mat_data,
+        sources,
+        geometry,
+        quadrature,
+        quadrature,
+        solver,
+        time_data,
+        hybrid_data,
+    )
+
+    edges_x = np.concatenate(([0.0], np.cumsum(geometry.delta_x)))
+    centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
+    edges_y = np.concatenate(([0.0], np.cumsum(geometry.delta_y)))
     centers_y = 0.5 * (edges_y[1:] + edges_y[:-1])
 
-    exact = mms.solution_td_02(centers_x, centers_y, angle_x, angle_y, edges_t[1:])
-    exact = np.sum(exact * angle_w[None, None, None, :, None], axis=3)
+    exact = mms.solution_td_02(
+        centers_x, centers_y, quadrature.angle_x, quadrature.angle_y, edges_t[1:]
+    )
+    exact = np.sum(exact * quadrature.angle_w[None, None, None, :, None], axis=3)
 
     atol = 5e-3
     for tt in range(steps):
@@ -155,58 +126,43 @@ def test_backward_euler_02():
 def test_crank_nicolson_01():
     # General parameters
     cells_x = 100
-    cells_y = 100
     angles = 4
     groups = 1
     # Time parameters
     T = 1.0
     steps = 20
-    dt = T / (steps)
+    dt = T / steps
     edges_t = np.linspace(0, T, steps + 1)
 
-    (
-        initial_flux_x,
-        initial_flux_y,
-        xs_total,
-        xs_scatter,
-        xs_fission,
-        velocity,
-        external,
-        boundary_x,
-        boundary_y,
-        medium_map,
-        delta_x,
-        delta_y,
-        angle_x,
-        angle_y,
-        angle_w,
-        info,
-    ) = problems2d.manufactured_td_01(cells_x, angles, edges_t, dt, temporal=2)
-
-    edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(None, groups, groups)
-    # Indexing Parameters
-    data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
-    fine_idx, coarse_idx, factor = data
-
-    xs = CrossSections(xs_total, xs_scatter, xs_fission)
-    grid = SpatialGrid(delta_x, delta_y)
-    quad = QuadratureData(angle_x, angle_w, angle_y)
-    mapping = HybridMapping(fine_idx, coarse_idx, factor)
-
-    # Run Hybrid Method
-    approx = hybrid2d.crank_nicolson(
-        initial_flux_x, initial_flux_y, xs, xs, velocity, velocity, external,
-        boundary_x, boundary_y, medium_map, grid, quad, quad, mapping, info, info,
+    mat_data, sources, geometry, quadrature, solver, time_data = (
+        problems2d.manufactured_td_01(cells_x, angles, edges_t, dt, temporal=2)
     )
 
-    edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
-    centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
+    edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(None, groups, groups)
+    hybrid_data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
 
-    edges_y = np.round(np.insert(np.cumsum(delta_y), 0, 0), 12)
+    # Run Hybrid Method
+    approx = hybrid2d.time_dependent(
+        mat_data,
+        mat_data,
+        sources,
+        geometry,
+        quadrature,
+        quadrature,
+        solver,
+        time_data,
+        hybrid_data,
+    )
+
+    edges_x = np.concatenate(([0.0], np.cumsum(geometry.delta_x)))
+    centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
+    edges_y = np.concatenate(([0.0], np.cumsum(geometry.delta_y)))
     centers_y = 0.5 * (edges_y[1:] + edges_y[:-1])
 
-    exact = mms.solution_td_01(centers_x, centers_y, angle_x, angle_y, edges_t[1:])
-    exact = np.sum(exact * angle_w[None, None, None, :, None], axis=3)
+    exact = mms.solution_td_01(
+        centers_x, centers_y, quadrature.angle_x, quadrature.angle_y, edges_t[1:]
+    )
+    exact = np.sum(exact * quadrature.angle_w[None, None, None, :, None], axis=3)
 
     atol = 5e-3
     for tt in range(steps):
@@ -219,58 +175,43 @@ def test_crank_nicolson_01():
 def test_crank_nicolson_02():
     # General parameters
     cells_x = 50
-    cells_y = 50
     angles = 4
     groups = 1
     # Time parameters
     T = 1.0
     steps = 20
-    dt = T / (steps)
+    dt = T / steps
     edges_t = np.linspace(0, T, steps + 1)
 
-    (
-        initial_flux_x,
-        initial_flux_y,
-        xs_total,
-        xs_scatter,
-        xs_fission,
-        velocity,
-        external,
-        boundary_x,
-        boundary_y,
-        medium_map,
-        delta_x,
-        delta_y,
-        angle_x,
-        angle_y,
-        angle_w,
-        info,
-    ) = problems2d.manufactured_td_02(cells_x, angles, edges_t, dt, temporal=2)
-
-    edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(None, groups, groups)
-    # Indexing Parameters
-    data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
-    fine_idx, coarse_idx, factor = data
-
-    xs = CrossSections(xs_total, xs_scatter, xs_fission)
-    grid = SpatialGrid(delta_x, delta_y)
-    quad = QuadratureData(angle_x, angle_w, angle_y)
-    mapping = HybridMapping(fine_idx, coarse_idx, factor)
-
-    # Run Hybrid Method
-    approx = hybrid2d.crank_nicolson(
-        initial_flux_x, initial_flux_y, xs, xs, velocity, velocity, external,
-        boundary_x, boundary_y, medium_map, grid, quad, quad, mapping, info, info,
+    mat_data, sources, geometry, quadrature, solver, time_data = (
+        problems2d.manufactured_td_02(cells_x, angles, edges_t, dt, temporal=2)
     )
 
-    edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
-    centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
+    edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(None, groups, groups)
+    hybrid_data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
 
-    edges_y = np.round(np.insert(np.cumsum(delta_y), 0, 0), 12)
+    # Run Hybrid Method
+    approx = hybrid2d.time_dependent(
+        mat_data,
+        mat_data,
+        sources,
+        geometry,
+        quadrature,
+        quadrature,
+        solver,
+        time_data,
+        hybrid_data,
+    )
+
+    edges_x = np.concatenate(([0.0], np.cumsum(geometry.delta_x)))
+    centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
+    edges_y = np.concatenate(([0.0], np.cumsum(geometry.delta_y)))
     centers_y = 0.5 * (edges_y[1:] + edges_y[:-1])
 
-    exact = mms.solution_td_02(centers_x, centers_y, angle_x, angle_y, edges_t[1:])
-    exact = np.sum(exact * angle_w[None, None, None, :, None], axis=3)
+    exact = mms.solution_td_02(
+        centers_x, centers_y, quadrature.angle_x, quadrature.angle_y, edges_t[1:]
+    )
+    exact = np.sum(exact * quadrature.angle_w[None, None, None, :, None], axis=3)
 
     atol = 5e-3
     for tt in range(steps):
@@ -284,57 +225,43 @@ def test_crank_nicolson_02():
 def test_bdf2_01():
     # General parameters
     cells_x = 100
-    cells_y = 100
     angles = 4
     groups = 1
     # Time parameters
     T = 1.0
     steps = 20
-    dt = T / (steps)
+    dt = T / steps
     edges_t = np.linspace(0, T, steps + 1)
 
-    (
-        initial_flux,
-        xs_total,
-        xs_scatter,
-        xs_fission,
-        velocity,
-        external,
-        boundary_x,
-        boundary_y,
-        medium_map,
-        delta_x,
-        delta_y,
-        angle_x,
-        angle_y,
-        angle_w,
-        info,
-    ) = problems2d.manufactured_td_01(cells_x, angles, edges_t, dt, temporal=3)
-
-    edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(None, groups, groups)
-    # Indexing Parameters
-    data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
-    fine_idx, coarse_idx, factor = data
-
-    xs = CrossSections(xs_total, xs_scatter, xs_fission)
-    grid = SpatialGrid(delta_x, delta_y)
-    quad = QuadratureData(angle_x, angle_w, angle_y)
-    mapping = HybridMapping(fine_idx, coarse_idx, factor)
-
-    # Run Hybrid Method
-    approx = hybrid2d.bdf2(
-        initial_flux, xs, xs, velocity, velocity, external,
-        boundary_x, boundary_y, medium_map, grid, quad, quad, mapping, info, info,
+    mat_data, sources, geometry, quadrature, solver, time_data = (
+        problems2d.manufactured_td_01(cells_x, angles, edges_t, dt, temporal=3)
     )
 
-    edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
-    centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
+    edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(None, groups, groups)
+    hybrid_data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
 
-    edges_y = np.round(np.insert(np.cumsum(delta_y), 0, 0), 12)
+    # Run Hybrid Method
+    approx = hybrid2d.time_dependent(
+        mat_data,
+        mat_data,
+        sources,
+        geometry,
+        quadrature,
+        quadrature,
+        solver,
+        time_data,
+        hybrid_data,
+    )
+
+    edges_x = np.concatenate(([0.0], np.cumsum(geometry.delta_x)))
+    centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
+    edges_y = np.concatenate(([0.0], np.cumsum(geometry.delta_y)))
     centers_y = 0.5 * (edges_y[1:] + edges_y[:-1])
 
-    exact = mms.solution_td_01(centers_x, centers_y, angle_x, angle_y, edges_t[1:])
-    exact = np.sum(exact * angle_w[None, None, None, :, None], axis=3)
+    exact = mms.solution_td_01(
+        centers_x, centers_y, quadrature.angle_x, quadrature.angle_y, edges_t[1:]
+    )
+    exact = np.sum(exact * quadrature.angle_w[None, None, None, :, None], axis=3)
 
     atol = 5e-3
     for tt in range(steps):
@@ -347,57 +274,43 @@ def test_bdf2_01():
 def test_bdf2_02():
     # General parameters
     cells_x = 50
-    cells_y = 50
     angles = 4
     groups = 1
     # Time parameters
     T = 1.0
     steps = 20
-    dt = T / (steps)
+    dt = T / steps
     edges_t = np.linspace(0, T, steps + 1)
 
-    (
-        initial_flux,
-        xs_total,
-        xs_scatter,
-        xs_fission,
-        velocity,
-        external,
-        boundary_x,
-        boundary_y,
-        medium_map,
-        delta_x,
-        delta_y,
-        angle_x,
-        angle_y,
-        angle_w,
-        info,
-    ) = problems2d.manufactured_td_02(cells_x, angles, edges_t, dt, temporal=3)
-
-    edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(None, groups, groups)
-    # Indexing Parameters
-    data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
-    fine_idx, coarse_idx, factor = data
-
-    xs = CrossSections(xs_total, xs_scatter, xs_fission)
-    grid = SpatialGrid(delta_x, delta_y)
-    quad = QuadratureData(angle_x, angle_w, angle_y)
-    mapping = HybridMapping(fine_idx, coarse_idx, factor)
-
-    # Run Hybrid Method
-    approx = hybrid2d.bdf2(
-        initial_flux, xs, xs, velocity, velocity, external,
-        boundary_x, boundary_y, medium_map, grid, quad, quad, mapping, info, info,
+    mat_data, sources, geometry, quadrature, solver, time_data = (
+        problems2d.manufactured_td_02(cells_x, angles, edges_t, dt, temporal=3)
     )
 
-    edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
-    centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
+    edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(None, groups, groups)
+    hybrid_data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
 
-    edges_y = np.round(np.insert(np.cumsum(delta_y), 0, 0), 12)
+    # Run Hybrid Method
+    approx = hybrid2d.time_dependent(
+        mat_data,
+        mat_data,
+        sources,
+        geometry,
+        quadrature,
+        quadrature,
+        solver,
+        time_data,
+        hybrid_data,
+    )
+
+    edges_x = np.concatenate(([0.0], np.cumsum(geometry.delta_x)))
+    centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
+    edges_y = np.concatenate(([0.0], np.cumsum(geometry.delta_y)))
     centers_y = 0.5 * (edges_y[1:] + edges_y[:-1])
 
-    exact = mms.solution_td_02(centers_x, centers_y, angle_x, angle_y, edges_t[1:])
-    exact = np.sum(exact * angle_w[None, None, None, :, None], axis=3)
+    exact = mms.solution_td_02(
+        centers_x, centers_y, quadrature.angle_x, quadrature.angle_y, edges_t[1:]
+    )
+    exact = np.sum(exact * quadrature.angle_w[None, None, None, :, None], axis=3)
 
     atol = 5e-3
     for tt in range(steps):
@@ -411,58 +324,43 @@ def test_bdf2_02():
 def test_tr_bdf2_01():
     # General parameters
     cells_x = 100
-    cells_y = 100
     angles = 4
     groups = 1
     # Time parameters
     T = 1.0
     steps = 20
-    dt = T / (steps)
+    dt = T / steps
     edges_t = np.linspace(0, T, steps + 1)
 
-    (
-        initial_flux_x,
-        initial_flux_y,
-        xs_total,
-        xs_scatter,
-        xs_fission,
-        velocity,
-        external,
-        boundary_x,
-        boundary_y,
-        medium_map,
-        delta_x,
-        delta_y,
-        angle_x,
-        angle_y,
-        angle_w,
-        info,
-    ) = problems2d.manufactured_td_01(cells_x, angles, edges_t, dt, temporal=4)
-
-    edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(None, groups, groups)
-    # Indexing Parameters
-    data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
-    fine_idx, coarse_idx, factor = data
-
-    xs = CrossSections(xs_total, xs_scatter, xs_fission)
-    grid = SpatialGrid(delta_x, delta_y)
-    quad = QuadratureData(angle_x, angle_w, angle_y)
-    mapping = HybridMapping(fine_idx, coarse_idx, factor)
-
-    # Run Hybrid Method
-    approx = hybrid2d.tr_bdf2(
-        initial_flux_x, initial_flux_y, xs, xs, velocity, velocity, external,
-        boundary_x, boundary_y, medium_map, grid, quad, quad, mapping, info, info,
+    mat_data, sources, geometry, quadrature, solver, time_data = (
+        problems2d.manufactured_td_01(cells_x, angles, edges_t, dt, temporal=4)
     )
 
-    edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
-    centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
+    edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(None, groups, groups)
+    hybrid_data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
 
-    edges_y = np.round(np.insert(np.cumsum(delta_y), 0, 0), 12)
+    # Run Hybrid Method
+    approx = hybrid2d.time_dependent(
+        mat_data,
+        mat_data,
+        sources,
+        geometry,
+        quadrature,
+        quadrature,
+        solver,
+        time_data,
+        hybrid_data,
+    )
+
+    edges_x = np.concatenate(([0.0], np.cumsum(geometry.delta_x)))
+    centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
+    edges_y = np.concatenate(([0.0], np.cumsum(geometry.delta_y)))
     centers_y = 0.5 * (edges_y[1:] + edges_y[:-1])
 
-    exact = mms.solution_td_01(centers_x, centers_y, angle_x, angle_y, edges_t[1:])
-    exact = np.sum(exact * angle_w[None, None, None, :, None], axis=3)
+    exact = mms.solution_td_01(
+        centers_x, centers_y, quadrature.angle_x, quadrature.angle_y, edges_t[1:]
+    )
+    exact = np.sum(exact * quadrature.angle_w[None, None, None, :, None], axis=3)
 
     atol = 5e-3
     for tt in range(steps):
@@ -475,58 +373,43 @@ def test_tr_bdf2_01():
 def test_tr_bdf2_02():
     # General parameters
     cells_x = 50
-    cells_y = 50
     angles = 4
     groups = 1
     # Time parameters
     T = 1.0
     steps = 20
-    dt = T / (steps)
+    dt = T / steps
     edges_t = np.linspace(0, T, steps + 1)
 
-    (
-        initial_flux_x,
-        initial_flux_y,
-        xs_total,
-        xs_scatter,
-        xs_fission,
-        velocity,
-        external,
-        boundary_x,
-        boundary_y,
-        medium_map,
-        delta_x,
-        delta_y,
-        angle_x,
-        angle_y,
-        angle_w,
-        info,
-    ) = problems2d.manufactured_td_02(cells_x, angles, edges_t, dt, temporal=4)
-
-    edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(None, groups, groups)
-    # Indexing Parameters
-    data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
-    fine_idx, coarse_idx, factor = data
-
-    xs = CrossSections(xs_total, xs_scatter, xs_fission)
-    grid = SpatialGrid(delta_x, delta_y)
-    quad = QuadratureData(angle_x, angle_w, angle_y)
-    mapping = HybridMapping(fine_idx, coarse_idx, factor)
-
-    # Run Hybrid Method
-    approx = hybrid2d.tr_bdf2(
-        initial_flux_x, initial_flux_y, xs, xs, velocity, velocity, external,
-        boundary_x, boundary_y, medium_map, grid, quad, quad, mapping, info, info,
+    mat_data, sources, geometry, quadrature, solver, time_data = (
+        problems2d.manufactured_td_02(cells_x, angles, edges_t, dt, temporal=4)
     )
 
-    edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
-    centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
+    edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(None, groups, groups)
+    hybrid_data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
 
-    edges_y = np.round(np.insert(np.cumsum(delta_y), 0, 0), 12)
+    # Run Hybrid Method
+    approx = hybrid2d.time_dependent(
+        mat_data,
+        mat_data,
+        sources,
+        geometry,
+        quadrature,
+        quadrature,
+        solver,
+        time_data,
+        hybrid_data,
+    )
+
+    edges_x = np.concatenate(([0.0], np.cumsum(geometry.delta_x)))
+    centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
+    edges_y = np.concatenate(([0.0], np.cumsum(geometry.delta_y)))
     centers_y = 0.5 * (edges_y[1:] + edges_y[:-1])
 
-    exact = mms.solution_td_02(centers_x, centers_y, angle_x, angle_y, edges_t[1:])
-    exact = np.sum(exact * angle_w[None, None, None, :, None], axis=3)
+    exact = mms.solution_td_02(
+        centers_x, centers_y, quadrature.angle_x, quadrature.angle_y, edges_t[1:]
+    )
+    exact = np.sum(exact * quadrature.angle_w[None, None, None, :, None], axis=3)
 
     atol = 5e-3
     for tt in range(steps):
