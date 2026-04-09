@@ -8,6 +8,7 @@
 ########################################################################
 
 import platform
+
 import numpy as np
 from Cython.Build import cythonize
 from Cython.Compiler import Options

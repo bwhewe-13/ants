@@ -38,6 +38,8 @@ jobs:
   tests:
     name: Tests
     runs-on: ubuntu-latest
+    env:
+      OMP_NUM_THREADS: "1"
 
     steps:
       - name: Checkout
@@ -57,7 +59,7 @@ jobs:
         run: python setup.py build_ext --inplace
 
       - name: Run tests with coverage
-        run: pytest tests --cov=ants --cov-report=term-missing --cov-report=xml
+        run: pytest -n auto --dist loadfile tests --cov=ants --cov-report=term-missing --cov-report=xml
 
   docs:
     name: Docs Build
