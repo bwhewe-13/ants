@@ -1,9 +1,9 @@
 ########################################################################
 #                        ___    _   _____________
 #                       /   |  / | / /_  __/ ___/
-#                      / /| | /  |/ / / /  \__ \ 
-#                     / ___ |/ /|  / / /  ___/ / 
-#                    /_/  |_/_/ |_/ /_/  /____/  
+#                      / /| | /  |/ / / /  \__ \
+#                     / ___ |/ /|  / / /  ___/ /
+#                    /_/  |_/_/ |_/ /_/  /____/
 #
 # Spatial sweeps for two-dimensional neutron transport problems.
 #
@@ -25,14 +25,14 @@ from ants cimport cytools_2d as tools
 from ants.parameters cimport params
 
 
-cdef void discrete_ordinates(double[:,:]& flux, double[:,:]& flux_old, 
+cdef void discrete_ordinates(double[:,:]& flux, double[:,:]& flux_old,
         double[:]& xs_total, double[:]& xs_scatter, double[:,:]& off_scatter, \
         double[:,:,:]& external, double[:,:,:]& boundary_x, \
         double[:,:,:]& boundary_y, int[:,:]& medium_map, double[:]& delta_x, \
         double[:]& delta_y, double[:]& angle_x, double[:]& angle_y, \
         double[:]& angle_w, params info):
-    # Rectangular spatial cells
-    if info.geometry == 1:
+    # Rectangular spatial cells (SLAB2D = 3)
+    if info.geometry == 3:
         square_ordinates(flux, flux_old, xs_total, xs_scatter, off_scatter, \
                          external, boundary_x, boundary_y, medium_map, \
                          delta_x, delta_y, angle_x, angle_y, angle_w, info)
@@ -67,11 +67,11 @@ cdef void square_ordinates(double[:,:]& flux, double[:,:]& flux_old, \
 
         # Iterate over angles
         for nn in range(info.angles * info.angles):
-        
+
             # Determine dimensions of external and boundary sources
             qq = 0 if external.shape[2] == 1 else nn
             bcx = 0 if boundary_x.shape[2] == 1 else nn
-            bcy = 0 if boundary_y.shape[2] == 1 else nn        
+            bcy = 0 if boundary_y.shape[2] == 1 else nn
 
             # Initialize known x and y
             tools.initialize_known_y(known_y, boundary_y[:,:,bcy], \
@@ -90,7 +90,7 @@ cdef void square_ordinates(double[:,:]& flux, double[:,:]& flux_old, \
 
         # Check for convergence
         change = tools.angle_convergence(flux, flux_old, info)
-        converged = (change < info.change_nn) or (count >= info.count_nn)
+        converged = (change < info.tol_angular) or (count >= info.max_iter_angular)
         count += 1
 
         # Update old flux
@@ -125,14 +125,14 @@ cdef void square_forward_y(double[:,:]& flux, double[:,:]& flux_old, \
         double[:,:]& external, double[:]& known_x, double[:]& known_y, \
         int[:,:]& medium_map, double[:]& delta_x, double[:]& delta_y, \
         double angle_x, double angle_y, double angle_w, params info):
-    
+
     # Initialize iterables
     cdef int jj
     cdef double coef_y
-    
+
     # Spatial discretization
     cdef double alpha_y = 2.0 / (1.0 + spatial_coef(info.spatial))
-    
+
     # Iterate over Y spatial cells
     for jj in range(info.cells_y):
 
@@ -159,11 +159,11 @@ cdef void square_backward_y(double[:,:]& flux, double[:,:]& flux_old, \
         double[:,:]& external, double[:]& known_x, double[:]& known_y, \
         int[:,:]& medium_map, double[:]& delta_x, double[:]& delta_y, \
         double angle_x, double angle_y, double angle_w, params info):
-    
+
     # Initialize iterable
     cdef int jj
     cdef double coef_y
-    
+
     # Spatial discretization
     cdef float alpha_y = 2.0 / (1.0 + spatial_coef(info.spatial))
 
@@ -193,15 +193,15 @@ cdef double square_forward_x(double[:]& flux, double[:]& flux_old, \
         double[:]& external, double edge_x, double[:]& edge_y, \
         int[:]& medium_map, double[:]& delta_x, double angle_x, \
         double angle_w, double coef_y, params info):
-    
+
     # Initialize iterables
     cdef int ii, mat
     cdef double center, coef_x
-    
+
     # Spatial discretization
     cdef float alpha = spatial_coef(info.spatial)
     cdef float alpha_x = 2.0 / (1.0 + alpha)
-    
+
     # Iterate over X spatial cells
     for ii in range(info.cells_x):
         mat = medium_map[ii]
@@ -211,10 +211,10 @@ cdef double square_forward_x(double[:]& flux, double[:]& flux_old, \
         center = (coef_x * edge_x + coef_y * edge_y[ii] + xs_scatter[mat] \
                     * flux_old[ii] + external[ii] + off_scatter[ii]) \
                     / (xs_total[mat] + coef_x + coef_y)
-        
+
         # Update flux with cell centers
         flux[ii] += angle_w * center
-        
+
         # Update known flux
         edge_x = (2.0 * center - (1.0 - alpha) * edge_x) / (1.0 + alpha)
         edge_y[ii] = (2.0 * center - (1.0 - alpha) * edge_y[ii]) / (1.0 + alpha)
@@ -227,20 +227,20 @@ cdef double square_backward_x(double[:]& flux, double[:]& flux_old, \
         double[:]& external, double edge_x, double[:]& edge_y, \
         int[:]& medium_map, double[:]& delta_x, double angle_x, \
         double angle_w, double coef_y, params info):
-    
+
     # Initialize iterables
     cdef int ii, mat
     cdef double center, coef_x
-    
+
     # Spatial discretization
     cdef double alpha = spatial_coef(info.spatial)
     cdef double alpha_x = 2.0 / (1.0 + alpha)
-        
+
     # Iterate over X spatial cells
     for ii in range(info.cells_x-1, -1, -1):
         mat = medium_map[ii]
         coef_x = (-alpha_x * angle_x / delta_x[ii])
-    
+
         # Calculate flux center
         center = (coef_x * edge_x + coef_y * edge_y[ii] + xs_scatter[mat] \
                     * flux_old[ii] + external[ii] + off_scatter[ii]) \
@@ -279,7 +279,7 @@ cdef void _known_square(double[:,:,:]& flux, double[:]& xs_total, \
         int[:,:]& medium_map, double[:]& delta_x, double[:]& delta_y, \
         double[:]& angle_x, double[:]& angle_y, double[:]& angle_w, \
         params info):
-    
+
     # Initialize indices etc
     cdef int nn, qq, bcx, bcy
 
@@ -297,7 +297,7 @@ cdef void _known_square(double[:,:,:]& flux, double[:]& xs_total, \
 
     # Iterate over angles
     for nn in range(info.angles * info.angles):
-    
+
         # Determine dimensions of external and boundary sources
         qq = 0 if source.shape[2] == 1 else nn
         bcx = 0 if boundary_x.shape[2] == 1 else nn
@@ -331,10 +331,10 @@ cdef void _known_interface_sweep(double[:,:,:]& flux_edge_x, \
         double[:,:,:]& boundary_y, int[:,:]& medium_map, \
         double[:]& delta_x, double[:]& delta_y, double[:]& angle_x, \
         double[:]& angle_y, double[:]& angle_w, params info):
-    
+
     # Initialize indices etc
     cdef int nn, qq, bcx, bcy
-    
+
     # Add dummy dimension to run both (I x J x N) and (I x J) fluxes
     cdef int xdim = flux_edge_x.shape[2]
 
@@ -346,12 +346,12 @@ cdef void _known_interface_sweep(double[:,:,:]& flux_edge_x, \
 
     # Iterate over angles
     for nn in range(info.angles * info.angles):
-    
+
         # Determine dimensions of external and boundary sources
         qq = 0 if source.shape[2] == 1 else nn
         bcx = 0 if boundary_x.shape[2] == 1 else nn
         bcy = 0 if boundary_y.shape[2] == 1 else nn
-        
+
         # Initialize known x and y
         tools.initialize_known_y(known_y, boundary_y[:,:,bcy], \
                                  reflected_y, angle_y, nn, info)
@@ -379,7 +379,7 @@ cdef void interface_sweep(double[:,:]& flux_edge_x, double[:,:]& flux_edge_y, \
         double[:]& known_y, int[:,:]& medium_map, double[:]& delta_x, \
         double[:]& delta_y, double angle_x, double angle_y, double angle_w, \
         params info):
-    
+
     if (angle_y > 0.0):
         interface_forward_y(flux_edge_x, flux_edge_y, xs_total, external, \
                             known_x, known_y, medium_map, delta_x, delta_y, \
@@ -395,17 +395,17 @@ cdef void interface_forward_y(double[:,:]& flux_edge_x, \
         double[:,:]& external, double[:]& known_x, double[:]& known_y, \
         int[:,:]& medium_map, double[:]& delta_x, double[:]& delta_y, \
         double angle_x, double angle_y, double angle_w, params info):
-    
+
     # Initialize iterables
     cdef int ii, jj
     cdef double coef_y
-    
+
     # Spatial discretization
     cdef double alpha_y = 2.0 / (1.0 + spatial_coef(info.spatial))
 
     # Iterate over Y spatial cells
     for jj in range(info.cells_y):
-    
+
         # Angular coefficient
         coef_y = alpha_y * angle_y / delta_y[jj]
 
@@ -414,7 +414,7 @@ cdef void interface_forward_y(double[:,:]& flux_edge_x, \
                                 flux_edge_y[:,jj], xs_total, external[:,jj], \
                                 known_x[jj], known_y, medium_map[:,jj], \
                                 delta_x, angle_x, angle_w, coef_y, info)
-        
+
         elif angle_x < 0.0:
             known_x[jj] = interface_backward_x(flux_edge_x[:,jj], \
                                 flux_edge_y[:,jj], xs_total, external[:,jj], \
@@ -431,32 +431,32 @@ cdef void interface_backward_y(double[:,:]& flux_edge_x, \
         double[:]& known_x, double[:]& known_y, int[:,:]& medium_map, \
         double[:]& delta_x, double[:]& delta_y, double angle_x, \
         double angle_y, double angle_w, params info):
-    
+
     # Initialize iterable
     cdef int ii, jj
     cdef double coef_y
-    
+
     # Spatial discretization
     cdef double alpha_y = 2.0 / (1.0 + spatial_coef(info.spatial))
-    
+
     # Iterate over Y spatial cells
     for jj in range(info.cells_y-1, -1, -1):
 
         # Angular coefficient
         coef_y = -alpha_y * angle_y / delta_y[jj]
-        
+
         if angle_x > 0.0:
             known_x[jj] = interface_forward_x(flux_edge_x[:,jj], \
                                 flux_edge_y[:,jj+1], xs_total, external[:,jj], \
                                 known_x[jj], known_y, medium_map[:,jj], \
                                 delta_x, angle_x, angle_w, coef_y, info)
-    
+
         elif angle_x < 0.0:
             known_x[jj] = interface_backward_x(flux_edge_x[:,jj], \
                                 flux_edge_y[:,jj+1], xs_total, external[:,jj], \
                                 known_x[jj], known_y, medium_map[:,jj], \
                                 delta_x, angle_x, angle_w, coef_y, info)
-    
+
     # Solve for bottom boundary (flux_edge_y)
     for ii in range(info.cells_x):
         flux_edge_y[ii,0] += angle_w * known_y[ii]
@@ -466,27 +466,27 @@ cdef double interface_forward_x(double[:]& flux_edge_x, double[:]& flux_edge_y, 
         double[:]& xs_total, double[:]& external, double edge_x, \
         double[:]& edge_y, int[:]& medium_map, double[:]& delta_x, \
         double angle_x, double angle_w, double coef_y, params info):
-    
+
     # Initialize iterables
     cdef int ii, mat
     cdef double center, coef_x
-    
+
     # Spatial discretization
     cdef float alpha = spatial_coef(info.spatial)
     cdef float alpha_x = 2.0 / (1.0 + alpha)
-    
+
     # Start with initial edge (i-1/2, j)
     flux_edge_x[0] += angle_w * edge_x
-    
+
     # Iterate over X spatial cells
     for ii in range(info.cells_x):
         mat = medium_map[ii]
         coef_x = (alpha_x * angle_x / delta_x[ii])
-        
+
         # Calculate flux center
         center = (coef_x * edge_x + coef_y * edge_y[ii] + external[ii]) \
                     / (xs_total[mat] + coef_x + coef_y)
-        
+
         # Update flux_edge_y (i, j-1/2)
         flux_edge_y[ii] += angle_w * edge_y[ii]
 
@@ -496,7 +496,7 @@ cdef double interface_forward_x(double[:]& flux_edge_x, double[:]& flux_edge_y, 
 
         # Update flux_edge_x (i+1/2, j)
         flux_edge_x[ii+1] += angle_w * edge_x
-    
+
     return edge_x
 
 
@@ -504,30 +504,30 @@ cdef double interface_backward_x(double[:]& flux_edge_x, double[:]& flux_edge_y,
         double[:]& xs_total, double[:]& external, double edge_x, \
         double[:]& edge_y, int[:]& medium_map, double[:]& delta_x, \
         double angle_x, double angle_w, double coef_y, params info):
-    
+
     # Initialize iterables
     cdef int ii, mat
     cdef double center, coef_x
-    
+
     # Spatial discretization
     cdef float alpha = spatial_coef(info.spatial)
     cdef float alpha_x = 2.0 / (1.0 + alpha)
-    
+
     # Start with initial edge (i+1/2, j)
     flux_edge_x[info.cells_x] += angle_w * edge_x
-    
+
     # Iterate over X spatial cells
     for ii in range(info.cells_x-1, -1, -1):
         mat = medium_map[ii]
         coef_x = (-alpha_x * angle_x / delta_x[ii])
-        
+
         # Calculate flux center
         center = (coef_x * edge_x + coef_y * edge_y[ii] + external[ii]) \
                     / (xs_total[mat] + coef_x + coef_y)
-        
+
         # Update flux_edge_y (i, j-1/2)
         flux_edge_y[ii] += angle_w * edge_y[ii]
-        
+
         # Update known flux
         edge_x = (2.0 * center - (1.0 - alpha) * edge_x) / (1.0 + alpha)
         edge_y[ii] = (2.0 * center - (1.0 - alpha) * edge_y[ii]) / (1.0 + alpha)

@@ -14,20 +14,17 @@ requires-python = ">=3.9"
 dependencies = [
     "cython",
     "numpy",
-    "tqdm", 
+    "tqdm",
 ]
 
 [project.optional-dependencies]
-test = ["pytest"]
-style = [
+dev = [
+    "pytest",
+    "pytest-cov",
     "black",
     "isort",
-    "ruff",
-]
-examples = [
-    "h5py",
-    "matplotlib",
-    "seaborn",
+    "flake8",
+    "pre-commit",
 ]
 
 [tool.setuptools.packages]
@@ -46,6 +43,7 @@ markers = [
     "sphere1d: One-dimensional sphere problems",
     "source_iteration: Checks scalar and angular flux calculations",
     "power_iteration: Checks scalar flux and keffective calculations",
+    "time_dependent: Runs time dependent problems",
     "bdf1: Runs Backward Euler time dependent problems",
     "cn: Runs Crank Nicolson time dependent problems",
     "bdf2: Runs Backward Differentiation Formula 2 time dependent problems",
@@ -63,7 +61,7 @@ markers = [
 line-length = 88
 target-version = ["py39"]
 extend-exclude = '''
-/( 
+/(
     build
     |ants\.egg-info
     |docs/_build

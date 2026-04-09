@@ -7,34 +7,17 @@
 #
 ########################################################################
 
-# Convergence parameters - iterations
-COUNT_ANGULAR = 100
-COUNT_ENERGY = 100
-COUNT_POWER = 100
+"""Shared physical and material constants used across ANTS.
 
-# Convergence parameters - difference
-CHANGE_ANGULAR = 1e-12
-CHANGE_ENERGY = 1e-08
-CHANGE_POWER = 1e-06  # For Power Iterations
+Constants are grouped into three categories:
 
-# Transport Parameters Dictionary
-PARAMS_DICT = {
-    "slab": 1,
-    "sphere": 2,  # Geometry
-    "source-iteration": 1,
-    "dynamic-mode-decomp": 2,  # Multigroup Solve
-    "step": 1,
-    "diamond": 2,
-    "step-characteristic": 3,  # Spatial Discretization
-    "vacuum": 0,
-    "reflected": 1,  # Boundary Condition
-    "left": 0,
-    "right": 1,  # Boundary Location
-    "bdf1": 1,
-    "cn": 2,
-    "bdf2": 3,
-    "tr-bdf2": 4,  # Temporal Discretization
-}
+- Unit/physics conversion constants
+- Material molar masses
+- Material mass densities
+
+All names are module-level uppercase constants intended for direct import.
+"""
+
 
 # Conversion Between Units
 MASS_NEUTRON = 1.67493e-27

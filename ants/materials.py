@@ -14,7 +14,6 @@ from importlib.resources import files
 
 import numpy as np
 
-import ants
 from ants.constants import (
     AVAGADRO,
     CM_TO_BARNS,
@@ -24,6 +23,7 @@ from ants.constants import (
     URANIUM_HYDRIDE_RHO,
     URANIUM_RHO,
 )
+from ants.datatypes import MaterialData
 
 DATA_PATH = str(files("ants").joinpath("sources/"))
 
@@ -50,7 +50,7 @@ __nonenrichment_materials = (
 __materials = __enrichment_materials + __nonenrichment_materials
 
 
-def materials(groups, materials, key=False):
+def materials(groups, materials, key=False, datatype=True):
     """Creating cross sections for different materials
     Args:
         groups (int): Number of energy groups
@@ -74,6 +74,8 @@ def materials(groups, materials, key=False):
     xs_total = np.array(xs_total)
     xs_scatter = np.array(xs_scatter)
     xs_fission = np.array(xs_fission)
+    if datatype:
+        return MaterialData(total=xs_total, scatter=xs_scatter, fission=xs_fission)
     if key:
         return xs_total, xs_scatter, xs_fission, material_key
     return xs_total, xs_scatter, xs_fission
@@ -160,12 +162,6 @@ def _generate_uranium_hydride(enrichment):
 
     u235 = np.load(os.path.join(DATA_PATH, "materials", "uranium-235.npz"))
     u238 = np.load(os.path.join(DATA_PATH, "materials", "uranium-238.npz"))
-    h1 = np.load(os.path.join(DATA_PATH, "materials", "hydrogen.npz"))
-
-    total = n235 * u235["total"] + n238 * u238["total"] + n1 * h1["total"]
-    scatter = n235 * u235["scatter"] + n238 * u238["scatter"] + n1 * h1["scatter"]
-    fission = n235 * u235["fission"] + n238 * u238["fission"] + n1 * h1["fission"]
-    return total, scatter, fission
     h1 = np.load(os.path.join(DATA_PATH, "materials", "hydrogen.npz"))
 
     total = n235 * u235["total"] + n238 * u238["total"] + n1 * h1["total"]

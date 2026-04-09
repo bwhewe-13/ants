@@ -9,80 +9,73 @@
 #
 ########################################################################
 
-import pytest
-import numpy as np
+import os
 
-import ants
-from ants import timed1d, fixed1d
-from ants.datatypes import CrossSections, QuadratureData, SpatialGrid
-from tests import problems1d
+import numpy as np
+import pytest
+
+from ants import fixed1d, timed1d
+from ants.datatypes import TimeDependentData
+from tests import problems1d as prob
 
 
 @pytest.mark.slab1d
 @pytest.mark.bdf1
 @pytest.mark.parametrize(("boundary"), [[0, 0], [1, 0], [0, 1]])
 def test_reed_bdf1(boundary):
-    xs_total, xs_scatter, xs_fission, external, boundary_x, medium_map, \
-        delta_x, angle_x, angle_w, info = problems1d.reeds(boundary)
+    mat_data, sources, geometry, quadrature, solver = prob.reeds(boundary)
+
     # Get Fixed Source
-    fixed_flux = fixed1d.source_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
-                                external, boundary_x, medium_map, SpatialGrid(delta_x), \
-                                QuadratureData(angle_x, angle_w), info)
+    fixed_flux = fixed1d.fixed_source(mat_data, sources, geometry, quadrature, solver)
+
     # Set time dependent variables
-    info["steps"] = 100
-    info["dt"] = 1.
-    velocity = np.ones((info["groups"],))
-    # Adjust for time dependency
-    initial_flux = np.zeros((info["cells_x"], info["angles"], info["groups"]))
-    external = external[None,...].copy()
-    boundary_x = boundary_x[None,...].copy()
+    time_data = TimeDependentData(steps=100, dt=1.0, time_disc=1)
+    sources.external = sources.external[None, ...].copy()
+    sources.boundary_x = sources.boundary_x[None, ...].copy()
+    sources.initial_flux = np.zeros(
+        (geometry.delta_x.size, quadrature.angle_x.size, mat_data.total.shape[0])
+    )
     # Get Time Dependent
-    timed_flux = timed1d.backward_euler(initial_flux, \
-                            CrossSections(xs_total, xs_scatter, xs_fission), \
-                            velocity, external, boundary_x, medium_map, \
-                            SpatialGrid(delta_x), QuadratureData(angle_x, angle_w), info)
-    assert np.isclose(fixed_flux[:,0], timed_flux[-1,:,0]).all(), \
-        "Incorrect Flux"
+    timed_flux = timed1d.time_dependent(
+        mat_data, sources, geometry, quadrature, solver, time_data
+    )
+
+    assert np.isclose(fixed_flux[:, 0], timed_flux[-1, :, 0]).all(), "Incorrect Flux"
 
 
 @pytest.mark.slab1d
 @pytest.mark.bdf2
 @pytest.mark.parametrize(("boundary"), [[0, 0], [1, 0], [0, 1]])
 def test_reed_bdf2(boundary):
-    xs_total, xs_scatter, xs_fission, external, boundary_x, medium_map, \
-        delta_x, angle_x, angle_w, info = problems1d.reeds(boundary)
+    mat_data, sources, geometry, quadrature, solver = prob.reeds(boundary)
     # Get Fixed Source
-    fixed_flux = fixed1d.source_iteration(CrossSections(xs_total, xs_scatter, xs_fission), \
-                                external, boundary_x, medium_map, SpatialGrid(delta_x), \
-                                QuadratureData(angle_x, angle_w), info)
+    fixed_flux = fixed1d.fixed_source(mat_data, sources, geometry, quadrature, solver)
     # Set time dependent variables
-    info["steps"] = 100
-    info["dt"] = 1.
-    velocity = np.ones((info["groups"],))
-    # Adjust for time dependency
-    initial_flux = np.zeros((info["cells_x"], info["angles"], info["groups"]))
-    external = external[None,...].copy()
-    boundary_x = boundary_x[None,...].copy()
+    time_data = TimeDependentData(steps=100, dt=1.0, time_disc=3)
+    print(sources.external.shape, sources.boundary_x.shape)
+    sources.external = sources.external[None, ...].copy()
+    sources.boundary_x = sources.boundary_x[None, ...].copy()
+    print(sources.external.shape, sources.boundary_x.shape)
+    sources.initial_flux = np.zeros(
+        (geometry.delta_x.size, quadrature.angle_x.size, mat_data.total.shape[1])
+    )
     # Get Time Dependent
-    timed_flux = timed1d.bdf2(initial_flux, \
-                              CrossSections(xs_total, xs_scatter, xs_fission), \
-                              velocity, external, boundary_x, medium_map, \
-                              SpatialGrid(delta_x), QuadratureData(angle_x, angle_w), info)
-    assert np.isclose(fixed_flux[:,0], timed_flux[-1,:,0]).all(), \
-        "Incorrect Flux"
+    timed_flux = timed1d.time_dependent(
+        mat_data, sources, geometry, quadrature, solver, time_data
+    )
+    assert np.isclose(fixed_flux[:, 0], timed_flux[-1, :, 0]).all(), "Incorrect Flux"
 
 
 @pytest.mark.sphere1d
 @pytest.mark.bdf1
 @pytest.mark.multigroup1d
 def test_sphere_01_bdf1():
-    initial_flux, xs_total, xs_scatter, xs_fission, velocity, external, \
-        boundary_x, medium_map, delta_x, angle_x, angle_w, info \
-        = problems1d.sphere_01("timed")
-    flux = timed1d.backward_euler(initial_flux, \
-                CrossSections(xs_total, xs_scatter, xs_fission), velocity, \
-                external, boundary_x, medium_map, SpatialGrid(delta_x), \
-                QuadratureData(angle_x, angle_w), info)
-    reference = np.load(problems1d.PATH + "uranium_sphere_backward_euler_flux.npy")
-    for tt in range(info["steps"]):
+    mat_data, sources, geometry, quadrature, solver, time_data = prob.sphere_01("timed")
+
+    flux = timed1d.time_dependent(
+        mat_data, sources, geometry, quadrature, solver, time_data
+    )
+    ref_file_name = "uranium_sphere_backward_euler_flux.npy"
+    reference = np.load(os.path.join(prob.PATH, ref_file_name))
+    for tt in range(time_data.steps):
         assert np.isclose(flux[tt], reference[tt]).all()

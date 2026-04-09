@@ -38,12 +38,12 @@ cdef double[:,:,:] multi_group(double[:,:,:]& flux_guess, \
         double[:]& delta_x, double[:]& delta_y, double[:]& angle_x, \
         double[:]& angle_y, double[:]& angle_w, params info):
     # Source Iteration
-    if info.mg == 1:
+    if info.mg_solver == 1:
         return source_iteration(flux_guess, xs_total, xs_scatter, \
                     external, boundary_x, boundary_y, medium_map, \
                     delta_x, delta_y, angle_x, angle_y, angle_w, info)
     # Dynamic Mode Decomposition
-    elif info.mg == 2:
+    elif info.mg_solver == 2:
         return dynamic_mode_decomp(flux_guess, xs_total, xs_scatter, \
                     external, boundary_x, boundary_y, medium_map, \
                     delta_x, delta_y, angle_x, angle_y, angle_w, info)
@@ -103,7 +103,7 @@ cdef double[:,:,:] source_iteration(double[:,:,:]& flux_guess, \
         change = tools.group_convergence(flux, flux_old, info)
         if isnan(change) or isinf(change):
             change = 0.5
-        converged = (change < info.change_gg) or (count >= info.count_gg)
+        converged = (change < info.tol_energy) or (count >= info.max_iter_energy)
         count += 1
 
         # Update old flux
@@ -128,8 +128,8 @@ cdef double[:,:,:] dynamic_mode_decomp(double[:,:,:]& flux_guess, \
     flux_1g = tools.array_2d(info.cells_x, info.cells_y)
 
     # Initialize Y_plus and Y_minus
-    y_plus = tools.array_4d(info.cells_x, info.cells_y, info.groups, info.dmd_k - 1)
-    y_minus = tools.array_4d(info.cells_x, info.cells_y, info.groups, info.dmd_k - 1)
+    y_plus = tools.array_4d(info.cells_x, info.cells_y, info.groups, info.dmd_snapshots - 1)
+    y_minus = tools.array_4d(info.cells_x, info.cells_y, info.groups, info.dmd_snapshots - 1)
     
     # Create off-scattering term
     off_scatter = tools.array_2d(info.cells_x, info.cells_y)
@@ -139,7 +139,7 @@ cdef double[:,:,:] dynamic_mode_decomp(double[:,:,:]& flux_guess, \
     cdef int count = 1
     
     # Iterate over removed source iterations
-    for rk in range(info.dmd_r + info.dmd_k):
+    for rk in range(info.dmd_rank + info.dmd_snapshots):
 
         # Return flux if there is convergence
         if converged:
@@ -173,19 +173,19 @@ cdef double[:,:,:] dynamic_mode_decomp(double[:,:,:]& flux_guess, \
         change = tools.group_convergence(flux, flux_old, info)
         if isnan(change) or isinf(change):
             change = 0.5
-        converged = (change < info.change_gg)
+        converged = (change < info.tol_energy)
 
         # Collect difference for DMD on K iterations
-        if rk >= info.dmd_r:
+        if rk >= info.dmd_rank:
             # Get indexing
-            kk = rk - info.dmd_r
+            kk = rk - info.dmd_rank
             tools._dmd_subtraction(y_minus, y_plus, flux, flux_old, kk, info)
 
         # Update old flux
         flux_old[:,:,:] = flux[:,:,:]
 
     # Perform DMD
-    flux = dmd_2d(flux, y_minus, y_plus, info.dmd_k)
+    flux = dmd_2d(flux, y_minus, y_plus, info.dmd_snapshots)
 
     return flux[:,:,:]
 
@@ -245,7 +245,7 @@ cdef double[:,:,:] variable_source_iteration(double[:,:,:]& flux_guess, \
         change = tools.group_convergence(flux, flux_old, info)
         if isnan(change) or isinf(change):
             change = 0.5
-        converged = (change < info.change_gg) or (count >= info.count_gg)
+        converged = (change < info.tol_energy) or (count >= info.max_iter_energy)
         count += 1
 
         # Update old flux

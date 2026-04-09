@@ -125,7 +125,7 @@ cdef void _dmd_subtraction(double[:,:,:]& y_minus, double[:,:,:]& y_plus, \
     cdef int ii, gg
     for ii in range(info.cells_x):
         for gg in range(info.groups):
-            if (kk < info.dmd_k - 1):
+            if (kk < info.dmd_snapshots - 1):
                 y_minus[ii,gg,kk] = (flux[ii,gg] - flux_old[ii,gg])
             
             if (kk > 0):
@@ -181,7 +181,7 @@ cdef void _angular_to_scalar(double[:,:,:]& angular_flux, \
     # Zero out scalar flux term
     scalar_flux[:,:] = 0.0
     # Iterate over all spatial cells, angles, energy groups
-    for ii in range(info.cells_x + info.edges):
+    for ii in range(info.cells_x + info.flux_at_edges):
         for nn in range(info.angles):
             for gg in range(info.groups):
                 scalar_flux[ii,gg] += angular_flux[ii,nn,gg] * angle_w[nn]

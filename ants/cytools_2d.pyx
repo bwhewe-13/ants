@@ -1,12 +1,12 @@
 ################################################################################
 #                            ___    _   _____________
 #                           /   |  / | / /_  __/ ___/
-#                          / /| | /  |/ / / /  \__ \ 
-#                         / ___ |/ /|  / / /  ___/ / 
-#                        /_/  |_/_/ |_/ /_/  /____/  
+#                          / /| | /  |/ / / /  \__ \
+#                         / ___ |/ /|  / / /  ___/ /
+#                        /_/  |_/_/ |_/ /_/  /____/
 #
-# Functions needed for both fixed source, criticality, and time-dependent 
-# problems in one-dimensional neutron transport 
+# Functions needed for both fixed source, criticality, and time-dependent
+# problems in one-dimensional neutron transport
 #
 ################################################################################
 
@@ -20,16 +20,16 @@
 # distutils: language = c++
 
 from cython.view cimport array as cvarray
+
 from cython.parallel import prange
 
+from ants.cytools_shared cimport _normalize_flux as _shared_normalize_flux
+from ants.cytools_shared cimport _total_velocity as _shared_total_velocity
+from ants.cytools_shared cimport _update_keffective as _shared_update_keffective
+from ants.cytools_shared cimport angle_convergence as _shared_angle_convergence
+from ants.cytools_shared cimport group_convergence as _shared_group_convergence
 from ants.parameters cimport params
-from ants.cytools_shared cimport (
-    group_convergence as _shared_group_convergence,
-    angle_convergence as _shared_angle_convergence,
-    _normalize_flux as _shared_normalize_flux,
-    _update_keffective as _shared_update_keffective,
-    _total_velocity as _shared_total_velocity,
-)
+
 
 ################################################################################
 # Memoryview functions
@@ -122,7 +122,7 @@ cdef void _dmd_subtraction(double[:,:,:,:]& y_minus, double[:,:,:,:]& y_plus, \
     for ii in range(info.cells_x):
         for jj in range(info.cells_y):
             for gg in range(info.groups):
-                if (kk < info.dmd_k - 1):
+                if (kk < info.dmd_snapshots - 1):
                     y_minus[ii,jj,gg,kk] = (flux[ii,jj,gg] - flux_old[ii,jj,gg])
                 if (kk > 0):
                     y_plus[ii,jj,gg,kk-1] = (flux[ii,jj,gg] - flux_old[ii,jj,gg])
@@ -326,6 +326,43 @@ cdef int _reflected_index(double[:]& angle_opp, double[:]& angle_sim, \
 
 
 ################################################################################
+# Artificial Scattering functions (ray effect mitigation)
+################################################################################
+
+cdef void _build_art_source(double[:,:,:]& psi_angular, double[:,:]& M_as, \
+        double[:,:,:,:]& art_source, params info):
+    """Build artificial scatter source: art_source[i,j,n,g] = Σ_m M_as[n,m] * psi[i,j,m,g]"""
+    # Initialize iterables
+    cdef int ii, jj, nn, mm, gg
+    cdef int N_angles = info.angles * info.angles
+    # Zero out art_source
+    art_source[:,:,:,:] = 0.0
+    # For each cell (i,j), group, angle n: apply matrix M_as to angular flux
+    for gg in range(info.groups):
+        for ii in range(info.cells_x):
+            for jj in range(info.cells_y):
+                for nn in range(N_angles):
+                    for mm in range(N_angles):
+                        art_source[ii,jj,nn,gg] += M_as[nn,mm] * psi_angular[ii,jj,mm]
+
+
+cdef double _angular_flux_change(double[:,:,:]& psi_new, double[:,:,:]& psi_old, \
+        params info):
+    """Compute L∞ norm change in angular flux for convergence check"""
+    cdef int ii, jj, nn
+    cdef double max_change = 0.0
+    cdef double change
+    cdef int N_angles = info.angles * info.angles
+    for ii in range(info.cells_x):
+        for jj in range(info.cells_y):
+            for nn in range(N_angles):
+                change = abs(psi_new[ii,jj,nn] - psi_old[ii,jj,nn])
+                if change > max_change:
+                    max_change = change
+    return max_change
+
+
+################################################################################
 # Time Dependent functions
 ################################################################################
 
@@ -339,9 +376,9 @@ cdef void _total_velocity(double[:,:]& xs_total, double[:]& velocity, \
 cdef void _time_source_star_bdf1(double[:,:,:,:]& flux, \
         double[:,:,:,:]& q_star, double[:,:,:,:]& external, \
         double[:]& velocity, params info):
-    # Combining the source (I x J x N^2 x G) with the angular 
+    # Combining the source (I x J x N^2 x G) with the angular
     #     flux (I x J x N^2 x G)
-    
+
     # Initialize iterables
     cdef int ii, jj, nn, gg, nn_q, gg_q
     cdef int directions = info.angles * info.angles
@@ -352,10 +389,10 @@ cdef void _time_source_star_bdf1(double[:,:,:,:]& flux, \
     # Iterate over cells, angles, groups
     for nn in range(directions): #, nogil=True):
         nn_q = 0 if external.shape[2] == 1 else nn
-    
+
         for gg in range(info.groups):
             gg_q = 0 if external.shape[3] == 1 else gg
-        
+
             for jj in range(info.cells_y):
                 for ii in range(info.cells_x):
                     # loc = gg + info.groups * (nn + info.angles * info.angles \
@@ -422,7 +459,7 @@ cdef void _time_source_star_cn(double[:,:,:,:]& psi_x, double[:,:,:,:]& psi_y, \
                 # Add scalar term
                 for ig in range(info.groups):
                     one_group += phi[ii,jj,ig] * xs_scatter[mat,og,ig]
-                
+
                 for nn in range(info.angles * info.angles):
                     nn_q = 0 if external.shape[2] == 1 else nn
                     # Calculate angular flux center
@@ -435,7 +472,7 @@ cdef void _time_source_star_cn(double[:,:,:,:]& psi_x, double[:,:,:,:]& psi_y, \
                     q_star[ii,jj,nn,og] += one_group + external[ii,jj,nn_q,og_q]
                     q_star[ii,jj,nn,og] += external_prev[ii,jj,nn_q,og_q] \
                             - angle_x[nn] * dpsi_x - angle_y[nn] * dpsi_y + psi \
-                            * (constant / (velocity[og] * info.dt) - xs_total[mat,og]) 
+                            * (constant / (velocity[og] * info.dt) - xs_total[mat,og])
 
 
 cdef void _time_source_star_bdf2(double[:,:,:,:]& flux_1, \
@@ -503,7 +540,7 @@ cdef void _time_source_star_tr_bdf2(double[:,:,:,:]& psi_x, \
         double[:]& velocity, double gamma, params info):
     # Combining the source (I x J x N^2 x G) with the angular flux (I x J x N^2 x G)
     # psi_x is time step \ell (edges), flux_2 is time step \ell + gamma (centers)
-    
+
     # Initialize iterables
     cdef int ii, jj, nn, gg, nn_q, gg_q
     cdef int directions = info.angles * info.angles
@@ -539,7 +576,7 @@ cdef void _time_source_star_tr_bdf2_mem(double[:,:,:,:]& psi_x, double[:,:,:,:]&
         double gamma, params info):
     # Combining the source (I x J x N^2 x G) with the angular flux (I x J x N^2 x G)
     # psi_x is time step \ell (edges), flux_2 is time step \ell + gamma (centers)
-    
+
     # Initialize iterables
     cdef int ii, jj, nn, gg, nn_q, gg_q
     cdef int directions = info.angles * info.angles
@@ -575,7 +612,7 @@ cdef void _time_right_side(double[:,:,:,:]& q_star, double[:,:,:]& flux, \
     # Iterate over dimensions
     for ii in range(info.cells_x):
         for jj in range(info.cells_y):
-            mat = medium_map[ii,jj]            
+            mat = medium_map[ii,jj]
             for og in range(info.groups):
                 one_group = 0.0
                 for ig in range(info.groups):
@@ -700,7 +737,7 @@ cdef void _nearby_on_scatter(double[:,:,:]& residual, double[:,:]& int_angular, 
     for ii in range(info.cells_x):
         for jj in range(info.cells_y):
             mat = medium_map[ii,jj]
-            
+
             residual[ii,jj,gg0] += angle_w * ((angle_x * int_dx_angular[ii,jj]) \
                             + (angle_y * int_dy_angular[ii,jj]) \
                             + (int_angular[ii,jj] * xs_total[mat,gg1]) \
@@ -723,11 +760,11 @@ cdef void _nearby_populate_outer(double[:,:,:,:]& modified_flux, \
                     modified_flux[ii+1,0,nn,gg] = flux_edge_y[ii,0,nn,gg]
                 if (info.bc_x[1] == 1):
                     modified_flux[ii+1,info.cells_y+1,nn,gg] = flux_edge_y[ii,info.cells_y,nn,gg]
-                
+
                 # Center fluxes
                 for jj in range(info.cells_y):
                     modified_flux[ii+1,jj+1,nn,gg] = flux_center[ii,jj,nn,gg]
-            
+
             # Medium edges
             for jj in range(info.cells_y):
                 if (info.bc_y[0] == 1):
@@ -764,7 +801,7 @@ cdef void _nearby_sum_4d(double[:,:,:,:]& modified_flux, \
     for ii in range(length_x):
         # Get correct index - x
         ii_idx = _find_outer_index(ii, length_x)
-        
+
         for jj in range(length_y):
             # Get correct index - y
             jj_idx = _find_outer_index(jj, length_y)
@@ -786,7 +823,7 @@ cdef double[:,:] _nearby_sum_2d(double[:,:]& modified_arr, params info):
     for ii in range(length_x):
         # Get correct index - x
         ii_idx = _find_outer_index(ii, length_x)
-        
+
         for jj in range(length_y):
             # Get correct index - y
             jj_idx = _find_outer_index(jj, length_y)
@@ -819,7 +856,7 @@ cdef int _find_outer_index(int iterable, int length):
         return 0
     elif (iterable > (length - 3)):
         return length - 3
-    return iterable - 1    
+    return iterable - 1
 
 
 cdef int[:,:] _nearby_adjust_medium(int[:,:] medium_map, params info):
@@ -833,16 +870,16 @@ cdef int[:,:] _nearby_adjust_medium(int[:,:] medium_map, params info):
         # Medium edges
         modified_medium_map[ii+1,0] = medium_map[ii,0]
         modified_medium_map[ii+1,info.cells_y+1] = medium_map[ii,info.cells_y-1]
-        
+
         # Center fluxes
         for jj in range(info.cells_y):
             modified_medium_map[ii+1,jj+1] = medium_map[ii,jj]
-            
+
     # Medium edges
     for jj in range(info.cells_y):
         modified_medium_map[0,jj+1] = medium_map[0,jj]
         modified_medium_map[info.cells_x+1,jj+1] = medium_map[info.cells_x-1,jj]
-    
+
     # Corner average (0, 0)
     modified_medium_map[0,0] = medium_map[1,0]
     # Corner average (-1, -1)
@@ -858,10 +895,10 @@ cdef int[:,:] _nearby_adjust_medium(int[:,:] medium_map, params info):
 
 cdef void _nearby_angular_to_scalar(double[:,:,:,:]& angular, \
         double[:,:,:,:]& scalar, double[:]& angle_w, params info):
-    
+
     # Initialize iterables
     cdef int ii, jj, nn, gg
-    
+
     # Zero out scalar flux term
     scalar[:,:,:,:] = 0.0
 
@@ -880,11 +917,11 @@ cdef void _nearby_fission_source(double[:,:,:]& flux, \
         double[:,:,:]& xs_fission, double[:,:,:,:]& fission_source, \
         double[:,:,:,:]& residual, int[:,:]& medium_map, params info, \
         double keff):
-    
+
     # Initialize iterables
     cdef int ii, jj, mat, nn, ig, og, nn_r
     cdef double one_group
-    
+
     # Zero out previous power iteration
     fission_source[:,:,:,:] = 0.0
 
@@ -901,7 +938,7 @@ cdef void _nearby_fission_source(double[:,:,:]& flux, \
                 #     # Add nearby residual
                 #     nn_r = 0 if residual.shape[2] == 1 else nn
                 #     fission_source[ii,jj,nn,og] += one_group + residual[ii,jj,nn_r,og]
-                
+
                 # Add nearby residual
                 fission_source[ii,jj,0,og] += one_group + residual[ii,jj,0,og]
 
@@ -918,7 +955,7 @@ cdef void _nearby_critical_on_scatter(double[:,:,:]& residual, \
     for ii in range(info.cells_x):
         for jj in range(info.cells_y):
             mat = medium_map[ii,jj]
-            
+
             residual[ii,jj,gg0] += angle_w * ((angle_x * int_dx_angular[ii,jj]) \
                             + (angle_y * int_dy_angular[ii,jj]) \
                             + (int_angular[ii,jj] * xs_total[mat,gg1]))
@@ -950,7 +987,7 @@ cdef void _nearby_critical_off_scatter(double[:,:,:]& residual, \
             for og in range(info.groups):
                 fission_source_group = 0.0
                 off_scatter = 0.0
-                for ig in range(info.groups):                    
+                for ig in range(info.groups):
                     fission_source_group += scalar_flux[ii,jj,ig] * xs_fission[mat,og,ig]
                     off_scatter += scalar_flux[ii,jj,ig] * xs_scatter[mat,og,ig]
 
@@ -1003,14 +1040,14 @@ cdef double _nearby_keffective(double[:,:,:]& flux, double rate, params info):
 cdef void _hybrid_source_collided(double[:,:,:]& flux, \
         double[:,:,:]& xs_scatter, double[:,:,:,:]& source_c, \
         int[:,:]& medium_map, int[:]& coarse_idx, params info_u):
-    
+
     # Initialize iterables
     cdef int ii, jj, mat, og, ig
     cdef double one_group
-    
+
     # Zero out previous source
     source_c[:,:,:,:] = 0.0
-    
+
     # Iterate over all spatial cells
     for ii in range(info_u.cells_x):
         for jj in range(info_u.cells_y):
@@ -1025,7 +1062,7 @@ cdef void _hybrid_source_collided(double[:,:,:]& flux, \
 cdef void _hybrid_source_total(double[:,:,:]& flux_u, double[:,:,:]& flux_c, \
         double[:,:,:]& xs_matrix, double[:,:,:,:]& source, int[:,:]& medium_map, \
         int[:]& coarse_idx, double[:]& factor_u, params info_u, params info_c):
-    
+
     # Initialize iterables
     cdef int ii, jj, mat, nn, ig, og
     cdef double one_group
@@ -1034,12 +1071,12 @@ cdef void _hybrid_source_total(double[:,:,:]& flux_u, double[:,:,:]& flux_c, \
     for ii in range(info_u.cells_x):
         for jj in range(info_u.cells_y):
             mat = medium_map[ii,jj]
-            
+
             # Combine fluxes
             for og in range(info_u.groups):
                 flux_u[ii,jj,og] = flux_u[ii,jj,og] \
                             + flux_c[ii,jj,coarse_idx[og]] * factor_u[og]
-            
+
             # Add flux-xs product to source
             for og in range(info_u.groups):
                 one_group = 0.0
@@ -1055,14 +1092,14 @@ cdef void _hybrid_source_total(double[:,:,:]& flux_u, double[:,:,:]& flux_c, \
 cdef void _vhybrid_source_c(double[:,:,:]& flux_u, double[:,:,:]& xs_scatter, \
         double[:,:,:,:]& source_c, int[:,:]& medium_map,  int[:]& edges_gidx_c, \
         params info_u, params info_c):
-    
+
     # Initialize iterables
     cdef int ii, jj, mat, gg, og, ig
     cdef double source
-    
+
     # Zero out previous source
     source_c[:,:,:,:] = 0.0
-    
+
     # Iterate over all spatial cells
     for ii in range(info_u.cells_x): #, nogil=True):
         for jj in range(info_u.cells_y):
@@ -1077,7 +1114,7 @@ cdef void _vhybrid_source_c(double[:,:,:]& flux_u, double[:,:,:]& xs_scatter, \
 
 cdef void _coarsen_flux(double[:,:,:]& flux_u, double[:,:,:]& flux_c, \
         int[:]& edges_gidx_c, params info_c):
-    
+
     # Initialize iterables
     cdef int ii, jj, og, ig
     cdef double tmp_flux
@@ -1099,14 +1136,14 @@ cdef void _variable_off_scatter(double[:,:,:]& flux, double[:,:,:]& flux_old, \
         int[:,:]& medium_map, double[:,:,:]& xs_matrix, double[:,:]& off_scatter, \
         int group, double[:]& edges_g, int[:]& edges_gidx_c, int out_idx1, \
         int out_idx2, params info):
-    
+
     # Initialize iterables
     cdef int gg, in_idx1, in_idx2, ii, jj, mat, og, ig
     cdef double prod_tmp, delta_coarse
-    
+
     # Zero out previous values
     off_scatter[:,:] = 0.0
-    
+
     # Iterate over collided groups
     for gg in range(info.groups): #, nogil=True):
 
@@ -1140,16 +1177,16 @@ cdef void _variable_off_scatter(double[:,:,:]& flux, double[:,:,:]& flux_old, \
 cdef void _vhybrid_source_total(double[:,:,:]& flux_u, double[:,:,:]& flux_c, \
         double[:,:,:]& xs_matrix_u, double[:,:,:,:]& source, int[:,:]& medium_map, \
         double[:]& edges_g, int[:]& edges_gidx_c, params info_u, params info_c):
-    
+
     # Initialize iterables
     cdef int ii, jj, mat, nn, ig, og, idx1, idx2
     cdef double one_group, delta_coarse
-    
+
     # Assume that source is already (Qu + 1 / (v * dt) * psi^{\ell-1})
     for ii in range(info_u.cells_x): #, nogil=True):
         for jj in range(info_u.cells_y):
             mat = medium_map[ii,jj]
-            
+
             # Combine fluxes
             for og in range(info_c.groups):
                 idx1 = edges_gidx_c[og]

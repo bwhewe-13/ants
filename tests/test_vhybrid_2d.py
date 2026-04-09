@@ -15,7 +15,14 @@ import pytest
 
 import ants
 from ants import hybrid2d, vhybrid2d
-from ants.datatypes import CrossSections, HybridMapping, QuadratureData, SpatialGrid
+from ants.datatypes import (
+    Geometry,
+    GeometryData,
+    MaterialData,
+    SolverData,
+    SourceData,
+    TimeDependentData,
+)
 from ants.utils import hybrid as hytools
 from ants.utils import manufactured_2d as mms
 from tests import problems2d
@@ -33,57 +40,39 @@ def test_backward_euler_01():
     # Time parameters
     T = 1.0
     steps = 20
-    dt = T / (steps)
+    dt = T / steps
     edges_t = np.linspace(0, T, steps + 1)
 
-    (
-        initial_flux,
-        xs_total,
-        xs_scatter,
-        xs_fission,
-        velocity,
-        external,
-        boundary_x,
-        boundary_y,
-        medium_map,
-        delta_x,
-        delta_y,
-        angle_x,
-        angle_y,
-        angle_w,
-        info,
-    ) = problems2d.manufactured_td_01(cells_x, angles, edges_t, dt, temporal=1)
+    mat_data, sources, geometry, quadrature, solver, time_data = (
+        problems2d.manufactured_td_01(cells_x, angles, edges_t, dt, temporal=1)
+    )
 
     edges_g, _ = ants.energy_grid(None, groups)
     vgroups = np.array([groups] * steps, dtype=np.int32)
     vangles = np.array([angles] * steps, dtype=np.int32)
 
-    # Run Hybrid Method
-    approx = vhybrid2d.backward_euler(
+    # Run vHybrid Method
+    approx = vhybrid2d.time_dependent(
+        mat_data,
         vgroups,
+        sources,
+        geometry,
+        quadrature,
         vangles,
-        initial_flux,
-        CrossSections(xs_total, xs_scatter, xs_fission),
-        velocity,
-        external,
-        boundary_x,
-        boundary_y,
-        medium_map,
-        SpatialGrid(delta_x, delta_y),
-        QuadratureData(angle_x, angle_w, angle_y),
+        solver,
+        time_data,
         edges_g,
-        info,
-        info,
     )
 
-    edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
+    edges_x = np.concatenate(([0.0], np.cumsum(geometry.delta_x)))
     centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
-
-    edges_y = np.round(np.insert(np.cumsum(delta_y), 0, 0), 12)
+    edges_y = np.concatenate(([0.0], np.cumsum(geometry.delta_y)))
     centers_y = 0.5 * (edges_y[1:] + edges_y[:-1])
 
-    exact = mms.solution_td_01(centers_x, centers_y, angle_x, angle_y, edges_t[1:])
-    exact = np.sum(exact * angle_w[None, None, None, :, None], axis=3)
+    exact = mms.solution_td_01(
+        centers_x, centers_y, quadrature.angle_x, quadrature.angle_y, edges_t[1:]
+    )
+    exact = np.sum(exact * quadrature.angle_w[None, None, None, :, None], axis=3)
 
     atol = 5e-3
     for tt in range(steps):
@@ -101,57 +90,39 @@ def test_backward_euler_02():
     # Time parameters
     T = 1.0
     steps = 20
-    dt = T / (steps)
+    dt = T / steps
     edges_t = np.linspace(0, T, steps + 1)
 
-    (
-        initial_flux,
-        xs_total,
-        xs_scatter,
-        xs_fission,
-        velocity,
-        external,
-        boundary_x,
-        boundary_y,
-        medium_map,
-        delta_x,
-        delta_y,
-        angle_x,
-        angle_y,
-        angle_w,
-        info,
-    ) = problems2d.manufactured_td_02(cells_x, angles, edges_t, dt, temporal=1)
+    mat_data, sources, geometry, quadrature, solver, time_data = (
+        problems2d.manufactured_td_02(cells_x, angles, edges_t, dt, temporal=1)
+    )
 
     edges_g, _ = ants.energy_grid(None, groups)
     vgroups = np.array([groups] * steps, dtype=np.int32)
     vangles = np.array([angles] * steps, dtype=np.int32)
 
-    # Run Hybrid Method
-    approx = vhybrid2d.backward_euler(
+    # Run vHybrid Method
+    approx = vhybrid2d.time_dependent(
+        mat_data,
         vgroups,
+        sources,
+        geometry,
+        quadrature,
         vangles,
-        initial_flux,
-        CrossSections(xs_total, xs_scatter, xs_fission),
-        velocity,
-        external,
-        boundary_x,
-        boundary_y,
-        medium_map,
-        SpatialGrid(delta_x, delta_y),
-        QuadratureData(angle_x, angle_w, angle_y),
+        solver,
+        time_data,
         edges_g,
-        info,
-        info,
     )
 
-    edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
+    edges_x = np.concatenate(([0.0], np.cumsum(geometry.delta_x)))
     centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
-
-    edges_y = np.round(np.insert(np.cumsum(delta_y), 0, 0), 12)
+    edges_y = np.concatenate(([0.0], np.cumsum(geometry.delta_y)))
     centers_y = 0.5 * (edges_y[1:] + edges_y[:-1])
 
-    exact = mms.solution_td_02(centers_x, centers_y, angle_x, angle_y, edges_t[1:])
-    exact = np.sum(exact * angle_w[None, None, None, :, None], axis=3)
+    exact = mms.solution_td_02(
+        centers_x, centers_y, quadrature.angle_x, quadrature.angle_y, edges_t[1:]
+    )
+    exact = np.sum(exact * quadrature.angle_w[None, None, None, :, None], axis=3)
 
     atol = 5e-3
     for tt in range(steps):
@@ -170,59 +141,39 @@ def test_crank_nicolson_01():
     # Time parameters
     T = 1.0
     steps = 20
-    dt = T / (steps)
+    dt = T / steps
     edges_t = np.linspace(0, T, steps + 1)
 
-    (
-        initial_flux_x,
-        initial_flux_y,
-        xs_total,
-        xs_scatter,
-        xs_fission,
-        velocity,
-        external,
-        boundary_x,
-        boundary_y,
-        medium_map,
-        delta_x,
-        delta_y,
-        angle_x,
-        angle_y,
-        angle_w,
-        info,
-    ) = problems2d.manufactured_td_01(cells_x, angles, edges_t, dt, temporal=2)
+    mat_data, sources, geometry, quadrature, solver, time_data = (
+        problems2d.manufactured_td_01(cells_x, angles, edges_t, dt, temporal=2)
+    )
 
     edges_g, _ = ants.energy_grid(None, groups)
     vgroups = np.array([groups] * steps, dtype=np.int32)
     vangles = np.array([angles] * steps, dtype=np.int32)
 
-    # Run Hybrid Method
-    approx = vhybrid2d.crank_nicolson(
+    # Run vHybrid Method
+    approx = vhybrid2d.time_dependent(
+        mat_data,
         vgroups,
+        sources,
+        geometry,
+        quadrature,
         vangles,
-        initial_flux_x,
-        initial_flux_y,
-        CrossSections(xs_total, xs_scatter, xs_fission),
-        velocity,
-        external,
-        boundary_x,
-        boundary_y,
-        medium_map,
-        SpatialGrid(delta_x, delta_y),
-        QuadratureData(angle_x, angle_w, angle_y),
+        solver,
+        time_data,
         edges_g,
-        info,
-        info,
     )
 
-    edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
+    edges_x = np.concatenate(([0.0], np.cumsum(geometry.delta_x)))
     centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
-
-    edges_y = np.round(np.insert(np.cumsum(delta_y), 0, 0), 12)
+    edges_y = np.concatenate(([0.0], np.cumsum(geometry.delta_y)))
     centers_y = 0.5 * (edges_y[1:] + edges_y[:-1])
 
-    exact = mms.solution_td_01(centers_x, centers_y, angle_x, angle_y, edges_t[1:])
-    exact = np.sum(exact * angle_w[None, None, None, :, None], axis=3)
+    exact = mms.solution_td_01(
+        centers_x, centers_y, quadrature.angle_x, quadrature.angle_y, edges_t[1:]
+    )
+    exact = np.sum(exact * quadrature.angle_w[None, None, None, :, None], axis=3)
 
     atol = 5e-3
     for tt in range(steps):
@@ -235,65 +186,44 @@ def test_crank_nicolson_01():
 def test_crank_nicolson_02():
     # General parameters
     cells_x = 50
-    cells_y = 50
     angles = 4
     groups = 1
     # Time parameters
     T = 1.0
     steps = 20
-    dt = T / (steps)
+    dt = T / steps
     edges_t = np.linspace(0, T, steps + 1)
 
-    (
-        initial_flux_x,
-        initial_flux_y,
-        xs_total,
-        xs_scatter,
-        xs_fission,
-        velocity,
-        external,
-        boundary_x,
-        boundary_y,
-        medium_map,
-        delta_x,
-        delta_y,
-        angle_x,
-        angle_y,
-        angle_w,
-        info,
-    ) = problems2d.manufactured_td_02(cells_x, angles, edges_t, dt, temporal=2)
+    mat_data, sources, geometry, quadrature, solver, time_data = (
+        problems2d.manufactured_td_02(cells_x, angles, edges_t, dt, temporal=2)
+    )
 
     edges_g, _ = ants.energy_grid(None, groups)
     vgroups = np.array([groups] * steps, dtype=np.int32)
     vangles = np.array([angles] * steps, dtype=np.int32)
 
-    # Run Hybrid Method
-    approx = vhybrid2d.crank_nicolson(
+    # Run vHybrid Method
+    approx = vhybrid2d.time_dependent(
+        mat_data,
         vgroups,
+        sources,
+        geometry,
+        quadrature,
         vangles,
-        initial_flux_x,
-        initial_flux_y,
-        CrossSections(xs_total, xs_scatter, xs_fission),
-        velocity,
-        external,
-        boundary_x,
-        boundary_y,
-        medium_map,
-        SpatialGrid(delta_x, delta_y),
-        QuadratureData(angle_x, angle_w, angle_y),
+        solver,
+        time_data,
         edges_g,
-        info,
-        info,
     )
 
-    edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
+    edges_x = np.concatenate(([0.0], np.cumsum(geometry.delta_x)))
     centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
-
-    edges_y = np.round(np.insert(np.cumsum(delta_y), 0, 0), 12)
+    edges_y = np.concatenate(([0.0], np.cumsum(geometry.delta_y)))
     centers_y = 0.5 * (edges_y[1:] + edges_y[:-1])
 
-    exact = mms.solution_td_02(centers_x, centers_y, angle_x, angle_y, edges_t[1:])
-    exact = np.sum(exact * angle_w[None, None, None, :, None], axis=3)
+    exact = mms.solution_td_02(
+        centers_x, centers_y, quadrature.angle_x, quadrature.angle_y, edges_t[1:]
+    )
+    exact = np.sum(exact * quadrature.angle_w[None, None, None, :, None], axis=3)
 
     atol = 5e-3
     for tt in range(steps):
@@ -312,57 +242,39 @@ def test_bdf2_01():
     # Time parameters
     T = 1.0
     steps = 20
-    dt = T / (steps)
+    dt = T / steps
     edges_t = np.linspace(0, T, steps + 1)
 
-    (
-        initial_flux,
-        xs_total,
-        xs_scatter,
-        xs_fission,
-        velocity,
-        external,
-        boundary_x,
-        boundary_y,
-        medium_map,
-        delta_x,
-        delta_y,
-        angle_x,
-        angle_y,
-        angle_w,
-        info,
-    ) = problems2d.manufactured_td_01(cells_x, angles, edges_t, dt, temporal=3)
+    mat_data, sources, geometry, quadrature, solver, time_data = (
+        problems2d.manufactured_td_01(cells_x, angles, edges_t, dt, temporal=3)
+    )
 
     edges_g, _ = ants.energy_grid(None, groups)
     vgroups = np.array([groups] * steps, dtype=np.int32)
     vangles = np.array([angles] * steps, dtype=np.int32)
 
-    # Run Hybrid Method
-    approx = vhybrid2d.bdf2(
+    # Run vHybrid Method
+    approx = vhybrid2d.time_dependent(
+        mat_data,
         vgroups,
+        sources,
+        geometry,
+        quadrature,
         vangles,
-        initial_flux,
-        CrossSections(xs_total, xs_scatter, xs_fission),
-        velocity,
-        external,
-        boundary_x,
-        boundary_y,
-        medium_map,
-        SpatialGrid(delta_x, delta_y),
-        QuadratureData(angle_x, angle_w, angle_y),
+        solver,
+        time_data,
         edges_g,
-        info,
-        info,
     )
 
-    edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
+    edges_x = np.concatenate(([0.0], np.cumsum(geometry.delta_x)))
     centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
-
-    edges_y = np.round(np.insert(np.cumsum(delta_y), 0, 0), 12)
+    edges_y = np.concatenate(([0.0], np.cumsum(geometry.delta_y)))
     centers_y = 0.5 * (edges_y[1:] + edges_y[:-1])
 
-    exact = mms.solution_td_01(centers_x, centers_y, angle_x, angle_y, edges_t[1:])
-    exact = np.sum(exact * angle_w[None, None, None, :, None], axis=3)
+    exact = mms.solution_td_01(
+        centers_x, centers_y, quadrature.angle_x, quadrature.angle_y, edges_t[1:]
+    )
+    exact = np.sum(exact * quadrature.angle_w[None, None, None, :, None], axis=3)
 
     atol = 5e-3
     for tt in range(steps):
@@ -380,57 +292,39 @@ def test_bdf2_02():
     # Time parameters
     T = 1.0
     steps = 20
-    dt = T / (steps)
+    dt = T / steps
     edges_t = np.linspace(0, T, steps + 1)
 
-    (
-        initial_flux,
-        xs_total,
-        xs_scatter,
-        xs_fission,
-        velocity,
-        external,
-        boundary_x,
-        boundary_y,
-        medium_map,
-        delta_x,
-        delta_y,
-        angle_x,
-        angle_y,
-        angle_w,
-        info,
-    ) = problems2d.manufactured_td_02(cells_x, angles, edges_t, dt, temporal=3)
+    mat_data, sources, geometry, quadrature, solver, time_data = (
+        problems2d.manufactured_td_02(cells_x, angles, edges_t, dt, temporal=3)
+    )
 
     edges_g, _ = ants.energy_grid(None, groups)
     vgroups = np.array([groups] * steps, dtype=np.int32)
     vangles = np.array([angles] * steps, dtype=np.int32)
 
-    # Run Hybrid Method
-    approx = vhybrid2d.bdf2(
+    # Run vHybrid Method
+    approx = vhybrid2d.time_dependent(
+        mat_data,
         vgroups,
+        sources,
+        geometry,
+        quadrature,
         vangles,
-        initial_flux,
-        CrossSections(xs_total, xs_scatter, xs_fission),
-        velocity,
-        external,
-        boundary_x,
-        boundary_y,
-        medium_map,
-        SpatialGrid(delta_x, delta_y),
-        QuadratureData(angle_x, angle_w, angle_y),
+        solver,
+        time_data,
         edges_g,
-        info,
-        info,
     )
 
-    edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
+    edges_x = np.concatenate(([0.0], np.cumsum(geometry.delta_x)))
     centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
-
-    edges_y = np.round(np.insert(np.cumsum(delta_y), 0, 0), 12)
+    edges_y = np.concatenate(([0.0], np.cumsum(geometry.delta_y)))
     centers_y = 0.5 * (edges_y[1:] + edges_y[:-1])
 
-    exact = mms.solution_td_02(centers_x, centers_y, angle_x, angle_y, edges_t[1:])
-    exact = np.sum(exact * angle_w[None, None, None, :, None], axis=3)
+    exact = mms.solution_td_02(
+        centers_x, centers_y, quadrature.angle_x, quadrature.angle_y, edges_t[1:]
+    )
+    exact = np.sum(exact * quadrature.angle_w[None, None, None, :, None], axis=3)
 
     atol = 5e-3
     for tt in range(steps):
@@ -449,59 +343,39 @@ def test_tr_bdf2_01():
     # Time parameters
     T = 1.0
     steps = 20
-    dt = T / (steps)
+    dt = T / steps
     edges_t = np.linspace(0, T, steps + 1)
 
-    (
-        initial_flux_x,
-        initial_flux_y,
-        xs_total,
-        xs_scatter,
-        xs_fission,
-        velocity,
-        external,
-        boundary_x,
-        boundary_y,
-        medium_map,
-        delta_x,
-        delta_y,
-        angle_x,
-        angle_y,
-        angle_w,
-        info,
-    ) = problems2d.manufactured_td_01(cells_x, angles, edges_t, dt, temporal=4)
+    mat_data, sources, geometry, quadrature, solver, time_data = (
+        problems2d.manufactured_td_01(cells_x, angles, edges_t, dt, temporal=4)
+    )
 
     edges_g, _ = ants.energy_grid(None, groups)
     vgroups = np.array([groups] * steps, dtype=np.int32)
     vangles = np.array([angles] * steps, dtype=np.int32)
 
-    # Run Hybrid Method
-    approx = vhybrid2d.tr_bdf2(
+    # Run vHybrid Method
+    approx = vhybrid2d.time_dependent(
+        mat_data,
         vgroups,
+        sources,
+        geometry,
+        quadrature,
         vangles,
-        initial_flux_x,
-        initial_flux_y,
-        CrossSections(xs_total, xs_scatter, xs_fission),
-        velocity,
-        external,
-        boundary_x,
-        boundary_y,
-        medium_map,
-        SpatialGrid(delta_x, delta_y),
-        QuadratureData(angle_x, angle_w, angle_y),
+        solver,
+        time_data,
         edges_g,
-        info,
-        info,
     )
 
-    edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
+    edges_x = np.concatenate(([0.0], np.cumsum(geometry.delta_x)))
     centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
-
-    edges_y = np.round(np.insert(np.cumsum(delta_y), 0, 0), 12)
+    edges_y = np.concatenate(([0.0], np.cumsum(geometry.delta_y)))
     centers_y = 0.5 * (edges_y[1:] + edges_y[:-1])
 
-    exact = mms.solution_td_01(centers_x, centers_y, angle_x, angle_y, edges_t[1:])
-    exact = np.sum(exact * angle_w[None, None, None, :, None], axis=3)
+    exact = mms.solution_td_01(
+        centers_x, centers_y, quadrature.angle_x, quadrature.angle_y, edges_t[1:]
+    )
+    exact = np.sum(exact * quadrature.angle_w[None, None, None, :, None], axis=3)
 
     atol = 5e-3
     for tt in range(steps):
@@ -519,59 +393,39 @@ def test_tr_bdf2_02():
     # Time parameters
     T = 1.0
     steps = 20
-    dt = T / (steps)
+    dt = T / steps
     edges_t = np.linspace(0, T, steps + 1)
 
-    (
-        initial_flux_x,
-        initial_flux_y,
-        xs_total,
-        xs_scatter,
-        xs_fission,
-        velocity,
-        external,
-        boundary_x,
-        boundary_y,
-        medium_map,
-        delta_x,
-        delta_y,
-        angle_x,
-        angle_y,
-        angle_w,
-        info,
-    ) = problems2d.manufactured_td_02(cells_x, angles, edges_t, dt, temporal=4)
+    mat_data, sources, geometry, quadrature, solver, time_data = (
+        problems2d.manufactured_td_02(cells_x, angles, edges_t, dt, temporal=4)
+    )
 
     edges_g, _ = ants.energy_grid(None, groups)
     vgroups = np.array([groups] * steps, dtype=np.int32)
     vangles = np.array([angles] * steps, dtype=np.int32)
 
-    # Run Hybrid Method
-    approx = vhybrid2d.tr_bdf2(
+    # Run vHybrid Method
+    approx = vhybrid2d.time_dependent(
+        mat_data,
         vgroups,
+        sources,
+        geometry,
+        quadrature,
         vangles,
-        initial_flux_x,
-        initial_flux_y,
-        CrossSections(xs_total, xs_scatter, xs_fission),
-        velocity,
-        external,
-        boundary_x,
-        boundary_y,
-        medium_map,
-        SpatialGrid(delta_x, delta_y),
-        QuadratureData(angle_x, angle_w, angle_y),
+        solver,
+        time_data,
         edges_g,
-        info,
-        info,
     )
 
-    edges_x = np.round(np.insert(np.cumsum(delta_x), 0, 0), 12)
+    edges_x = np.concatenate(([0.0], np.cumsum(geometry.delta_x)))
     centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
-
-    edges_y = np.round(np.insert(np.cumsum(delta_y), 0, 0), 12)
+    edges_y = np.concatenate(([0.0], np.cumsum(geometry.delta_y)))
     centers_y = 0.5 * (edges_y[1:] + edges_y[:-1])
 
-    exact = mms.solution_td_02(centers_x, centers_y, angle_x, angle_y, edges_t[1:])
-    exact = np.sum(exact * angle_w[None, None, None, :, None], axis=3)
+    exact = mms.solution_td_02(
+        centers_x, centers_y, quadrature.angle_x, quadrature.angle_y, edges_t[1:]
+    )
+    exact = np.sum(exact * quadrature.angle_w[None, None, None, :, None], axis=3)
 
     atol = 5e-3
     for tt in range(steps):
@@ -582,44 +436,14 @@ def test_tr_bdf2_02():
 # Multigroup Problems
 ###############################################################################
 def _example_problem_01(groups_u, groups_c, angles_u, angles_c, temporal=1):
-    cells_x = 50
-    cells_y = 50
+    cells_x = cells_y = 50
     steps = 2
     dt = 0.1
     bc_x = [0, 0]
     bc_y = [0, 0]
 
-    info_u = {
-        "cells_x": cells_x,
-        "cells_y": cells_y,
-        "angles": angles_u,
-        "groups": groups_u,
-        "materials": 2,
-        "geometry": 1,
-        "spatial": 2,
-        "bc_x": bc_x,
-        "bc_y": bc_y,
-        "steps": steps,
-        "dt": dt,
-    }
-
-    info_c = {
-        "cells_x": cells_x,
-        "cells_y": cells_y,
-        "angles": angles_c,
-        "groups": groups_c,
-        "materials": 2,
-        "geometry": 1,
-        "spatial": 2,
-        "bc_x": bc_x,
-        "bc_y": bc_y,
-        "steps": steps,
-        "dt": dt,
-    }
-
     # Spatial Layout
     radius = 4.279960
-    coords = [[(radius, radius), (0.0, radius)]]
     length_x = length_y = 2 * radius
 
     delta_x = np.repeat(length_x / cells_x, cells_x)
@@ -630,24 +454,31 @@ def _example_problem_01(groups_u, groups_c, angles_u, angles_c, temporal=1):
     velocity_u = ants.energy_velocity(groups_u, edges_g)
 
     # Angular
-    angle_xu, angle_yu, angle_wu = ants.angular_xy(info_u)
-    angle_xc, angle_yc, angle_wc = ants.angular_xy(info_c)
+    quadrature_u = ants.angular_xy(angles_u, bc_x=bc_x, bc_y=bc_y)
+    quadrature_c = ants.angular_xy(angles_c, bc_x=bc_x, bc_y=bc_y)
 
-    # Medium Map
+    # Medium Map and cross sections
     materials = np.array(["uranium-%20%", "vacuum"])
-    xs_total_u, xs_scatter_u, xs_fission_u = ants.materials(87, materials)
+    xs_total_u, xs_scatter_u, xs_fission_u = ants.materials(
+        87, materials, datatype=False
+    )
 
     weight_matrix = np.load("data/weight_matrix_2d/cylinder_two_material.npy")
     medium_map, xs_total_u, xs_scatter_u, xs_fission_u = ants.weight_spatial2d(
         weight_matrix, xs_total_u, xs_scatter_u, xs_fission_u
     )
-    info_u["materials"] = xs_total_u.shape[0]
-    info_c["materials"] = xs_total_u.shape[0]
+
+    mat_data_u = MaterialData(
+        total=xs_total_u,
+        scatter=xs_scatter_u,
+        fission=xs_fission_u,
+        velocity=velocity_u,
+    )
 
     # Boundary conditions and external source
     external = np.zeros((1, cells_x, cells_y, 1, 1))
     edges_t = np.linspace(0, dt * steps, steps + 1)
-    # Gamma half steps
+    # Gamma half steps for TR-BDF2
     if temporal == 4:
         edges_t = ants.gamma_time_steps(edges_t)
 
@@ -657,71 +488,76 @@ def _example_problem_01(groups_u, groups_c, angles_u, angles_c, temporal=1):
     boundary_x = ants.boundary2d.time_dependence_decay_01(boundary_x, edges_t, 8.0)
 
     if temporal in [2, 4]:
-        initial_flux_x = np.zeros((cells_x + 1, cells_x, angles_u**2, groups_u))
-        initial_flux_y = np.zeros((cells_x, cells_x + 1, angles_u**2, groups_u))
+        initial_flux_x = np.zeros((cells_x + 1, cells_y, angles_u**2, groups_u))
+        initial_flux_y = np.zeros((cells_x, cells_y + 1, angles_u**2, groups_u))
+        sources = SourceData(
+            initial_flux_x=initial_flux_x,
+            initial_flux_y=initial_flux_y,
+            external=external,
+            boundary_x=boundary_x,
+            boundary_y=boundary_y,
+        )
     else:
-        initial_flux_x = np.zeros((cells_x, cells_x, angles_u**2, groups_u))
-        initial_flux_y = None
+        initial_flux = np.zeros((cells_x, cells_y, angles_u**2, groups_u))
+        sources = SourceData(
+            initial_flux=initial_flux,
+            external=external,
+            boundary_x=boundary_x,
+            boundary_y=boundary_y,
+        )
 
-    return {
-        "initial_flux_x": initial_flux_x,
-        "initial_flux_y": initial_flux_y,
-        "xs_total_u": xs_total_u,
-        "xs_scatter_u": xs_scatter_u,
-        "xs_fission_u": xs_fission_u,
-        "velocity_u": velocity_u,
-        "external": external,
-        "boundary_x": boundary_x,
-        "boundary_y": boundary_y,
-        "medium_map": medium_map,
-        "delta_x": delta_x,
-        "delta_y": delta_y,
-        "angle_xu": angle_xu,
-        "angle_xc": angle_xc,
-        "angle_yu": angle_yu,
-        "angle_yc": angle_yc,
-        "angle_wu": angle_wu,
-        "angle_wc": angle_wc,
-        "info_u": info_u,
-        "info_c": info_c,
-    }
+    geometry = GeometryData(
+        medium_map=medium_map,
+        delta_x=delta_x,
+        delta_y=delta_y,
+        bc_x=bc_x,
+        bc_y=bc_y,
+        geometry=Geometry.SLAB2D,
+    )
+    solver = SolverData()
+    time_data = TimeDependentData(steps=steps, dt=dt, time_disc=temporal)
+
+    return (
+        mat_data_u,
+        sources,
+        geometry,
+        quadrature_u,
+        quadrature_c,
+        solver,
+        time_data,
+        edges_g,
+    )
 
 
-def _get_hybrid_params(groups_u, groups_c, problem_dict):
-    # Get hybrid parameters
-    energy_grid = ants.energy_grid(87, groups_u, groups_c)
-    edges_g, edges_gidx_u, edges_gidx_c = energy_grid
-    fine_idx, coarse_idx, factor = hytools.indexing(*energy_grid)
+def _get_hybrid_params(groups_u, groups_c, mat_data_u):
+    edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(87, groups_u, groups_c)
+    hybrid_data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
 
-    # Check for same number of energy groups
     if groups_u == groups_c:
-        xs_total_c = problem_dict["xs_total_u"].copy()
-        xs_scatter_c = problem_dict["xs_scatter_u"].copy()
-        xs_fission_c = problem_dict["xs_fission_u"].copy()
-        velocity_c = problem_dict["velocity_u"].copy()
+        mat_data_c = MaterialData(
+            total=mat_data_u.total,
+            scatter=mat_data_u.scatter,
+            fission=mat_data_u.fission,
+            velocity=mat_data_u.velocity,
+        )
     else:
         xs_collided = hytools.coarsen_materials(
-            problem_dict["xs_total_u"],
-            problem_dict["xs_scatter_u"],
-            problem_dict["xs_fission_u"],
+            mat_data_u.total,
+            mat_data_u.scatter,
+            mat_data_u.fission,
             edges_g[edges_gidx_u],
             edges_gidx_c,
         )
         xs_total_c, xs_scatter_c, xs_fission_c = xs_collided
-        velocity_c = hytools.coarsen_velocity(problem_dict["velocity_u"], edges_gidx_c)
+        velocity_c = hytools.coarsen_velocity(mat_data_u.velocity, edges_gidx_c)
+        mat_data_c = MaterialData(
+            total=xs_total_c,
+            scatter=xs_scatter_c,
+            fission=xs_fission_c,
+            velocity=velocity_c,
+        )
 
-    return {
-        "energy_grid": energy_grid,
-        "edges_g": edges_g,
-        "edges_gidx_c": edges_gidx_c,
-        "fine_idx": fine_idx,
-        "coarse_idx": coarse_idx,
-        "factor": factor,
-        "xs_total_c": xs_total_c,
-        "xs_scatter_c": xs_scatter_c,
-        "xs_fission_c": xs_fission_c,
-        "velocity_c": velocity_c,
-    }
+    return mat_data_c, hybrid_data
 
 
 @pytest.mark.slab2d
@@ -730,77 +566,46 @@ def _get_hybrid_params(groups_u, groups_c, problem_dict):
 @pytest.mark.multigroup2d
 @pytest.mark.parametrize(("angles_c", "groups_c"), [(4, 87), (2, 87), (4, 43), (2, 43)])
 def test_mg_01_bdf1(angles_c, groups_c):
-    temporal = 1
     angles_u = 4
     groups_u = 87
 
-    problem_dict = _example_problem_01(groups_u, groups_c, angles_u, angles_c, temporal)
-    hybrid_dict = _get_hybrid_params(groups_u, groups_c, problem_dict)
-    steps = problem_dict["info_u"]["steps"]
+    mat_data_u, sources, geometry, quad_u, quad_c, solver, time_data, edges_g = (
+        _example_problem_01(groups_u, groups_c, angles_u, angles_c, temporal=1)
+    )
+    mat_data_c, hybrid_data = _get_hybrid_params(groups_u, groups_c, mat_data_u)
 
     # Run Hybrid Method
-    hy_flux = hybrid2d.backward_euler(
-        problem_dict["initial_flux_x"],
-        CrossSections(
-            problem_dict["xs_total_u"],
-            problem_dict["xs_scatter_u"],
-            problem_dict["xs_fission_u"],
-        ),
-        CrossSections(
-            hybrid_dict["xs_total_c"],
-            hybrid_dict["xs_scatter_c"],
-            hybrid_dict["xs_fission_c"],
-        ),
-        problem_dict["velocity_u"],
-        hybrid_dict["velocity_c"],
-        problem_dict["external"],
-        problem_dict["boundary_x"],
-        problem_dict["boundary_y"],
-        problem_dict["medium_map"],
-        SpatialGrid(problem_dict["delta_x"], problem_dict["delta_y"]),
-        QuadratureData(
-            problem_dict["angle_xu"], problem_dict["angle_wu"], problem_dict["angle_yu"]
-        ),
-        QuadratureData(
-            problem_dict["angle_xc"], problem_dict["angle_wc"], problem_dict["angle_yc"]
-        ),
-        HybridMapping(
-            hybrid_dict["fine_idx"], hybrid_dict["coarse_idx"], hybrid_dict["factor"]
-        ),
-        problem_dict["info_u"],
-        problem_dict["info_c"],
+    hy_flux = hybrid2d.time_dependent(
+        mat_data_u,
+        mat_data_c,
+        sources,
+        geometry,
+        quad_u,
+        quad_c,
+        solver,
+        time_data,
+        hybrid_data,
     )
 
     # Variable groups and angles
-    vgroups = np.array([groups_c] * steps, dtype=np.int32)
-    vangles = np.array([angles_c] * steps, dtype=np.int32)
+    vgroups = np.array([groups_c] * time_data.steps, dtype=np.int32)
+    vangles = np.array([angles_c] * time_data.steps, dtype=np.int32)
 
     # Run vHybrid Method
-    vhy_flux = vhybrid2d.backward_euler(
+    vhy_flux = vhybrid2d.time_dependent(
+        mat_data_u,
         vgroups,
+        sources,
+        geometry,
+        quad_u,
         vangles,
-        problem_dict["initial_flux_x"],
-        CrossSections(
-            problem_dict["xs_total_u"],
-            problem_dict["xs_scatter_u"],
-            problem_dict["xs_fission_u"],
-        ),
-        problem_dict["velocity_u"],
-        problem_dict["external"],
-        problem_dict["boundary_x"],
-        problem_dict["boundary_y"],
-        problem_dict["medium_map"],
-        SpatialGrid(problem_dict["delta_x"], problem_dict["delta_y"]),
-        QuadratureData(
-            problem_dict["angle_xu"], problem_dict["angle_wu"], problem_dict["angle_yu"]
-        ),
-        hybrid_dict["edges_g"],
-        problem_dict["info_u"],
-        problem_dict["info_c"],
+        solver,
+        time_data,
+        edges_g,
     )
 
     # Compare each time step
-    for tt in range(steps):
+    for tt in range(time_data.steps):
         assert np.isclose(hy_flux[tt], vhy_flux[tt]).all()
 
 
@@ -810,79 +615,46 @@ def test_mg_01_bdf1(angles_c, groups_c):
 @pytest.mark.multigroup2d
 @pytest.mark.parametrize(("angles_c", "groups_c"), [(4, 87), (2, 87), (4, 43), (2, 43)])
 def test_mg_01_cn(angles_c, groups_c):
-    temporal = 2
     angles_u = 4
     groups_u = 87
 
-    problem_dict = _example_problem_01(groups_u, groups_c, angles_u, angles_c, temporal)
-    hybrid_dict = _get_hybrid_params(groups_u, groups_c, problem_dict)
-    steps = problem_dict["info_u"]["steps"]
+    mat_data_u, sources, geometry, quad_u, quad_c, solver, time_data, edges_g = (
+        _example_problem_01(groups_u, groups_c, angles_u, angles_c, temporal=2)
+    )
+    mat_data_c, hybrid_data = _get_hybrid_params(groups_u, groups_c, mat_data_u)
 
     # Run Hybrid Method
-    hy_flux = hybrid2d.crank_nicolson(
-        problem_dict["initial_flux_x"],
-        problem_dict["initial_flux_y"],
-        CrossSections(
-            problem_dict["xs_total_u"],
-            problem_dict["xs_scatter_u"],
-            problem_dict["xs_fission_u"],
-        ),
-        CrossSections(
-            hybrid_dict["xs_total_c"],
-            hybrid_dict["xs_scatter_c"],
-            hybrid_dict["xs_fission_c"],
-        ),
-        problem_dict["velocity_u"],
-        hybrid_dict["velocity_c"],
-        problem_dict["external"],
-        problem_dict["boundary_x"],
-        problem_dict["boundary_y"],
-        problem_dict["medium_map"],
-        SpatialGrid(problem_dict["delta_x"], problem_dict["delta_y"]),
-        QuadratureData(
-            problem_dict["angle_xu"], problem_dict["angle_wu"], problem_dict["angle_yu"]
-        ),
-        QuadratureData(
-            problem_dict["angle_xc"], problem_dict["angle_wc"], problem_dict["angle_yc"]
-        ),
-        HybridMapping(
-            hybrid_dict["fine_idx"], hybrid_dict["coarse_idx"], hybrid_dict["factor"]
-        ),
-        problem_dict["info_u"],
-        problem_dict["info_c"],
+    hy_flux = hybrid2d.time_dependent(
+        mat_data_u,
+        mat_data_c,
+        sources,
+        geometry,
+        quad_u,
+        quad_c,
+        solver,
+        time_data,
+        hybrid_data,
     )
 
     # Variable groups and angles
-    vgroups = np.array([groups_c] * steps, dtype=np.int32)
-    vangles = np.array([angles_c] * steps, dtype=np.int32)
+    vgroups = np.array([groups_c] * time_data.steps, dtype=np.int32)
+    vangles = np.array([angles_c] * time_data.steps, dtype=np.int32)
 
     # Run vHybrid Method
-    vhy_flux = vhybrid2d.crank_nicolson(
+    vhy_flux = vhybrid2d.time_dependent(
+        mat_data_u,
         vgroups,
+        sources,
+        geometry,
+        quad_u,
         vangles,
-        problem_dict["initial_flux_x"],
-        problem_dict["initial_flux_y"],
-        CrossSections(
-            problem_dict["xs_total_u"],
-            problem_dict["xs_scatter_u"],
-            problem_dict["xs_fission_u"],
-        ),
-        problem_dict["velocity_u"],
-        problem_dict["external"],
-        problem_dict["boundary_x"],
-        problem_dict["boundary_y"],
-        problem_dict["medium_map"],
-        SpatialGrid(problem_dict["delta_x"], problem_dict["delta_y"]),
-        QuadratureData(
-            problem_dict["angle_xu"], problem_dict["angle_wu"], problem_dict["angle_yu"]
-        ),
-        hybrid_dict["edges_g"],
-        problem_dict["info_u"],
-        problem_dict["info_c"],
+        solver,
+        time_data,
+        edges_g,
     )
 
     # Compare each time step
-    for tt in range(steps):
+    for tt in range(time_data.steps):
         assert np.isclose(hy_flux[tt], vhy_flux[tt]).all()
 
 
@@ -892,77 +664,46 @@ def test_mg_01_cn(angles_c, groups_c):
 @pytest.mark.multigroup2d
 @pytest.mark.parametrize(("angles_c", "groups_c"), [(4, 87), (2, 87), (4, 43), (2, 43)])
 def test_mg_01_bdf2(angles_c, groups_c):
-    temporal = 3
     angles_u = 4
     groups_u = 87
 
-    problem_dict = _example_problem_01(groups_u, groups_c, angles_u, angles_c, temporal)
-    hybrid_dict = _get_hybrid_params(groups_u, groups_c, problem_dict)
-    steps = problem_dict["info_u"]["steps"]
+    mat_data_u, sources, geometry, quad_u, quad_c, solver, time_data, edges_g = (
+        _example_problem_01(groups_u, groups_c, angles_u, angles_c, temporal=3)
+    )
+    mat_data_c, hybrid_data = _get_hybrid_params(groups_u, groups_c, mat_data_u)
 
     # Run Hybrid Method
-    hy_flux = hybrid2d.bdf2(
-        problem_dict["initial_flux_x"],
-        CrossSections(
-            problem_dict["xs_total_u"],
-            problem_dict["xs_scatter_u"],
-            problem_dict["xs_fission_u"],
-        ),
-        CrossSections(
-            hybrid_dict["xs_total_c"],
-            hybrid_dict["xs_scatter_c"],
-            hybrid_dict["xs_fission_c"],
-        ),
-        problem_dict["velocity_u"],
-        hybrid_dict["velocity_c"],
-        problem_dict["external"],
-        problem_dict["boundary_x"],
-        problem_dict["boundary_y"],
-        problem_dict["medium_map"],
-        SpatialGrid(problem_dict["delta_x"], problem_dict["delta_y"]),
-        QuadratureData(
-            problem_dict["angle_xu"], problem_dict["angle_wu"], problem_dict["angle_yu"]
-        ),
-        QuadratureData(
-            problem_dict["angle_xc"], problem_dict["angle_wc"], problem_dict["angle_yc"]
-        ),
-        HybridMapping(
-            hybrid_dict["fine_idx"], hybrid_dict["coarse_idx"], hybrid_dict["factor"]
-        ),
-        problem_dict["info_u"],
-        problem_dict["info_c"],
+    hy_flux = hybrid2d.time_dependent(
+        mat_data_u,
+        mat_data_c,
+        sources,
+        geometry,
+        quad_u,
+        quad_c,
+        solver,
+        time_data,
+        hybrid_data,
     )
 
     # Variable groups and angles
-    vgroups = np.array([groups_c] * steps, dtype=np.int32)
-    vangles = np.array([angles_c] * steps, dtype=np.int32)
+    vgroups = np.array([groups_c] * time_data.steps, dtype=np.int32)
+    vangles = np.array([angles_c] * time_data.steps, dtype=np.int32)
 
     # Run vHybrid Method
-    vhy_flux = vhybrid2d.bdf2(
+    vhy_flux = vhybrid2d.time_dependent(
+        mat_data_u,
         vgroups,
+        sources,
+        geometry,
+        quad_u,
         vangles,
-        problem_dict["initial_flux_x"],
-        CrossSections(
-            problem_dict["xs_total_u"],
-            problem_dict["xs_scatter_u"],
-            problem_dict["xs_fission_u"],
-        ),
-        problem_dict["velocity_u"],
-        problem_dict["external"],
-        problem_dict["boundary_x"],
-        problem_dict["boundary_y"],
-        problem_dict["medium_map"],
-        SpatialGrid(problem_dict["delta_x"], problem_dict["delta_y"]),
-        QuadratureData(
-            problem_dict["angle_xu"], problem_dict["angle_wu"], problem_dict["angle_yu"]
-        ),
-        hybrid_dict["edges_g"],
-        problem_dict["info_u"],
-        problem_dict["info_c"],
+        solver,
+        time_data,
+        edges_g,
     )
 
     # Compare each time step
-    for tt in range(steps):
+    for tt in range(time_data.steps):
         assert np.isclose(hy_flux[tt], vhy_flux[tt]).all()
 
 
@@ -972,87 +713,44 @@ def test_mg_01_bdf2(angles_c, groups_c):
 @pytest.mark.multigroup2d
 @pytest.mark.parametrize(("angles_c", "groups_c"), [(4, 87), (2, 87), (4, 43), (2, 43)])
 def test_mg_01_tr_bdf2(angles_c, groups_c):
-    temporal = 4
     angles_u = 2
     groups_u = 87
 
-    problem_dict = _example_problem_01(groups_u, groups_c, angles_u, angles_c, temporal)
-    hybrid_dict = _get_hybrid_params(groups_u, groups_c, problem_dict)
-    steps = problem_dict["info_u"]["steps"]
+    mat_data_u, sources, geometry, quad_u, quad_c, solver, time_data, edges_g = (
+        _example_problem_01(groups_u, groups_c, angles_u, angles_c, temporal=4)
+    )
+    mat_data_c, hybrid_data = _get_hybrid_params(groups_u, groups_c, mat_data_u)
 
     # Run Hybrid Method
-    hy_flux = hybrid2d.tr_bdf2(
-        problem_dict["initial_flux_x"],
-        problem_dict["initial_flux_y"],
-        CrossSections(
-            problem_dict["xs_total_u"],
-            problem_dict["xs_scatter_u"],
-            problem_dict["xs_fission_u"],
-        ),
-        CrossSections(
-            hybrid_dict["xs_total_c"],
-            hybrid_dict["xs_scatter_c"],
-            hybrid_dict["xs_fission_c"],
-        ),
-        problem_dict["velocity_u"],
-        hybrid_dict["velocity_c"],
-        problem_dict["external"],
-        problem_dict["boundary_x"],
-        problem_dict["boundary_y"],
-        problem_dict["medium_map"],
-        SpatialGrid(problem_dict["delta_x"], problem_dict["delta_y"]),
-        QuadratureData(
-            problem_dict["angle_xu"], problem_dict["angle_wu"], problem_dict["angle_yu"]
-        ),
-        QuadratureData(
-            problem_dict["angle_xc"], problem_dict["angle_wc"], problem_dict["angle_yc"]
-        ),
-        HybridMapping(
-            hybrid_dict["fine_idx"], hybrid_dict["coarse_idx"], hybrid_dict["factor"]
-        ),
-        problem_dict["info_u"],
-        problem_dict["info_c"],
+    hy_flux = hybrid2d.time_dependent(
+        mat_data_u,
+        mat_data_c,
+        sources,
+        geometry,
+        quad_u,
+        quad_c,
+        solver,
+        time_data,
+        hybrid_data,
     )
 
     # Variable groups and angles
-    vgroups = np.array([groups_c] * steps, dtype=np.int32)
-    vangles = np.array([angles_c] * steps, dtype=np.int32)
+    vgroups = np.array([groups_c] * time_data.steps, dtype=np.int32)
+    vangles = np.array([angles_c] * time_data.steps, dtype=np.int32)
 
     # Run vHybrid Method
-    vhy_flux = vhybrid2d.tr_bdf2(
+    vhy_flux = vhybrid2d.time_dependent(
+        mat_data_u,
         vgroups,
+        sources,
+        geometry,
+        quad_u,
         vangles,
-        problem_dict["initial_flux_x"],
-        problem_dict["initial_flux_y"],
-        CrossSections(
-            problem_dict["xs_total_u"],
-            problem_dict["xs_scatter_u"],
-            problem_dict["xs_fission_u"],
-        ),
-        problem_dict["velocity_u"],
-        problem_dict["external"],
-        problem_dict["boundary_x"],
-        problem_dict["boundary_y"],
-        problem_dict["medium_map"],
-        SpatialGrid(problem_dict["delta_x"], problem_dict["delta_y"]),
-        QuadratureData(
-            problem_dict["angle_xu"], problem_dict["angle_wu"], problem_dict["angle_yu"]
-        ),
-        hybrid_dict["edges_g"],
-        problem_dict["info_u"],
-        problem_dict["info_c"],
+        solver,
+        time_data,
+        edges_g,
     )
 
     # Compare each time step
-    for tt in range(steps):
-        # print(
-        #     tt,
-        #     np.sum(hy_flux[tt]),
-        #     np.sum(vhy_flux[tt]),
-        #     np.sum(np.fabs(hy_flux[tt] - vhy_flux[tt])),
-        # )
+    for tt in range(time_data.steps):
         assert np.isclose(hy_flux[tt], vhy_flux[tt]).all()
-
-
-if __name__ == "__main__":
-    test_mg_01_tr_bdf2(2, 87)
