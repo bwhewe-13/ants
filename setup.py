@@ -8,6 +8,7 @@
 ########################################################################
 
 import platform
+
 import numpy as np
 from Cython.Build import cythonize
 from Cython.Compiler import Options
@@ -17,6 +18,9 @@ Options.warning_errors = True
 
 if platform.system() == "Darwin":
     ext = Extension("ants/*", sources=["ants/*.pyx"], include_dirs=[np.get_include()])
+    ext_utils = Extension(
+        "ants/utils/*", sources=["ants/utils/*.pyx"], include_dirs=[np.get_include()]
+    )
 else:
     ext = Extension(
         "ants/*",
@@ -25,5 +29,12 @@ else:
         extra_link_args=["-fopenmp"],
         include_dirs=[np.get_include()],
     )
+    ext_utils = Extension(
+        "ants/utils/*",
+        sources=["ants/utils/*.pyx"],
+        extra_compile_args=["-fopenmp"],
+        extra_link_args=["-fopenmp"],
+        include_dirs=[np.get_include()],
+    )
 
-setup(ext_modules=cythonize(ext, language_level="3"))
+setup(ext_modules=cythonize([ext, ext_utils], language_level="3"))

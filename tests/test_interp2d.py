@@ -11,10 +11,11 @@
 #
 ########################################################################
 
-import pytest
 import numpy as np
+import pytest
 
 from ants.utils import interp2d
+
 
 def _function_01(x, y, mult=1):
     # On the interval x \in [0, 2], y \in [0, 2]
@@ -33,9 +34,9 @@ def _function_01(x, y, mult=1):
         d3_dxdy2 = 24 * x * y
         d4_dx2dy2 = 24 * y
         return psi, d3_dx2dy, d3_dxdy2, d4_dx2dy2
-    int_psi = 88 / 3.
-    int_dxpsi = 32.
-    int_dypsi = 128 / 3.
+    int_psi = 88 / 3.0
+    int_dxpsi = 32.0
+    int_dypsi = 128 / 3.0
     return psi, int_psi, int_dxpsi, int_dypsi
 
 
@@ -57,36 +58,37 @@ def _function_02(x, y, mult=1):
         d4_dx2dy2 = np.sin(x) * np.cos(y)
         return psi, d3_dx2dy, d3_dxdy2, d4_dx2dy2
     int_psi = 2 * np.pi**2
-    int_dxpsi = 0.
-    int_dypsi = -4.
+    int_dxpsi = 0.0
+    int_dypsi = -4.0
     return psi, int_psi, int_dxpsi, int_dypsi
 
 
 def _error(approx, reference):
     assert approx.shape == reference.shape, "Not the same array shape"
     cells_x = approx.shape[0]
-    return cells_x**(-0.5) * np.linalg.norm(approx - reference)
+    return cells_x ** (-0.5) * np.linalg.norm(approx - reference)
 
 
 def _wynn_epsilon(lst, rank):
-    """ Perform Wynn Epsilon Convergence Algorithm
+    """Perform Wynn Epsilon Convergence Algorithm
     Arguments:
         lst: list of values for convergence
         rank: rank of system
     Returns:
-        2D Array where diagonal is convergence """
+        2D Array where diagonal is convergence"""
     N = 2 * rank + 1
     error = np.zeros((N + 1, N + 1))
     for ii in range(1, N + 1):
         error[ii, 1] = lst[ii - 1]
     for ii in range(3, N + 2):
         for jj in range(3, ii + 1):
-            if (error[ii-1,jj-2] - error[ii-2,jj-2]) == 0.0:
-                error[ii-1,jj-1] = error[ii-2,jj-3]
+            if (error[ii - 1, jj - 2] - error[ii - 2, jj - 2]) == 0.0:
+                error[ii - 1, jj - 1] = error[ii - 2, jj - 3]
             else:
-                error[ii-1,jj-1] = error[ii-2,jj-3] \
-                            + 1 / (error[ii-1,jj-2] - error[ii-2,jj-2])
-    return abs(error[-1,-1])
+                error[ii - 1, jj - 1] = error[ii - 2, jj - 3] + 1 / (
+                    error[ii - 1, jj - 2] - error[ii - 2, jj - 2]
+                )
+    return abs(error[-1, -1])
 
 
 @pytest.mark.smoke
@@ -135,8 +137,9 @@ def test_second_derivative(function):
         mesh_x, mesh_y = np.meshgrid(edges_x, edges_y, indexing="ij")
         # Find analytical solution
         psi, d2_dx2, d2_dy2, d2_dxdy = function(mesh_x, mesh_y, mult=2)
-        approx_d2_dx2, approx_d2_dxdy, approx_d2_dy2 \
-                    = interp2d.second_derivative(psi, edges_x, edges_y)
+        approx_d2_dx2, approx_d2_dxdy, approx_d2_dy2 = interp2d.second_derivative(
+            psi, edges_x, edges_y
+        )
         errors_d2_dx2[cc] = _error(approx_d2_dx2, d2_dx2)
         errors_d2_dy2[cc] = _error(approx_d2_dy2, d2_dy2)
         errors_d2_dxdy[cc] = _error(approx_d2_dxdy, d2_dxdy)
@@ -168,8 +171,9 @@ def test_higher_order_derivative(function):
         mesh_x, mesh_y = np.meshgrid(edges_x, edges_y, indexing="ij")
         # Find analytical solution
         psi, d3_dx2dy, d3_dxdy2, d4_dx2dy2 = function(mesh_x, mesh_y, mult=3)
-        approx_d3_dx2dy, approx_d3_dxdy2, approx_d4_dx2dy2 \
-                = interp2d.higher_order_derivative(psi, edges_x, edges_y)
+        approx_d3_dx2dy, approx_d3_dxdy2, approx_d4_dx2dy2 = (
+            interp2d.higher_order_derivative(psi, edges_x, edges_y)
+        )
         errors_d3_dx2dy[cc] = _error(approx_d3_dx2dy, d3_dx2dy)
         errors_d3_dxdy2[cc] = _error(approx_d3_dxdy2, d3_dxdy2)
         errors_d4_dx2dy2[cc] = _error(approx_d4_dx2dy2, d4_dx2dy2)
@@ -182,8 +186,10 @@ def test_higher_order_derivative(function):
 
 
 @pytest.mark.math
-@pytest.mark.parametrize(("function", "edges"), [(_function_01, 0), \
-            (_function_01, 1), (_function_02, 0), (_function_02, 1)])
+@pytest.mark.parametrize(
+    ("function", "edges"),
+    [(_function_01, 0), (_function_01, 1), (_function_02, 0), (_function_02, 1)],
+)
 def test_cubic_hermite_integrate(function, edges):
     # Set interval
     bound = 2 if function == _function_01 else np.pi
@@ -203,11 +209,13 @@ def test_cubic_hermite_integrate(function, edges):
         # Get splines
         splines = interp2d.CubicHermite(psi, edges_x, edges_y)
         if edges:
-            approx_int_psi, approx_int_dxpsi, approx_int_dypsi \
-                    = splines.integrate_edges()
+            approx_int_psi, approx_int_dxpsi, approx_int_dypsi = (
+                splines.integrate_edges()
+            )
         else:
-            approx_int_psi, approx_int_dxpsi, approx_int_dypsi \
-                    = splines.integrate_centers(edges_x, edges_y)
+            approx_int_psi, approx_int_dxpsi, approx_int_dypsi = (
+                splines.integrate_centers(edges_x, edges_y)
+            )
         # Get absolute error
         errors_int_psi[cc] = abs(np.sum(approx_int_psi) - int_psi)
         errors_int_dxpsi[cc] = abs(np.sum(approx_int_dxpsi) - int_dxpsi)
@@ -222,8 +230,10 @@ def test_cubic_hermite_integrate(function, edges):
 
 
 @pytest.mark.math
-@pytest.mark.parametrize(("function", "edges"), [(_function_01, 0), \
-            (_function_01, 1), (_function_02, 0), (_function_02, 1)])
+@pytest.mark.parametrize(
+    ("function", "edges"),
+    [(_function_01, 0), (_function_01, 1), (_function_02, 0), (_function_02, 1)],
+)
 def test_quintic_hermite_integrate(function, edges):
     # Set interval
     bound = 2 if function == _function_01 else np.pi
@@ -243,11 +253,13 @@ def test_quintic_hermite_integrate(function, edges):
         # Get splines
         splines = interp2d.QuinticHermite(psi, edges_x, edges_y)
         if edges:
-            approx_int_psi, approx_int_dxpsi, approx_int_dypsi \
-                    = splines.integrate_edges()
+            approx_int_psi, approx_int_dxpsi, approx_int_dypsi = (
+                splines.integrate_edges()
+            )
         else:
-            approx_int_psi, approx_int_dxpsi, approx_int_dypsi \
-                    = splines.integrate_centers(edges_x, edges_y)
+            approx_int_psi, approx_int_dxpsi, approx_int_dypsi = (
+                splines.integrate_centers(edges_x, edges_y)
+            )
         # Get absolute error
         errors_int_psi[cc] = abs(np.sum(approx_int_psi) - int_psi)
         errors_int_dxpsi[cc] = abs(np.sum(approx_int_dxpsi) - int_dxpsi)
