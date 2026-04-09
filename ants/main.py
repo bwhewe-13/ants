@@ -17,7 +17,7 @@ import numpy as np
 from scipy.special import erf
 
 from ants.constants import EV_TO_JOULES, LIGHT_SPEED, MASS_NEUTRON
-from ants.datatypes import ProblemParameters, QuadratureData
+from ants.datatypes import QuadratureData
 from ants.utils.hybrid import energy_coarse_index
 
 DATA_PATH = str(files("ants").joinpath("sources/energy/"))
@@ -63,18 +63,23 @@ def _angular_x(angles, bc_x):
     return angular_x(angles, bc_x, False)
 
 
-def angular_xy(info):
+def angular_xy(angles, bc_x=[0, 0], bc_y=[0, 0], datatype=True):
     """Compute 2D product quadrature angles and weights for slab geometry.
 
-    Builds a Legendre × Chebyshev product quadrature set, keeps only the
+    Builds a Legendre * Chebyshev product quadrature set, keeps only the
     N² directions with positive polar cosine (upper hemisphere), and
     reorders them to satisfy reflective boundary conditions.
 
     Parameters
     ----------
-    info : int or dict
-        Number of angles per dimension (int) or problem info dict with keys
-        ``"angles"``, ``"bc_x"``, and ``"bc_y"``.
+    angles : int
+        Number of angles per dimension.
+    bc_x : list of two ints, optional
+        Boundary conditions in the x-direction (default is [0, 0]).
+    bc_y : list of two ints, optional
+        Boundary conditions in the y-direction (default is [0, 0]).
+    datatype : bool, optional
+        If True, return a QuadratureData object. If False, return raw arrays.
 
     Returns
     -------
@@ -85,14 +90,6 @@ def angular_xy(info):
     angle_w : ndarray, shape (angles**2,)
         Normalized quadrature weights summing to 1.
     """
-    if isinstance(info, int):
-        angles = info
-        bc_x = [0, 0]
-        bc_y = [0, 0]
-    else:
-        angles = info.angles
-        bc_x = info.bc_x
-        bc_y = info.bc_y
     # Get angles and weights from product quadrature
     angle_x, angle_y, angle_z, angle_w = _product_quadrature(angles)
     # Take only positive angle_z values
@@ -100,12 +97,17 @@ def angular_xy(info):
     angle_y = angle_y[angle_z > 0].copy()
     angle_w = angle_w[angle_z > 0] / np.sum(angle_w[angle_z > 0])
     # Order the angles for boundary conditions and return angle_x, angle_y, angle_w
-    return _ordering_angles_xy(angle_x, angle_y, angle_w, bc_x, bc_y)
+    angle_x, angle_y, angle_w = _ordering_angles_xy(
+        angle_x, angle_y, angle_w, bc_x, bc_y
+    )
+    if datatype:
+        return QuadratureData(angle_x=angle_x, angle_y=angle_y, angle_w=angle_w)
+    return angle_x, angle_y, angle_w
 
 
 # Called from cython
 def _angular_xy(angles, bc_x, bc_y):
-    return angular_xy(ProblemParameters(angles=angles, bc_x=bc_x, bc_y=bc_y))
+    return angular_xy(angles, bc_x, bc_y, False)
 
 
 def artificial_scatter_matrix(angle_x, angle_y, angle_w, sigma_as, beta):

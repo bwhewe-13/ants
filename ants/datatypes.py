@@ -163,13 +163,21 @@ class SourceData:
         Boundary source in y direction for 2D problems, shape
         ``(materials, groups)``.
     initial_flux : numpy.ndarray, optional
-        Initial flux for time-dependent problems, shape ``(materials, groups)``.
+        Initial flux for time-dependent problems, shape ``(cells_x, cells_y, groups)``.
+    initial_flux_x : numpy.ndarray, optional
+        Initial flux at x vertical faces for time-dependent problems, shape
+        ``(cells_x + 1, cells_y, groups)``.
+    initial_flux_y : numpy.ndarray, optional
+        Initial flux at y horizontal faces for time-dependent problems, shape
+        ``(cells_x, cells_y + 1, groups)``.
     """
 
     external: np.ndarray
     boundary_x: np.ndarray
     boundary_y: Optional[np.ndarray] = None
     initial_flux: Optional[np.ndarray] = None
+    initial_flux_x: Optional[np.ndarray] = None
+    initial_flux_y: Optional[np.ndarray] = None
 
 
 @dataclass
@@ -426,11 +434,16 @@ def create_params(materials, quadrature, geometry, solver, time=None):
     """
 
     time_data = time if time is not None else TimeDependentData()
+    angles = (
+        quadrature.angle_x.size
+        if quadrature.angle_y is None
+        else int(np.sqrt(quadrature.angle_x.size))
+    )
 
     return ProblemParameters(
         cells_x=geometry.delta_x.size,
         cells_y=geometry.delta_y.size if geometry.delta_y is not None else 1,
-        angles=quadrature.angle_x.size,
+        angles=angles,
         groups=materials.total.shape[1],
         materials=materials.total.shape[0],
         geometry=geometry.geometry,
