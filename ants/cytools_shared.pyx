@@ -20,7 +20,7 @@
 # cython: profile=True
 # distutils: language = c++
 
-from libc.math cimport sqrt, pow
+from libc.math cimport pow, sqrt
 
 from ants.parameters cimport params
 

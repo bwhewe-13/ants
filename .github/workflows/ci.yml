@@ -53,6 +53,9 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install ".[dev]"
 
+      - name: Build Cython extensions in place
+        run: python setup.py build_ext --inplace
+
       - name: Run tests with coverage
         run: pytest tests --cov=ants --cov-report=term-missing --cov-report=xml
 

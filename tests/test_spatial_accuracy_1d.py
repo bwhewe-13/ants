@@ -13,8 +13,8 @@
 
 import numpy as np
 import pytest
-from ants.fixed1d import fixed_source
 
+from ants.fixed1d import fixed_source
 from ants.utils import manufactured_1d as mms
 from ants.utils import pytools as tools
 from tests import problems1d as prob

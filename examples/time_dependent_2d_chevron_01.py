@@ -1,11 +1,12 @@
 # Running 2d multigroup problem - chevron
 
-import numpy as np
 import argparse
+
+import numpy as np
 from memory_profiler import memory_usage
 
 import ants
-from ants import timed2d, critical2d
+from ants import timed2d
 from ants.utils import hybrid as hytools
 
 parser = argparse.ArgumentParser()
@@ -31,15 +32,15 @@ dt = np.round(T / steps, 10)
 edges_t = np.round(np.linspace(0, steps * dt, steps + 1), 10)
 
 
-length_x = 9.
-length_y = 9.
+length_x = 9.0
+length_y = 9.0
 
 delta_x = np.repeat(length_x / cells_x, cells_x)
-edges_x = np.round(np.linspace(0, length_x, cells_x+1), 10)
+edges_x = np.round(np.linspace(0, length_x, cells_x + 1), 10)
 centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
 
 delta_y = np.repeat(length_y / cells_y, cells_y)
-edges_y = np.round(np.linspace(0, length_y, cells_y+1), 10)
+edges_y = np.round(np.linspace(0, length_y, cells_y + 1), 10)
 centers_y = 0.5 * (edges_y[1:] + edges_y[:-1])
 
 # Boundary conditions
@@ -99,18 +100,18 @@ medium_map, xs_total, xs_scatter, xs_fission = data
 
 
 info = {
-            "cells_x": cells_x,
-            "cells_y": cells_y,
-            "angles": angles, 
-            "groups": groups, 
-            "materials": xs_total.shape[0],
-            "geometry": 1, 
-            "spatial": 2, 
-            "bc_x": bc_x,
-            "bc_y": bc_y, 
-            "steps": steps,
-            "dt": dt
-        }
+    "cells_x": cells_x,
+    "cells_y": cells_y,
+    "angles": angles,
+    "groups": groups,
+    "materials": xs_total.shape[0],
+    "geometry": 1,
+    "spatial": 2,
+    "bc_x": bc_x,
+    "bc_y": bc_y,
+    "steps": steps,
+    "dt": dt,
+}
 
 
 angle_x, angle_y, angle_w = ants.angular_xy(info)
@@ -119,20 +120,20 @@ angle_x, angle_y, angle_w = ants.angular_xy(info)
 external = np.zeros((1, cells_x, cells_y, 1, 1))
 
 boundary_x, boundary_y = ants.boundary2d.deuterium_tritium(-1, 0, edges_g)
-boundary_x = boundary_x[None,...].copy()
+boundary_x = boundary_x[None, ...].copy()
 
 gamma_steps = ants.gamma_time_steps(edges_t)
 boundary_y = ants.boundary2d.time_dependence_decay_03(boundary_y, gamma_steps)
 
 
 if edges_g.shape[0] != (groups + 1):
-    xs_total, xs_scatter, xs_fission = hytools.coarsen_materials(xs_total, \
-                            xs_scatter, xs_fission, edges_g, edges_gidx)
+    xs_total, xs_scatter, xs_fission = hytools.coarsen_materials(
+        xs_total, xs_scatter, xs_fission, edges_g, edges_gidx
+    )
     velocity = hytools.coarsen_velocity(velocity, edges_gidx)
     external = hytools.coarsen_external(external, edges_g, edges_gidx)
     boundary_x = hytools.coarsen_external(boundary_x, edges_g, edges_gidx)
     boundary_y = hytools.coarsen_external(boundary_y, edges_g, edges_gidx)
-
 
 
 initial_x = np.zeros((cells_x + 1, cells_y, angles**2, groups))
@@ -140,17 +141,33 @@ initial_y = np.zeros((cells_x, cells_y + 1, angles**2, groups))
 
 
 # data = {"xs_total": xs_total, "xs_scatter": xs_scatter, "xs_fission": xs_fission,
-#         "velocity": velocity, "external": external, "boundary_x": boundary_x, 
+#         "velocity": velocity, "external": external, "boundary_x": boundary_x,
 #         "boundary_y": boundary_y, "medium_map": medium_map, "edges_x": edges_x,
 #         "edges_y": edges_y, "angle_x": angle_x, "angle_y": angle_y,
 #         "angle_w": angle_w, "info": info, "edges_g": edges_g[edges_gidx]}
 # np.savez(f"data_g{fgroups}_n{fangles}.npz", **data)
 
+
 def run():
-    _ = timed2d.tr_bdf2(initial_x, initial_y, xs_total, xs_scatter, \
-                        xs_fission, velocity, external, boundary_x, \
-                        boundary_y, medium_map, delta_x, delta_y, \
-                        angle_x, angle_y, angle_w, info)
+    _ = timed2d.tr_bdf2(
+        initial_x,
+        initial_y,
+        xs_total,
+        xs_scatter,
+        xs_fission,
+        velocity,
+        external,
+        boundary_x,
+        boundary_y,
+        medium_map,
+        delta_x,
+        delta_y,
+        angle_x,
+        angle_y,
+        angle_w,
+        info,
+    )
+
 
 # np.save(f"flux_mgsi_g{fgroups}_n{fangles}", flux)
 

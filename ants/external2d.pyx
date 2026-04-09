@@ -1,12 +1,12 @@
 ########################################################################
 #                        ___    _   _____________
 #                       /   |  / | / /_  __/ ___/
-#                      / /| | /  |/ / / /  \__ \ 
-#                     / ___ |/ /|  / / /  ___/ / 
-#                    /_/  |_/_/ |_/ /_/  /____/  
+#                      / /| | /  |/ / / /  \__ \
+#                     / ___ |/ /|  / / /  ___/ /
+#                    /_/  |_/_/ |_/ /_/  /____/
 #
 # Built-in External Sources for Two-Dimensional Problems
-# 
+#
 ########################################################################
 
 # cython: boundscheck=False
@@ -42,7 +42,7 @@ def manufactured_ss_04(x, y, angle_x, angle_y):
     external = np.zeros((x.shape[0], y.shape[0], angle_x.shape[0], 1))
 
     mesh_x, mesh_y = np.meshgrid(x, y, indexing="ij")
-    
+
     for nn, (mu, eta) in enumerate(zip(angle_x, angle_y)):
         external[...,nn,0] = 1 + 0.1 * np.exp(mu) * mesh_x**2 \
                      + 0.1 * np.exp(eta) * mesh_y**2 + 0.025 * np.exp(-1) \
@@ -101,4 +101,3 @@ def ambe(edges_x, edges_y, coordinates, edges_g):
     # Put in location
     external = ants.spatial2d(external, value, coordinates, edges_x, edges_y)
     return external
-

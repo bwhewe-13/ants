@@ -1,9 +1,9 @@
 ########################################################################
 #                        ___    _   _____________
 #                       /   |  / | / /_  __/ ___/
-#                      / /| | /  |/ / / /  \__ \ 
-#                     / ___ |/ /|  / / /  ___/ / 
-#                    /_/  |_/_/ |_/ /_/  /____/  
+#                      / /| | /  |/ / / /  \__ \
+#                     / ___ |/ /|  / / /  ___/ /
+#                    /_/  |_/_/ |_/ /_/  /____/
 #
 # Header file for spatial_sweep_2d.pyx
 #
@@ -21,7 +21,7 @@
 from ants.parameters cimport params
 
 
-cdef void discrete_ordinates(double[:,:]& flux, double[:,:]& flux_old, 
+cdef void discrete_ordinates(double[:,:]& flux, double[:,:]& flux_old,
         double[:]& xs_total, double[:]& xs_scatter, double[:,:]& off_scatter, \
         double[:,:,:]& external, double[:,:,:]& boundary_x, \
         double[:,:,:]& boundary_y, int[:,:]& medium_map, double[:]& delta_x, \

@@ -1,13 +1,13 @@
 # Running 2d hybrid problem - chevron
 
-import numpy as np
 import argparse
+
+import numpy as np
 from memory_profiler import memory_usage
 
 import ants
 from ants import vhybrid2d
 from ants.utils import hybrid as hytools
-
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-nu", "--angles_u", type=int, action="store", default=24)
@@ -27,10 +27,10 @@ angles_c = args.angles_c
 groups_u = args.groups_u
 groups_c = args.groups_c
 
-fangles_u = str(angles_u).zfill(2) 
+fangles_u = str(angles_u).zfill(2)
 fangles_c = str(angles_c).zfill(2)
 
-fgroups_u = str(groups_u).zfill(2) 
+fgroups_u = str(groups_u).zfill(2)
 fgroups_c = str(groups_c).zfill(2)
 
 
@@ -44,15 +44,15 @@ edges_t = np.round(np.linspace(0, steps * dt, steps + 1), 10)
 
 
 # Spatial Layout
-length_x = 9.
-length_y = 9.
+length_x = 9.0
+length_y = 9.0
 
 delta_x = np.repeat(length_x / cells_x, cells_x)
-edges_x = np.linspace(0, length_x, cells_x+1)
+edges_x = np.linspace(0, length_x, cells_x + 1)
 centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
 
 delta_y = np.repeat(length_y / cells_y, cells_y)
-edges_y = np.linspace(0, length_y, cells_y+1)
+edges_y = np.linspace(0, length_y, cells_y + 1)
 centers_y = 0.5 * (edges_y[1:] + edges_y[:-1])
 
 # Boundary conditions
@@ -71,7 +71,7 @@ velocity_u = ants.energy_velocity(groups_u, edges_g)
 # Boundary conditions and external source
 external = np.zeros((1, cells_x, cells_y, 1, 1))
 boundary_x, boundary_y = ants.boundary2d.deuterium_tritium(-1, 0, edges_g)
-boundary_x = boundary_x[None,...].copy()
+boundary_x = boundary_x[None, ...].copy()
 
 gamma_steps = ants.gamma_time_steps(edges_t)
 # gamma_steps = edges_t.copy()
@@ -79,8 +79,9 @@ boundary_y = ants.boundary2d.time_dependence_decay_03(boundary_y, gamma_steps)
 
 
 if edges_g.shape[0] != (groups_u + 1):
-    xs_total_u, xs_scatter_u, xs_fission_u = hytools.coarsen_materials(xs_total_u, \
-                            xs_scatter_u, xs_fission_u, edges_g, edges_gidx_u)
+    xs_total_u, xs_scatter_u, xs_fission_u = hytools.coarsen_materials(
+        xs_total_u, xs_scatter_u, xs_fission_u, edges_g, edges_gidx_u
+    )
     velocity_u = hytools.coarsen_velocity(velocity_u, edges_gidx_u)
     external = hytools.coarsen_external(external, edges_g, edges_gidx_u)
     boundary_x = hytools.coarsen_external(boundary_x, edges_g, edges_gidx_u)
@@ -114,32 +115,32 @@ data = ants.weight_spatial2d(weight_matrix, xs_total_u, xs_scatter_u, xs_fission
 medium_map, xs_total_u, xs_scatter_u, xs_fission_u = data
 
 info_u = {
-            "cells_x": cells_x,
-            "cells_y": cells_y,
-            "angles": angles_u,
-            "groups": groups_u,
-            "materials": xs_total_u.shape[0],
-            "geometry": 1,
-            "spatial": 2,
-            "bc_x": bc_x,
-            "bc_y": bc_y,
-            "steps": steps,
-            "dt": dt
-        }
+    "cells_x": cells_x,
+    "cells_y": cells_y,
+    "angles": angles_u,
+    "groups": groups_u,
+    "materials": xs_total_u.shape[0],
+    "geometry": 1,
+    "spatial": 2,
+    "bc_x": bc_x,
+    "bc_y": bc_y,
+    "steps": steps,
+    "dt": dt,
+}
 
 info_c = {
-            "cells_x": cells_x,
-            "cells_y": cells_y,
-            "angles": angles_c,
-            "groups": groups_c,
-            "materials": xs_total_u.shape[0],
-            "geometry": 1,
-            "spatial": 2,
-            "bc_x": bc_x,
-            "bc_y": bc_y,
-            "steps": steps,
-            "dt": dt
-        }
+    "cells_x": cells_x,
+    "cells_y": cells_y,
+    "angles": angles_c,
+    "groups": groups_c,
+    "materials": xs_total_u.shape[0],
+    "geometry": 1,
+    "spatial": 2,
+    "bc_x": bc_x,
+    "bc_y": bc_y,
+    "steps": steps,
+    "dt": dt,
+}
 
 
 angle_xu, angle_yu, angle_wu = ants.angular_xy(info_u)
@@ -162,12 +163,31 @@ angles_c = np.array([angles_c] * steps, dtype=np.int32)
 # parameters = f"g{fgroups_u}g{fgroups_c}_n{fangles_u}n{fangles_c}"
 # np.save(f"flux_vhysi_" + parameters, flux)
 
+
 # Run Hybrid
 def run():
-    _ = vhybrid2d.tr_bdf2(groups_c, angles_c, initial_x, initial_y, xs_total_u,  \
-                    xs_scatter_u, xs_fission_u, velocity_u, external, \
-                    boundary_x, boundary_y, medium_map, delta_x, delta_y, \
-                    angle_xu, angle_yu, angle_wu, edges_g, info_u, info_c)
+    _ = vhybrid2d.tr_bdf2(
+        groups_c,
+        angles_c,
+        initial_x,
+        initial_y,
+        xs_total_u,
+        xs_scatter_u,
+        xs_fission_u,
+        velocity_u,
+        external,
+        boundary_x,
+        boundary_y,
+        medium_map,
+        delta_x,
+        delta_y,
+        angle_xu,
+        angle_yu,
+        angle_wu,
+        edges_g,
+        info_u,
+        info_c,
+    )
 
 
 if __name__ == "__main__":

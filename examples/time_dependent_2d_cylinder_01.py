@@ -1,18 +1,16 @@
 ########################################################################
 #                        ___    _   _____________
 #                       /   |  / | / /_  __/ ___/
-#                      / /| | /  |/ / / /  \__ \ 
-#                     / ___ |/ /|  / / /  ___/ / 
-#                    /_/  |_/_/ |_/ /_/  /____/  
-# 
+#                      / /| | /  |/ / / /  \__ \
+#                     / ___ |/ /|  / / /  ___/ /
+#                    /_/  |_/_/ |_/ /_/  /____/
+#
 ########################################################################
 
 import numpy as np
 
 import ants
 from ants.timed2d import backward_euler
-from ants.critical2d import power_iteration
-
 
 cells_x = 100
 cells_y = 100
@@ -40,28 +38,33 @@ bc_y = [0, 0]
 # Cross Sections
 xs_total = np.array([[0.32640], [0.0]])
 xs_scatter = np.array([[[0.225216]], [[0.0]]])
-xs_fission = np.array([[[2.84*0.0816]], [[0.0]]])
+xs_fission = np.array([[[2.84 * 0.0816]], [[0.0]]])
 
-weight_matrix = ants.weight_matrix2d(edges_x, edges_y, materials=2, \
-                            N_particles=cells_x * 50_000, circles=coords, \
-                            circle_index=[0])
+weight_matrix = ants.weight_matrix2d(
+    edges_x,
+    edges_y,
+    materials=2,
+    N_particles=cells_x * 50_000,
+    circles=coords,
+    circle_index=[0],
+)
 
 weighted = ants.weight_spatial2d(weight_matrix, xs_total, xs_scatter, xs_fission)
 medium_map, xs_total, xs_scatter, xs_fission = weighted
 
 info = {
-            "cells_x": cells_x,
-            "cells_y": cells_y,
-            "angles": angles, 
-            "groups": groups, 
-            "materials": xs_total.shape[0],
-            "geometry": 1, 
-            "spatial": 2, 
-            "bc_x": bc_x,
-            "bc_y": bc_y, 
-            "steps": steps, 
-            "dt": 0.1
-        }
+    "cells_x": cells_x,
+    "cells_y": cells_y,
+    "angles": angles,
+    "groups": groups,
+    "materials": xs_total.shape[0],
+    "geometry": 1,
+    "spatial": 2,
+    "bc_x": bc_x,
+    "bc_y": bc_y,
+    "steps": steps,
+    "dt": 0.1,
+}
 
 
 angle_x, angle_y, angle_w = ants.angular_xy(info)
@@ -70,15 +73,31 @@ angle_x, angle_y, angle_w = ants.angular_xy(info)
 external = np.zeros((1, cells_x, cells_y, 1, 1))
 
 boundary_x = np.zeros((2, 1, 1, 1))
-boundary_x[0] = 1.
+boundary_x[0] = 1.0
 edges_t = np.linspace(0, info["dt"] * steps, steps + 1)
 boundary_x = ants.boundary2d.time_dependence_decay_01(boundary_x, edges_t, 0.1)
 
 boundary_y = np.zeros((1, 2, 1, 1, 1))
 
+edges_g, _, _ = ants.energy_grid(None, groups, groups)
+velocity = ants.energy_velocity(groups, edges_g)
+
 initial_flux = np.zeros((cells_x, cells_y, angles**2, groups))
 
-flux = backward_euler(initial_flux, xs_total, xs_scatter, xs_fission, \
-                      velocity, external, boundary_x, boundary_y, \
-                      medium_map, delta_x, delta_y, angle_x, angle_y, \
-                      angle_w, info)
+flux = backward_euler(
+    initial_flux,
+    xs_total,
+    xs_scatter,
+    xs_fission,
+    velocity,
+    external,
+    boundary_x,
+    boundary_y,
+    medium_map,
+    delta_x,
+    delta_y,
+    angle_x,
+    angle_y,
+    angle_w,
+    info,
+)

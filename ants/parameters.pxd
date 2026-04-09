@@ -50,31 +50,31 @@ cdef struct params:
     # :type dt: double
 
     # """
-    
+
     # Collect Spatial cells, angles, energy groups
     int cells_x
     int cells_y
     int angles
     int groups
     int materials
-    
+
     # Geometry type (slab, sphere)
     int geometry
-    
+
     # Spatial discretization type
     int spatial
-    
+
     # Boundary parameters
     int[2] bc_x
     int[2] bc_y
-    
+
     # Time dependent parameters
     int steps
     double dt
-    
+
     # Angular flux option
     bint angular
-    
+
     # Flux at cell edges or centers
     int flux_at_edges
 
