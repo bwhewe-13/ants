@@ -1,12 +1,12 @@
 ########################################################################
 #                        ___    _   _____________
 #                       /   |  / | / /_  __/ ___/
-#                      / /| | /  |/ / / /  \__ \ 
-#                     / ___ |/ /|  / / /  ___/ / 
-#                    /_/  |_/_/ |_/ /_/  /____/  
+#                      / /| | /  |/ / / /  \__ \
+#                     / ___ |/ /|  / / /  ___/ /
+#                    /_/  |_/_/ |_/ /_/  /____/
 #
 # Built-in Boundary Conditions for One-Dimensional Problems
-# 
+#
 ########################################################################
 
 # cython: boundscheck=False
@@ -20,7 +20,8 @@
 
 import numpy as np
 
-from libc.math cimport pow, erfc, ceil
+from libc.math cimport ceil, erfc, pow
+
 
 def manufactured_ss_03(angle_x):
     # One group, angle dependent boundary
@@ -87,7 +88,7 @@ def time_dependence_decay_01(boundary_x, edges_t, off_time):
 
 
 def time_dependence_decay_02(boundary_x, edges_t):
-    # Turn off boundary by decay 
+    # Turn off boundary by decay
     steps = edges_t.shape[0] - 1
     # Find where boundary != 0
     idx = tuple(np.argwhere(boundary_x != 0.0).flatten())

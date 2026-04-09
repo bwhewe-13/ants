@@ -1,12 +1,12 @@
 ########################################################################
 #                        ___    _   _____________
 #                       /   |  / | / /_  __/ ___/
-#                      / /| | /  |/ / / /  \__ \ 
-#                     / ___ |/ /|  / / /  ___/ / 
-#                    /_/  |_/_/ |_/ /_/  /____/  
+#                      / /| | /  |/ / / /  \__ \
+#                     / ___ |/ /|  / / /  ___/ /
+#                    /_/  |_/_/ |_/ /_/  /____/
 #
 # Built-in Boundary Sources for Two-Dimensional Problems
-# 
+#
 ########################################################################
 
 # cython: boundscheck=False
@@ -20,7 +20,8 @@
 
 import numpy as np
 
-from libc.math cimport pow, erfc, ceil
+from libc.math cimport ceil, erfc, pow
+
 
 def manufactured_ss_01(x, y, angle_x, angle_y):
     boundary_x = 1.5 * np.ones((2, y.shape[0], angle_x.shape[0], 1))
@@ -94,14 +95,14 @@ def manufactured_td_02(x, y, angle_x, angle_y, edges_t):
 
     for cc, tt in enumerate(edges_t):
         for nn, (mu, eta) in enumerate(zip(angle_x, angle_y)):
-            # Y boundary 
+            # Y boundary
             boundary_y[cc,0,:,nn,0] = 1 + np.sin(x - 0.5 * tt) + np.cos(mu) \
-                                    + np.cos(YY1 - 0.25 * tt) + np.sin(eta)  
+                                    + np.cos(YY1 - 0.25 * tt) + np.sin(eta)
             boundary_y[cc,1,:,nn,0] = 1 + np.sin(x - 0.5 * tt) + np.cos(mu) \
-                                    + np.cos(YY2 - 0.25 * tt) + np.sin(eta)  
-            # X boundary 
+                                    + np.cos(YY2 - 0.25 * tt) + np.sin(eta)
+            # X boundary
             boundary_x[cc,0,:,nn,0] = 1 + np.sin(XX1 - 0.5 * tt) + np.cos(mu) \
-                                    + np.cos(y - 0.25 * tt) + np.sin(eta)  
+                                    + np.cos(y - 0.25 * tt) + np.sin(eta)
             boundary_x[cc,1,:,nn,0] = 1 + np.sin(XX2 - 0.5 * tt) + np.cos(mu) \
                                     + np.cos(y - 0.25 * tt) + np.sin(eta)
 
@@ -142,7 +143,7 @@ def time_dependence_decay_01(boundary, edges_t, off_time):
 
 
 def time_dependence_decay_02(boundary, edges_t):
-    # Turn off boundary by decay 
+    # Turn off boundary by decay
     steps = edges_t.shape[0] - 1
     boundary = np.repeat(boundary[None,...], edges_t.shape[0] - 1, axis=0)
     for tt in range(steps):

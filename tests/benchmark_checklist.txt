@@ -12,9 +12,9 @@ A. One-Energy Group Isotropic Scattering
     2. One-Group U-235
         [X] Material A - One Medium Slab (Flux)
         [X] Material A - One Medium Sphere (Flux)
-        [ ] Material B - Two Medium Sphere 
-        [ ] Material C - Two Medium Sphere 
-        [ ] Material D - Two Medium Sphere 
+        [ ] Material B - Two Medium Sphere
+        [ ] Material C - Two Medium Sphere
+        [ ] Material D - Two Medium Sphere
     3. One-Group U-D2O Reactor
         [ ] Material A - Infinite Medium
         [X] Material A - One Medium Slab (Flux)
@@ -58,7 +58,7 @@ A. Isotropic Scattering
     4. Two-Group Uranium Research Reactor
         [ ] Material A - Infinite Medium
         [/] Material A - One Medium Slab (Flux)
-        [X] Material A - One Medium Sphere 
+        [X] Material A - One Medium Sphere
         [ ] Material B - Infinite Medium
         [ ] Material C - Infinite Medium
         [ ] Material B - Two Medium Slab

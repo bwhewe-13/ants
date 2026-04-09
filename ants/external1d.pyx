@@ -1,12 +1,12 @@
 ########################################################################
 #                        ___    _   _____________
 #                       /   |  / | / /_  __/ ___/
-#                      / /| | /  |/ / / /  \__ \ 
-#                     / ___ |/ /|  / / /  ___/ / 
-#                    /_/  |_/_/ |_/ /_/  /____/  
+#                      / /| | /  |/ / / /  \__ \
+#                     / ___ |/ /|  / / /  ___/ /
+#                    /_/  |_/_/ |_/ /_/  /____/
 #
 # Built-in External Sources for One-Dimensional Problems
-# 
+#
 ########################################################################
 
 # cython: boundscheck=False
@@ -36,7 +36,7 @@ def manufactured_ss_03(x, angle_x):
 
     for nn, mu in enumerate(angle_x):
         external[:,nn,0] = func(mu)
-    
+
     return external
 
 
@@ -44,17 +44,17 @@ def manufactured_ss_04(x, angle_x):
     # One group, two material source
     external = np.zeros((x.shape[0], angle_x.shape[0], 1))
     length_x = 2.
-    
+
     def _quasi(x, mu):
         c = 0.3
         return 2 * length_x * mu - 4 * x * mu - 2 * x**2 \
                + 2 * length_x * x - c * (-2 * x**2 + 2 * length_x * x)
-    
+
     def _scatter(x, mu):
         c = 0.9
         const = -0.125 * length_x + 0.5 * length_x**2
         return 0.25 * (mu + x) + const - c * ((0.25 * x + const))
-    
+
     for nn, mu in enumerate(angle_x):
         idx = (x < (0.5 * length_x))
         external[idx,nn,0] = _quasi(x[idx], mu)
@@ -73,20 +73,20 @@ def manufactured_ss_05(x, angle_x):
         return mu * (2 * length_x**2 - 4 * np.exp(mu) * x) - 2 * np.exp(mu) \
                 * x**2 + 2 * length_x**2 * x - c / 2 * (-2 * x**2 \
                 * (np.exp(1) - np.exp(-1)) + 4 * length_x**2 * x)
-    
+
     def _scatter(x, mu):
         c = 0.9
         const = length_x**3 - length_x**2 * np.exp(mu)
         return length_x * mu * np.exp(mu) + length_x * x * np.exp(mu) + const \
                 - c/2 * (2 * length_x**3 + (np.exp(1) - np.exp(-1)) \
                 * (x * length_x - length_x**2))
-    
+
     for nn, mu in enumerate(angle_x):
         idx = (x < (0.5 * length_x))
         external[idx,nn,0] = _quasi(x[idx], mu)
         idx = (x > (0.5 * length_x))
         external[idx,nn,0] = _scatter(x[idx], mu)
-    
+
     return external
 
 
@@ -135,7 +135,7 @@ def ambe(delta_x, loc_x, edges_g):
     # AmBe source in middle of material
     if isinstance(loc_x, int):
         loc_x = [loc_x]
-    
+
     external = np.zeros((delta_x.shape[0], 1, edges_g.shape[0] - 1))
 
     data = np.load(DATA_PATH + "external/AmBe_source_050G.npz")
@@ -145,7 +145,7 @@ def ambe(delta_x, loc_x, edges_g):
 
     centers_g = tools.average_array(edges_g)
     loc_g = lambda x1, x2: np.argwhere((centers_g > x1) & (centers_g <= x2)).flatten()
-    
+
     for ii in range(len(data["magnitude"])):
         idx = loc_g(data["edges"][ii], data["edges"][ii+1])
         for xx in loc_x:

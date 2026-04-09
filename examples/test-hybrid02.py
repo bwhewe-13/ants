@@ -1,15 +1,15 @@
 import numpy as np
 
 import ants
-from ants.hybrid1d import backward_euler
+from ants import hybrid1d, vhybrid1d
 from ants.utils import hybrid as hytools
 
 # General conditions
-cells_x = 1000
-angles_u = 8
-angles_c = 2
+cells_x = 100
+angles_u = 4
+angles_c = 4
 groups_u = 87
-groups_c = 43
+groups_c = 10
 steps = 5
 
 print("Groups", groups_u, groups_c)
@@ -81,17 +81,17 @@ fine_idx, coarse_idx, factor = hytools.indexing(edges_g, edges_gidx_u, edges_gid
 initial_flux = np.zeros((cells_x, angles_u, groups_u))
 
 # Run Hybrid Method
-flux = backward_euler(
+hy_flux = hybrid1d.backward_euler(
     initial_flux,
-    xs_total_u,
-    xs_total_c,
-    xs_scatter_u,
-    xs_scatter_c,
-    xs_fission_u,
-    xs_fission_c,
-    velocity_u,
+    xs_total_u.copy(),
+    xs_total_c.copy(),
+    xs_scatter_u.copy(),
+    xs_scatter_c.copy(),
+    xs_fission_u.copy(),
+    xs_fission_c.copy(),
+    velocity_u.copy(),
     velocity_c,
-    external,
+    external.copy(),
     boundary_x,
     medium_map,
     delta_x,
@@ -106,6 +106,39 @@ flux = backward_euler(
     info_c,
 )
 
+groups_range = np.array([groups_c] * steps, dtype=np.int32)
+angles_range = np.array([angles_c] * steps, dtype=np.int32)
+
+# Run Hybrid Method
+vhy_flux = vhybrid1d.backward_euler(
+    groups_range,
+    angles_range,
+    initial_flux * 0.0,
+    xs_total_u,
+    xs_scatter_u,
+    xs_fission_u,
+    velocity_u,
+    external,
+    boundary_x,
+    medium_map,
+    delta_x,
+    angle_xu,
+    angle_wu,
+    edges_g,
+    info_u,
+    info_c,
+)
+
+print(np.sum(hy_flux, axis=(1, 2)))
+print(np.sum(vhy_flux, axis=(1, 2)))
+
+
+for tt in range(steps):
+    print(
+        tt,
+        np.sum(np.fabs(hy_flux[tt] - vhy_flux[tt])),
+        np.max(np.fabs(hy_flux[tt] - vhy_flux[tt])),
+    )
 # np.save(
 #     f"hybrid_uranium_slab_g{groups_u}g{groups_c}_n{angles_u}n{angles_c}_flux",
 #     flux,

@@ -11,6 +11,7 @@ Core Parameters
 ---------------
 
 .. py:data:: params_dict
+   :no-index:
 
    Python dictionary with the following keys and defaults:
 

@@ -31,12 +31,12 @@ release = "1.0"
 # extensions coming with Sphinx (named "sphinx.ext.*") or your custom
 # ones.
 extensions = [
-                "sphinx.ext.mathjax", 
-                "sphinxcontrib.bibtex", 
-                "sphinx.ext.autodoc", 
-                "sphinx.ext.viewcode",
-                "sphinx.ext.doctest",
-            ]
+    "sphinx.ext.mathjax",
+    "sphinxcontrib.bibtex",
+    "sphinx.ext.autodoc",
+    "sphinx.ext.viewcode",
+    "sphinx.ext.doctest",
+]
 
 bibtex_bibfiles = ["refs.bib"]
 
@@ -58,7 +58,7 @@ html_theme = "agogo"
 html_theme_options = {
     # "relbarbgcolor": "black",
     "body_max_width": "auto",
-	"rightsidebar": "False", 
+    "rightsidebar": "False",
 }
 
 # pygments_style = "sphinx"

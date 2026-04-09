@@ -295,8 +295,9 @@ cdef double[:,:,:] tr_bdf2(double[:,:,:]& flux_last_ell, double[:,:]& xs_total, 
     q_star = tools.array_3d(info.cells_x, info.angles, info.groups)
 
     # Initialize scalar flux for previous time step
-    scalar_flux = tools.array_2d(info.cells_x, info.groups)
-    tools._angular_edge_to_scalar(flux_last_ell, scalar_flux, angle_w, info)
+    scalar_flux_ell = tools.array_2d(info.cells_x, info.groups)
+    tools._angular_edge_to_scalar(flux_last_ell, scalar_flux_ell, angle_w, info)
+    scalar_flux_gamma = tools.array_2d(info.cells_x, info.groups)
 
     # Create angular flux of previous time steps
     flux_last_gamma = tools.array_3d(info.cells_x, info.angles, info.groups)
@@ -330,7 +331,7 @@ cdef double[:,:,:] tr_bdf2(double[:,:,:]& flux_last_ell, double[:,:]& xs_total, 
                                 medium_map, delta_x, angle_x, angle_w, info)
 
         # Create (sigma_s + sigma_f) * phi^{\ell} + Q*
-        tools._time_right_side(q_star, scalar_flux, xs_scatter, medium_map, info)
+        tools._time_right_side(q_star, scalar_flux_gamma, xs_scatter, medium_map, info)
 
         # Solve for angular flux of previous time step
         flux_last_gamma = mg._known_source_angular(xs_total_v_cn, q_star, \
@@ -349,10 +350,10 @@ cdef double[:,:,:] tr_bdf2(double[:,:,:]& flux_last_ell, double[:,:]& xs_total, 
                                 medium_map, delta_x, angle_x, angle_w, info)
 
         # Update previous time step
-        scalar_flux[:,:] = flux_time[step,:,:]
+        scalar_flux_ell[:,:] = flux_time[step,:,:]
 
         # Create (sigma_s + sigma_f) * phi^{\ell} + Q*
-        tools._time_right_side(q_star, scalar_flux, xs_scatter, medium_map, info)
+        tools._time_right_side(q_star, scalar_flux_ell, xs_scatter, medium_map, info)
 
         # Solve for angular flux of previous time step
         flux_last_ell[:,:,:] = mg._known_source_angular(xs_total_v_bdf2, \

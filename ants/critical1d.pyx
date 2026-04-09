@@ -1,9 +1,9 @@
 ########################################################################
 #                        ___    _   _____________
 #                       /   |  / | / /_  __/ ___/
-#                      / /| | /  |/ / / /  \__ \ 
-#                     / ___ |/ /|  / / /  ___/ / 
-#                    /_/  |_/_/ |_/ /_/  /____/  
+#                      / /| | /  |/ / / /  \__ \
+#                     / ___ |/ /|  / / /  ___/ /
+#                    /_/  |_/_/ |_/ /_/  /____/
 #
 # One-Dimensional Criticality Multigroup Neutron Transport Problems
 #
@@ -22,10 +22,11 @@ import logging
 
 import numpy as np
 
-from ants cimport multi_group_1d as mg
 from ants cimport cytools_1d as tools
-from ants.parameters cimport params
+from ants cimport multi_group_1d as mg
 from ants cimport parameters
+from ants.parameters cimport params
+
 from ants.datatypes import create_params
 
 logger = logging.getLogger(__name__)
@@ -52,7 +53,7 @@ def k_criticality(materials, geometry, quadrature, solver):
     # Initialize and normalize flux
     flux_old = np.random.rand(info.cells_x, info.groups)
     tools._normalize_flux(flux_old, info)
-    
+
     # Solve using the power iteration
     flux = power_iteration(flux_old, keff, xs_total, xs_scatter, xs_fission, \
                         medium_map, delta_x, angle_x, angle_w, info)
@@ -60,7 +61,7 @@ def k_criticality(materials, geometry, quadrature, solver):
     # Return scalar flux at cell centers and keff
     if (info.angular == False) and (info.flux_at_edges == 0):
         return np.asarray(flux), keff[0]
-    
+
     # For returning angular flux or flux at cell edges
     return known_flux(flux, keff[0], materials, geometry, quadrature, params)
 
@@ -76,38 +77,38 @@ cdef double[:,:] power_iteration(double[:,:]& flux_guess,double[:]& keff,\
 
     # Initialize power source
     source = tools.array_3d(info.cells_x, 1, info.groups)
-    
+
     # Vacuum boundaries
     boundary_x = tools.array_3d(2, 1, 1)
-    
+
     # Set convergence limits
     cdef bint converged = False
     cdef int count = 1
     cdef double change = 0.0
-    
+
     # Iterate until converge
     while not (converged):
         # Update power source term
         tools._fission_source(flux_old, xs_fission, source, medium_map, info, keff[0])
-        
+
         # Solve for scalar flux
         flux = mg.multi_group(flux_old, xs_total, xs_scatter, source, \
                     boundary_x, medium_map, delta_x, angle_x, angle_w, info)
-        
+
         # Update keffective
         keff[0] = tools._update_keffective(flux, flux_old, xs_fission, \
                                            medium_map, info, keff[0])
-        
+
         # Normalize flux
         tools._normalize_flux(flux, info)
-        
+
         # Check for convergence
         change = tools.group_convergence(flux, flux_old, info)
         logger.info(f"Count: {str(count).zfill(3)}\tKeff: {keff[0]:.8f}")
         converged = (change < info.tol_keff) or (count >= info.max_iter_keff)
         count += 1
         flux_old[:,:] = flux[:,:]
-    
+
     logger.info(f"Convergence: {change:.6e}")
     return flux[:,:]
 
@@ -161,10 +162,10 @@ def nearby_power_iteration(double[:,:,:] residual, double n_rate, materials, \
     params = create_params(materials, quadrature, geometry, solver)
     info = parameters._to_params(params)
     parameters._check_critical1d_nearby_power(info)
-    
+
     # Initialize flux
     flux_old = np.random.rand(info.cells_x, info.groups)
-    
+
     # Initialize keffective
     cdef double[1] keff
 
@@ -174,7 +175,7 @@ def nearby_power_iteration(double[:,:,:] residual, double n_rate, materials, \
     # Solve using the modified power iteration
     flux = multi_group_nearby(flux_old, keff, residual, xs_total, xs_scatter, \
                         xs_fission, medium_map, delta_x, angle_x, angle_w, info)
-    
+
     return np.asarray(flux), keff[0]
 
 
@@ -186,41 +187,41 @@ cdef double[:,:] multi_group_nearby(double[:,:]& flux_guess, double[:]& keff, \
     # Initialize flux
     flux = tools.array_2d(info.cells_x, info.groups)
     flux_old = flux_guess.copy()
-    
+
     # Initialize power source
     source = tools.array_3d(info.cells_x, info.angles, info.groups)
-    
+
     # Vacuum boundaries
     boundary_x = tools.array_3d(2, 1, 1)
-    
+
     # Set convergence limits
     cdef bint converged = False
     cdef int count = 1
     cdef double change = 0.0
-    
+
     # Iterate until converged
     while not (converged):
         # Update nearby power source term
         tools._nearby_fission_source(flux_old, xs_fission, source, \
                                      residual, medium_map, info, keff[0])
-        
+
         # Solve for scalar flux
         flux = mg.multi_group(flux_old, xs_total, xs_scatter, source, \
                     boundary_x, medium_map, delta_x, angle_x, angle_w, info)
-        
+
         # Update keffective
         keff[0] = tools._update_keffective(flux, flux_old, xs_fission, \
                                            medium_map, info, keff[0])
-        
+
         # Normalize flux
         tools._normalize_flux(flux, info)
-        
+
         # Check for convergence
         change = tools.group_convergence(flux, flux_old, info)
         logger.info(f"Count: {str(count).zfill(3)}\tKeff: {keff[0]:.8f}")
         converged = (change < info.tol_keff) or (count >= info.max_iter_keff)
         count += 1
         flux_old[:,:] = flux[:,:]
-    
+
     logger.info(f"Convergence: {change:.6e}")
     return flux[:,:]

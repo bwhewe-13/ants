@@ -1,9 +1,9 @@
 ########################################################################
 #                        ___    _   _____________
 #                       /   |  / | / /_  __/ ___/
-#                      / /| | /  |/ / / /  \__ \ 
-#                     / ___ |/ /|  / / /  ___/ / 
-#                    /_/  |_/_/ |_/ /_/  /____/  
+#                      / /| | /  |/ / / /  \__ \
+#                     / ___ |/ /|  / / /  ___/ /
+#                    /_/  |_/_/ |_/ /_/  /____/
 #
 # One-Dimensional Fixed Source Multigroup Neutron Transport Problems
 #
@@ -20,10 +20,11 @@
 
 import numpy as np
 
-from ants cimport multi_group_1d as mg
 from ants cimport cytools_1d as tools
+from ants cimport multi_group_1d as mg
 from ants cimport parameters
-from ants.datatypes import create_params, MultigroupSolver
+
+from ants.datatypes import MultigroupSolver, create_params
 
 
 def fixed_source(materials, sources, geometry, quadrature, solver):

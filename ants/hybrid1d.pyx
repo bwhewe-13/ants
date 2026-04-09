@@ -296,7 +296,8 @@ cdef double[:,:,:] bdf2(double[:,:,:]& flux_last_1, double[:,:]& xs_total_u, \
 
     # Initialize time flux, scalar terms
     flux_time = tools.array_3d(info_u.steps, info_u.cells_x, info_u.groups)
-    flux_c = tools.array_2d(info_c.cells_x, info_c.groups)
+
+    # Initialize collided source and boundary
     source_c = tools.array_3d(info_c.cells_x, 1, info_c.groups)
     boundary_xc = tools.array_3d(2, 1, 1)
 

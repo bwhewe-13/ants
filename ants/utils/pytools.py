@@ -1,12 +1,12 @@
 ########################################################################
 #                        ___    _   _____________
 #                       /   |  / | / /_  __/ ___/
-#                      / /| | /  |/ / / /  \__ \ 
-#                     / ___ |/ /|  / / /  ___/ / 
-#                    /_/  |_/_/ |_/ /_/  /____/  
+#                      / /| | /  |/ / / /  \__ \
+#                     / ___ |/ /|  / / /  ___/ /
+#                    /_/  |_/_/ |_/ /_/  /____/
 #
 # Writing python functions for block interpolation
-# 
+#
 ########################################################################
 
 import logging
@@ -14,6 +14,7 @@ import logging
 import numpy as np
 
 logger = logging.getLogger(__name__)
+
 
 ########################################################################
 # Evaluating Fluxes
@@ -47,8 +48,8 @@ def _reaction_rate_2d(flux, xs_matrix, medium_map):
     # Iterate over spatial cells
     for ii in range(cells_x):
         for jj in range(cells_y):
-            mat = medium_map[ii,jj]
-            rate[ii,jj] = flux[ii,jj] @ xs_matrix[mat].T
+            mat = medium_map[ii, jj]
+            rate[ii, jj] = flux[ii, jj] @ xs_matrix[mat].T
     # return reaction rate
     return rate
 
@@ -56,11 +57,12 @@ def _reaction_rate_2d(flux, xs_matrix, medium_map):
 def average_array(arr):
     return 0.5 * (arr[1:] + arr[:-1])
 
+
 ########################################################################
 # Manufactured Solutions and Accuracy
 ########################################################################
 def spatial_error(approx, reference, ndims=1):
-    """ Calculating the spatial error between an approximation and the
+    """Calculating the spatial error between an approximation and the
     reference solution
     Arguments:
         approx (array double): approximate flux
@@ -71,14 +73,14 @@ def spatial_error(approx, reference, ndims=1):
     """
     assert approx.shape == reference.shape, "Not the same array shape"
     if ndims == 1:
-        normalized = (approx.shape[0])**(-0.5)
+        normalized = (approx.shape[0]) ** (-0.5)
     elif ndims == 2:
-        normalized = (approx.shape[0] * approx.shape[1])**(-0.5)
+        normalized = (approx.shape[0] * approx.shape[1]) ** (-0.5)
     return normalized * np.linalg.norm(approx - reference)
 
 
 def order_accuracy(error1, error2, ratio):
-    """ Finding the order of accuracy between errors on different 
+    """Finding the order of accuracy between errors on different
     grids, where error2 is the refined grid
     Arguments:
         error1 (double): Error between an approximate solution and the
@@ -94,7 +96,7 @@ def order_accuracy(error1, error2, ratio):
 
 
 def wynn_epsilon(lst, rank):
-    """ Perform Wynn Epsilon Convergence Algorithm
+    """Perform Wynn Epsilon Convergence Algorithm
     Arguments:
         lst: list of values for convergence
         rank: rank of system
@@ -107,12 +109,13 @@ def wynn_epsilon(lst, rank):
         error[ii, 1] = lst[ii - 1]
     for ii in range(3, N + 2):
         for jj in range(3, ii + 1):
-            if (error[ii-1,jj-2] - error[ii-2,jj-2]) == 0.0:
-                error[ii-1,jj-1] = error[ii-2,jj-3]
+            if (error[ii - 1, jj - 2] - error[ii - 2, jj - 2]) == 0.0:
+                error[ii - 1, jj - 1] = error[ii - 2, jj - 3]
             else:
-                error[ii-1,jj-1] = error[ii-2,jj-3] \
-                            + 1 / (error[ii-1,jj-2] - error[ii-2,jj-2])
-    return abs(error[-1,-1])
+                error[ii - 1, jj - 1] = error[ii - 2, jj - 3] + 1 / (
+                    error[ii - 1, jj - 2] - error[ii - 2, jj - 2]
+                )
+    return abs(error[-1, -1])
 
 
 def flux_coarsen_1d(fine_flux, fine_x, coarse_x):
@@ -124,7 +127,7 @@ def flux_coarsen_1d(fine_flux, fine_x, coarse_x):
     count_x = 0
     for ii in range(cells_x):
         # Keep track of x bounds
-        idx_x = np.argwhere((fine_x < coarse_x[ii+1]) & (fine_x >= coarse_x[ii]))
+        idx_x = np.argwhere((fine_x < coarse_x[ii + 1]) & (fine_x >= coarse_x[ii]))
         count_x += len(idx_x)
         coarse_flux[ii] = np.mean(fine_flux[idx_x], axis=0)
     # Make sure we got all rows
@@ -137,7 +140,7 @@ def flux_propagate_1d(coarse_flux, mult):
     # Initialize fine flux
     fine_flux = np.zeros(((mult * cells_x,) + coarse_flux.shape[2:]))
     for ii in range(cells_x):
-        fine_flux[ii*mult:(ii+1)*mult] = coarse_flux[ii,jj]
+        fine_flux[ii * mult : (ii + 1) * mult] = coarse_flux[ii]
     return fine_flux
 
 
@@ -146,20 +149,28 @@ def flux_coarsen_2d(fine_flux, fine_x, fine_y, coarse_x, coarse_y):
     cells_x = coarse_x.shape[0] - 1
     cells_y = coarse_y.shape[0] - 1
     # Initialize coarse flux
-    coarse_flux = np.zeros(((cells_x, cells_y,) + fine_flux.shape[2:]))
+    coarse_flux = np.zeros(
+        (
+            (
+                cells_x,
+                cells_y,
+            )
+            + fine_flux.shape[2:]
+        )
+    )
     # Iterate over x cells
     count_x = 0
     for ii in range(cells_x):
         # Keep track of x bounds
-        idx_x = np.argwhere((fine_x < coarse_x[ii+1]) & (fine_x >= coarse_x[ii]))
+        idx_x = np.argwhere((fine_x < coarse_x[ii + 1]) & (fine_x >= coarse_x[ii]))
         count_x += len(idx_x)
         count_y = 0
         # Iterate over y cells
         for jj in range(cells_y):
             # Keep track of y bounds
-            idx_y = np.argwhere((fine_y < coarse_y[jj+1]) & (fine_y >= coarse_y[jj]))
+            idx_y = np.argwhere((fine_y < coarse_y[jj + 1]) & (fine_y >= coarse_y[jj]))
             count_y += len(idx_y)
-            coarse_flux[ii,jj] = np.mean(fine_flux[idx_x,idx_y], axis=(0,1))
+            coarse_flux[ii, jj] = np.mean(fine_flux[idx_x, idx_y], axis=(0, 1))
         # Make sure we got all columns
         assert count_y == fine_flux.shape[1], "Not including all y cells"
     # Make sure we got all rows
@@ -170,15 +181,27 @@ def flux_coarsen_2d(fine_flux, fine_x, fine_y, coarse_x, coarse_y):
 def flux_propagate_2d(coarse_flux, mult):
     cells_x, cells_y = coarse_flux.shape[:2]
     # Initialize fine flux
-    fine_flux = np.zeros(((mult * cells_x, mult * cells_y,) + coarse_flux.shape[2:]))
+    fine_flux = np.zeros(
+        (
+            (
+                mult * cells_x,
+                mult * cells_y,
+            )
+            + coarse_flux.shape[2:]
+        )
+    )
     for ii in range(cells_x):
         for jj in range(cells_y):
-            fine_flux[ii*mult:(ii+1)*mult, jj*mult:(jj+1)*mult] = coarse_flux[ii,jj]
+            fine_flux[ii * mult : (ii + 1) * mult, jj * mult : (jj + 1) * mult] = (
+                coarse_flux[ii, jj]
+            )
     return fine_flux
+
 
 ########################################################################
 # Meshing Different Energy Grids
 ########################################################################
+
 
 def _concatenate_edges_1d(fine, coarse, value):
     # Combine the edges for both the coarse and fine grid
@@ -195,7 +218,7 @@ def _concatenate_edges_1d(fine, coarse, value):
 
 
 def resize_array_1d(fine, coarse, value):
-    """ Coarsen array for difference energy grids where (G hat) < (G)
+    """Coarsen array for difference energy grids where (G hat) < (G)
     Arguments:
         fine (float [G + 1]): fine energy edges
         coarse (float [G hat + 1]): coarse energy edges
@@ -204,7 +227,7 @@ def resize_array_1d(fine, coarse, value):
         resized (float [G hat] or [G]): values of resized grid
     """
     # Combine edges
-    if (value.shape[0] + 1 == coarse.shape[0]):
+    if value.shape[0] + 1 == coarse.shape[0]:
         fine, coarse = coarse.copy(), fine.copy()
     fine, value = _concatenate_edges_1d(fine, coarse, value)
     # Create coarse array
@@ -215,8 +238,8 @@ def resize_array_1d(fine, coarse, value):
         idx1 = np.argmin(np.fabs(gg1 - fine))
         idx2 = np.argmin(np.fabs(gg2 - fine))
         # Estimate magnitude
-        magnitude = np.sum(value[idx1:idx2] * np.diff(fine[idx1:idx2+1]))
-        magnitude /= (gg2 - gg1)
+        magnitude = np.sum(value[idx1:idx2] * np.diff(fine[idx1 : idx2 + 1]))
+        magnitude /= gg2 - gg1
         # Populate coarsened array
         shrink[cc] = magnitude
     return shrink
@@ -236,12 +259,12 @@ def _concatenate_edges_2d(fine, coarse, value):
             idx4 = np.argmin(np.fabs(gg4 - new_edges))
             for gg1 in range(idx1, idx2):
                 for gg2 in range(idx3, idx4):
-                    new_value[gg1,gg2] = value[cc1,cc2]
+                    new_value[gg1, gg2] = value[cc1, cc2]
     return new_edges, new_value
 
 
 def resize_array_2d(fine, coarse, value):
-    """ Coarsen array for difference energy grids where (G hat) < (G)
+    """Coarsen array for difference energy grids where (G hat) < (G)
     Arguments:
         fine (float [G + 1]): fine energy edges
         coarse (float [G hat + 1]): coarse energy edges
@@ -250,7 +273,7 @@ def resize_array_2d(fine, coarse, value):
         resized (float [G hat x G hat] or [G x G]): values of resized grid
     """
     # Combine edges
-    if (value.shape[0] + 1 == coarse.shape[0]):
+    if value.shape[0] + 1 == coarse.shape[0]:
         fine, coarse = coarse.copy(), fine.copy()
     fine, value = _concatenate_edges_2d(fine, coarse, value)
     # return value
@@ -266,10 +289,14 @@ def resize_array_2d(fine, coarse, value):
             idx3 = np.argmin(np.fabs(gg3 - fine))
             idx4 = np.argmin(np.fabs(gg4 - fine))
             # Estimate magnitude
-            magnitude = np.sum(value[idx1:idx2,idx3:idx4] \
-                                * (np.diff(fine[idx1:idx2+1])[:,None] \
-                                @ np.diff(fine[idx3:idx4+1])[None,:]))
-            magnitude /= ((gg2 - gg1) * (gg4 - gg3))
+            magnitude = np.sum(
+                value[idx1:idx2, idx3:idx4]
+                * (
+                    np.diff(fine[idx1 : idx2 + 1])[:, None]
+                    @ np.diff(fine[idx3 : idx4 + 1])[None, :]
+                )
+            )
+            magnitude /= (gg2 - gg1) * (gg4 - gg3)
             # Populate coarsened array
             shrink[cc1, cc2] = magnitude
     return shrink
@@ -279,9 +306,9 @@ def resize_array_2d(fine, coarse, value):
 # Nearby Problems
 ########################################################################
 def _material_index(medium_map):
-    """ Finding index of one-dimensional medium map
+    """Finding index of one-dimensional medium map
     Arguments:
-        medium_map (int [cells_x]): one-dimensional array of materials, 
+        medium_map (int [cells_x]): one-dimensional array of materials,
             where each different number represents a new material
     Returns:
         array of indexes between material interfaces
@@ -292,10 +319,11 @@ def _material_index(medium_map):
     splits = np.array([0] + splits + [len(medium_map)], dtype=np.int32)
     return splits
 
+
 def _to_block(medium_map):
-    """ Separating medium map into chunks for MNP for each chunk
+    """Separating medium map into chunks for MNP for each chunk
     Arguments:
-        medium_map (int [cells_x, cells_y]): two-dimensional array of 
+        medium_map (int [cells_x, cells_y]): two-dimensional array of
             materials where each different number represents a new material
     Returns:
         x_splits (int []): array of index for x direction
@@ -307,7 +335,7 @@ def _to_block(medium_map):
     # X direction - for each y cell
     x_splits = []
     for jj in range(medium_map.shape[1]):
-        x_splits.append(list(_material_index(medium_map[:,jj])))
+        x_splits.append(list(_material_index(medium_map[:, jj])))
     x_splits = np.unique([ii for lst in x_splits for ii in lst])
     # Y direction - for each x cell
     y_splits = []
@@ -319,7 +347,7 @@ def _to_block(medium_map):
 
 
 def inscribed_circle(edges_x, edges_y, radii):
-    """ Separating medium map into inscribed chunks for MNP for each chunk
+    """Separating medium map into inscribed chunks for MNP for each chunk
     Arguments:
         edges_x (float [cells_x + 1]): locations of spatial cell edges (x)
         edges_y (float [cells_y + 1]): locations of spatial cell edges (y)
@@ -338,13 +366,13 @@ def inscribed_circle(edges_x, edges_y, radii):
         right = center + radius / np.sqrt(2)
 
         # X direction
-        xx = list(np.where((edges_x >= left) & (edges_x < right))[0][[0,-1]])
-        xx = np.array([0] + xx + [len(edges_x)-1], dtype=np.int32)
+        xx = list(np.where((edges_x >= left) & (edges_x < right))[0][[0, -1]])
+        xx = np.array([0] + xx + [len(edges_x) - 1], dtype=np.int32)
         x_splits.append(list(xx))
 
         # Y direction
-        yy = list(np.where((edges_y >= left) & (edges_y < right))[0][[0,-1]])
-        yy = np.array([0] + yy + [len(edges_y)-1], dtype=np.int32)
+        yy = list(np.where((edges_y >= left) & (edges_y < right))[0][[0, -1]])
+        yy = np.array([0] + yy + [len(edges_y) - 1], dtype=np.int32)
         y_splits.append(list(yy))
 
     # Collect unique values
@@ -357,6 +385,7 @@ def inscribed_circle(edges_x, edges_y, radii):
 ########################################################################
 # One Dimensional DMD
 ########################################################################
+
 
 def dmd_1d(flux_old, y_minus, y_plus, K):
     # Convert from memoryview
@@ -376,13 +405,13 @@ def dmd_1d(flux_old, y_minus, y_plus, K):
 
     # Calculate Atilde
     Atilde = U.T @ y_plus @ V.T @ S.T
-    
+
     # Calculate delta_y
-    I = np.identity(Atilde.shape[0])
-    delta_y = np.linalg.solve(I - Atilde, (U.T @ y_plus[:,-1]).T)
-    
+    identity = np.identity(Atilde.shape[0])
+    delta_y = np.linalg.solve(identity - Atilde, (U.T @ y_plus[:, -1]).T)
+
     # Estimate new flux
-    flux = (flux_old.flatten() - y_plus[:,K-2]) + (U @ delta_y).T
+    flux = (flux_old.flatten() - y_plus[:, K - 2]) + (U @ delta_y).T
     flux = flux.reshape(cells_x, groups)
 
     return flux
@@ -406,13 +435,13 @@ def dmd_2d(flux_old, y_minus, y_plus, K):
 
     # Calculate Atilde
     Atilde = U.T @ y_plus @ V.T @ S.T
-    
+
     # Calculate delta_y
-    I = np.identity(Atilde.shape[0])
-    delta_y = np.linalg.solve(I - Atilde, (U.T @ y_plus[:,-1]).T)
-    
+    identity = np.identity(Atilde.shape[0])
+    delta_y = np.linalg.solve(identity - Atilde, (U.T @ y_plus[:, -1]).T)
+
     # Estimate new flux
-    flux = (flux_old.flatten() - y_plus[:,K-2]) + (U @ delta_y).T
+    flux = (flux_old.flatten() - y_plus[:, K - 2]) + (U @ delta_y).T
     flux = flux.reshape(cells_x, cells_y, groups)
 
     return flux
@@ -425,20 +454,20 @@ def _svd_dmd(A, K):
     U, S, V = np.linalg.svd(A, full_matrices=False)
 
     # Find the non-zero singular values
-    if (S[(1-np.cumsum(S)/np.sum(S)) > residual].size >= 1):
+    if S[(1 - np.cumsum(S) / np.sum(S)) > residual].size >= 1:
         spos = S[(1 - np.cumsum(S) / np.sum(S)) > residual].copy()
     else:
         spos = S[S > 0].copy()
-    
+
     # Create diagonal matrix
     mat_size = np.min([K, len(spos)])
     S = np.zeros((mat_size, mat_size))
-    
+
     # Select the u and v that correspond with the nonzero singular values
     U = U[:, :mat_size].copy()
     V = V[:mat_size, :].copy()
-    
-    # S will be the inverse of the singular value diagonal matrix 
+
+    # S will be the inverse of the singular value diagonal matrix
     S[np.diag_indices(mat_size)] = 1 / spos
 
     return U, S, V

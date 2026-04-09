@@ -1,12 +1,12 @@
 ################################################################################
 #                             ___    _   _____________
 #                            /   |  / | / /_  __/ ___/
-#                           / /| | /  |/ / / /  \__ \ 
-#                          / ___ |/ /|  / / /  ___/ / 
-#                         /_/  |_/_/ |_/ /_/  /____/  
-#     
-# Functions needed for both fixed source, criticality, and time-dependent 
-# problems in one-dimensional neutron transport 
+#                           / /| | /  |/ / / /  \__ \
+#                          / ___ |/ /|  / / /  ___/ /
+#                         /_/  |_/_/ |_/ /_/  /____/
+#
+# Functions needed for both fixed source, criticality, and time-dependent
+# problems in one-dimensional neutron transport
 #
 ################################################################################
 
@@ -22,14 +22,13 @@
 
 from cython.view cimport array as cvarray
 
+from ants.cytools_shared cimport _normalize_flux as _shared_normalize_flux
+from ants.cytools_shared cimport _total_velocity as _shared_total_velocity
+from ants.cytools_shared cimport _update_keffective as _shared_update_keffective
+from ants.cytools_shared cimport angle_convergence as _shared_angle_convergence
+from ants.cytools_shared cimport group_convergence as _shared_group_convergence
 from ants.parameters cimport params
-from ants.cytools_shared cimport (
-    group_convergence as _shared_group_convergence,
-    angle_convergence as _shared_angle_convergence,
-    _normalize_flux as _shared_normalize_flux,
-    _update_keffective as _shared_update_keffective,
-    _total_velocity as _shared_total_velocity,
-)
+
 
 ################################################################################
 # Memoryview functions
@@ -127,7 +126,7 @@ cdef void _dmd_subtraction(double[:,:,:]& y_minus, double[:,:,:]& y_plus, \
         for gg in range(info.groups):
             if (kk < info.dmd_snapshots - 1):
                 y_minus[ii,gg,kk] = (flux[ii,gg] - flux_old[ii,gg])
-            
+
             if (kk > 0):
                 y_plus[ii,gg,kk-1] = (flux[ii,gg] - flux_old[ii,gg])
 
@@ -135,13 +134,13 @@ cdef void _dmd_subtraction(double[:,:,:]& y_minus, double[:,:,:]& y_plus, \
 cdef void _off_scatter(double[:,:]& flux, double[:,:]& flux_old, \
         int[:]& medium_map, double[:,:,:]& xs_matrix, \
         double[:]& off_scatter, params info, int group):
-    
+
     # Initialize iterables
     cdef int ii, mat, og
-    
+
     # Zero out previous values
     off_scatter[:] = 0.0
-    
+
     for ii in range(info.cells_x):
         mat = medium_map[ii]
         for og in range(0, group):
@@ -288,7 +287,7 @@ cdef void _time_source_star_tr_bdf2(double[:,:,:]& flux_1, double[:,:,:]& flux_2
         double gamma, params info):
     # flux_1 is time step \ell (edges)
     # flux_2 is time step \ell + gamma (centers)
-    
+
     # Initialize iterables
     cdef int ii, nn, gg, nn_q, gg_q
     # Zero out previous values
@@ -320,7 +319,7 @@ cdef void _time_right_side(double[:,:,:]& q_star, double[:,:]& flux, \
             one_group = 0.0
             for ig in range(info.groups):
                 one_group += flux[ii,ig] * xs_scatter[mat,og,ig]
-            for nn in range(info.angles):    
+            for nn in range(info.angles):
                 q_star[ii,nn,og] += one_group
 
 ################################################################################
@@ -358,10 +357,10 @@ cdef void _source_total_critical(double[:,:,:]& source, double[:,:]& flux, \
         double[:,:,:]& xs_scatter, double[:,:,:]& xs_fission, \
         int[:]& medium_map, double keff, params info):
     # Create (sigma_s + sigma_f) * phi + external function
-    
+
     # Initialize iterables
     cdef int ii, ig, og, mat#, loc
-    
+
     # Zero out previous values
     source[:,:,:] = 0.0
 
@@ -497,7 +496,7 @@ cdef void _hybrid_source_total(double[:,:]& flux_u, double[:,:]& flux_c, \
 ################################################################################
 # Variable Hybrid Time Dependent Problems
 ################################################################################
-    
+
 cdef void _vhybrid_parameters(int[:] coarse_idx, double[:] factor, \
         double[:] edges_g, int[:] edges_gidx_c, int groups_c):
 
@@ -529,14 +528,14 @@ cdef void _vhybrid_velocity(double[:] star_coef_c, double[:] velocity_u, \
 cdef void _vhybrid_source_c(double[:,:]& flux_u, double[:,:,:]& xs_scatter, \
         double[:,:,:]& source_c, int[:]& medium_map,  int[:]& edges_gidx_c, \
         params info_u, params info_c):
-    
+
     # Initialize iterables
     cdef int ii, mat, gg, og, ig
     cdef double source
-    
+
     # Zero out previous source
     source_c[:,:,:] = 0.0
-    
+
     # Iterate over all spatial cells
     for ii in range(info_u.cells_x):
         mat = medium_map[ii]
@@ -550,7 +549,7 @@ cdef void _vhybrid_source_c(double[:,:]& flux_u, double[:,:,:]& xs_scatter, \
 
 cdef void _coarsen_flux(double[:,:]& flux_u, double[:,:]& flux_c, \
         int[:]& edges_gidx_c, params info_c):
-    
+
     # Initialize iterables
     cdef int ii, og, ig
     cdef double tmp_flux
@@ -570,7 +569,7 @@ cdef void _coarsen_flux(double[:,:]& flux_u, double[:,:]& flux_c, \
 cdef void _variable_cross_sections(double[:]& xs_total_c, double[:,:]& xs_total_u, \
         double star_coef_c, double[:]& xs_scatter_c, double[:,:,:]& xs_scatter_u, \
         double[:]& edges_g, int idx1, int idx2, params info_c):
-    
+
     # Initialize iterables
     cdef int mat, ii, jj
     cdef double delta_coarse = 1.0 / (edges_g[idx2] - edges_g[idx1])
@@ -578,7 +577,7 @@ cdef void _variable_cross_sections(double[:]& xs_total_c, double[:,:]& xs_total_
     # Zero out cross sections
     xs_total_c[:] = 0.0
     xs_scatter_c[:] = 0.0
-    
+
     # Iterate over every material and uncollided energy group
     for mat in range(info_c.materials):
         for ii in range(idx1, idx2):
@@ -587,7 +586,7 @@ cdef void _variable_cross_sections(double[:]& xs_total_c, double[:,:]& xs_total_
             # Inner iteration for scatter cross section
             for jj in range(idx1, idx2):
                 xs_scatter_c[mat] += xs_scatter_u[mat,ii,jj] * (edges_g[jj+1] - edges_g[jj])
-        
+
         xs_total_c[mat] = xs_total_c[mat] * delta_coarse + star_coef_c
         xs_scatter_c[mat] *= delta_coarse
 
@@ -596,14 +595,14 @@ cdef void _variable_off_scatter(double[:,:]& flux, double[:,:]& flux_old, \
         int[:]& medium_map, double[:,:,:]& xs_matrix, double[:]& off_scatter, \
         int group, double[:]& edges_g, int[:]& edges_gidx_c, int out_idx1, \
         int out_idx2, params info):
-    
+
     # Initialize iterables
     cdef int gg, in_idx1, in_idx2, ii, mat, og, ig
     cdef double prod_tmp, delta_coarse
-    
+
     # Zero out previous values
     off_scatter[:] = 0.0
-    
+
     # Iterate over collided groups
     for gg in range(info.groups):
 
@@ -635,15 +634,15 @@ cdef void _variable_off_scatter(double[:,:]& flux, double[:,:]& flux_old, \
 cdef void _vhybrid_source_total(double[:,:]& flux_u, double[:,:]& flux_c, \
         double[:,:,:]& xs_matrix_u, double[:,:,:]& source, int[:]& medium_map, \
         double[:]& edges_g, int[:]& edges_gidx_c, params info_u, params info_c):
-    
+
     # Initialize iterables
     cdef int ii, mat, nn, ig, og, idx1, idx2
     cdef double one_group, delta_coarse
-    
+
     # Assume that source is already (Qu + 1 / (v * dt) * psi^{\ell-1})
     for ii in range(info_u.cells_x):
         mat = medium_map[ii]
-        
+
         for og in range(info_c.groups):
             idx1 = edges_gidx_c[og]
             idx2 = edges_gidx_c[og+1]
@@ -652,7 +651,7 @@ cdef void _vhybrid_source_total(double[:,:]& flux_u, double[:,:]& flux_c, \
             for ig in range(idx1, idx2):
                 flux_u[ii,ig] = flux_u[ii,ig] + flux_c[ii,og] * delta_coarse \
                                 * (edges_g[ig+1] - edges_g[ig])
-        
+
         for og in range(info_u.groups):
             one_group = 0.0
             for ig in range(info_u.groups):

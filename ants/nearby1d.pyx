@@ -1,9 +1,9 @@
 ########################################################################
 #                        ___    _   _____________
 #                       /   |  / | / /_  __/ ___/
-#                      / /| | /  |/ / / /  \__ \ 
-#                     / ___ |/ /|  / / /  ___/ / 
-#                    /_/  |_/_/ |_/ /_/  /____/  
+#                      / /| | /  |/ / / /  \__ \
+#                     / ___ |/ /|  / / /  ___/ /
+#                    /_/  |_/_/ |_/ /_/  /____/
 #
 # One-Dimensional Nearby Problems
 #
@@ -23,7 +23,7 @@ import logging
 import numpy as np
 from tqdm.auto import tqdm
 
-from ants import fixed1d, critical1d
+from ants import critical1d, fixed1d
 from ants.datatypes import CrossSections, QuadratureData, SpatialGrid
 from ants.utils.interp1d import Interpolation
 from ants.utils.pytools import average_array
@@ -207,7 +207,7 @@ def fixed_source_scalar_residual(scalar_flux, xs_total, xs_scatter, \
 
     return np.asarray(curve_fit_flux), np.asarray(curve_fit_boundary_x), \
             np.asarray(residual)
-            
+
 
 cdef void _angular_curve_fit_centers(double[:,:,:]& flux, \
         double[:,:]& curve_fit, double[:,:,:]& boundary_x, \
@@ -288,7 +288,7 @@ cdef void _angular_curve_fit_edges(double[:,:,:]& flux, \
 
     # Populate int_scalar scalar flux
     tools._angular_to_scalar(int_angular, int_scalar, angle_w, info)
-                
+
 
 cdef void _angular_residual(double[:,:,:]& residual, double[:,:,:]& psi, \
         double[:,:,:]& int_dx, double[:,:]& phi, double[:,:]& xs_total, \
@@ -350,7 +350,7 @@ cdef void _scalar_curve_fit_residual(double[:,:,:]& flux, double[:,:]& curve_fit
         # Iterate over angles
         for nn in tqdm(range(info.angles), desc="Curve Fit Angles", \
                     ascii=True, position=1, leave=False):
-            
+
             nn_q = 0 if external.shape[1] == 1 else nn
 
             # Create function

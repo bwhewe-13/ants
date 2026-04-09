@@ -1,10 +1,9 @@
+import matplotlib.pyplot as plt
+import numpy as np
 
 import ants
 from ants.hybrid1d import backward_euler
 from ants.utils import hybrid as hytools
-
-import numpy as np
-import matplotlib.pyplot as plt
 
 # General conditions
 cells_x = 320
@@ -15,35 +14,35 @@ groups_c = 1
 steps = 100
 
 info_u = {
-            "cells_x": cells_x,
-            "angles": angles_u,
-            "groups": groups_u,
-            "materials": 4,
-            "geometry": 1,
-            "spatial": 2,
-            "bc_x": [0, 0],
-            "steps": steps,
-            "dt": 1.,
-            "angular": False
-        }
+    "cells_x": cells_x,
+    "angles": angles_u,
+    "groups": groups_u,
+    "materials": 4,
+    "geometry": 1,
+    "spatial": 2,
+    "bc_x": [0, 0],
+    "steps": steps,
+    "dt": 1.0,
+    "angular": False,
+}
 
 info_c = {
-            "cells_x": cells_x,
-            "angles": angles_c,
-            "groups": groups_c,
-            "materials": 4,
-            "geometry": 1,
-            "spatial": 2,
-            "bc_x": [0, 0],
-            "steps": steps,
-            "dt": 1.,
-            "angular": False
-        }
+    "cells_x": cells_x,
+    "angles": angles_c,
+    "groups": groups_c,
+    "materials": 4,
+    "geometry": 1,
+    "spatial": 2,
+    "bc_x": [0, 0],
+    "steps": steps,
+    "dt": 1.0,
+    "angular": False,
+}
 
 # Spatial
-length = 16.
+length = 16.0
 delta_x = np.repeat(length / cells_x, cells_x)
-edges_x = np.linspace(0, length, cells_x+1)
+edges_x = np.linspace(0, length, cells_x + 1)
 centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
 
 # Energy Grid
@@ -56,8 +55,12 @@ angle_xu, angle_wu = ants.angular_x(info_u)
 angle_xc, angle_wc = ants.angular_x(info_c)
 
 # Medium Map
-layers = [[0, "scatter", "0-4, 12-16"], [1, "vacuum", "4-5, 11-12"],
-             [2, "absorber", "5-6, 10-11"], [3, "source", "6-10"]]
+layers = [
+    [0, "scatter", "0-4, 12-16"],
+    [1, "vacuum", "4-5, 11-12"],
+    [2, "absorber", "5-6, 10-11"],
+    [3, "source", "6-10"],
+]
 medium_map = ants.spatial1d(layers, edges_x)
 
 # Material Cross Sections
@@ -81,15 +84,34 @@ fine_idx, coarse_idx, factor = hytools.indexing(edges_g, edges_gidx_u, edges_gid
 initial_flux = np.zeros((cells_x, angles_u, groups_u))
 
 # Run Hybrid Method
-flux = backward_euler(initial_flux, xs_total_u, xs_total_c, xs_scatter_u, \
-            xs_scatter_c, xs_fission_u, xs_fission_c, velocity_u, \
-            velocity_c, external, boundary_x, medium_map, delta_x, \
-            angle_xu, angle_xc, angle_wu, angle_wc, fine_idx, coarse_idx, \
-            factor, info_u, info_c)
+flux = backward_euler(
+    initial_flux,
+    xs_total_u,
+    xs_total_c,
+    xs_scatter_u,
+    xs_scatter_c,
+    xs_fission_u,
+    xs_fission_c,
+    velocity_u,
+    velocity_c,
+    external,
+    boundary_x,
+    medium_map,
+    delta_x,
+    angle_xu,
+    angle_xc,
+    angle_wu,
+    angle_wc,
+    fine_idx,
+    coarse_idx,
+    factor,
+    info_u,
+    info_c,
+)
 
 
 fig, ax = plt.subplots()
-ax.plot(centers_x, flux[-1,:,0], label="Last Time Step", c="r", alpha=0.6)
+ax.plot(centers_x, flux[-1, :, 0], label="Last Time Step", c="r", alpha=0.6)
 
 ax.set_title("Reed Problem")
 ax.set_xlabel("Location (cm)")

@@ -14,9 +14,9 @@ import os
 
 import numpy as np
 import pytest
-from ants.critical1d import k_criticality
 
 import ants
+from ants.critical1d import k_criticality
 from ants.datatypes import SolverData
 from tests import criticality_benchmarks as benchmarks
 from tests import problems1d

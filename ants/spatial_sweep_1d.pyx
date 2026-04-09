@@ -18,11 +18,13 @@
 # cython: profile=True
 # distutils: language = c++
 
-from libc.math cimport pow, fabs, tanh, M_PI
-# from cython.parallel import prange
+from libc.math cimport M_PI, fabs, pow, tanh
 
 from ants cimport cytools_1d as tools
 from ants.parameters cimport params
+
+# from cython.parallel import prange
+
 
 
 cdef void discrete_ordinates(double[:]& flux, double[:]& flux_old, \
@@ -47,33 +49,33 @@ cdef void slab_ordinates(double[:]& flux, double[:]& flux_old, \
         double[:,:]& external, double[:,:]& boundary_x, int[:]& medium_map, \
         double[:]& delta_x, double[:]& angle_x, double[:]& angle_w, \
         params info):
-    
+
     # Initialize external and boundary indices, iterables
     cdef int nn, qq, bc
-    
+
     # Initialize unknown cell edge
     cdef double edge = 0.0
-    
+
     # Add reflector array
     reflector = tools.array_1d(info.angles)
-    
+
     # Set convergence limits
     cdef bint converged = False
     cdef int count = 1
     cdef double change = 0.0
-    
+
     # Iterate over angles until converged
     while not (converged):
-    
+
         # Zero out the scalar flux
         flux[:] = 0.0
-    
+
         # Zero out reflector collector
         reflector[:] = 0.0
-    
+
         # Iterate over angles
         for nn in range(info.angles):
-            
+
             # Determine dimensions of external and boundary sources
             qq = 0 if external.shape[1] == 1 else nn
             bc = 0 if boundary_x.shape[1] == 1 else nn
@@ -82,17 +84,17 @@ cdef void slab_ordinates(double[:]& flux, double[:]& flux_old, \
             edge = slab_sweep(flux, flux_old, xs_total, xs_scatter, off_scatter, \
                         external[:,qq], boundary_x[:,bc], medium_map, \
                         delta_x, angle_x[nn], angle_w[nn], reflector[nn], info)
-            
+
             # Update reflected direction
             reflector_corrector(reflector, angle_x, edge, nn, info)
-        
+
         # Calculate L2 change
         change = tools.angle_convergence(flux, flux_old, info)
         # Check for convergence
         converged = (change < info.tol_angular) or (count >= info.max_iter_angular)
         # Add one to the iteration count
         count += 1
-        
+
         # Update flux_old
         flux_old[:] = flux[:]
 
@@ -438,38 +440,38 @@ cdef void _known_slab(double[:,:]& flux, double[:]& xs_total, \
         double[:]& zero, double[:,:]& source, double[:,:]& boundary_x, \
         int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
         double[:]& angle_w, params info):
-    
+
     # Initialize external and boundary indices, iterables
     cdef int nn, qq, bc
-    
+
     # Initialize unknown cell edge
     cdef double edge = 0.0
-    
+
     # Add dummy dimension to run both (I x N) and (I) fluxes
     cdef int xdim = flux.shape[1]
-    
+
     # Add reflector array initialized to zero
     reflector = tools.array_1d(info.angles)
-    
+
     # Iterate over all the discrete ordinates
     for nn in range(info.angles):
-        
+
         # Determine dimensions of external and boundary sources
         qq = 0 if source.shape[1] == 1 else nn
         bc = 0 if boundary_x.shape[1] == 1 else nn
-        
+
         # Perform spatial sweep on scalar flux
         if (xdim == 1):
             edge = slab_sweep(flux[:,0], zero, xs_total, zero, zero, \
                     source[:,qq], boundary_x[:,bc], medium_map, \
                     delta_x, angle_x[nn], angle_w[nn], reflector[nn], info)
-        
+
         # Perform spatial sweep on angular flux
         else:
             edge = slab_sweep(flux[:,nn], zero, xs_total, zero, zero, \
                     source[:,qq], boundary_x[:,bc], medium_map, \
                     delta_x, angle_x[nn], 1.0, reflector[nn], info)
-        
+
         # Update reflected direction
         reflector_corrector(reflector, angle_x, edge, nn, info)
 
@@ -478,45 +480,45 @@ cdef void _known_sphere(double[:,:]& flux, double[:]& xs_total, \
         double[:]& zero, double[:,:]& source, double[:,:]& boundary_x, \
         int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
         double[:]& angle_w, params info):
-    
+
     # Initialize external and boundary indices, iterables
     cdef int nn, qq, bc
-    
+
     # Initialize sphere specific terms
     cdef double angle_minus, angle_plus, tau
     cdef double alpha_minus, alpha_plus
     half_angle = tools.array_1d(info.cells_x)
-    
+
     # Add dummy dimension to run both (I x N) and (I) fluxes
     cdef int xdim = flux.shape[1]
-    
+
     # Initialize the half angle coefficient
     angle_minus = -1.0
-    
+
     # Initialize the angular differencing coefficient
     alpha_minus = 0.0
-    
+
     # Calculate the initial half angle
     initialize_half_angle(zero, half_angle, xs_total, zero, zero, \
                 source[:,0], medium_map, delta_x, boundary_x[1,0], info)
-    
+
     # Iterate over all the discrete ordinates
     for nn in range(info.angles):
-    
+
         # Determine dimensions of external and boundary sources
         qq = 0 if source.shape[1] == 1 else nn
         bc = 0 if boundary_x.shape[1] == 1 else nn
-    
+
         # Calculate the half angle coefficient
         angle_plus = angle_minus + 2 * angle_w[nn]
-    
+
         # Calculate the weighted diamond
         tau = (angle_x[nn] - angle_minus) / (angle_plus - angle_minus)
-    
+
         # Calculate the angular differencing coefficient
         alpha_plus = angle_coef_corrector(alpha_minus, angle_x[nn], \
                                           angle_w[nn], nn, info)
-    
+
         # Iterate over spatial cells
         if (xdim == 1):
             sphere_sweep(flux[:,0], zero, half_angle, xs_total, zero, \
@@ -528,9 +530,9 @@ cdef void _known_sphere(double[:,:]& flux, double[:]& xs_total, \
                         zero, source[:,qq], boundary_x[:,bc], medium_map, \
                         delta_x, angle_x[nn], angle_w[nn], 1.0, tau, \
                         alpha_plus, alpha_minus, info)
-        
+
         # Update the angular differencing coefficient
         alpha_minus = alpha_plus
-        
+
         # Update the half angle
         angle_minus = angle_plus

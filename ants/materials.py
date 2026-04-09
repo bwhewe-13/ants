@@ -51,10 +51,24 @@ __materials = __enrichment_materials + __nonenrichment_materials
 
 
 def materials(groups, materials, key=False, datatype=True):
-    """Creating cross sections for different materials
-    Args:
-        groups (int): Number of energy groups
-        materials (list): [material1, ..., materialN]
+    """Create cross sections for one or more materials.
+
+    Parameters
+    ----------
+    groups : int
+        Number of energy groups.
+    materials : list[str]
+        Material names, e.g. ``[material1, ..., materialN]``.
+    key : bool, optional
+        If ``True``, also return the material index mapping.
+    datatype : bool, optional
+        If ``True``, return a ``MaterialData`` object.
+
+    Returns
+    -------
+    MaterialData or tuple
+        Either a ``MaterialData`` instance or raw arrays (and optional key map)
+        depending on ``datatype`` and ``key``.
     """
     material_key = {}
     xs_total = []
