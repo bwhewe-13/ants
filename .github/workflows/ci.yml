@@ -61,6 +61,12 @@ jobs:
       - name: Run tests with coverage
         run: pytest -n auto --dist loadfile tests --cov=ants --cov-report=term-missing --cov-report=xml
 
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: bwhewe-13/ants
+
   docs:
     name: Docs Build
     runs-on: ubuntu-latest
