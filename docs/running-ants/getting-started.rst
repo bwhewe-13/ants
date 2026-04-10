@@ -20,7 +20,7 @@ one-dimensional (slab and sphere) and two-dimensional (square and triangular) ge
 * **Spatial**: Step characteristic method or diamond difference
 * **Angular**: Discrete ordinates (level symmetric quadrature sets)
 * **Energy**: Multigroup formulation
-* **Time**: Backward Euler method (first-order implicit)
+* **Time**: BDF1 (backward Euler), BDF2, Crank-Nicolson (CN), and TR-BDF2
 
 
 Required Input Data

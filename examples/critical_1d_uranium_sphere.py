@@ -1,22 +1,27 @@
+########################################################################
+#                        ___    _   _____________
+#                       /   |  / | / /_  __/ ___/
+#                      / /| | /  |/ / / /  \__ \
+#                     / ___ |/ /|  / / /  ___/ /
+#                    /_/  |_/_/ |_/ /_/  /____/
+#
+# One dimensional k-eigenvalue (criticality) problem in spherical
+# geometry. A uranium-20% enriched core surrounded by depleted uranium
+# and stainless steel shielding, using 87 energy groups.
+#
+########################################################################
+
 import numpy as np
 
 import ants
-from ants.critical1d import power_iteration
+from ants.critical1d import k_criticality
+from ants.datatypes import GeometryData, SolverData
 
 # General conditions
 cells_x = 1000
 angles = 8
 groups = 87
-
-info = {
-    "cells_x": cells_x,
-    "angles": angles,
-    "groups": groups,
-    "materials": 3,
-    "geometry": 2,
-    "spatial": 2,
-    "bc_x": [1, 0],
-}
+bc_x = [1, 0]  # reflective at origin, vacuum at surface
 
 # Spatial
 length = 10.0
@@ -24,10 +29,10 @@ delta_x = np.repeat(length / cells_x, cells_x)
 edges_x = np.linspace(0, length, cells_x + 1)
 centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
 
-# Angular
-angle_x, angle_w = ants.angular_x(info)
+# Angular quadrature
+quadrature = ants.angular_x(angles, bc_x=bc_x)
 
-# Medium Map
+# Medium map
 layers = [
     [0, "uranium-%20%", "0-4"],
     [1, "uranium-%0%", "4-6"],
@@ -35,12 +40,19 @@ layers = [
 ]
 medium_map = ants.spatial1d(layers, edges_x)
 
-# Cross Sections
-materials = np.array(layers)[:, 1]
-xs_total, xs_scatter, xs_fission = ants.materials(87, materials)
+# Cross sections
+mat_data = ants.materials(87, np.array(layers)[:, 1], datatype=True)
 
-flux, keff = power_iteration(
-    xs_total, xs_scatter, xs_fission, medium_map, delta_x, angle_x, angle_w, info
+geometry = GeometryData(
+    medium_map=medium_map,
+    delta_x=delta_x,
+    bc_x=bc_x,
+    geometry=2,  # spherical geometry
 )
+solver = SolverData()
 
-# np.save("critical_uranium_sphere", flux)
+flux, keff = k_criticality(mat_data, geometry, quadrature, solver)
+print(f"k-effective: {keff:.6f}")
+
+# np.save("critical_uranium_sphere_flux", flux)
+# np.save("critical_uranium_sphere_keff", keff)

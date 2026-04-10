@@ -7,3 +7,4 @@ Running ANTS
     standard-inputs.rst
     time-dependent-inputs.rst
     extra.rst
+    examples.rst

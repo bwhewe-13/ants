@@ -5,19 +5,25 @@
 #                     / ___ |/ /|  / / /  ___/ /
 #                    /_/  |_/_/ |_/ /_/  /____/
 #
+# Two dimensional method of manufactured solutions problem with no
+# scattering, unit external source, and incoming boundary sources.
+# Solution 02: exponential decay in both x and y directions.
+#
 ########################################################################
 
+import matplotlib.pyplot as plt
 import numpy as np
 
 import ants
-from ants.fixed2d import source_iteration
+from ants.datatypes import GeometryData, MaterialData, SolverData, SourceData
+from ants.fixed2d import fixed_source
 from ants.utils import manufactured_2d as mms
 
-cells_x = cells_y = 50
-# cells_y = 200
-angles = angles1 = 4
-# angles1 = 4
-groups = 1
+cells_x = 50
+cells_y = 50
+angles = 4
+bc_x = [0, 0]
+bc_y = [0, 0]
 
 length_x = 1.0
 delta_x = np.repeat(length_x / cells_x, cells_x)
@@ -29,54 +35,59 @@ delta_y = np.repeat(length_y / cells_y, cells_y)
 edges_y = np.linspace(0, length_y, cells_y + 1)
 centers_y = 0.5 * (edges_y[1:] + edges_y[:-1])
 
-bc = [0, 0]
+# Angular quadrature
+quadrature = ants.angular_xy(angles, bc_x=bc_x, bc_y=bc_y)
 
-info = {
-    "cells_x": cells_x,
-    "cells_y": cells_y,
-    "angles": angles,
-    "groups": groups,
-    "materials": 1,
-    "geometry": 1,
-    "spatial": 2,
-    "bc_x": bc,
-    "bc_y": bc,
-    "angular": False,
-}
+mat_data = MaterialData(
+    total=np.array([[1.0]]),
+    scatter=np.array([[[0.0]]]),
+    fission=np.array([[[0.0]]]),
+)
 
-
-# Angular
-angle_x, angle_y, angle_w = ants.angular_xy(info)
-
-# Materials
-xs_total = np.array([[1.0]])
-xs_scatter = np.array([[[0.0]]])
-xs_fission = np.array([[[0.0]]])
-
-# Externals
-external = np.ones((info["cells_x"], info["cells_y"], 1, 1))
 boundary_x, boundary_y = ants.boundary2d.manufactured_ss_02(
-    centers_x, centers_y, angle_x, angle_y
+    centers_x, centers_y, quadrature.angle_x, quadrature.angle_y
 )
 
-# Layout
-medium_map = np.zeros((info["cells_x"], info["cells_y"]), dtype=np.int32)
-
-flux = source_iteration(
-    xs_total,
-    xs_scatter,
-    xs_fission,
-    external,
-    boundary_x,
-    boundary_y,
-    medium_map,
-    delta_x,
-    delta_y,
-    angle_x,
-    angle_y,
-    angle_w,
-    info,
+sources = SourceData(
+    external=np.ones((cells_x, cells_y, 1, 1)),
+    boundary_x=boundary_x,
+    boundary_y=boundary_y,
 )
-exact = mms.solution_ss_02(centers_x, centers_y, angle_x, angle_y)
 
-exact = np.sum(exact * angle_w[None, None, :, None], axis=(2, 3))
+geometry = GeometryData(
+    medium_map=np.zeros((cells_x, cells_y), dtype=np.int32),
+    delta_x=delta_x,
+    delta_y=delta_y,
+    bc_x=bc_x,
+    bc_y=bc_y,
+    geometry=3,  # 2D slab
+)
+solver = SolverData()
+
+flux = fixed_source(mat_data, sources, geometry, quadrature, solver)
+flux = np.squeeze(flux)
+exact = mms.solution_ss_02(centers_x, centers_y, quadrature.angle_x, quadrature.angle_y)
+exact_scalar = np.sum(exact * quadrature.angle_w[None, None, :, None], axis=(2, 3))
+
+fig, axes = plt.subplots(1, 3, figsize=(12, 4))
+img0 = axes[0].pcolormesh(centers_x, centers_y, flux.T, cmap="viridis")
+axes[0].set_title("Numerical Flux")
+fig.colorbar(img0, ax=axes[0])
+
+img1 = axes[1].pcolormesh(centers_x, centers_y, exact_scalar.T, cmap="viridis")
+axes[1].set_title("Exact Flux")
+fig.colorbar(img1, ax=axes[1])
+
+error = np.abs(flux - exact_scalar)
+img2 = axes[2].pcolormesh(centers_x, centers_y, error.T, cmap="hot_r")
+axes[2].set_title("Absolute Error")
+fig.colorbar(img2, ax=axes[2])
+
+for ax in axes:
+    ax.set_xlabel("x (cm)")
+    ax.set_ylabel("y (cm)")
+    ax.set_aspect("equal", "box")
+
+fig.suptitle("2D Manufactured Solution 02")
+plt.tight_layout()
+plt.show()

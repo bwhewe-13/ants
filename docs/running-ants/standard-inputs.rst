@@ -3,6 +3,8 @@ Standard Inputs
 
 All problem types require standard input data: cross-sectional data, material locations,
 spatial discretization, angular quadrature, and source/boundary conditions.
+These are passed to solver functions as typed dataclass objects — see :doc:`extra`
+for a complete reference and worked examples.
 
 
 Cross-Sectional Data
@@ -10,9 +12,9 @@ Cross-Sectional Data
 
 The neutron cross-sectional data required are:
 
-* **Total cross section**: :math:`\sigma^{\mathrm{t}}` - vector of size :math:`(M \times G)`
-* **Scattering matrix**: :math:`\sigma^{\mathrm{s}}` - matrix of size :math:`(M \times G \times G)`
-* **Fission matrix**: :math:`\chi \, \nu \, \sigma^{\mathrm{f}}` - matrix of size :math:`(M \times G \times G)`
+* **Total cross section**: :math:`\sigma^{\mathrm{t}}` — shape :math:`(M \times G)`
+* **Scattering matrix**: :math:`\sigma^{\mathrm{s}}` — shape :math:`(M \times G \times G)`
+* **Fission matrix**: :math:`\chi \, \nu \, \sigma^{\mathrm{f}}` — shape :math:`(M \times G \times G)`
 
 where :math:`M` is the number of materials and :math:`G` is the number of energy groups.
 
@@ -42,14 +44,15 @@ Spatial Data
 
 Spatial discretization requires cell widths in each direction:
 
-* **1D problems**: ``delta_x`` - array of cell widths, shape :math:`(I,)`
-* **2D problems**: ``delta_x`` and ``delta_y`` - arrays of cell widths, shapes :math:`(I,)` and :math:`(J,)` respectively
+* **1D problems**: ``delta_x`` — array of cell widths, shape :math:`(I,)`
+* **2D problems**: ``delta_x`` and ``delta_y`` — shapes :math:`(I,)` and :math:`(J,)` respectively
 
 
 Angular Data
 ------------
 
-Angular quadrature data (discrete directions and weights) is generated automatically:
+Angular quadrature data (discrete directions and weights) is generated automatically
+and returned as a ``QuadratureData`` object:
 
 .. autofunction:: ants.angular_x
 
@@ -59,72 +62,51 @@ Angular quadrature data (discrete directions and weights) is generated automatic
 Source and Boundary Data
 ------------------------
 
-External source and boundary conditions can have various shapes depending on problem type.
-The dimensions are flattened to allow flexible representations. Dimension specifiers
-(``qdim``, ``bcdim_x``, ``bcdim_y``) indicate the actual shape when needed.
+External sources and boundary conditions are passed inside a ``SourceData`` object.
+Arrays are broadcast automatically along dimensions of size 1, so it is not necessary
+to match the full ``(I, N, G)`` shape — a shape of ``(I, 1, 1)`` is sufficient for
+a spatially varying, angle- and energy-independent source.
 
-**One-Dimensional Source Dimensions:**
-
-.. table::
-
-    +------------------------+----------+------------------------+----------+
-    | ``external`` shape     | ``qdim`` | ``boundary_x`` shape   | ``bcdim``|
-    +========================+==========+========================+==========+
-    | :math:`(I,)`           | 1        | :math:`(2,)`           | 1        |
-    +------------------------+----------+------------------------+----------+
-    | :math:`(I, G)`         | 2        | :math:`(2, G)`         | 2        |
-    +------------------------+----------+------------------------+----------+
-    | :math:`(I, N, G)`      | 3        | :math:`(2, N, G)`      | 3        |
-    +------------------------+----------+------------------------+----------+
-    | :math:`(I, N, G, T)`   | 4        | :math:`(2, N, G, T)`   | 4        |
-    +------------------------+----------+------------------------+----------+
-
-
-**Two-Dimensional Source Dimensions:**
+**One-Dimensional shapes:**
 
 .. list-table::
-     :header-rows: 1
+   :header-rows: 1
 
-     * - ``external`` shape
-         - ``qdim``
-         - ``boundary_x`` shape
-         - ``bcdim_x``
-         - ``boundary_y`` shape
-         - ``bcdim_y``
-     * - :math:`(I, J)`
-         - 1
-         - :math:`(2,)`
-         - 1
-         - :math:`(2,)`
-         - 1
-     * - :math:`(I, J, G)`
-         - 2
-         - :math:`(2, J)`
-         - 2
-         - :math:`(2, I)`
-         - 2
-     * - :math:`(I, J, N^2, G)`
-         - 3
-         - :math:`(2, J, G)`
-         - 3
-         - :math:`(2, I, G)`
-         - 3
-     * - :math:`(I, J, N^2, G, T)`
-         - 4
-         - :math:`(2, J, N^2, G)`
-         - 4
-         - :math:`(2, I, N^2, G)`
-         - 4
-     * -
-         -
-         - :math:`(2, J, N^2, G, T)`
-         - 5
-         - :math:`(2, I, N^2, G, T)`
-         - 5
+   * - Field
+     - Minimum broadcast shape
+     - Full shape
+   * - ``external`` (fixed/critical)
+     - ``(I, 1, 1)``
+     - ``(I, N, G)``
+   * - ``external`` (time-dependent)
+     - ``(1, I, 1, 1)``
+     - ``(T, I, N, G)``
+   * - ``boundary_x`` (fixed/critical)
+     - ``(2, 1, 1)``
+     - ``(2, N, G)``
+   * - ``boundary_x`` (time-dependent)
+     - ``(T, 2, 1, 1)``
+     - ``(T, 2, N, G)``
 
+**Two-Dimensional shapes:**
 
-General Parameters
--------------------
+.. list-table::
+   :header-rows: 1
 
-All problems require a parameters dictionary specifying problem configuration.
-For detailed parameter documentation and working examples, see :doc:`extra`.
+   * - Field
+     - Minimum broadcast shape
+     - Full shape
+   * - ``external`` (fixed/critical)
+     - ``(I, J, 1, 1)``
+     - ``(I, J, N^2, G)``
+   * - ``external`` (time-dependent)
+     - ``(1, I, J, 1, 1)``
+     - ``(T, I, J, N^2, G)``
+   * - ``boundary_x``
+     - ``(T, 2, 1, 1, 1)``
+     - ``(T, 2, J, N^2, G)``
+   * - ``boundary_y``
+     - ``(T, 2, 1, 1, 1)``
+     - ``(T, 2, I, N^2, G)``
+
+For initial flux shapes (time-dependent problems), see :doc:`time-dependent-inputs`.

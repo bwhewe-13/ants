@@ -5,9 +5,10 @@
 #                     / ___ |/ /|  / / /  ___/ /
 #                    /_/  |_/_/ |_/ /_/  /____/
 #
-# Transient Reed's monoenergetic problem solved with the collision-based
-# hybrid method. The uncollided and collided problems use the same single
-# energy group and the same angular quadrature for simplicity.
+# Transient Reed's monoenergetic problem solved with the vectorized
+# hybrid method (vhybrid1d). The coarse grid resolution (groups_c,
+# angles_c) is specified per time step as integer arrays, allowing the
+# angular and energy resolution to vary adaptively across time steps.
 #
 ########################################################################
 
@@ -22,15 +23,13 @@ from ants.datatypes import (
     SourceData,
     TimeDependentData,
 )
-from ants.hybrid1d import time_dependent
-from ants.utils import hybrid as hytools
+from ants.vhybrid1d import time_dependent
 
 # General conditions
 cells_x = 320
 angles_u = 8
-angles_c = 8
-groups_u = 1
-groups_c = 1
+angles_c = 4  # coarse angles (can vary per step)
+groups = 1  # monoenergetic
 steps = 100
 dt = 1.0
 bc_x = [0, 0]
@@ -41,14 +40,12 @@ delta_x = np.repeat(length / cells_x, cells_x)
 edges_x = np.linspace(0, length, cells_x + 1)
 centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
 
-# Energy grid (monoenergetic)
-edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(None, groups_u, groups_c)
-velocity_u = ants.energy_velocity(groups_u, edges_g)
-velocity_c = hytools.coarsen_velocity(velocity_u, edges_gidx_c)
+# Energy grid and neutron velocity (monoenergetic)
+edges_g, _ = ants.energy_grid(None, groups)
+velocity = ants.energy_velocity(groups, edges_g)
 
-# Angular quadratures
+# Angular quadrature (fine grid)
 quadrature_u = ants.angular_x(angles_u, bc_x=bc_x)
-quadrature_c = ants.angular_x(angles_c, bc_x=bc_x)
 
 # Medium map
 layers = [
@@ -59,23 +56,13 @@ layers = [
 ]
 medium_map = ants.spatial1d(layers, edges_x)
 
-# Uncollided cross sections
-mat_data_u = MaterialData(
+# Cross sections
+mat_data = MaterialData(
     total=np.array([[1.0], [0.0], [5.0], [50.0]]),
     scatter=np.array([[[0.9]], [[0.0]], [[0.0]], [[0.0]]]),
     fission=np.array([[[0.0]], [[0.0]], [[0.0]], [[0.0]]]),
-    velocity=velocity_u,
+    velocity=velocity,
 )
-# Collided cross sections (same as uncollided for monoenergetic)
-mat_data_c = MaterialData(
-    total=mat_data_u.total.copy(),
-    scatter=mat_data_u.scatter.copy(),
-    fission=mat_data_u.fission.copy(),
-    velocity=velocity_c,
-)
-
-# Hybrid energy group indexing
-hybrid_data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
 
 # Sources (constant in time)
 external_ss = ants.external1d.reeds(edges_x, bc_x)
@@ -83,7 +70,7 @@ external = ants.external1d.time_dependence_constant(external_ss)
 boundary_x = np.zeros((1, 2, 1, 1))
 
 sources = SourceData(
-    initial_flux=np.zeros((cells_x, angles_u, groups_u)),
+    initial_flux=np.zeros((cells_x, angles_u, groups)),
     external=external,
     boundary_x=boundary_x,
 )
@@ -97,21 +84,26 @@ geometry = GeometryData(
 solver = SolverData()
 time_data = TimeDependentData(steps=steps, dt=dt)
 
+# Per-step coarse group and angle counts
+# groups_c can equal groups (no energy coarsening for monoenergetic)
+vgroups_c = np.array([groups] * steps, dtype=np.int32)
+vangles_c = np.array([angles_c] * steps, dtype=np.int32)
+
 flux = time_dependent(
-    mat_data_u,
-    mat_data_c,
+    mat_data,
+    vgroups_c,
     sources,
     geometry,
     quadrature_u,
-    quadrature_c,
+    vangles_c,
     solver,
     time_data,
-    hybrid_data,
+    edges_g,
 )
 
 fig, ax = plt.subplots()
 ax.plot(centers_x, flux[-1, :, 0], label="Last Time Step", c="r", alpha=0.6)
-ax.set_title("Reed Problem - Hybrid Method")
+ax.set_title("Reed Problem - Vectorized Hybrid Method")
 ax.set_xlabel("Location (cm)")
 ax.set_ylabel("Scalar Flux")
 ax.legend(loc=0, framealpha=1)
