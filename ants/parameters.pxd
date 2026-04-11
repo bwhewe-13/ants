@@ -12,11 +12,13 @@
 # cython: boundscheck=False
 # cython: nonecheck=False
 # cython: wraparound=False
-# cython: infertypes=True
+# cython: infertypes=False
 # cython: initializedcheck=False
 # cython: cdivision=True
+# cython: profile=False
 # distutils: language = c++
-# cython: profile=True
+# distutils: extra_compile_args = -O3 -march=native -ffast-math
+
 
 
 cdef struct params:
@@ -77,6 +79,12 @@ cdef struct params:
 
     # Flux at cell edges or centers
     int flux_at_edges
+
+    # Number of OpenMP threads (0 = resolved to cpu_count in _to_params)
+    int num_threads
+
+    # Parallelism strategy (1 = angle, 2 = group, 3 = both)
+    int parallel_type
 
     # Multigroup solver (1 = SI, 2 = DMD)
     int mg_solver

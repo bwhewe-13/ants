@@ -13,11 +13,12 @@
 # cython: boundscheck=False
 # cython: nonecheck=False
 # cython: wraparound=False
-# cython: infertypes=True
+# cython: infertypes=False
 # cython: initializedcheck=False
 # cython: cdivision=True
-# cython: profile=True
+# cython: profile=False
 # distutils: language = c++
+# distutils: extra_compile_args = -O3 -march=native -ffast-math
 
 
 from cython.view cimport array as cvarray
@@ -147,6 +148,23 @@ cdef void _off_scatter(double[:,:]& flux, double[:,:]& flux_old, \
             off_scatter[ii] += xs_matrix[mat,group,og] * flux[ii,og]
         for og in range(group + 1, info.groups):
             off_scatter[ii] += xs_matrix[mat,group,og] * flux_old[ii,og]
+
+
+cdef void _off_scatter_jacobi(double[:,:]& flux_old, int[:]& medium_map, \
+        double[:,:,:]& xs_matrix, double[:,:]& off_scatter_all, \
+        params info, int group) noexcept nogil:
+    # Jacobi variant: uses flux_old for ALL off-diagonal groups so that each
+    # group's scattering source is independent of the sweep order.  This
+    # removes the sequential Gauss-Seidel data dependency and allows groups
+    # to be swept in parallel.  Both methods converge to the same fixed point.
+    cdef int ii, mat, og
+
+    for ii in range(info.cells_x):
+        off_scatter_all[group, ii] = 0.0
+        mat = medium_map[ii]
+        for og in range(info.groups):
+            if og != group:
+                off_scatter_all[group, ii] += xs_matrix[mat, group, og] * flux_old[ii, og]
 
 
 cdef void _source_total(double[:,:,:]& source, double[:,:]& flux, \

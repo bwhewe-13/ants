@@ -12,11 +12,12 @@
 # cython: boundscheck=False
 # cython: nonecheck=False
 # cython: wraparound=False
-# cython: infertypes=True
+# cython: infertypes=False
 # cython: initializedcheck=False
 # cython: cdivision=True
+# cython: profile=False
 # distutils: language = c++
-# cython: profile=True
+# distutils: extra_compile_args = -O3 -march=native -ffast-math
 
 import numpy as np
 import pkg_resources

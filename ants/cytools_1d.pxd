@@ -12,11 +12,12 @@
 # cython: boundscheck=False
 # cython: nonecheck=False
 # cython: wraparound=False
-# cython: infertypes=True
+# cython: infertypes=False
 # cython: initializedcheck=False
 # cython: cdivision=True
-# cython: profile=True
+# cython: profile=False
 # distutils: language = c++
+# distutils: extra_compile_args = -O3 -march=native -ffast-math
 
 from ants.parameters cimport params
 
@@ -58,6 +59,10 @@ cdef void _dmd_subtraction(double[:,:,:]& y_minus, double[:,:,:]& y_plus, \
 cdef void _off_scatter(double[:,:]& flux, double[:,:]& flux_old, \
         int[:]& medium_map, double[:,:,:]& xs_matrix, \
         double[:]& off_scatter, params info, int group)
+
+cdef void _off_scatter_jacobi(double[:,:]& flux_old, int[:]& medium_map, \
+        double[:,:,:]& xs_matrix, double[:,:]& off_scatter_all, \
+        params info, int group) noexcept nogil
 
 cdef void _source_total(double[:,:,:]& source, double[:,:]& flux, \
         double[:,:,:]& xs_matrix, int[:]& medium_map, \
