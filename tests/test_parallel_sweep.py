@@ -44,6 +44,11 @@ N_CPUS = os.cpu_count()
 # unreliable in that environment and are skipped automatically.
 _UNDER_XDIST = os.environ.get("PYTEST_XDIST_WORKER") is not None
 
+# Path to energy_grid.npz decoded from the ENERGY_GRID_NPZ GitHub secret.
+# Tests that require this file are skipped when the secret is not available
+# (e.g. fork pull requests).
+ENERGY_GRID_NPZ = os.environ.get("ENERGY_GRID_NPZ")
+
 
 ########################################################################
 # Helpers
@@ -58,10 +63,6 @@ def _solver_1t():
 def _solver_nt(n=N_CPUS, parallel=ParallelType.ANGLE):
     """SolverData using n threads (default = all CPUs, angle parallelism)."""
     return SolverData(num_threads=n, parallel=parallel)
-
-
-def _atol(spatial):
-    return 1e-10 if spatial == 2 else 1e-10
 
 
 ########################################################################
@@ -98,7 +99,7 @@ def test_slab_correctness(spatial):
 @pytest.mark.parametrize("spatial", [1, 2])
 def test_sphere_correctness(spatial):
     """Sphere sweep with num_threads > 1 matches serial (sphere is sequential)."""
-    mat_data, sources, geo, quadrature, solver, _ = problems1d.sphere_01("fixed")
+    mat_data, sources, geo, quadrature, _, _ = problems1d.sphere_01("fixed")
 
     solver_1 = SolverData(num_threads=1, tol_angular=1e-12, max_iter_angular=500)
     solver_n = SolverData(num_threads=N_CPUS, tol_angular=1e-12, max_iter_angular=500)
@@ -370,7 +371,7 @@ def test_multigroup_1d_speedup():
     """
     N_GROUPS = 32
     mat_data, sources, geo, quadrature = _multigroup_problem_1d(
-        n_cells=1000, n_angles=4, n_groups=N_GROUPS
+        n_cells=1000, n_angles=16, n_groups=N_GROUPS
     )
 
     # Cap at N_GROUPS threads; more threads won't parallelize additional groups.
@@ -401,10 +402,36 @@ def test_multigroup_1d_speedup():
         f"Multigroup group-parallel speedup {speedup:.2f}× is below 1.5× threshold "
         f"(serial={t_serial:.3f}s, parallel={t_parallel:.3f}s, threads={n_threads})"
     )
-    t_parallel = _tmin(solver_n)
 
-    speedup = t_serial / t_parallel
-    assert speedup >= 1.5, (
-        f"Multigroup group-parallel speedup {speedup:.2f}× is below 1.5× threshold "
-        f"(serial={t_serial:.3f}s, parallel={t_parallel:.3f}s, threads={n_threads})"
+
+########################################################################
+# Energy grid – requires ENERGY_GRID_NPZ secret
+########################################################################
+
+
+@pytest.mark.skipif(ENERGY_GRID_NPZ is None, reason="ENERGY_GRID_NPZ secret not set")
+def test_energy_grid_parallel_correctness():
+    """Parallel sweep correctness using group count from energy_grid.npz."""
+    data = np.load(ENERGY_GRID_NPZ)
+    edges_g = data[data.files[0]]
+    n_groups = len(edges_g) - 1
+
+    mat_data, sources, geo, quadrature = _multigroup_problem_1d(
+        n_cells=200, n_angles=4, n_groups=n_groups
+    )
+
+    solver_1 = SolverData(num_threads=1, tol_energy=1e-10, max_iter_energy=500)
+    solver_n = SolverData(
+        num_threads=N_CPUS,
+        parallel=ParallelType.GROUP,
+        tol_energy=1e-10,
+        max_iter_energy=500,
+    )
+
+    flux_1 = fixed_source_1d(mat_data, sources, geo, quadrature, solver_1)
+    flux_n = fixed_source_1d(mat_data, sources, geo, quadrature, solver_n)
+
+    assert np.allclose(flux_1, flux_n, atol=1e-6), (
+        f"Energy-grid parallel flux differs from serial "
+        f"(n_groups={n_groups}, max_diff={np.abs(flux_1 - flux_n).max():.2e})"
     )

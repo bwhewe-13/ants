@@ -2,9 +2,10 @@
 # A Neutron Transport Solution (ANTS)
 
 [![Python Versions](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue)](https://pypi.org/project/ants/)
-[![Tests](https://img.shields.io/github/actions/workflow/status/bwhewe-13/ants/ci.yml?label=Tests)](https://github.com/bwhewe-13/ants/actions/workflows/ci.yml?query=job%3Atests)
+[![Style](https://img.shields.io/github/actions/workflow/status/bwhewe-13/ants/ci.yml?label=Style)](https://github.com/bwhewe-13/ants/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/github/actions/workflow/status/bwhewe-13/ants/tests.yml?label=Tests)](https://github.com/bwhewe-13/ants/actions/workflows/tests.yml)
 [![Coverage](https://codecov.io/gh/bwhewe-13/ants/graph/badge.svg)](https://codecov.io/gh/bwhewe-13/ants)
-[![Docs](https://img.shields.io/github/actions/workflow/status/bwhewe-13/ants/ci.yml?label=Docs)](https://github.com/bwhewe-13/ants/actions/workflows/ci.yml?query=job%3Adocs)
+[![Docs](https://img.shields.io/github/actions/workflow/status/bwhewe-13/ants/docs.yml?label=Docs)](https://github.com/bwhewe-13/ants/actions/workflows/docs.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 A Neutron Transport Solution (ANTS) calculates the neutron flux for both criticality and fixed source problems of one dimensional slabs and spheres and two dimensional slabs using the discrete ordinates method and written in Cython.
@@ -114,10 +115,3 @@ make -C docs html
 - &#9745; &#9745; Method of Nearby Problems (MNP)
 
 &nbsp;
-
-## Features To Add
-- &#9744; Ray Effect Corrections (2D)
-- &#9744; Adjoint Equations (1D/2D)
-- &#9744; Acceleration Techniques (DSA, GMRES, CMFD)
-- &#9744; Optimize DMD Implementation
-- &#9744; Banded Triangular Meshes (2D)
