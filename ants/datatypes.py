@@ -109,6 +109,33 @@ class MultigroupSolver(IntEnum):
     DMD = 2
 
 
+class ParallelType(IntEnum):
+    """Parallelism strategy for OpenMP sweeps.
+
+    Attributes
+    ----------
+    ANGLE : int
+        Parallelize over angles (default).  The inner angular sweep uses
+        ``num_threads`` threads. Energy groups are swept sequentially with
+        Gauss-Seidel ordering.
+    GROUP : int
+        Parallelize over energy groups using a Jacobi outer iteration.
+        Each group's angular sweep runs on a single thread.  Best when
+        ``groups`` >> ``angles``.
+    BOTH : int
+        Parallelize over both energy groups (Jacobi) and angles
+        simultaneously.  Both the outer group prange and the inner angle
+        prange use ``num_threads`` threads.  Requires
+        ``OMP_MAX_ACTIVE_LEVELS=2`` (or ``OMP_NESTED=TRUE``) in the
+        environment for true nested parallelism; otherwise the inner
+        prange is serialized by the OpenMP runtime.
+    """
+
+    ANGLE = 1
+    GROUP = 2
+    BOTH = 3
+
+
 def _default_vacuum_bc():
     """Return default two-sided vacuum boundary conditions.
 
@@ -285,6 +312,17 @@ class SolverData:
         If True, return angular flux instead of scalar flux.
     flux_at_edges : int
         Flux location: 0 = cell centers, 1 = cell edges.
+    num_threads : int
+        Number of OpenMP threads for angular sweeps.  Default is 1 (no
+        parallelism).  Set to 0 to use all logical CPUs, or any positive
+        integer to use that many threads.
+    parallel : ParallelType
+        Parallelism strategy.  ``ANGLE`` (default) parallelizes over
+        angles with Gauss-Seidel energy iteration.  ``GROUP`` parallelizes
+        over energy groups with Jacobi iteration (single-threaded angle
+        sweep per group).  ``BOTH`` runs Jacobi group prange and angle
+        prange simultaneously. Requires ``OMP_MAX_ACTIVE_LEVELS=2`` for
+        true nested parallelism.
     mg_solver : MultigroupSolver
         Multigroup solver type.
     dmd_snapshots : int
@@ -311,6 +349,8 @@ class SolverData:
 
     angular: bool = False
     flux_at_edges: int = 0
+    num_threads: int = 1
+    parallel: ParallelType = ParallelType.ANGLE
     mg_solver: MultigroupSolver = MultigroupSolver.SOURCE_ITERATION
     dmd_snapshots: int = 20
     dmd_rank: int = 2
@@ -359,6 +399,10 @@ class ProblemParameters:
         If True, return angular flux instead of scalar flux.
     flux_at_edges : int
         Flux location: 0 = cell centers, 1 = cell edges.
+    num_threads : int
+        Number of OpenMP threads for angular sweeps.
+    parallel_type : ParallelType
+        Parallelism strategy (ANGLE, GROUP, or BOTH).
     mg_solver : MultigroupSolver
         Multigroup solver type.
     dmd_snapshots : int
@@ -397,6 +441,8 @@ class ProblemParameters:
     time_disc: TemporalDiscretization
     angular: bool
     flux_at_edges: int
+    num_threads: int
+    parallel_type: ParallelType
     mg_solver: MultigroupSolver
     dmd_snapshots: int
     dmd_rank: int
@@ -455,6 +501,8 @@ def create_params(materials, quadrature, geometry, solver, time=None):
         time_disc=time_data.time_disc,
         angular=solver.angular,
         flux_at_edges=solver.flux_at_edges,
+        num_threads=solver.num_threads,
+        parallel_type=solver.parallel,
         mg_solver=solver.mg_solver,
         dmd_snapshots=solver.dmd_snapshots,
         dmd_rank=solver.dmd_rank,
