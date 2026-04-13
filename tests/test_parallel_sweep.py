@@ -19,6 +19,8 @@
 
 import os
 import time
+from importlib.resources import files as _res_files
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -48,6 +50,12 @@ _UNDER_XDIST = os.environ.get("PYTEST_XDIST_WORKER") is not None
 # Tests that require this file are skipped when the secret is not available
 # (e.g. fork pull requests).
 ENERGY_GRID_NPZ = os.environ.get("ENERGY_GRID_NPZ")
+
+# Tests that load nuclear material cross-sections are skipped when the
+# sources/materials directory is absent (e.g. CI without that secret).
+_MATERIALS_AVAILABLE = Path(
+    str(_res_files("ants").joinpath("sources/materials/uranium-235.npz"))
+).is_file()
 
 
 ########################################################################
@@ -97,6 +105,7 @@ def test_slab_correctness(spatial):
 
 @pytest.mark.smoke
 @pytest.mark.parametrize("spatial", [1, 2])
+@pytest.mark.skipif(not _MATERIALS_AVAILABLE, reason="Material sources not available")
 def test_sphere_correctness(spatial):
     """Sphere sweep with num_threads > 1 matches serial (sphere is sequential)."""
     mat_data, sources, geo, quadrature, _, _ = problems1d.sphere_01("fixed")
@@ -142,9 +151,6 @@ def test_2d_correctness():
 @pytest.mark.smoke
 def test_timed_1d_correctness():
     """Parallel time-dependent slab sweep matches single-threaded result."""
-    mat_data, sources, geo, quadrature, _, time_data = problems1d.sphere_01("timed")
-
-    # Use slab geometry for this timing test (sphere is separate above)
     mat_data, sources, geo, quadrature, _ = problems1d.manufactured_ss_03(100, 8)
     time_data = TimeDependentData(steps=5, dt=0.1)
     mat_data.velocity = np.ones(1)

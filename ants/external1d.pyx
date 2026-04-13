@@ -19,12 +19,13 @@
 # distutils: language = c++
 # distutils: extra_compile_args = -O3 -march=native -ffast-math
 
+from importlib.resources import files as _importlib_files
+
 import numpy as np
-import pkg_resources
 
 from ants.utils import pytools as tools
 
-DATA_PATH = pkg_resources.resource_filename("ants","sources/")
+DATA_PATH = str(_importlib_files("ants").joinpath("sources/"))
 
 def manufactured_ss_03(x, angle_x):
     # One group, angle dependent source
