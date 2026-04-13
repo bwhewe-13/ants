@@ -27,19 +27,19 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade pip setuptools
           python -m pip install ".[dev]"
 
       - name: Build Cython extensions in place
         run: python setup.py build_ext --inplace
 
-      - name: Decode energy_grid.npz
+      - name: Decode energy sources
         env:
-          ENERGY_GRID_NPZ_B64: ${{ secrets.ENERGY_GRID_NPZ }}
+          ENERGY_SOURCES_B64: ${{ secrets.ENERGY_GRID_NPZ }}
         run: |
-          if [ -n "$ENERGY_GRID_NPZ_B64" ]; then
-            echo "$ENERGY_GRID_NPZ_B64" | base64 -d > "${{ github.workspace }}/energy_grid.npz"
-            echo "ENERGY_GRID_NPZ=${{ github.workspace }}/energy_grid.npz" >> "$GITHUB_ENV"
+          if [ -n "$ENERGY_SOURCES_B64" ]; then
+            mkdir -p ants/sources/energy
+            echo "$ENERGY_SOURCES_B64" | base64 -d | tar -xz -C ants/sources/energy/
           fi
 
       - name: Run tests with coverage

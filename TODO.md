@@ -6,10 +6,11 @@
 - [ ] Add chi vector support.
 - [ ] Add 3D capabilities.
 - [ ] Add 3D interpolation capabilities
-- [ ] Convert interp1d and interp2d files to Cython.
+- [x] Convert interp1d and interp2d files to Cython.
 - [x] Add parallelism improvements (OpenMP tuning and/or distributed strategy).
 - [ ] Complete spatial MMS verification for remaining unverified methods.
 - [ ] Limit the memory footprint (boundary sources, time-dependent problems, etc.)
+- [ ] Update nearby1d and nearby2d function calls.
 
 
 ## Updates for 0.4.0
