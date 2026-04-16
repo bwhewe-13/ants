@@ -12,6 +12,8 @@
 import logging
 
 import numpy as np
+from scipy.linalg import qr as scipy_qr
+from scipy.linalg import svd as scipy_svd
 
 logger = logging.getLogger(__name__)
 
@@ -400,21 +402,22 @@ def dmd_1d(flux_old, y_minus, y_plus, K):
     y_minus = y_minus.reshape(cells_x * groups, K - 1)
     y_plus = y_plus.reshape(cells_x * groups, K - 1)
 
-    # Call SVD
-    U, S, V = _svd_dmd(y_minus, K)
+    # Call SVD; s_inv is a 1-D vector of reciprocal singular values
+    U, s_inv, V = _svd_dmd(y_minus, K)
 
-    # Calculate Atilde
-    Atilde = U.T @ y_plus @ V.T @ S.T
+    # Cache U.T @ y_plus once (shape r x K-1); reused for Atilde and RHS
+    UtYp = U.T @ y_plus
 
-    # Calculate delta_y
-    identity = np.identity(Atilde.shape[0])
-    delta_y = np.linalg.solve(identity - Atilde, (U.T @ y_plus[:, -1]).T)
+    # Atilde = U.T @ y_plus @ V.T @ diag(s_inv)
+    # V.T * s_inv broadcasts diag(s_inv) without a full matrix multiply
+    Atilde = UtYp @ (V.T * s_inv)
+
+    # Solve (I - Atilde) delta_y = U.T @ y_plus[:, -1]
+    delta_y = np.linalg.solve(np.eye(Atilde.shape[0]) - Atilde, UtYp[:, -1])
 
     # Estimate new flux
-    flux = (flux_old.flatten() - y_plus[:, K - 2]) + (U @ delta_y).T
-    flux = flux.reshape(cells_x, groups)
-
-    return flux
+    flux = flux_old.ravel() - y_plus[:, K - 2] + U @ delta_y
+    return flux.reshape(cells_x, groups)
 
 
 def dmd_2d(flux_old, y_minus, y_plus, K):
@@ -430,44 +433,92 @@ def dmd_2d(flux_old, y_minus, y_plus, K):
     y_minus = y_minus.reshape(cells_x * cells_y * groups, K - 1)
     y_plus = y_plus.reshape(cells_x * cells_y * groups, K - 1)
 
-    # Call SVD
-    U, S, V = _svd_dmd(y_minus, K)
+    # Call SVD; s_inv is a 1-D vector of reciprocal singular values
+    U, s_inv, V = _svd_dmd(y_minus, K)
 
-    # Calculate Atilde
-    Atilde = U.T @ y_plus @ V.T @ S.T
+    # Cache U.T @ y_plus once (shape r x K-1); reused for Atilde and RHS
+    UtYp = U.T @ y_plus
 
-    # Calculate delta_y
-    identity = np.identity(Atilde.shape[0])
-    delta_y = np.linalg.solve(identity - Atilde, (U.T @ y_plus[:, -1]).T)
+    # Atilde = U.T @ y_plus @ V.T @ diag(s_inv)
+    # V.T * s_inv broadcasts diag(s_inv) without a full matrix multiply
+    Atilde = UtYp @ (V.T * s_inv)
+
+    # Solve (I - Atilde) delta_y = U.T @ y_plus[:, -1]
+    delta_y = np.linalg.solve(np.eye(Atilde.shape[0]) - Atilde, UtYp[:, -1])
 
     # Estimate new flux
-    flux = (flux_old.flatten() - y_plus[:, K - 2]) + (U @ delta_y).T
-    flux = flux.reshape(cells_x, cells_y, groups)
+    flux = flux_old.ravel() - y_plus[:, K - 2] + U @ delta_y
+    return flux.reshape(cells_x, cells_y, groups)
 
-    return flux
+
+# Row count above which the randomized range-finder replaces exact SVD.
+# Speedup vs exact SVD grows when the energy threshold truncates the rank
+# to r << K-1 (few dominant DMD modes), because then l = r + _RAND_OVERSAMPLING
+# << m = K-1 and both the sketch and back-projection operate on smaller matrices.
+_N_RAND_THRESHOLD = 1000
+_RAND_OVERSAMPLING = 10  # extra sketch columns; trade accuracy for speed by lowering
+_RAND_N_ITER = 2  # power iterations; 0=fastest, 2=balanced, 4+=most accurate
+_rng = np.random.default_rng(0)
+
+
+def _rand_svd(A, k):
+    """Randomized SVD: k leading singular triplets of tall matrix A (n, m).
+
+    Implements the randomized range-finder with power iterations from
+    Halko, Martinsson & Tropp (2011).
+
+    Complexity vs exact SVD (both O(n * m^2)):
+      - Equal cost when k == m (full rank target, sketch fills all columns).
+      - Speedup ≈ m / (k + oversampling) when k << m, i.e. when the energy
+        threshold truncates most of the K-1 snapshot columns.
+    """
+    n, m = A.shape
+    ll = min(k + _RAND_OVERSAMPLING, m)  # sketch size, capped at m
+
+    # Random projection: sketch A's column space down to l dimensions
+    Omega = _rng.standard_normal((m, ll))
+    Y = A @ Omega  # (n, l)
+
+    # Power iterations sharpen the range approximation at cost of two extra
+    # passes over A each; stabilized by intermediate QR orthonormalization
+    for _ in range(_RAND_N_ITER):
+        Q, _ = scipy_qr(Y, mode="economic", check_finite=False)
+        Z, _ = scipy_qr(A.T @ Q, mode="economic", check_finite=False)
+        Y = A @ Z  # (n, l)
+
+    Q, _ = scipy_qr(Y, mode="economic", check_finite=False)  # (n, l)
+
+    # Project A into the l-dimensional sketch, then exact SVD on (l, m)
+    B = Q.T @ A  # (l, m)
+    Uh, s, V = scipy_svd(B, full_matrices=False, check_finite=False)
+
+    return (Q @ Uh)[:, :k], s[:k], V[:k, :]
 
 
 def _svd_dmd(A, K):
     residual = 1e-09
+    n, m = A.shape
 
-    # Compute SVD
-    U, S, V = np.linalg.svd(A, full_matrices=False)
-
-    # Find the non-zero singular values
-    if S[(1 - np.cumsum(S) / np.sum(S)) > residual].size >= 1:
-        spos = S[(1 - np.cumsum(S) / np.sum(S)) > residual].copy()
+    if n < _N_RAND_THRESHOLD:
+        # Exact economy SVD for smaller matrices
+        U, s, V = scipy_svd(A, full_matrices=False, check_finite=False)
     else:
-        spos = S[S > 0].copy()
+        # Randomized SVD for large spatial grids (n = cells * groups >> K-1).
+        # Targets all m = K-1 columns; the gain materialises after the energy
+        # truncation below reduces the working rank to r << K-1.
+        U, s, V = _rand_svd(A, m)
 
-    # Create diagonal matrix
-    mat_size = np.min([K, len(spos)])
-    S = np.zeros((mat_size, mat_size))
+    # Truncate to components capturing > (1 - residual) of total energy
+    s_sum = s.sum()
+    if s_sum > 0:
+        tail = 1.0 - np.cumsum(s) / s_sum
+        r = int(np.count_nonzero(tail > residual))
+        if r == 0:
+            r = int(np.count_nonzero(s > 0))
+    else:
+        r = int(np.count_nonzero(s > 0))
+    r = max(1, min(r, K))
 
-    # Select the u and v that correspond with the nonzero singular values
-    U = U[:, :mat_size].copy()
-    V = V[:mat_size, :].copy()
-
-    # S will be the inverse of the singular value diagonal matrix
-    S[np.diag_indices(mat_size)] = 1 / spos
-
-    return U, S, V
+    # Return truncated bases and reciprocal singular values as a 1-D vector
+    return U[:, :r].copy(), 1.0 / s[:r], V[:r, :].copy()
+    return U[:, :r].copy(), 1.0 / s[:r], V[:r, :].copy()
