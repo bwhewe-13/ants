@@ -1220,3 +1220,81 @@ cdef void _vhybrid_source_total(double[:,:,:]& flux_u, double[:,:,:]& flux_c, \
                     one_group += flux_u[ii,jj,ig] * xs_matrix_u[mat,og,ig]
                 for nn in range(info_u.angles * info_u.angles):
                     source[ii,jj,nn,og] += one_group
+
+
+################################################################################
+# Time-Dependent Boundary Expansion
+################################################################################
+
+cdef double[:,:,:,:] _expand_boundary_x(double[:,:,:,:]& half_bc,
+        double[:]& angle_x, params info):
+    # Expand a half-angle (or broadcast) x-boundary array into a full-angle
+    # x-boundary array with shape (2, cells_y, angles², groups).
+    #
+    # half_bc may have shape (2, cells_y, angles²//2, groups) — per-incoming-
+    # angle, or any dimension may be 1 for broadcasting.
+    #
+    # half_bc angle layout:
+    #   half_bc[0, jj, ii, gg] = left  boundary for y-cell jj, ii-th incoming
+    #                             angle (angle_x > 0), in traversal order
+    #   half_bc[1, jj, ii, gg] = right boundary for y-cell jj, ii-th incoming
+    #                             angle (angle_x < 0), in traversal order
+    cdef int N2 = info.angles * info.angles
+    full_bc = array_4d(2, info.cells_y, N2, info.groups)
+    cdef int nn, jj, gg, ii_pos, ii_neg
+    cdef bint bc_y     = (half_bc.shape[1] > 1)
+    cdef bint bc_angle = (half_bc.shape[2] > 1)
+    cdef bint bc_group = (half_bc.shape[3] > 1)
+    ii_pos = 0
+    ii_neg = 0
+    for nn in range(N2):
+        if angle_x[nn] > 0.0:
+            for jj in range(info.cells_y):
+                for gg in range(info.groups):
+                    full_bc[0, jj, nn, gg] = half_bc[0, jj if bc_y else 0, ii_pos if bc_angle else 0, gg if bc_group else 0]
+            if bc_angle:
+                ii_pos += 1
+        elif angle_x[nn] < 0.0:
+            for jj in range(info.cells_y):
+                for gg in range(info.groups):
+                    full_bc[1, jj, nn, gg] = half_bc[1, jj if bc_y else 0, ii_neg if bc_angle else 0, gg if bc_group else 0]
+            if bc_angle:
+                ii_neg += 1
+    return full_bc
+
+
+cdef double[:,:,:,:] _expand_boundary_y(double[:,:,:,:]& half_bc,
+        double[:]& angle_y, params info):
+    # Expand a half-angle (or broadcast) y-boundary array into a full-angle
+    # y-boundary array with shape (2, cells_x, angles², groups).
+    #
+    # half_bc may have shape (2, cells_x, angles²//2, groups) — per-incoming-
+    # angle, or any dimension may be 1 for broadcasting.
+    #
+    # half_bc angle layout:
+    #   half_bc[0, ii, jj, gg] = bottom boundary for x-cell ii, jj-th incoming
+    #                             angle (angle_y > 0), in traversal order
+    #   half_bc[1, ii, jj, gg] = top    boundary for x-cell ii, jj-th incoming
+    #                             angle (angle_y < 0), in traversal order
+    cdef int N2 = info.angles * info.angles
+    full_bc = array_4d(2, info.cells_x, N2, info.groups)
+    cdef int nn, ii, gg, ii_pos, ii_neg
+    cdef bint bc_x     = (half_bc.shape[1] > 1)
+    cdef bint bc_angle = (half_bc.shape[2] > 1)
+    cdef bint bc_group = (half_bc.shape[3] > 1)
+    ii_pos = 0
+    ii_neg = 0
+    for nn in range(N2):
+        if angle_y[nn] > 0.0:
+            for ii in range(info.cells_x):
+                for gg in range(info.groups):
+                    full_bc[0, ii, nn, gg] = half_bc[0, ii if bc_x else 0, ii_pos if bc_angle else 0, gg if bc_group else 0]
+            if bc_angle:
+                ii_pos += 1
+        elif angle_y[nn] < 0.0:
+            for ii in range(info.cells_x):
+                for gg in range(info.groups):
+                    full_bc[1, ii, nn, gg] = half_bc[1, ii if bc_x else 0, ii_neg if bc_angle else 0, gg if bc_group else 0]
+            if bc_angle:
+                ii_neg += 1
+    return full_bc

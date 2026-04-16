@@ -136,6 +136,12 @@ cdef void _time_source_star_tr_bdf2_mem(double[:,:,:,:]& psi_x, double[:,:,:,:]&
 cdef void _time_right_side(double[:,:,:,:]& q_star, double[:,:,:]& flux, \
         double[:,:,:]& xs_scatter, int[:,:]& medium_map, params info)
 
+cdef double[:,:,:,:] _expand_boundary_x(double[:,:,:,:]& half_bc, \
+        double[:]& angle_x, params info)
+
+cdef double[:,:,:,:] _expand_boundary_y(double[:,:,:,:]& half_bc, \
+        double[:]& angle_y, params info)
+
 ################################################################################
 # Criticality functions
 ################################################################################

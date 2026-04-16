@@ -87,25 +87,47 @@ def manufactured_ss_04(x, y, angle_x, angle_y):
 
 
 def manufactured_td_02(x, y, angle_x, angle_y, edges_t):
-    boundary_x = np.zeros((edges_t.shape[0], 2, y.shape[0], angle_x.shape[0], 1))
-    boundary_y = np.zeros((edges_t.shape[0], 2, x.shape[0], angle_y.shape[0], 1))
+    # Returns half-angle boundary arrays:
+    #   boundary_x shape (T, 2, cells_y, half_x, 1):
+    #     [t, 0, :, ii, 0] = left  (x=0)  for ii-th incoming angle (angle_x > 0)
+    #     [t, 1, :, ii, 0] = right (x=pi) for ii-th incoming angle (angle_x < 0)
+    #   boundary_y shape (T, 2, cells_x, half_y, 1):
+    #     [t, 0, :, jj, 0] = bottom (y=0)  for jj-th incoming angle (angle_y > 0)
+    #     [t, 1, :, jj, 0] = top   (y=pi) for jj-th incoming angle (angle_y < 0)
+    pos_x_idx = np.where(angle_x > 0)[0]  # incoming at left boundary
+    neg_x_idx = np.where(angle_x < 0)[0]  # incoming at right boundary
+    pos_y_idx = np.where(angle_y > 0)[0]  # incoming at bottom boundary
+    neg_y_idx = np.where(angle_y < 0)[0]  # incoming at top boundary
+
+    half_x = len(pos_x_idx)
+    half_y = len(pos_y_idx)
 
     # Endpoints
     XX1 = 0.0; XX2 = np.pi
     YY1 = 0.0; YY2 = np.pi
 
+    boundary_x = np.zeros((edges_t.shape[0], 2, y.shape[0], half_x, 1))
+    boundary_y = np.zeros((edges_t.shape[0], 2, x.shape[0], half_y, 1))
+
     for cc, tt in enumerate(edges_t):
-        for nn, (mu, eta) in enumerate(zip(angle_x, angle_y)):
-            # Y boundary
-            boundary_y[cc,0,:,nn,0] = 1 + np.sin(x - 0.5 * tt) + np.cos(mu) \
-                                    + np.cos(YY1 - 0.25 * tt) + np.sin(eta)
-            boundary_y[cc,1,:,nn,0] = 1 + np.sin(x - 0.5 * tt) + np.cos(mu) \
-                                    + np.cos(YY2 - 0.25 * tt) + np.sin(eta)
-            # X boundary
-            boundary_x[cc,0,:,nn,0] = 1 + np.sin(XX1 - 0.5 * tt) + np.cos(mu) \
-                                    + np.cos(y - 0.25 * tt) + np.sin(eta)
-            boundary_x[cc,1,:,nn,0] = 1 + np.sin(XX2 - 0.5 * tt) + np.cos(mu) \
-                                    + np.cos(y - 0.25 * tt) + np.sin(eta)
+        # X boundaries: left (mu > 0) and right (mu < 0)
+        for ii, nn in enumerate(pos_x_idx):
+            mu, eta = angle_x[nn], angle_y[nn]
+            boundary_x[cc, 0, :, ii, 0] = 1 + np.sin(XX1 - 0.5 * tt) + np.cos(mu) \
+                                         + np.cos(y - 0.25 * tt) + np.sin(eta)
+        for ii, nn in enumerate(neg_x_idx):
+            mu, eta = angle_x[nn], angle_y[nn]
+            boundary_x[cc, 1, :, ii, 0] = 1 + np.sin(XX2 - 0.5 * tt) + np.cos(mu) \
+                                         + np.cos(y - 0.25 * tt) + np.sin(eta)
+        # Y boundaries: bottom (eta > 0) and top (eta < 0)
+        for jj, nn in enumerate(pos_y_idx):
+            mu, eta = angle_x[nn], angle_y[nn]
+            boundary_y[cc, 0, :, jj, 0] = 1 + np.sin(x - 0.5 * tt) + np.cos(mu) \
+                                         + np.cos(YY1 - 0.25 * tt) + np.sin(eta)
+        for jj, nn in enumerate(neg_y_idx):
+            mu, eta = angle_x[nn], angle_y[nn]
+            boundary_y[cc, 1, :, jj, 0] = 1 + np.sin(x - 0.5 * tt) + np.cos(mu) \
+                                         + np.cos(YY2 - 0.25 * tt) + np.sin(eta)
 
     return boundary_x, boundary_y
 

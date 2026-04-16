@@ -676,3 +676,42 @@ cdef void _vhybrid_source_total(double[:,:]& flux_u, double[:,:]& flux_c, \
                 one_group += flux_u[ii,ig] * xs_matrix_u[mat,og,ig]
             for nn in range(info_u.angles):
                 source[ii,nn,og] += one_group
+
+
+################################################################################
+# Time-Dependent Boundary Expansion
+################################################################################
+
+cdef double[:,:,:] _expand_boundary_x(double[:,:,:]& half_bc,
+        double[:]& angle_x, params info):
+    # Expand a half-angle (or broadcast) boundary array into a full-angle
+    # boundary array with shape (2, angles, groups).
+    #
+    # half_bc may have shape (2, angles//2, groups) — per-incoming-angle, or
+    # (2, 1, groups) / (2, 1, 1) — broadcast (same value for all angles).
+    # The angle and group dimensions are each independently broadcast when
+    # their size is 1.
+    #
+    # half_bc angle layout:
+    #   half_bc[0, ii, gg] = left  boundary source for the ii-th incoming
+    #                         angle (angle_x > 0), in traversal order
+    #   half_bc[1, ii, gg] = right boundary source for the ii-th incoming
+    #                         angle (angle_x < 0), in traversal order
+    full_bc = array_3d(2, info.angles, info.groups)
+    cdef int nn, gg, ii_pos, ii_neg
+    cdef bint bc_angle = (half_bc.shape[1] > 1)
+    cdef bint bc_group = (half_bc.shape[2] > 1)
+    ii_pos = 0
+    ii_neg = 0
+    for nn in range(info.angles):
+        if angle_x[nn] > 0.0:
+            for gg in range(info.groups):
+                full_bc[0, nn, gg] = half_bc[0, ii_pos if bc_angle else 0, gg if bc_group else 0]
+            if bc_angle:
+                ii_pos += 1
+        elif angle_x[nn] < 0.0:
+            for gg in range(info.groups):
+                full_bc[1, nn, gg] = half_bc[1, ii_neg if bc_angle else 0, gg if bc_group else 0]
+            if bc_angle:
+                ii_neg += 1
+    return full_bc

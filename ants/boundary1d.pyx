@@ -48,13 +48,22 @@ def manufactured_ss_05():
 
 
 def manufactured_td_02(angle_x, edges_t):
-    # Time dependent, one group, angle dependent boundary
+    # Time dependent, one group, angle dependent boundary.
+    # Returns half-angle array of shape (T, 2, angles//2, 1):
+    #   [t, 0, ii, 0] = left  boundary (x=0)  for ii-th incoming angle (mu > 0)
+    #   [t, 1, ii, 0] = right boundary (x=pi) for ii-th incoming angle (mu < 0)
     length_x = np.pi
-    boundary_x = np.zeros((edges_t.shape[0], 2, angle_x.shape[0], 1))
+    pos_idx = np.where(angle_x > 0)[0]  # incoming at left boundary
+    neg_idx = np.where(angle_x < 0)[0]  # incoming at right boundary
+    half = len(pos_idx)
+    boundary_x = np.zeros((edges_t.shape[0], 2, half, 1))
     for cc, tt in enumerate(edges_t):
-        for nn, mu in enumerate(angle_x):
-            boundary_x[cc,0,nn,0] = 1 + np.sin(0. - 0.5 * tt) + np.cos(mu)
-            boundary_x[cc,1,nn,0] = 1 + np.sin(length_x - 0.5 * tt) + np.cos(mu)
+        for ii, nn in enumerate(pos_idx):
+            mu = angle_x[nn]
+            boundary_x[cc, 0, ii, 0] = 1 + np.sin(0. - 0.5 * tt) + np.cos(mu)
+        for ii, nn in enumerate(neg_idx):
+            mu = angle_x[nn]
+            boundary_x[cc, 1, ii, 0] = 1 + np.sin(length_x - 0.5 * tt) + np.cos(mu)
     return boundary_x
 
 
