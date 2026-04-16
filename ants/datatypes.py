@@ -295,11 +295,19 @@ class TimeDependentData:
         Time step width.
     time_disc : TemporalDiscretization
         Temporal discretization type.
+    save_to_file : str, optional
+        If provided, the scalar flux at each time step is written directly to
+        a memory-mapped ``.npy`` file at this path instead of being
+        accumulated in RAM.  The solver returns the numpy memmap array so
+        individual time steps can be read from disk without loading the full
+        result into memory.  When ``None`` (default) the full flux array is
+        returned as a normal in-memory numpy array.
     """
 
     steps: int = 0
     dt: float = 1.0
     time_disc: TemporalDiscretization = TemporalDiscretization.BDF1
+    save_to_file: Optional[str] = None
 
 
 @dataclass

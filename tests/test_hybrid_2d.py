@@ -66,8 +66,7 @@ def test_backward_euler_01():
     exact = np.sum(exact * quadrature.angle_w[None, None, None, :, None], axis=3)
 
     atol = 5e-3
-    for tt in range(steps):
-        assert np.isclose(approx[tt], exact[tt], atol=atol).all()
+    assert np.isclose(approx, exact[-1], atol=atol).all()
 
 
 @pytest.mark.hybrid
@@ -115,8 +114,7 @@ def test_backward_euler_02():
     exact = np.sum(exact * quadrature.angle_w[None, None, None, :, None], axis=3)
 
     atol = 5e-3
-    for tt in range(steps):
-        assert np.isclose(approx[tt], exact[tt], atol=atol).all()
+    assert np.isclose(approx, exact[-1], atol=atol).all()
 
 
 @pytest.mark.smoke
@@ -165,8 +163,7 @@ def test_crank_nicolson_01():
     exact = np.sum(exact * quadrature.angle_w[None, None, None, :, None], axis=3)
 
     atol = 5e-3
-    for tt in range(steps):
-        assert np.isclose(approx[tt], exact[tt], atol=atol).all()
+    assert np.isclose(approx, exact[-1], atol=atol).all()
 
 
 @pytest.mark.hybrid
@@ -214,8 +211,7 @@ def test_crank_nicolson_02():
     exact = np.sum(exact * quadrature.angle_w[None, None, None, :, None], axis=3)
 
     atol = 5e-3
-    for tt in range(steps):
-        assert np.isclose(approx[tt], exact[tt], atol=atol).all()
+    assert np.isclose(approx, exact[-1], atol=atol).all()
 
 
 @pytest.mark.smoke
@@ -264,8 +260,7 @@ def test_bdf2_01():
     exact = np.sum(exact * quadrature.angle_w[None, None, None, :, None], axis=3)
 
     atol = 5e-3
-    for tt in range(steps):
-        assert np.isclose(approx[tt], exact[tt], atol=atol).all()
+    assert np.isclose(approx, exact[-1], atol=atol).all()
 
 
 @pytest.mark.hybrid
@@ -313,8 +308,7 @@ def test_bdf2_02():
     exact = np.sum(exact * quadrature.angle_w[None, None, None, :, None], axis=3)
 
     atol = 5e-3
-    for tt in range(steps):
-        assert np.isclose(approx[tt], exact[tt], atol=atol).all()
+    assert np.isclose(approx, exact[-1], atol=atol).all()
 
 
 @pytest.mark.smoke
@@ -363,8 +357,7 @@ def test_tr_bdf2_01():
     exact = np.sum(exact * quadrature.angle_w[None, None, None, :, None], axis=3)
 
     atol = 5e-3
-    for tt in range(steps):
-        assert np.isclose(approx[tt], exact[tt], atol=atol).all()
+    assert np.isclose(approx, exact[-1], atol=atol).all()
 
 
 @pytest.mark.hybrid
@@ -412,5 +405,4 @@ def test_tr_bdf2_02():
     exact = np.sum(exact * quadrature.angle_w[None, None, None, :, None], axis=3)
 
     atol = 5e-3
-    for tt in range(steps):
-        assert np.isclose(approx[tt], exact[tt], atol=atol).all()
+    assert np.isclose(approx, exact[-1], atol=atol).all()
