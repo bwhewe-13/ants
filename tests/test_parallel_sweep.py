@@ -154,10 +154,15 @@ def test_timed_1d_correctness():
     mat_data, sources, geo, quadrature, _ = problems1d.manufactured_ss_03(100, 8)
     time_data = TimeDependentData(steps=5, dt=0.1)
     mat_data.velocity = np.ones(1)
+    angle_x = quadrature.angle_x
+    half_bc = np.stack([
+        sources.boundary_x[0, angle_x > 0, :],  # left: incoming positive angles
+        sources.boundary_x[1, angle_x < 0, :],  # right: incoming negative angles
+    ], axis=0)
     sources = SourceData(
         initial_flux=np.zeros((100, 8, 1)),
         external=ants.external1d.time_dependence_constant(sources.external),
-        boundary_x=sources.boundary_x[None, ...],
+        boundary_x=half_bc[None, ...],
     )
 
     solver_1 = _solver_1t()

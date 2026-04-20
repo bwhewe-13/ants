@@ -51,7 +51,7 @@ def test_backward_euler_01():
         )
         exact = np.sum(exact * quadrature.angle_w[None, None, None, :, None], axis=3)
 
-        error_y.append(np.linalg.norm(approx[-1] - exact[-1]))
+        error_y.append(np.linalg.norm(approx - exact[-1]))
         error_x.append(dt)
 
     atol = 5e-2
@@ -91,7 +91,7 @@ def test_backward_euler_02():
         )
         exact = np.sum(exact * quadrature.angle_w[None, None, None, :, None], axis=3)
 
-        error_y.append(np.linalg.norm(approx[-1] - exact[-1]))
+        error_y.append(np.linalg.norm(approx - exact[-1]))
         error_x.append(dt)
 
     atol = 5e-2
@@ -132,7 +132,7 @@ def test_crank_nicolson_01():
         )
         exact = np.sum(exact * quadrature.angle_w[None, None, None, :, None], axis=3)
 
-        error_y.append(np.linalg.norm(approx[-1] - exact[-1]))
+        error_y.append(np.linalg.norm(approx - exact[-1]))
         error_x.append(dt)
 
     atol = 5e-2
@@ -172,7 +172,7 @@ def test_crank_nicolson_02():
         )
         exact = np.sum(exact * quadrature.angle_w[None, None, None, :, None], axis=3)
 
-        error_y.append(np.linalg.norm(approx[-1] - exact[-1]))
+        error_y.append(np.linalg.norm(approx - exact[-1]))
         error_x.append(dt)
 
     atol = 5e-2
@@ -213,7 +213,7 @@ def test_bdf2_01():
         )
         exact = np.sum(exact * quadrature.angle_w[None, None, None, :, None], axis=3)
 
-        error_y.append(np.linalg.norm(approx[-1] - exact[-1]))
+        error_y.append(np.linalg.norm(approx - exact[-1]))
         error_x.append(dt)
 
     atol = 5e-2
@@ -253,7 +253,7 @@ def test_bdf2_02():
         )
         exact = np.sum(exact * quadrature.angle_w[None, None, None, :, None], axis=3)
 
-        error_y.append(np.linalg.norm(approx[-1] - exact[-1]))
+        error_y.append(np.linalg.norm(approx - exact[-1]))
         error_x.append(dt)
 
     atol = 5e-2
@@ -294,7 +294,7 @@ def test_tr_bdf2_01():
         )
         exact = np.sum(exact * quadrature.angle_w[None, None, None, :, None], axis=3)
 
-        error_y.append(np.linalg.norm(approx[-1] - exact[-1]))
+        error_y.append(np.linalg.norm(approx - exact[-1]))
         error_x.append(dt)
 
     atol = 5e-2
@@ -334,7 +334,7 @@ def test_tr_bdf2_02():
         )
         exact = np.sum(exact * quadrature.angle_w[None, None, None, :, None], axis=3)
 
-        error_y.append(np.linalg.norm(approx[-1] - exact[-1]))
+        error_y.append(np.linalg.norm(approx - exact[-1]))
         error_x.append(dt)
 
     atol = 5e-2
