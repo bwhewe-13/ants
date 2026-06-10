@@ -12,11 +12,12 @@
 # cython: boundscheck=False
 # cython: nonecheck=False
 # cython: wraparound=False
-# cython: infertypes=True
+# cython: infertypes=False
 # cython: initializedcheck=False
 # cython: cdivision=True
-# cython: profile=True
+# cython: profile=False
 # distutils: language = c++
+# distutils: extra_compile_args = -O3 -march=native -ffast-math
 
 import numpy as np
 
@@ -31,7 +32,7 @@ def fixed_source(materials, sources, geometry, quadrature, solver):
     # Unpack Python DataTypes to Cython memoryviews
     cdef double[:,:] xs_total = materials.total
     cdef double[:,:,:] xs_scatter = materials.scatter
-    cdef double[:,:,:] xs_fission = materials.fission
+    cdef double[:,:,:] xs_fission = tools._fission_matrix(materials.fission, materials.chi)
     cdef double[:,:,:] external = sources.external
     cdef double[:,:,:] boundary_x = sources.boundary_x
     cdef int[:] medium_map = geometry.medium_map

@@ -12,19 +12,21 @@
 # cython: boundscheck=False
 # cython: nonecheck=False
 # cython: wraparound=False
-# cython: infertypes=True
+# cython: infertypes=False
 # cython: initializedcheck=False
 # cython: cdivision=True
+# cython: profile=False
 # distutils: language = c++
-# cython: profile=True
+# distutils: extra_compile_args = -O3 -march=native -ffast-math
+
+from importlib.resources import files as _importlib_files
 
 import numpy as np
-import pkg_resources
 
 import ants
 from ants.utils import pytools as tools
 
-DATA_PATH = pkg_resources.resource_filename("ants","sources/")
+DATA_PATH = str(_importlib_files("ants").joinpath("sources/"))
 
 
 def manufactured_ss_03(x, y, angle_x, angle_y):

@@ -2,7 +2,7 @@ Getting Started
 ===============================================
 
 The ANTS package solves the discrete ordinates neutron transport equation in both
-one-dimensional (slab and sphere) and two-dimensional (square and triangular) geometry.
+one-dimensional (slab and sphere) and two-dimensional (rectangular) geometry.
 
 **Problem Types Supported:**
 
@@ -18,9 +18,14 @@ one-dimensional (slab and sphere) and two-dimensional (square and triangular) ge
 **Discretizations:**
 
 * **Spatial**: Step characteristic method or diamond difference
-* **Angular**: Discrete ordinates (level symmetric quadrature sets)
+* **Angular**: Discrete ordinates (product quadrature sets)
 * **Energy**: Multigroup formulation
-* **Time**: Backward Euler method (first-order implicit)
+* **Time**: BDF1 (backward Euler), BDF2, Crank-Nicolson (CN), and TR-BDF2
+
+
+Installation
+------------
+
 
 
 Required Input Data

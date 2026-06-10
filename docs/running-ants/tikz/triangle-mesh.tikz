@@ -1,0 +1,13 @@
+\begin{tikzpicture}[xscale=0.25,yscale=0.25]
+    \fill[white,draw=black] (0,0) rectangle (50,50);
+    \filldraw[fill=gray,draw=gray, opacity=0.5] (0,5) -- (0,40) -- (50,5) -- cycle;
+    \filldraw[fill=gray,draw=gray, opacity=0.5] (0,40) -- (0,50) -- (50,40) -- cycle;
+
+    \draw[step=5cm, black, ultra thick] (-0.0,-0.0) grid (50.0, 50.0);
+    \node[rectangle, draw, fill=gray!20, anchor=center, rounded corners] at (25, 52.5) {\large \textbf{Homogenized Zones - Triangle}};
+
+    \matrix [draw,below right, fill=white, fill opacity=1] at (32.5,32.5) {
+      \node [rectangle, fill=gray, draw=black, anchor=center, label=right:\large{Material 1}] {}; \\
+      \node [rectangle, fill=white, draw=black, anchor=center, label=right:\large{Material 2}] {}; \\
+    };
+\end{tikzpicture}

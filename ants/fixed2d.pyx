@@ -12,11 +12,12 @@
 # cython: boundscheck=False
 # cython: nonecheck=False
 # cython: wraparound=False
-# cython: infertypes=True
+# cython: infertypes=False
 # cython: initializedcheck=False
 # cython: cdivision=True
-# cython: profile=True
+# cython: profile=False
 # distutils: language = c++
+# distutils: extra_compile_args = -O3 -march=native -ffast-math
 
 import numpy as np
 
@@ -25,14 +26,14 @@ from ants cimport multi_group_2d as mg
 from ants cimport parameters
 
 from ants.datatypes import MultigroupSolver, create_params
-from ants.main import artificial_scatter_matrix
+from ants.quadrature import artificial_scatter_matrix
 
 
 def fixed_source(materials, sources, geometry, quadrature, solver):
     # Unpack Python DataTypes to Cython memoryviews
     cdef double[:,:] xs_total = materials.total
     cdef double[:,:,:] xs_scatter = materials.scatter
-    cdef double[:,:,:] xs_fission = materials.fission
+    cdef double[:,:,:] xs_fission = tools._fission_matrix(materials.fission, materials.chi)
     cdef double[:,:,:,:] external = sources.external
     cdef double[:,:,:,:] boundary_x = sources.boundary_x
     cdef double[:,:,:,:] boundary_y = sources.boundary_y

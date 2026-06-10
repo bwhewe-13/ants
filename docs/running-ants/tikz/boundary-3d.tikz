@@ -1,0 +1,54 @@
+\begin{tikzpicture}
+    \draw[step=2.0, very thin, gray!75, dashed] (0, 0) grid (20, 20);
+    \draw[step=2.0, very thin, gray!75, dashed, yslant=0.5] (20, -10) grid (30, 10);
+    \draw[xstep=2, ystep=1.0, very thin, gray!75, dashed, xslant=2] (-40, 20) grid (-20, 25);
+
+    \draw[thick, black] (0,0) rectangle (20,20);
+    \draw[thick, black] (20,0) -- (30, 5) -- (30, 25) -- (20, 20);
+    \draw[thick, black] (0,20) -- (10, 25) -- (30, 25) -- (20, 20);
+
+    \node at (0.0, -0.75) {x(0 cm)};
+    \node at (20, -0.75) {x(X)};
+    \node at (-0.75, 0) {y(0 cm)};
+    \node at (-0.75, 20) {y(Y)};
+    \node at (20.75, -0.25) {z(0)};
+    \node at (29.75, 4.25) {z(Z)};
+
+    % Cell Labels
+    \foreach \x [count=\i] in {2,4,18,20} \foreach \y [count=\j] in {2,4,18,20}{
+        \ifnum \x=20
+            \ifnum \y=20
+                \node[align=left] at (\x-1, \y-1) {$i = I$ \\$j = J$\\$k = 0$};
+            \else
+                \node[align=left] at (\x-1, \y-1) {$i = I$ \\$j = \j$\\$k = 0$};
+            \fi
+        \else
+            \ifnum \y=20
+                \node[align=left] at (\x-1, \y-1) {$i = \i$ \\$j = J$\\$k = 0$};
+            \else
+                \node[align=left] at (\x-1, \y-1) {$i = \i$ \\$j = \j$\\$k = 0$};
+            \fi
+        \fi
+    }
+
+    \node[align=left, rotate=0] at (29, 5.5) {$i = I$ \\$j = 0$\\$k = K$};
+    \node[align=left, rotate=0] at (29, 23.5) {$i = I$ \\$j = J$\\$k = K$};
+
+    % Arrows
+    \draw[->,>=stealth, line width=2mm] (0.25, 10) -- (2, 10) node [pos=1, right] {\LARGE \texttt{boundary\_x[0]}};
+    \draw[->,>=stealth, line width=2mm] (19.75, 10) -- (18, 10) node [pos=1, left] {\LARGE \texttt{boundary\_x[1]}};
+
+    \draw[->,>=stealth, line width=2mm] (10, 0.25) -- (10, 2) node [pos=1, above] {\LARGE \texttt{boundary\_y[0]}};
+    \draw[->,>=stealth, line width=2mm] (10, 19.75) -- (10, 18) node [pos=1, below] {\LARGE \texttt{boundary\_y[1]}};
+
+    \draw[->,>=stealth, line width=2mm] (20.25, 10.125) -- (22, 11) node [pos=1, right] {\LARGE \texttt{boundary\_z[0]}};
+    \draw[->,>=stealth, line width=2mm] (29.75, 14.875) -- (28, 14) node [pos=1, left] {\LARGE \texttt{boundary\_z[1]}};
+
+    \node at (5, -1.5) {\Large \texttt{boundary\_x = (2, J, K, 2 N$^2$, G)}};
+    \node at (15, -1.5) {\Large \texttt{boundary\_y = (2, I, K, 2 N$^2$, G)}};
+    \node at (10, -2.5) {\Large \texttt{boundary\_z = (2, I, J, 2 N$^2$, G)}};
+
+    \path (current bounding box.south west) +(-1cm,-1cm);
+    \path (current bounding box.north east) +(1cm,1cm);
+
+\end{tikzpicture}

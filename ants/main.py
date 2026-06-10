@@ -8,264 +8,22 @@
 # The main driver for the ants package. This file is automatically
 # loaded with the __init__ file.
 #
+# Angular quadrature helpers live in ants/quadrature.py.
+#
 ################################################################################
 
 import os
 from importlib.resources import files
 
 import numpy as np
-from scipy.special import erf
 
 from ants.constants import EV_TO_JOULES, LIGHT_SPEED, MASS_NEUTRON
-from ants.datatypes import QuadratureData
 from ants.utils.hybrid import energy_coarse_index
 
 DATA_PATH = str(files("ants").joinpath("sources/energy/"))
 
 # Decimal places used when rounding coordinates for edge-matching
 _COORD_PRECISION = 12
-
-
-def angular_x(angles, bc_x=[0, 0], datatype=True):
-    """Compute 1D Gauss-Legendre quadrature angles and weights.
-
-    Parameters
-    ----------
-    angles : int
-        Number of angles (int) or problem info dict with keys ``"angles"``
-        and ``"bc_x"`` (list of two ints, 1 = reflected boundary).
-
-    Returns
-    -------
-    angle_x : ndarray, shape (angles,)
-        Quadrature direction cosines, ordered for boundary conditions.
-    angle_w : ndarray, shape (angles,)
-        Normalized quadrature weights summing to 1.
-    """
-
-    angle_x, angle_w = np.polynomial.legendre.leggauss(angles)
-    angle_w /= np.sum(angle_w)
-    # Ordering for reflective boundaries
-    if np.sum(bc_x) > 0.0:
-        if bc_x == [1, 0]:
-            idx = angle_x.argsort()
-        elif bc_x == [0, 1]:
-            idx = angle_x.argsort()[::-1]
-        angle_x = angle_x[idx].copy()
-        angle_w = angle_w[idx].copy()
-    if datatype:
-        return QuadratureData(angle_x=angle_x, angle_w=angle_w)
-    return angle_x, angle_w
-
-
-# Called from cython
-def _angular_x(angles, bc_x):
-    return angular_x(angles, bc_x, False)
-
-
-def angular_xy(angles, bc_x=[0, 0], bc_y=[0, 0], datatype=True):
-    """Compute 2D product quadrature angles and weights for slab geometry.
-
-    Builds a Legendre * Chebyshev product quadrature set, keeps only the
-    N² directions with positive polar cosine (upper hemisphere), and
-    reorders them to satisfy reflective boundary conditions.
-
-    Parameters
-    ----------
-    angles : int
-        Number of angles per dimension.
-    bc_x : list of two ints, optional
-        Boundary conditions in the x-direction (default is [0, 0]).
-    bc_y : list of two ints, optional
-        Boundary conditions in the y-direction (default is [0, 0]).
-    datatype : bool, optional
-        If True, return a QuadratureData object. If False, return raw arrays.
-
-    Returns
-    -------
-    angle_x : ndarray, shape (angles**2,)
-        x-direction cosines, ordered for boundary conditions.
-    angle_y : ndarray, shape (angles**2,)
-        y-direction cosines, ordered for boundary conditions.
-    angle_w : ndarray, shape (angles**2,)
-        Normalized quadrature weights summing to 1.
-    """
-    # Get angles and weights from product quadrature
-    angle_x, angle_y, angle_z, angle_w = _product_quadrature(angles)
-    # Take only positive angle_z values
-    angle_x = angle_x[angle_z > 0].copy()
-    angle_y = angle_y[angle_z > 0].copy()
-    angle_w = angle_w[angle_z > 0] / np.sum(angle_w[angle_z > 0])
-    # Order the angles for boundary conditions and return angle_x, angle_y, angle_w
-    angle_x, angle_y, angle_w = _ordering_angles_xy(
-        angle_x, angle_y, angle_w, bc_x, bc_y
-    )
-    if datatype:
-        return QuadratureData(angle_x=angle_x, angle_y=angle_y, angle_w=angle_w)
-    return angle_x, angle_y, angle_w
-
-
-# Called from cython
-def _angular_xy(angles, bc_x, bc_y):
-    return angular_xy(angles, bc_x, bc_y, False)
-
-
-def artificial_scatter_matrix(angle_x, angle_y, angle_w, sigma_as, beta):
-    """Compute the normalized artificial scattering matrix M_as[N, N].
-
-    Implements the forward-peaked scattering kernel from Frank et al. (2020),
-    "Ray Effect Mitigation for the Discrete Ordinates Method Using Artificial
-    Scattering", Nuclear Science and Engineering.
-
-    The kernel is s_ε(μ) = (2 / (√π ε Erf(2/ε))) * exp(-(1 - μ)² / ε²)
-    with ε = β / N_q, where N_q is the number of ordinates.
-
-    Parameters
-    ----------
-    angle_x : ndarray, shape (N,)
-        x-direction cosines for 2D.
-    angle_y : ndarray, shape (N,)
-        y-direction cosines for 2D.
-    angle_w : ndarray, shape (N,)
-        Normalized quadrature weights (sum to 1).
-    sigma_as : float
-        Artificial scattering strength parameter. Set to 0 to disable.
-    beta : float
-        Kernel width parameter. Typical values: 4.5 (explicit), 4.0 (implicit).
-
-    Returns
-    -------
-    M_as : ndarray, shape (N, N)
-        Normalized artificial scattering matrix.
-    """
-    N = len(angle_x)
-    eps = beta / N if N > 0 else 1.0
-
-    # Compute pairwise dot products
-    dots = np.outer(angle_x, angle_x) + np.outer(angle_y, angle_y)  # (N, N)
-
-    # Kernel Eq. (6) from Frank et al.
-    if eps > 1e-15:
-        erf_val = erf(2.0 / eps)
-    else:
-        erf_val = 1.0
-    prefactor = 2.0 / (np.sqrt(np.pi) * eps * erf_val)
-    S = prefactor * np.exp(-((1.0 - dots) ** 2) / eps**2)  # (N, N)
-
-    # Weight by quadrature weights: M_as[n,m]
-    WS = S * angle_w[np.newaxis, :]  # (N, N)
-
-    # Per-ordinate normalization factor c_n
-    c_n = WS.sum(axis=1, keepdims=True)  # (N, 1)
-    c_n = np.where(c_n > 0, c_n, 1.0)  # avoid division by zero
-
-    # Final normalized matrix
-    M_as = sigma_as * WS / c_n  # (N, N)
-    return M_as.astype(np.float64)
-
-
-def _product_quadrature(angles):
-    """Build a Legendre * Chebyshev product quadrature set over the full sphere.
-
-    Uses Gauss-Legendre points for the polar cosine (z-direction, mu) and
-    Chebyshev points for the azimuthal angle (mapped to x/y direction cosines
-    eta/xi). Each (mu, phi) pair gives ±phi, producing 2*angles² directions
-    covering the full sphere before filtering to the upper hemisphere.
-
-    Parameters
-    ----------
-    angles : int
-        Number of quadrature points per dimension.
-
-    Returns
-    -------
-    angle_x, angle_y, angle_z : ndarray, shape (2*angles**2,)
-        Direction cosines for x, y, z axes over the full sphere.
-    angle_w : ndarray, shape (2*angles**2,)
-        Quadrature weights (un-normalized product of Legendre * Chebyshev weights).
-    """
-    # Polar cosine (mu) via Gauss-Legendre; azimuthal (phi) via Chebyshev
-    xx, wx = np.polynomial.legendre.leggauss(angles)
-    yy, wy = np.polynomial.chebyshev.chebgauss(angles)
-    # Create arrays for each angle
-    angle_x = np.zeros(2 * angles**2)
-    angle_y = np.zeros(2 * angles**2)
-    angle_z = np.zeros(2 * angles**2)
-    angle_w = np.zeros(2 * angles**2)
-    # Indexing
-    idx = 0
-    for ii in range(angles):
-        for jj in range(angles):
-            angle_z[idx : idx + 2] = xx[ii]
-            angle_x[idx] = np.sqrt(1 - xx[ii] ** 2) * np.cos(np.arccos(yy[jj]))
-            angle_x[idx + 1] = np.sqrt(1 - xx[ii] ** 2) * np.cos(-np.arccos(yy[jj]))
-            angle_y[idx] = np.sqrt(1 - xx[ii] ** 2) * np.sin(np.arccos(yy[jj]))
-            angle_y[idx + 1] = np.sqrt(1 - xx[ii] ** 2) * np.sin(-np.arccos(yy[jj]))
-            angle_w[idx : idx + 2] = wx[ii] * wy[jj]
-            idx += 2
-    # Round for reflecting angles
-    angle_x = np.round(angle_x, 12)
-    angle_y = np.round(angle_y, 12)
-    angle_z = np.round(angle_z, 12)
-    angle_w = np.round(angle_w, 12)
-    # Return all angles
-    return angle_x, angle_y, angle_z, angle_w
-
-
-def _ordering_angles_xy(angle_x, angle_y, angle_w, bc_x, bc_y):
-    # Get number of discrete ordinates
-    angles = int(np.sqrt(angle_x.shape[0]))
-    # Get only positive angles
-    matrix = np.fabs(np.vstack((angle_x, angle_y, angle_w)))
-    # Get unique combinations and convert to size N**2
-    matrix = np.repeat(np.unique(matrix, axis=1), 4, axis=1)
-
-    # signs for [angle_x, angle_y, angle_w]
-    directions = np.array([[1, -1, 1, -1], [1, 1, -1, -1], [1, 1, 1, 1]])
-
-    if bc_x == [0, 0]:
-
-        if bc_y == [0, 0]:
-            idx = [0, 1, 2, 3]
-
-        elif bc_y == [1, 0]:
-            # idx = [2, 0, 3, 1]
-            idx = [3, 1, 2, 0]
-
-        elif bc_y == [0, 1]:
-            # idx = [0, 2, 1, 3]
-            idx = [0, 1, 2, 3]
-
-    elif bc_x == [1, 0]:
-
-        if bc_y == [0, 0]:
-            # idx = [1, 0, 3, 2]
-            idx = [1, 3, 2, 0]
-
-        elif bc_y == [1, 0]:
-            # idx = [3, 2, 1, 0]
-            idx = [3, 1, 2, 0]
-
-        elif bc_y == [0, 1]:
-            # idx = [1, 0, 3, 2]
-            idx = [1, 3, 0, 2]
-
-    elif bc_x == [0, 1]:
-
-        if bc_y == [0, 0]:
-            # idx = [0, 1, 2, 3]
-            idx = [0, 2, 1, 3]
-
-        elif bc_y == [1, 0]:
-            # idx = [2, 3, 0, 1]
-            idx = [2, 0, 3, 1]
-
-        elif bc_y == [0, 1]:
-            # idx = [0, 1, 2, 3]
-            idx = [0, 2, 1, 3]
-
-    directions = np.tile(directions[:, idx], int(angles**2 / 4))
-    return matrix * directions
 
 
 def energy_grid(grid, groups_fine, groups_coarse=None, optimize=True):
@@ -665,5 +423,4 @@ def _quarter_symmetry(weight_matrix, circles, edges_x, edges_y):
     symmetrical_weight_matrix[idx_x3, idx_y3] = quarter[::-1, ::-1].copy()
     symmetrical_weight_matrix[idx_x4, idx_y4] = quarter[:, ::-1].copy()
 
-    return symmetrical_weight_matrix
     return symmetrical_weight_matrix

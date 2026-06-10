@@ -72,8 +72,7 @@ def test_backward_euler_01():
     exact = np.sum(exact * quadrature.angle_w[None, None, :, None], axis=2)
 
     atol = 5e-3
-    for tt in range(steps):
-        assert np.isclose(approx[tt], exact[tt], atol=atol).all()
+    assert np.isclose(approx, exact[-1], atol=atol).all()
 
 
 @pytest.mark.slab1d
@@ -117,8 +116,7 @@ def test_backward_euler_02():
     exact = np.sum(exact * quadrature.angle_w[None, None, :, None], axis=2)
 
     atol = 5e-3
-    for tt in range(steps):
-        assert np.isclose(approx[tt], exact[tt], atol=atol).all()
+    assert np.isclose(approx, exact[-1], atol=atol).all()
 
 
 @pytest.mark.smoke
@@ -163,8 +161,7 @@ def test_crank_nicolson_01():
     exact = np.sum(exact * quadrature.angle_w[None, None, :, None], axis=2)
 
     atol = 5e-3
-    for tt in range(steps):
-        assert np.isclose(approx[tt], exact[tt], atol=atol).all()
+    assert np.isclose(approx, exact[-1], atol=atol).all()
 
 
 @pytest.mark.slab1d
@@ -208,8 +205,7 @@ def test_crank_nicolson_02():
     exact = np.sum(exact * quadrature.angle_w[None, None, :, None], axis=2)
 
     atol = 5e-3
-    for tt in range(steps):
-        assert np.isclose(approx[tt], exact[tt], atol=atol).all()
+    assert np.isclose(approx, exact[-1], atol=atol).all()
 
 
 @pytest.mark.smoke
@@ -254,8 +250,7 @@ def test_bdf2_01():
     exact = np.sum(exact * quadrature.angle_w[None, None, :, None], axis=2)
 
     atol = 5e-3
-    for tt in range(steps):
-        assert np.isclose(approx[tt], exact[tt], atol=atol).all()
+    assert np.isclose(approx, exact[-1], atol=atol).all()
 
 
 @pytest.mark.slab1d
@@ -299,8 +294,7 @@ def test_bdf2_02():
     exact = np.sum(exact * quadrature.angle_w[None, None, :, None], axis=2)
 
     atol = 5e-3
-    for tt in range(steps):
-        assert np.isclose(approx[tt], exact[tt], atol=atol).all()
+    assert np.isclose(approx, exact[-1], atol=atol).all()
 
 
 @pytest.mark.smoke
@@ -345,8 +339,7 @@ def test_tr_bdf2_01():
     exact = np.sum(exact * quadrature.angle_w[None, None, :, None], axis=2)
 
     atol = 5e-3
-    for tt in range(steps):
-        assert np.isclose(approx[tt], exact[tt], atol=atol).all()
+    assert np.isclose(approx, exact[-1], atol=atol).all()
 
 
 @pytest.mark.slab1d
@@ -390,8 +383,7 @@ def test_tr_bdf2_02():
     exact = np.sum(exact * quadrature.angle_w[None, None, :, None], axis=2)
 
     atol = 5e-3
-    for tt in range(steps):
-        assert np.isclose(approx[tt], exact[tt], atol=atol).all()
+    assert np.isclose(approx, exact[-1], atol=atol).all()
 
 
 ###############################################################################
@@ -530,9 +522,7 @@ def test_mg_01_bdf1(angles_c, groups_c):
         edges_g,
     )
 
-    # Compare each time step
-    for tt in range(time_data.steps):
-        assert np.isclose(hy_flux[tt], vhy_flux[tt]).all()
+    assert np.isclose(hy_flux, vhy_flux).all()
 
 
 @pytest.mark.slab1d
@@ -579,9 +569,7 @@ def test_mg_01_cn(angles_c, groups_c):
         edges_g,
     )
 
-    # Compare each time step
-    for tt in range(time_data.steps):
-        assert np.isclose(hy_flux[tt], vhy_flux[tt]).all()
+    assert np.isclose(hy_flux, vhy_flux).all()
 
 
 @pytest.mark.slab1d
@@ -628,9 +616,7 @@ def test_mg_01_bdf2(angles_c, groups_c):
         edges_g,
     )
 
-    # Compare each time step
-    for tt in range(time_data.steps):
-        assert np.isclose(hy_flux[tt], vhy_flux[tt]).all()
+    assert np.isclose(hy_flux, vhy_flux).all()
 
 
 @pytest.mark.slab1d
@@ -677,6 +663,4 @@ def test_mg_01_tr_bdf2(angles_c, groups_c):
         edges_g,
     )
 
-    # Compare each time step
-    for tt in range(time_data.steps):
-        assert np.isclose(hy_flux[tt], vhy_flux[tt]).all()
+    assert np.isclose(hy_flux, vhy_flux).all()

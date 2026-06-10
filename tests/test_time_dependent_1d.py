@@ -10,6 +10,7 @@
 ########################################################################
 
 import os
+import tempfile
 
 import numpy as np
 import pytest
@@ -40,7 +41,7 @@ def test_reed_bdf1(boundary):
         mat_data, sources, geometry, quadrature, solver, time_data
     )
 
-    assert np.isclose(fixed_flux[:, 0], timed_flux[-1, :, 0]).all(), "Incorrect Flux"
+    assert np.isclose(fixed_flux[:, 0], timed_flux[:, 0]).all(), "Incorrect Flux"
 
 
 @pytest.mark.slab1d
@@ -63,7 +64,7 @@ def test_reed_bdf2(boundary):
     timed_flux = timed1d.time_dependent(
         mat_data, sources, geometry, quadrature, solver, time_data
     )
-    assert np.isclose(fixed_flux[:, 0], timed_flux[-1, :, 0]).all(), "Incorrect Flux"
+    assert np.isclose(fixed_flux[:, 0], timed_flux[:, 0]).all(), "Incorrect Flux"
 
 
 @pytest.mark.sphere1d
@@ -72,10 +73,17 @@ def test_reed_bdf2(boundary):
 def test_sphere_01_bdf1():
     mat_data, sources, geometry, quadrature, solver, time_data = prob.sphere_01("timed")
 
-    flux = timed1d.time_dependent(
-        mat_data, sources, geometry, quadrature, solver, time_data
-    )
-    ref_file_name = "uranium_sphere_backward_euler_flux.npy"
-    reference = np.load(os.path.join(prob.PATH, ref_file_name))
-    for tt in range(time_data.steps):
-        assert np.isclose(flux[tt], reference[tt]).all()
+    with tempfile.NamedTemporaryFile(suffix=".npy", delete=False) as f:
+        tmp_path = f.name
+    try:
+        time_data.save_to_file = tmp_path
+        timed1d.time_dependent(
+            mat_data, sources, geometry, quadrature, solver, time_data
+        )
+        flux = np.load(tmp_path, mmap_mode="r")
+        ref_file_name = "uranium_sphere_backward_euler_flux.npy"
+        reference = np.load(os.path.join(prob.PATH, ref_file_name))
+        for tt in range(time_data.steps):
+            assert np.isclose(flux[tt], reference[tt]).all()
+    finally:
+        os.unlink(tmp_path)

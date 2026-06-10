@@ -109,6 +109,33 @@ class MultigroupSolver(IntEnum):
     DMD = 2
 
 
+class ParallelType(IntEnum):
+    """Parallelism strategy for OpenMP sweeps.
+
+    Attributes
+    ----------
+    ANGLE : int
+        Parallelize over angles (default).  The inner angular sweep uses
+        ``num_threads`` threads. Energy groups are swept sequentially with
+        Gauss-Seidel ordering.
+    GROUP : int
+        Parallelize over energy groups using a Jacobi outer iteration.
+        Each group's angular sweep runs on a single thread.  Best when
+        ``groups`` >> ``angles``.
+    BOTH : int
+        Parallelize over both energy groups (Jacobi) and angles
+        simultaneously.  Both the outer group prange and the inner angle
+        prange use ``num_threads`` threads.  Requires
+        ``OMP_MAX_ACTIVE_LEVELS=2`` (or ``OMP_NESTED=TRUE``) in the
+        environment for true nested parallelism; otherwise the inner
+        prange is serialized by the OpenMP runtime.
+    """
+
+    ANGLE = 1
+    GROUP = 2
+    BOTH = 3
+
+
 def _default_vacuum_bc():
     """Return default two-sided vacuum boundary conditions.
 
@@ -156,20 +183,27 @@ class SourceData:
     Attributes
     ----------
     external : numpy.ndarray
-        External source, shape ``(materials, groups)``.
+        External source. Full shape ``(I, N, G)`` in 1D and
+        ``(I, J, N**2, G)`` in 2D, with a leading ``T`` (time) axis for
+        time-dependent problems. Dimensions of size 1 are broadcast.
     boundary_x : numpy.ndarray
-        Boundary source in x direction, shape ``(materials, groups)``.
+        Boundary source in x direction. Full shape ``(2, N, G)`` in 1D and
+        ``(2, J, N**2, G)`` in 2D, with a leading ``T`` axis for
+        time-dependent problems. The leading 2 is the [x(0), x(X)] sides.
     boundary_y : numpy.ndarray, optional
-        Boundary source in y direction for 2D problems, shape
-        ``(materials, groups)``.
+        Boundary source in y direction for 2D problems. Full shape
+        ``(2, I, N**2, G)``, with a leading ``T`` axis for time-dependent
+        problems.
     initial_flux : numpy.ndarray, optional
-        Initial flux for time-dependent problems, shape ``(cells_x, cells_y, groups)``.
+        Cell-centered initial angular flux for time-dependent problems
+        (BDF1/BDF2). Shape ``(I, N, G)`` in 1D and ``(I, J, N**2, G)`` in 2D.
     initial_flux_x : numpy.ndarray, optional
-        Initial flux at x vertical faces for time-dependent problems, shape
-        ``(cells_x + 1, cells_y, groups)``.
+        Edge-based initial angular flux at x faces for time-dependent
+        problems (CN/TR-BDF2). Shape ``(I + 1, N, G)`` in 1D and
+        ``(I + 1, J, N**2, G)`` in 2D.
     initial_flux_y : numpy.ndarray, optional
-        Initial flux at y horizontal faces for time-dependent problems, shape
-        ``(cells_x, cells_y + 1, groups)``.
+        Edge-based initial angular flux at y faces for 2D time-dependent
+        problems (CN/TR-BDF2). Shape ``(I, J + 1, N**2, G)``.
     """
 
     external: np.ndarray
@@ -192,6 +226,8 @@ class QuadratureData:
         Angular weights, shape ``(angles,)``.
     angle_y : numpy.ndarray, optional
         Direction cosines in y for 2D problems, shape ``(angles,)``.
+    angle_z : numpy.ndarray, optional
+        Direction cosines in z for 3D problems, shape ``(angles,)``.
     P : numpy.ndarray, optional
         Precomputed Legendre polynomials, shape ``(L + 1, angles)``.
     P_weights : numpy.ndarray, optional
@@ -201,6 +237,7 @@ class QuadratureData:
     angle_x: np.ndarray
     angle_w: np.ndarray
     angle_y: Optional[np.ndarray] = None
+    angle_z: Optional[np.ndarray] = None
     P: Optional[np.ndarray] = None
     P_weights: Optional[np.ndarray] = None
 
@@ -268,11 +305,19 @@ class TimeDependentData:
         Time step width.
     time_disc : TemporalDiscretization
         Temporal discretization type.
+    save_to_file : str, optional
+        If provided, the scalar flux at each time step is written directly to
+        a memory-mapped ``.npy`` file at this path instead of being
+        accumulated in RAM.  The solver returns the numpy memmap array so
+        individual time steps can be read from disk without loading the full
+        result into memory.  When ``None`` (default) the full flux array is
+        returned as a normal in-memory numpy array.
     """
 
     steps: int = 0
     dt: float = 1.0
     time_disc: TemporalDiscretization = TemporalDiscretization.BDF1
+    save_to_file: Optional[str] = None
 
 
 @dataclass
@@ -285,6 +330,17 @@ class SolverData:
         If True, return angular flux instead of scalar flux.
     flux_at_edges : int
         Flux location: 0 = cell centers, 1 = cell edges.
+    num_threads : int
+        Number of OpenMP threads for angular sweeps.  Default is 1 (no
+        parallelism).  Set to 0 to use all logical CPUs, or any positive
+        integer to use that many threads.
+    parallel : ParallelType
+        Parallelism strategy.  ``ANGLE`` (default) parallelizes over
+        angles with Gauss-Seidel energy iteration.  ``GROUP`` parallelizes
+        over energy groups with Jacobi iteration (single-threaded angle
+        sweep per group).  ``BOTH`` runs Jacobi group prange and angle
+        prange simultaneously. Requires ``OMP_MAX_ACTIVE_LEVELS=2`` for
+        true nested parallelism.
     mg_solver : MultigroupSolver
         Multigroup solver type.
     dmd_snapshots : int
@@ -311,6 +367,8 @@ class SolverData:
 
     angular: bool = False
     flux_at_edges: int = 0
+    num_threads: int = 1
+    parallel: ParallelType = ParallelType.ANGLE
     mg_solver: MultigroupSolver = MultigroupSolver.SOURCE_ITERATION
     dmd_snapshots: int = 20
     dmd_rank: int = 2
@@ -359,6 +417,10 @@ class ProblemParameters:
         If True, return angular flux instead of scalar flux.
     flux_at_edges : int
         Flux location: 0 = cell centers, 1 = cell edges.
+    num_threads : int
+        Number of OpenMP threads for angular sweeps.
+    parallel_type : ParallelType
+        Parallelism strategy (ANGLE, GROUP, or BOTH).
     mg_solver : MultigroupSolver
         Multigroup solver type.
     dmd_snapshots : int
@@ -397,6 +459,8 @@ class ProblemParameters:
     time_disc: TemporalDiscretization
     angular: bool
     flux_at_edges: int
+    num_threads: int
+    parallel_type: ParallelType
     mg_solver: MultigroupSolver
     dmd_snapshots: int
     dmd_rank: int
@@ -455,6 +519,8 @@ def create_params(materials, quadrature, geometry, solver, time=None):
         time_disc=time_data.time_disc,
         angular=solver.angular,
         flux_at_edges=solver.flux_at_edges,
+        num_threads=solver.num_threads,
+        parallel_type=solver.parallel,
         mg_solver=solver.mg_solver,
         dmd_snapshots=solver.dmd_snapshots,
         dmd_rank=solver.dmd_rank,

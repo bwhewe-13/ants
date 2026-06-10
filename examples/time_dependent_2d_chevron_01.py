@@ -1,36 +1,48 @@
-# Running 2d multigroup problem - chevron
+########################################################################
+#                        ___    _   _____________
+#                       /   |  / | / /_  __/ ___/
+#                      / /| | /  |/ / / /  \__ \
+#                     / ___ |/ /|  / / /  ___/ /
+#                    /_/  |_/_/ |_/ /_/  /____/
+#
+# Two dimensional multigroup (87-group) time-dependent problem on a
+# chevron geometry: triangular uranium fuel regions in an HDPE moderator
+# background. A decaying deuterium-tritium (14.1 MeV) boundary source
+# enters from y = 0.
+#
+# Note: Requires weight_matrix_2d_chevron.npy in the working directory.
+# This file encodes the mixed-material cell fractions for the chevron
+# geometry and was generated using ants.weight_matrix2d() with the
+# triangle and rectangle region definitions below.
+#
+########################################################################
 
-import argparse
+from pathlib import Path
 
 import numpy as np
-from memory_profiler import memory_usage
 
 import ants
-from ants import timed2d
-from ants.utils import hybrid as hytools
-
-parser = argparse.ArgumentParser()
-parser.add_argument("-n", "--angles", type=int, action="store")
-parser.add_argument("-g", "--groups", type=int, action="store")
-args = parser.parse_args()
+from ants.datatypes import (
+    GeometryData,
+    MaterialData,
+    SolverData,
+    SourceData,
+    TemporalDiscretization,
+    TimeDependentData,
+)
+from ants.timed2d import time_dependent
 
 cells_x = 90
 cells_y = 90
-angles = args.angles
-groups = args.groups
-
-# Create labels
-fgroups = str(groups).zfill(2)
-fangles = str(angles).zfill(2)
-
-steps = 50
-T = 50e-6
+angles = 4
+groups = 87
+bc_x = [0, 0]
+bc_y = [0, 0]
 
 steps = 1
 T = 1e-6
 dt = np.round(T / steps, 10)
 edges_t = np.round(np.linspace(0, steps * dt, steps + 1), 10)
-
 
 length_x = 9.0
 length_y = 9.0
@@ -43,153 +55,79 @@ delta_y = np.repeat(length_y / cells_y, cells_y)
 edges_y = np.round(np.linspace(0, length_y, cells_y + 1), 10)
 centers_y = 0.5 * (edges_y[1:] + edges_y[:-1])
 
-# Boundary conditions
-bc_x = [0, 0]
-bc_y = [0, 0]
-
-# Velocity
+# Energy grid and neutron velocity
 edges_g, edges_gidx = ants.energy_grid(87, groups)
 velocity = ants.energy_velocity(groups, edges_g)
 
-
-# Cross Sections
+# Cross sections for two materials: uranium and HDPE
 materials = ["uranium-%0.7%", "high-density-polyethyene-087"]
-xs_total, xs_scatter, xs_fission = ants.materials(87, materials)
+xs_total, xs_scatter, xs_fission = ants.materials(87, materials, datatype=False)
 
-# # Create chevrons
-# triangle01 = [(0.1, 1.), (0.1, 3.9), (5.9, 1.)]
-# triangle02 = [(6., 1.), (8.9, 1.), (8.9, 3.9)]
+# Load pre-computed chevron geometry weight matrix.
+# To regenerate the weight matrix, uncomment the code below:
+#
+# triangle01 = [(0.1, 1.0), (0.1, 3.9), (5.9, 1.0)]
+# triangle02 = [(6.0, 1.0), (8.9, 1.0), (8.9, 3.9)]
 # triangle03 = [(0.1, 4.9), (0.1, 7.8), (5.9, 4.9)]
-# triangle04 = [(6., 4.9), (8.9, 4.9), (8.9, 7.8)]
+# triangle04 = [(6.0, 4.9), (8.9, 4.9), (8.9, 7.8)]
 # triangles = np.array([triangle01, triangle02, triangle03, triangle04])
 # t_index = [1, 1, 0, 0]
-
-# # Create border
-# rectangle01 = [(0, 0), 0.1, 9.]
-# rectangle02 = [(0, 8.9), 9., 0.1]
-# rectangle03 = [(8.9, 0), 0.1, 9.]
+# rectangle01 = [(0, 0), 0.1, 9.0]
+# rectangle02 = [(0, 8.9), 9.0, 0.1]
+# rectangle03 = [(8.9, 0), 0.1, 9.0]
 # rectangles = [rectangle01, rectangle02, rectangle03]
 # r_index = [0, 0, 0]
-
 # N_particles = cells_x * cells_y * 40
-# weight_matrix = ants.weight_matrix2d(edges_x, edges_y, 3, N_particles=N_particles, \
-#                                     triangles=triangles, triangle_index=t_index, \
-#                                     rectangles=rectangles, rectangle_index=r_index)
-# np.save("weight_matrix_g87_090", weight_matrix)
+# weight_matrix = ants.weight_matrix2d(
+#     edges_x, edges_y, 2, N_particles=N_particles,
+#     triangles=triangles, triangle_index=t_index,
+#     rectangles=rectangles, rectangle_index=r_index,
+# )
+# np.save("weight_matrix_2d_chevron", weight_matrix)
 
-weight_matrix = np.load("weight_matrix_g87_090.npy")
+weight_matrix = np.load(Path(__file__).with_name("weight_matrix_2d_chevron.npy"))
 data = ants.weight_spatial2d(weight_matrix, xs_total, xs_scatter, xs_fission)
 medium_map, xs_total, xs_scatter, xs_fission = data
 
-# import matplotlib.pyplot as plt
-# fig, ax = plt.subplots(figsize=(9, 9))
-# img = ax.pcolormesh(weight_matrix[:,:,0].T, cmap="rainbow")
-# fig.colorbar(img)
-# ax.set_title("Chevron Problem")
-# skip = 10
-# ax.grid(True, axis="both", linestyle=":", color="k", alpha=0.6)
-# ax.set_xticks(np.linspace(0, cells_x, cells_x+1)[::skip])
-# ax.set_xticklabels(edges_x[::skip])
-# ax.set_yticks(np.linspace(0, cells_y, cells_y+1)[::skip])
-# ax.set_yticklabels(edges_y[::skip])
-# ax.set_xlabel("x (cm)")
-# ax.set_ylabel("y (cm)")
-# ax.set_aspect("equal", "box")
-# # fig.savefig("chevron/chevron_layout.png", bbox_inches="tight", dpi=200)
-# plt.show()
 
+mat_data = MaterialData(
+    total=xs_total,
+    scatter=xs_scatter,
+    fission=xs_fission,
+    velocity=velocity,
+)
 
-info = {
-    "cells_x": cells_x,
-    "cells_y": cells_y,
-    "angles": angles,
-    "groups": groups,
-    "materials": xs_total.shape[0],
-    "geometry": 1,
-    "spatial": 2,
-    "bc_x": bc_x,
-    "bc_y": bc_y,
-    "steps": steps,
-    "dt": dt,
-}
+# Angular quadrature
+quadrature = ants.angular_xy(angles, bc_x=bc_x, bc_y=bc_y)
 
-
-angle_x, angle_y, angle_w = ants.angular_xy(info)
-
-# Boundary conditions and external source
-external = np.zeros((1, cells_x, cells_y, 1, 1))
-
-boundary_x, boundary_y = ants.boundary2d.deuterium_tritium(-1, 0, edges_g)
-boundary_x = boundary_x[None, ...].copy()
-
+# Boundary conditions: DT source at y = 0 with gamma decay
+boundary_x_base, boundary_y_base = ants.boundary2d.deuterium_tritium(-1, 0, edges_g)
+boundary_x = boundary_x_base[None, ...].copy()
 gamma_steps = ants.gamma_time_steps(edges_t)
-boundary_y = ants.boundary2d.time_dependence_decay_03(boundary_y, gamma_steps)
+boundary_y = ants.boundary2d.time_dependence_decay_03(boundary_y_base, gamma_steps)
 
+sources = SourceData(
+    initial_flux_x=np.zeros((cells_x + 1, cells_y, angles**2, groups)),
+    initial_flux_y=np.zeros((cells_x, cells_y + 1, angles**2, groups)),
+    external=np.zeros((1, cells_x, cells_y, 1, 1)),
+    boundary_x=boundary_x,
+    boundary_y=boundary_y,
+)
 
-if edges_g.shape[0] != (groups + 1):
-    xs_total, xs_scatter, xs_fission = hytools.coarsen_materials(
-        xs_total, xs_scatter, xs_fission, edges_g, edges_gidx
-    )
-    velocity = hytools.coarsen_velocity(velocity, edges_gidx)
-    external = hytools.coarsen_external(external, edges_g, edges_gidx)
-    boundary_x = hytools.coarsen_external(boundary_x, edges_g, edges_gidx)
-    boundary_y = hytools.coarsen_external(boundary_y, edges_g, edges_gidx)
+geometry = GeometryData(
+    medium_map=medium_map,
+    delta_x=delta_x,
+    delta_y=delta_y,
+    bc_x=bc_x,
+    bc_y=bc_y,
+    geometry=3,  # 2D slab
+)
+solver = SolverData()
+time_data = TimeDependentData(
+    steps=steps, dt=dt, time_disc=TemporalDiscretization.TR_BDF2
+)
 
-
-initial_x = np.zeros((cells_x + 1, cells_y, angles**2, groups))
-initial_y = np.zeros((cells_x, cells_y + 1, angles**2, groups))
-
-
-# data = {"xs_total": xs_total, "xs_scatter": xs_scatter, "xs_fission": xs_fission,
-#         "velocity": velocity, "external": external, "boundary_x": boundary_x,
-#         "boundary_y": boundary_y, "medium_map": medium_map, "edges_x": edges_x,
-#         "edges_y": edges_y, "angle_x": angle_x, "angle_y": angle_y,
-#         "angle_w": angle_w, "info": info, "edges_g": edges_g[edges_gidx]}
-# np.savez(f"data_g{fgroups}_n{fangles}.npz", **data)
-
-
-def run():
-    _ = timed2d.tr_bdf2(
-        initial_x,
-        initial_y,
-        xs_total,
-        xs_scatter,
-        xs_fission,
-        velocity,
-        external,
-        boundary_x,
-        boundary_y,
-        medium_map,
-        delta_x,
-        delta_y,
-        angle_x,
-        angle_y,
-        angle_w,
-        info,
-    )
-
-
-# np.save(f"flux_mgsi_g{fgroups}_n{fangles}", flux)
-
-
-# flux, keff = critical2d.power_iteration(xs_total, xs_scatter, xs_fission, \
-#                                         medium_map, delta_x, delta_y, \
-#                                         angle_x, angle_y, angle_w, info)
-
-# mydic = {"flux": flux, "keff": keff}
-# np.savez(f"flux_critical_g{gg}_n{nn}", **mydic)
-
-if __name__ == "__main__":
-    mem_usage = memory_usage((run, ()), interval=0.5)
-    max_mem = np.max(mem_usage)
-    diff_mem = np.max(mem_usage) - np.min(mem_usage)
-    mean_mem = np.mean(mem_usage)
-    std_mem = np.std(mem_usage)
-    quantile = np.quantile(mem_usage, [0.0, 0.25, 0.5, 0.75, 1.0])
-    with open("multigroup-memory-usage.txt", "a") as f:
-        f.write(
-            f"Angles: {fangles}, Groups: {fgroups}, "
-            f"Max: {max_mem}, Diff: {diff_mem}, Mean: {mean_mem}, "
-            f"Std: {std_mem}, Quantiles: {quantile}\n"
-        )
-    print(f"Max Memory: {max_mem:.2f} MB, Diff: {diff_mem:.2f} MB")
+flux = time_dependent(mat_data, sources, geometry, quadrature, solver, time_data)
+# np.save("time_dependent_2d_chevron", flux)
+flux = time_dependent(mat_data, sources, geometry, quadrature, solver, time_data)
+# np.save("time_dependent_2d_chevron", flux)

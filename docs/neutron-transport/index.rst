@@ -3,5 +3,8 @@ The Neutron Transport Equation
 
 .. toctree::
 
-    spatial-sweep.rst
+    continuous-equation.rst
+    discrete-ordinates.rst
+    spatial-discretization.rst
+    temporal-discretization.rst
     neutron-data.rst

@@ -1,0 +1,17 @@
+\begin{tikzpicture}
+    \draw[thick] (0,0) -- (20,0);
+    \draw[thick] (0, -1) node[below]{x(0 cm)} -- (0, 1);
+    \draw[thick] (20, -1) node[below]{x(X)} -- (20, 1);
+    \foreach\i in {2,4,...,19}{
+        \draw (\i, -0.5) -- (\i, 0.5);
+    }
+    \node at (1, -0.5) {$i = 1$};
+    \node at (3, -0.5) {$i = 2$};
+    \node at (5, -0.5) {$\cdots$};
+    \node at (19, -0.5) {$i = I$};
+
+    \draw[->,>=stealth, ultra thick] (0.25, 0.75) -- (2, 0.75) node [pos=1, right] {\texttt{boundary\_x[0]}};
+    \draw[->,>=stealth, ultra thick] (19.75, 0.75) -- (18, 0.75) node [pos=1, left] {\texttt{boundary\_x[1]}};
+    \node at (10, -1.5) {\Large \texttt{boundary\_x = (2, N, G)}};
+
+\end{tikzpicture}

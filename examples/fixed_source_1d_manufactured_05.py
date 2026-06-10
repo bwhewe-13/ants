@@ -5,9 +5,10 @@
 #                     / ___ |/ /|  / / /  ___/ /
 #                    /_/  |_/_/ |_/ /_/  /____/
 #
-# One dimensional method of manufactured solution problem for two
-# material problem with a quasi scattering region and a scattering
-# dominate region. This is angular dependent.
+# One dimensional method of manufactured solutions problem for a two-
+# material slab with a quasi-scattering region (sigma_s = 0.3) and a
+# scattering-dominated region (sigma_s = 0.9). Angle-dependent external
+# source, angle-independent boundary conditions, 2 cm domain.
 #
 ########################################################################
 
@@ -16,12 +17,12 @@ import numpy as np
 import seaborn as sns
 
 import ants
-from ants.fixed1d import source_iteration
+from ants.datatypes import GeometryData, MaterialData, SolverData, SourceData
+from ants.fixed1d import fixed_source
 from ants.utils import manufactured_1d as mms
 
 cells_x = 100
 angles = 4
-groups = 1
 
 length = 2.0
 delta_x = np.repeat(length / cells_x, cells_x)
@@ -30,45 +31,33 @@ centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
 
 bc_x = [0, 0]
 
-info = {
-    "cells_x": cells_x,
-    "angles": angles,
-    "groups": groups,
-    "materials": 2,
-    "geometry": 1,
-    "spatial": 2,
-    "qdim": 3,
-    "bc_x": bc_x,
-    "bcdim_x": 3,
-    "angular": True,
-}
+# Angular quadrature
+quadrature = ants.angular_x(angles, bc_x=bc_x)
 
-angle_x, angle_w = ants.angular_x(info)
 layers = [[0, "quasi", "0-1"], [1, "scatter", "1-2"]]
 medium_map = ants.spatial1d(layers, edges_x)
 
-xs_total = np.array([[1.0], [1.0]])
-xs_scatter = np.array([[[0.3]], [[0.9]]])
-xs_fission = np.array([[[0.0]], [[0.0]]])
-
-external = ants.external1d.manufactured_ss_05(centers_x, angle_x)
-boundary_x = ants.boundary1d.manufactured_ss_05()
-
-flux = source_iteration(
-    xs_total,
-    xs_scatter,
-    xs_fission,
-    external,
-    boundary_x,
-    medium_map,
-    delta_x,
-    angle_x,
-    angle_w,
-    info,
+mat_data = MaterialData(
+    total=np.array([[1.0], [1.0]]),
+    scatter=np.array([[[0.3]], [[0.9]]]),
+    fission=np.array([[[0.0]], [[0.0]]]),
 )
 
+sources = SourceData(
+    external=ants.external1d.manufactured_ss_05(centers_x, quadrature.angle_x),
+    boundary_x=ants.boundary1d.manufactured_ss_05(),
+)
 
-exact = mms.solution_mms_05(centers_x, angle_x)
+geometry = GeometryData(
+    medium_map=medium_map,
+    delta_x=delta_x,
+    bc_x=bc_x,
+    geometry=1,
+)
+solver = SolverData(angular=True)
+
+flux = fixed_source(mat_data, sources, geometry, quadrature, solver)
+exact = mms.solution_ss_05(centers_x, quadrature.angle_x)
 
 colors = sns.color_palette("hls", angles)
 
@@ -84,5 +73,5 @@ ax.legend(loc=0, framealpha=1)
 ax.grid(which="both")
 ax.set_xlabel("Location (cm)")
 ax.set_ylabel("Angular Flux")
-ax.set_title("Manufactured Solutions")
+ax.set_title("Manufactured Solutions 05")
 plt.show()

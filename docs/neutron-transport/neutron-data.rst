@@ -19,18 +19,14 @@ The original equation, from :cite:`bertozzi1964speed`, is
 .. math::
    :label: velocity-01
 
-   \begin{equation}
       E = m c^2 \left( \frac{1}{\sqrt{1 - \frac{v^2}{c^2}}} - 1 \right)
-   \end{equation}
 
 which can be reformed as
 
 .. math::
    :label: velocity-02
 
-   \begin{equation}
       \frac{E}{m c^2} + 1 = \frac{1}{\sqrt{1 - \frac{v^2}{c^2}}}.
-   \end{equation}
 
 Setting the left hand side to :math:`\gamma`, we can solve for :math:`v`
 as
@@ -38,22 +34,17 @@ as
 .. math::
    :label: velocity-03
 
-   \begin{equation} \begin{split}
+   \begin{aligned}
       \frac{1}{\sqrt{1 - \frac{v^2}{c^2}}} &= \gamma \\
       1 - \frac{v^2}{c^2} &= \frac{1}{\gamma^2} \\
       v^2 &= -\frac{c^2}{\gamma^2} + c^2 \\
       v &= \sqrt{c^2 -\frac{c^2}{\gamma^2}}
-   \end{split} \end{equation}
+   \end{aligned}
 
 This is simplified so
 
 .. math::
    :label: velocity-04
 
-   \begin{equation}
       v = \frac{c}{\gamma} \sqrt{c^2 - 1} \qquad \text{where} \qquad
       \gamma = \frac{E}{m c^2} + 1
-   \end{equation}
-
-
-.. bibliography::

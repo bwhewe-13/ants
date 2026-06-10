@@ -12,11 +12,12 @@
 # cython: boundscheck=False
 # cython: nonecheck=False
 # cython: wraparound=False
-# cython: infertypes=True
+# cython: infertypes=False
 # cython: initializedcheck=False
 # cython: cdivision=True
-# cython: profile=True
+# cython: profile=False
 # distutils: language = c++
+# distutils: extra_compile_args = -O3 -march=native -ffast-math
 
 cdef params _to_params(object pydic):
     # Initialize params struct
@@ -48,6 +49,14 @@ cdef params _to_params(object pydic):
 
     # Flux at cell edges or centers
     info.flux_at_edges = pydic.flux_at_edges
+
+    # OpenMP thread count: 0 means "use all available CPUs"
+    import os
+    info.num_threads = pydic.num_threads if pydic.num_threads > 0 \
+        else os.cpu_count()
+
+    # Parallelism strategy (1 = angle, 2 = group, 3 = both)
+    info.parallel_type = pydic.parallel_type
 
     # Multigroup solver (1 = SI, 2 = DMD)
     info.mg_solver = pydic.mg_solver

@@ -12,11 +12,12 @@
 # cython: boundscheck=False
 # cython: nonecheck=False
 # cython: wraparound=False
-# cython: infertypes=True
+# cython: infertypes=False
 # cython: initializedcheck=False
 # cython: cdivision=True
-# cython: profile=True
+# cython: profile=False
 # distutils: language = c++
+# distutils: extra_compile_args = -O3 -march=native -ffast-math
 
 import logging
 
@@ -36,7 +37,7 @@ def k_criticality(materials, geometry, quadrature, solver):
     # Unpack Python DataTypes to Cython memoryviews
     cdef double[:,:] xs_total = materials.total
     cdef double[:,:,:] xs_scatter = materials.scatter
-    cdef double[:,:,:] xs_fission = materials.fission
+    cdef double[:,:,:] xs_fission = tools._fission_matrix(materials.fission, materials.chi)
     cdef int[:] medium_map = geometry.medium_map
     cdef double[:] delta_x = geometry.delta_x
     cdef double[:] angle_x = quadrature.angle_x
@@ -113,11 +114,11 @@ cdef double[:,:] power_iteration(double[:,:]& flux_guess,double[:]& keff,\
     return flux[:,:]
 
 
-def known_flux(double[:,:] flux, keff,  materials, geometry, quadrature, params):
+def known_flux(double[:,:] flux, keff, materials, geometry, quadrature, params):
     # Unpack Python DataTypes to Cython memoryviews
     cdef double[:,:] xs_total = materials.total
     cdef double[:,:,:] xs_scatter = materials.scatter
-    cdef double[:,:,:] xs_fission = materials.fission
+    cdef double[:,:,:] xs_fission = tools._fission_matrix(materials.fission, materials.chi)
     cdef int[:] medium_map = geometry.medium_map
     cdef double[:] delta_x = geometry.delta_x
     cdef double[:] angle_x = quadrature.angle_x
@@ -152,7 +153,7 @@ def nearby_power_iteration(double[:,:,:] residual, double n_rate, materials, \
     # Unpack Python DataTypes to Cython memoryviews
     cdef double[:,:] xs_total = materials.total
     cdef double[:,:,:] xs_scatter = materials.scatter
-    cdef double[:,:,:] xs_fission = materials.fission
+    cdef double[:,:,:] xs_fission = tools._fission_matrix(materials.fission, materials.chi)
     cdef int[:] medium_map = geometry.medium_map
     cdef double[:] delta_x = geometry.delta_x
     cdef double[:] angle_x = quadrature.angle_x

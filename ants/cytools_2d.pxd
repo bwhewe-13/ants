@@ -12,11 +12,12 @@
 # cython: boundscheck=False
 # cython: nonecheck=False
 # cython: wraparound=False
-# cython: infertypes=True
+# cython: infertypes=False
 # cython: initializedcheck=False
 # cython: cdivision=True
-# cython: profile=True
+# cython: profile=False
 # distutils: language = c++
+# distutils: extra_compile_args = -O3 -march=native -ffast-math
 
 from ants.parameters cimport params
 
@@ -60,6 +61,10 @@ cdef void _dmd_subtraction(double[:,:,:,:]& y_minus, double[:,:,:,:]& y_plus, \
 cdef void _off_scatter(double[:,:,:]& flux, double[:,:,:]& flux_old, \
         int[:,:]& medium_map, double[:,:,:]& xs_matrix, \
         double[:,:]& off_scatter, params info, int group)
+
+cdef void _off_scatter_jacobi(double[:,:,:]& flux_old, int[:,:]& medium_map, \
+        double[:,:,:]& xs_matrix, double[:,:,:]& off_scatter_all, \
+        params info, int group) noexcept nogil
 
 cdef void _source_total(double[:,:,:,:]& source, double[:,:,:]& flux, \
         double[:,:,:]& xs_matrix, int[:,:]& medium_map, \
@@ -131,9 +136,17 @@ cdef void _time_source_star_tr_bdf2_mem(double[:,:,:,:]& psi_x, double[:,:,:,:]&
 cdef void _time_right_side(double[:,:,:,:]& q_star, double[:,:,:]& flux, \
         double[:,:,:]& xs_scatter, int[:,:]& medium_map, params info)
 
+cdef double[:,:,:,:] _expand_boundary_x(double[:,:,:,:]& half_bc, \
+        double[:]& angle_x, params info)
+
+cdef double[:,:,:,:] _expand_boundary_y(double[:,:,:,:]& half_bc, \
+        double[:]& angle_y, params info)
+
 ################################################################################
 # Criticality functions
 ################################################################################
+cdef double[:,:,:] _fission_matrix(object fission, object chi)
+
 cdef void _normalize_flux(double[:,:,:]& flux, params info)
 
 cdef void _fission_source(double[:,:,:]& flux, double[:,:,:]& xs_fission, \

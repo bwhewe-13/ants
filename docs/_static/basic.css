@@ -7,13 +7,17 @@ dl.py {
 
 
 table, th, td {
-  border: 1px solid black;
-  border-collapse: collapse;
+    border: 1px solid black;
+    border-collapse: collapse;
+    padding-top: 5px;
+    /* padding-bottom: 12px; */
 }
 
 
 table {
-  table-layout: fixed;
-  text-align: center;
-  width: 100%;
+    table-layout: fixed;
+    text-align: center;
+    width: 100%;
+    margin-top: 25px;
+    margin-bottom: 25px;
 }

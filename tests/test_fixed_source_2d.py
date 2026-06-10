@@ -18,7 +18,7 @@ from ants.utils import manufactured_2d as mms
 from tests import problems2d
 
 ANGULAR = [True, False]
-SPATIAL = [1, 2]
+SPATIAL = [1, 2, 3]
 PARAMETERS = [(angular, spatial) for angular in ANGULAR for spatial in SPATIAL]
 
 

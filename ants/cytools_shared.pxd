@@ -10,7 +10,38 @@
 #
 ################################################################################
 
+# cython: boundscheck=False
+# cython: nonecheck=False
+# cython: wraparound=False
+# cython: infertypes=False
+# cython: initializedcheck=False
+# cython: cdivision=True
+# cython: profile=False
+# distutils: language = c++
+# distutils: extra_compile_args = -O3 -march=native -ffast-math
+
+
 from ants.parameters cimport params
+
+################################################################################
+# Memoryview allocation functions
+################################################################################
+
+cdef double[:] array_1d(int dim1)
+
+cdef int[:] int_array_1d(int dim1)
+
+cdef double[:,:] array_2d(int dim1, int dim2)
+
+cdef double[:,:,:] array_3d(int dim1, int dim2, int dim3)
+
+cdef double[:,:,:,:] array_4d(int dim1, int dim2, int dim3, int dim4)
+
+cdef double[:,:,:,:,:] array_5d(int dim1, int dim2, int dim3, int dim4, int dim5)
+
+cdef float[:,:,:,:] farray_4d(int dim1, int dim2, int dim3, int dim4)
+
+cdef float[:,:,:,:,:] farray_5d(int dim1, int dim2, int dim3, int dim4, int dim5)
 
 ################################################################################
 # Fused types
@@ -46,3 +77,5 @@ cdef double _update_keffective(scalar_flux_nd flux_new, scalar_flux_nd flux_old,
 
 cdef void _total_velocity(double[:,:]& xs_total, double[:]& velocity,
                            double constant, params info)
+
+cdef double[:,:,:] _fission_matrix(object fission, object chi)

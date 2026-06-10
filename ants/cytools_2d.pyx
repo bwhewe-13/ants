@@ -16,75 +16,60 @@
 # cython: infertypes=False
 # cython: initializedcheck=False
 # cython: cdivision=True
-# cython: profile=True
+# cython: profile=False
 # distutils: language = c++
-
-from cython.view cimport array as cvarray
+# distutils: extra_compile_args = -O3 -march=native -ffast-math
 
 from cython.parallel import prange
+from cython.view cimport array as cvarray
 
+from ants.cytools_shared cimport _fission_matrix as _shared_fission_matrix
 from ants.cytools_shared cimport _normalize_flux as _shared_normalize_flux
 from ants.cytools_shared cimport _total_velocity as _shared_total_velocity
 from ants.cytools_shared cimport _update_keffective as _shared_update_keffective
 from ants.cytools_shared cimport angle_convergence as _shared_angle_convergence
+from ants.cytools_shared cimport array_1d as _shared_array_1d
+from ants.cytools_shared cimport array_2d as _shared_array_2d
+from ants.cytools_shared cimport array_3d as _shared_array_3d
+from ants.cytools_shared cimport array_4d as _shared_array_4d
+from ants.cytools_shared cimport array_5d as _shared_array_5d
+from ants.cytools_shared cimport farray_4d as _shared_farray_4d
+from ants.cytools_shared cimport farray_5d as _shared_farray_5d
 from ants.cytools_shared cimport group_convergence as _shared_group_convergence
 from ants.parameters cimport params
 
 
 ################################################################################
-# Memoryview functions
+# Memoryview functions -- delegates to cytools_shared
 ################################################################################
 cdef double[:] array_1d(int dim1):
-    dd1 = cvarray((dim1,), itemsize=sizeof(double), format="d")
-    cdef double[:] arr = dd1
-    arr[:] = 0.0
-    return arr
+    return _shared_array_1d(dim1)
 
 
 cdef double[:,:] array_2d(int dim1, int dim2):
-    dd2 = cvarray((dim1, dim2), itemsize=sizeof(double), format="d")
-    cdef double[:,:] arr = dd2
-    arr[:,:] = 0.0
-    return arr
+    return _shared_array_2d(dim1, dim2)
 
 
 cdef double[:,:,:] array_3d(int dim1, int dim2, int dim3):
-    dd3 = cvarray((dim1, dim2, dim3), itemsize=sizeof(double), format="d")
-    cdef double[:,:,:] arr = dd3
-    arr[:,:,:] = 0.0
-    return arr
+    return _shared_array_3d(dim1, dim2, dim3)
 
 
 cdef double[:,:,:,:] array_4d(int dim1, int dim2, int dim3, int dim4):
-    dd4 = cvarray((dim1, dim2, dim3, dim4), itemsize=sizeof(double), format="d")
-    cdef double[:,:,:,:] arr = dd4
-    arr[:,:,:,:] = 0.0
-    return arr
+    return _shared_array_4d(dim1, dim2, dim3, dim4)
 
 
 cdef double[:,:,:,:,:] array_5d(int dim1, int dim2, int dim3, int dim4, \
         int dim5):
-    dd5 = cvarray((dim1, dim2, dim3, dim4, dim5), itemsize=sizeof(double), \
-                    format="d")
-    cdef double[:,:,:,:,:] arr = dd5
-    arr[:,:,:,:,:] = 0.0
-    return arr
+    return _shared_array_5d(dim1, dim2, dim3, dim4, dim5)
 
 
 cdef float[:,:,:,:] farray_4d(int dim1, int dim2, int dim3, int dim4):
-    dd4 = cvarray((dim1, dim2, dim3, dim4), itemsize=sizeof(float), format="f")
-    cdef float[:,:,:,:] arr = dd4
-    arr[:,:,:,:] = 0.0
-    return arr
+    return _shared_farray_4d(dim1, dim2, dim3, dim4)
 
 
 cdef float[:,:,:,:,:] farray_5d(int dim1, int dim2, int dim3, int dim4, \
         int dim5):
-    dd5 = cvarray((dim1, dim2, dim3, dim4, dim5), itemsize=sizeof(float), \
-                    format="d")
-    cdef float[:,:,:,:,:] arr = dd5
-    arr[:,:,:,:,:] = 0.0
-    return arr
+    return _shared_farray_5d(dim1, dim2, dim3, dim4, dim5)
 
 ################################################################################
 # Convergence functions
@@ -142,6 +127,21 @@ cdef void _off_scatter(double[:,:,:]& flux, double[:,:,:]& flux_old, \
                 off_scatter[ii,jj] += xs_matrix[mat,group,og] * flux[ii,jj,og]
             for og in range(group + 1, info.groups):
                 off_scatter[ii,jj] += xs_matrix[mat,group,og] * flux_old[ii,jj,og]
+
+
+cdef void _off_scatter_jacobi(double[:,:,:]& flux_old, int[:,:]& medium_map, \
+        double[:,:,:]& xs_matrix, double[:,:,:]& off_scatter_all, \
+        params info, int group) noexcept nogil:
+    # Jacobi variant: uses flux_old for ALL off-diagonal groups so that each
+    # group's scattering source is independent of the sweep order.
+    cdef int ii, jj, mat, og
+    for ii in range(info.cells_x):
+        for jj in range(info.cells_y):
+            off_scatter_all[group, ii, jj] = 0.0
+            mat = medium_map[ii, jj]
+            for og in range(info.groups):
+                if og != group:
+                    off_scatter_all[group, ii, jj] += xs_matrix[mat, group, og] * flux_old[ii, jj, og]
 
 
 cdef void _source_total(double[:,:,:,:]& source, double[:,:,:]& flux, \
@@ -331,7 +331,7 @@ cdef int _reflected_index(double[:]& angle_opp, double[:]& angle_sim, \
 
 cdef void _build_art_source(double[:,:,:]& psi_angular, double[:,:]& M_as, \
         double[:,:,:,:]& art_source, params info):
-    """Build artificial scatter source: art_source[i,j,n,g] = Σ_m M_as[n,m] * psi[i,j,m,g]"""
+    """Build artificial scatter source: art_source[i,j,n,g] = sum_m M_as[n,m] * psi[i,j,m,g]"""
     # Initialize iterables
     cdef int ii, jj, nn, mm, gg
     cdef int N_angles = info.angles * info.angles
@@ -348,7 +348,7 @@ cdef void _build_art_source(double[:,:,:]& psi_angular, double[:,:]& M_as, \
 
 cdef double _angular_flux_change(double[:,:,:]& psi_new, double[:,:,:]& psi_old, \
         params info):
-    """Compute L∞ norm change in angular flux for convergence check"""
+    """Compute L-inf norm change in angular flux for convergence check"""
     cdef int ii, jj, nn
     cdef double max_change = 0.0
     cdef double change
@@ -624,6 +624,10 @@ cdef void _time_right_side(double[:,:,:,:]& q_star, double[:,:,:]& flux, \
 ################################################################################
 # Criticality functions
 ################################################################################
+
+cdef double[:,:,:] _fission_matrix(object fission, object chi):
+    return _shared_fission_matrix(fission, chi)
+
 
 cdef void _normalize_flux(double[:,:,:]& flux, params info):
     cdef double[:,:,:] _flux = flux
@@ -1204,3 +1208,81 @@ cdef void _vhybrid_source_total(double[:,:,:]& flux_u, double[:,:,:]& flux_c, \
                     one_group += flux_u[ii,jj,ig] * xs_matrix_u[mat,og,ig]
                 for nn in range(info_u.angles * info_u.angles):
                     source[ii,jj,nn,og] += one_group
+
+
+################################################################################
+# Time-Dependent Boundary Expansion
+################################################################################
+
+cdef double[:,:,:,:] _expand_boundary_x(double[:,:,:,:]& half_bc,
+        double[:]& angle_x, params info):
+    # Expand a half-angle (or broadcast) x-boundary array into a full-angle
+    # x-boundary array with shape (2, cells_y, angles**2, groups).
+    #
+    # half_bc may have shape (2, cells_y, angles**2//2, groups) -- per-incoming-
+    # angle, or any dimension may be 1 for broadcasting.
+    #
+    # half_bc angle layout:
+    #   half_bc[0, jj, ii, gg] = left  boundary for y-cell jj, ii-th incoming
+    #                             angle (angle_x > 0), in traversal order
+    #   half_bc[1, jj, ii, gg] = right boundary for y-cell jj, ii-th incoming
+    #                             angle (angle_x < 0), in traversal order
+    cdef int N2 = info.angles * info.angles
+    full_bc = array_4d(2, info.cells_y, N2, info.groups)
+    cdef int nn, jj, gg, ii_pos, ii_neg
+    cdef bint bc_y     = (half_bc.shape[1] > 1)
+    cdef bint bc_angle = (half_bc.shape[2] > 1)
+    cdef bint bc_group = (half_bc.shape[3] > 1)
+    ii_pos = 0
+    ii_neg = 0
+    for nn in range(N2):
+        if angle_x[nn] > 0.0:
+            for jj in range(info.cells_y):
+                for gg in range(info.groups):
+                    full_bc[0, jj, nn, gg] = half_bc[0, jj if bc_y else 0, ii_pos if bc_angle else 0, gg if bc_group else 0]
+            if bc_angle:
+                ii_pos += 1
+        elif angle_x[nn] < 0.0:
+            for jj in range(info.cells_y):
+                for gg in range(info.groups):
+                    full_bc[1, jj, nn, gg] = half_bc[1, jj if bc_y else 0, ii_neg if bc_angle else 0, gg if bc_group else 0]
+            if bc_angle:
+                ii_neg += 1
+    return full_bc
+
+
+cdef double[:,:,:,:] _expand_boundary_y(double[:,:,:,:]& half_bc,
+        double[:]& angle_y, params info):
+    # Expand a half-angle (or broadcast) y-boundary array into a full-angle
+    # y-boundary array with shape (2, cells_x, angles**2, groups).
+    #
+    # half_bc may have shape (2, cells_x, angles**2//2, groups) -- per-incoming-
+    # angle, or any dimension may be 1 for broadcasting.
+    #
+    # half_bc angle layout:
+    #   half_bc[0, ii, jj, gg] = bottom boundary for x-cell ii, jj-th incoming
+    #                             angle (angle_y > 0), in traversal order
+    #   half_bc[1, ii, jj, gg] = top    boundary for x-cell ii, jj-th incoming
+    #                             angle (angle_y < 0), in traversal order
+    cdef int N2 = info.angles * info.angles
+    full_bc = array_4d(2, info.cells_x, N2, info.groups)
+    cdef int nn, ii, gg, ii_pos, ii_neg
+    cdef bint bc_x     = (half_bc.shape[1] > 1)
+    cdef bint bc_angle = (half_bc.shape[2] > 1)
+    cdef bint bc_group = (half_bc.shape[3] > 1)
+    ii_pos = 0
+    ii_neg = 0
+    for nn in range(N2):
+        if angle_y[nn] > 0.0:
+            for ii in range(info.cells_x):
+                for gg in range(info.groups):
+                    full_bc[0, ii, nn, gg] = half_bc[0, ii if bc_x else 0, ii_pos if bc_angle else 0, gg if bc_group else 0]
+            if bc_angle:
+                ii_pos += 1
+        elif angle_y[nn] < 0.0:
+            for ii in range(info.cells_x):
+                for gg in range(info.groups):
+                    full_bc[1, ii, nn, gg] = half_bc[1, ii if bc_x else 0, ii_neg if bc_angle else 0, gg if bc_group else 0]
+            if bc_angle:
+                ii_neg += 1
+    return full_bc

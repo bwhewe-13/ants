@@ -52,7 +52,7 @@ def test_backward_euler_01():
         exact = mms.solution_td_01(centers_x, quadrature.angle_x, edges_t[1:])
         exact = np.sum(exact * quadrature.angle_w[None, None, :, None], axis=2)
 
-        err = np.linalg.norm(approx[-1] - exact[-1])
+        err = np.linalg.norm(approx - exact[-1])
         error_y.append(err)
         error_x.append(dt)
 
@@ -90,7 +90,7 @@ def test_backward_euler_02():
         exact = mms.solution_td_02(centers_x, quadrature.angle_x, edges_t[1:])
         exact = np.sum(exact * quadrature.angle_w[None, None, :, None], axis=2)
 
-        err = np.linalg.norm(approx[-1] - exact[-1])
+        err = np.linalg.norm(approx - exact[-1])
         error_y.append(err)
         error_x.append(dt)
 
@@ -129,7 +129,7 @@ def test_crank_nicolson_01():
         exact = mms.solution_td_01(centers_x, quadrature.angle_x, edges_t[1:])
         exact = np.sum(exact * quadrature.angle_w[None, None, :, None], axis=2)
 
-        err = np.linalg.norm(approx[-1] - exact[-1])
+        err = np.linalg.norm(approx - exact[-1])
         error_y.append(err)
         error_x.append(dt)
 
@@ -166,7 +166,7 @@ def test_crank_nicolson_02():
         exact = mms.solution_td_02(centers_x, quadrature.angle_x, edges_t[1:])
         exact = np.sum(exact * quadrature.angle_w[None, None, :, None], axis=2)
 
-        err = np.linalg.norm(approx[-1] - exact[-1])
+        err = np.linalg.norm(approx - exact[-1])
         error_y.append(err)
         error_x.append(dt)
 
@@ -205,7 +205,7 @@ def test_bdf2_01():
         exact = mms.solution_td_01(centers_x, quadrature.angle_x, edges_t[1:])
         exact = np.sum(exact * quadrature.angle_w[None, None, :, None], axis=2)
 
-        err = np.linalg.norm(approx[-1] - exact[-1])
+        err = np.linalg.norm(approx - exact[-1])
         error_y.append(err)
         error_x.append(dt)
 
@@ -243,7 +243,7 @@ def test_bdf2_02():
         exact = mms.solution_td_02(centers_x, quadrature.angle_x, edges_t[1:])
         exact = np.sum(exact * quadrature.angle_w[None, None, :, None], axis=2)
 
-        err = np.linalg.norm(approx[-1] - exact[-1])
+        err = np.linalg.norm(approx - exact[-1])
         error_y.append(err)
         error_x.append(dt)
 
@@ -282,7 +282,7 @@ def test_tr_bdf2_01():
         exact = mms.solution_td_01(centers_x, quadrature.angle_x, edges_t[1:])
         exact = np.sum(exact * quadrature.angle_w[None, None, :, None], axis=2)
 
-        err = np.linalg.norm(approx[-1] - exact[-1])
+        err = np.linalg.norm(approx - exact[-1])
         error_y.append(err)
         error_x.append(dt)
 
@@ -319,7 +319,7 @@ def test_tr_bdf2_02():
         exact = mms.solution_td_02(centers_x, quadrature.angle_x, edges_t[1:])
         exact = np.sum(exact * quadrature.angle_w[None, None, :, None], axis=2)
 
-        err = np.linalg.norm(approx[-1] - exact[-1])
+        err = np.linalg.norm(approx - exact[-1])
         error_y.append(err)
         error_x.append(dt)
 

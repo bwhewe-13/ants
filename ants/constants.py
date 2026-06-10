@@ -18,7 +18,6 @@ Constants are grouped into three categories:
 All names are module-level uppercase constants intended for direct import.
 """
 
-
 # Conversion Between Units
 MASS_NEUTRON = 1.67493e-27
 EV_TO_JOULES = 1.60218e-19

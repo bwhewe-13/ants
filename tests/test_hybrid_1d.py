@@ -11,6 +11,7 @@
 ########################################################################
 
 import os
+import tempfile
 
 import numpy as np
 import pytest
@@ -74,8 +75,7 @@ def test_backward_euler_01():
     exact = np.sum(exact * quadrature.angle_w[None, None, :, None], axis=2)
 
     atol = 5e-3
-    for tt in range(steps):
-        assert np.isclose(approx[tt], exact[tt], atol=atol).all()
+    assert np.isclose(approx, exact[-1], atol=atol).all()
 
 
 @pytest.mark.slab1d
@@ -119,8 +119,7 @@ def test_backward_euler_02():
     exact = np.sum(exact * quadrature.angle_w[None, None, :, None], axis=2)
 
     atol = 5e-3
-    for tt in range(steps):
-        assert np.isclose(approx[tt], exact[tt], atol=atol).all()
+    assert np.isclose(approx, exact[-1], atol=atol).all()
 
 
 @pytest.mark.smoke
@@ -165,8 +164,7 @@ def test_crank_nicolson_01():
     exact = np.sum(exact * quadrature.angle_w[None, None, :, None], axis=2)
 
     atol = 5e-3
-    for tt in range(steps):
-        assert np.isclose(approx[tt], exact[tt], atol=atol).all()
+    assert np.isclose(approx, exact[-1], atol=atol).all()
 
 
 @pytest.mark.slab1d
@@ -210,8 +208,7 @@ def test_crank_nicolson_02():
     exact = np.sum(exact * quadrature.angle_w[None, None, :, None], axis=2)
 
     atol = 5e-3
-    for tt in range(steps):
-        assert np.isclose(approx[tt], exact[tt], atol=atol).all()
+    assert np.isclose(approx, exact[-1], atol=atol).all()
 
 
 @pytest.mark.smoke
@@ -256,8 +253,7 @@ def test_bdf2_01():
     exact = np.sum(exact * quadrature.angle_w[None, None, :, None], axis=2)
 
     atol = 5e-3
-    for tt in range(steps):
-        assert np.isclose(approx[tt], exact[tt], atol=atol).all()
+    assert np.isclose(approx, exact[-1], atol=atol).all()
 
 
 @pytest.mark.slab1d
@@ -301,8 +297,7 @@ def test_bdf2_02():
     exact = np.sum(exact * quadrature.angle_w[None, None, :, None], axis=2)
 
     atol = 5e-3
-    for tt in range(steps):
-        assert np.isclose(approx[tt], exact[tt], atol=atol).all()
+    assert np.isclose(approx, exact[-1], atol=atol).all()
 
 
 @pytest.mark.smoke
@@ -347,8 +342,7 @@ def test_tr_bdf2_01():
     exact = np.sum(exact * quadrature.angle_w[None, None, :, None], axis=2)
 
     atol = 5e-3
-    for tt in range(steps):
-        assert np.isclose(approx[tt], exact[tt], atol=atol).all()
+    assert np.isclose(approx, exact[-1], atol=atol).all()
 
 
 @pytest.mark.slab1d
@@ -392,8 +386,7 @@ def test_tr_bdf2_02():
     exact = np.sum(exact * quadrature.angle_w[None, None, :, None], axis=2)
 
     atol = 5e-3
-    for tt in range(steps):
-        assert np.isclose(approx[tt], exact[tt], atol=atol).all()
+    assert np.isclose(approx, exact[-1], atol=atol).all()
 
 
 @pytest.mark.slab1d
@@ -463,32 +456,31 @@ def test_slab_01_bdf1(angles_c, groups_c):
     time_data = TimeDependentData(dt=dt, steps=steps, time_disc=1)
     hybrid_data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
 
-    # Run Hybrid Method
-    approx = hybrid1d.time_dependent(
-        materials_u,
-        materials_c,
-        sources,
-        geometry,
-        quadrature_u,
-        quadrature_c,
-        solver,
-        time_data,
-        hybrid_data,
-    )
+    # Run Hybrid Method (stream all steps to temp file)
+    with tempfile.NamedTemporaryFile(suffix=".npy", delete=False) as f:
+        tmp_path = f.name
+    try:
+        time_data.save_to_file = tmp_path
+        hybrid1d.time_dependent(
+            materials_u,
+            materials_c,
+            sources,
+            geometry,
+            quadrature_u,
+            quadrature_c,
+            solver,
+            time_data,
+            hybrid_data,
+        )
+        approx = np.load(tmp_path, mmap_mode="r")
 
-    # Load Reference flux
-    params = f"g87g{groups_c}_n8n{angles_c}_flux.npy"
-    reference = np.load(
-        os.path.join(PATH, f"hybrid_uranium_slab_backward_euler_{params}")
-    )
-    # Compare each time step
-    for tt in range(steps):
-        assert np.isclose(approx[tt], reference[tt]).all()
-    # Load Reference flux
-    params = f"g87g{groups_c}_n8n{angles_c}_flux.npy"
-    reference = np.load(
-        os.path.join(PATH, f"hybrid_uranium_slab_backward_euler_{params}")
-    )
-    # Compare each time step
-    for tt in range(steps):
-        assert np.isclose(approx[tt], reference[tt]).all()
+        # Load Reference flux
+        params = f"g87g{groups_c}_n8n{angles_c}_flux.npy"
+        reference = np.load(
+            os.path.join(PATH, f"hybrid_uranium_slab_backward_euler_{params}")
+        )
+        # Compare each time step
+        for tt in range(steps):
+            assert np.isclose(approx[tt], reference[tt]).all()
+    finally:
+        os.unlink(tmp_path)

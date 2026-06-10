@@ -8,7 +8,7 @@ authors = [
     {name = "Ben Whewell", email = "ben.whewell@pm.me"}
 ]
 description = "ANTS (A Neutron Transport Solution)"
-version = "0.1.0-dev"
+version = "0.2.0"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
@@ -21,11 +21,18 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest",
+    "pytest-xdist",
     "pytest-cov",
     "black",
     "isort",
     "flake8",
     "pre-commit",
+]
+docs = [
+    "sphinx",
+    "sphinxcontrib-bibtex",
+    "sphinxcontrib-tikz",
+    "pydata-sphinx-theme",
 ]
 
 [tool.setuptools.packages]
@@ -56,6 +63,8 @@ markers = [
     "cylinder2d: Two-dimensional cylinder (circular) problems",
     "dimensions: Check the different dimensions of external and boundary sources",
     "math: test math functions - interpolation, error estimation, etc.",
+    "nearby1d: One-dimensional nearby problems",
+    "nearby2d: Two-dimensional nearby problems",
 ]
 
 [tool.black]

@@ -35,13 +35,18 @@ _DATATYPE_EXPORTS = (
     "TimeDependentData",
 )
 
-_MAIN_EXPORTS = (
+_QUADRATURE_EXPORTS = (
     "_angular_x",
     "_angular_xy",
-    "_energy_grid",
+    "_angular_xyz",
     "angular_x",
     "angular_xy",
+    "angular_xyz",
     "artificial_scatter_matrix",
+)
+
+_MAIN_EXPORTS = (
+    "_energy_grid",
     "energy_grid",
     "energy_velocity",
     "gamma_time_steps",
@@ -57,6 +62,7 @@ __all__ = [
     "__version__",
     *_MODULE_EXPORTS,
     *_DATATYPE_EXPORTS,
+    *_QUADRATURE_EXPORTS,
     *_MAIN_EXPORTS,
     *_MATERIAL_EXPORTS,
 ]
@@ -69,6 +75,8 @@ def __getattr__(name):
         value = import_module(f".{name}", __name__)
     elif name in _DATATYPE_EXPORTS:
         value = getattr(import_module(".datatypes", __name__), name)
+    elif name in _QUADRATURE_EXPORTS:
+        value = getattr(import_module(".quadrature", __name__), name)
     elif name in _MAIN_EXPORTS:
         value = getattr(import_module(".main", __name__), name)
     elif name in _MATERIAL_EXPORTS:
@@ -89,4 +97,4 @@ def __dir__():
 try:
     __version__ = version("ants")
 except PackageNotFoundError:
-    __version__ = "0.1.0"
+    __version__ = "0.2.0"

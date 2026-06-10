@@ -1,0 +1,25 @@
+<style>
+.clickable-tikz img {
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+.clickable-tikz img:hover {
+    opacity: 0.5;
+}
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    var containers = document.querySelectorAll('.clickable-tikz');
+    containers.forEach(function(container) {
+        var img = container.querySelector('img');
+        if (img && img.src) {
+            var link = document.createElement('a');
+            link.href = img.src;
+            link.target = '_blank';
+            img.parentNode.insertBefore(link, img);
+            link.appendChild(img);
+        }
+    });
+});
+</script>

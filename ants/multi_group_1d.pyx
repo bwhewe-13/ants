@@ -12,19 +12,20 @@
 # cython: boundscheck=False
 # cython: nonecheck=False
 # cython: wraparound=False
-# cython: infertypes=True
+# cython: infertypes=False
 # cython: initializedcheck=False
 # cython: cdivision=True
-# cython: profile=True
+# cython: profile=False
 # distutils: language = c++
+# distutils: extra_compile_args = -O3 -march=native -ffast-math
 
 from libc.math cimport isinf, isnan
+
+from cython.parallel import prange
 
 from ants cimport cytools_1d as tools
 from ants.parameters cimport params
 from ants.spatial_sweep_1d cimport _known_sweep, discrete_ordinates
-
-import numpy as np
 
 from ants.utils.pytools import dmd_1d
 
@@ -36,6 +37,10 @@ cdef double[:,:] multi_group(double[:,:]& flux_guess, \
         double[:]& angle_w, params info):
     # Source Iteration
     if info.mg_solver == 1:
+        # Activated when parallel_type == GROUP (2) or BOTH (3).
+        if info.parallel_type >= 2 and info.groups > 1:
+            return jacobi_iteration(flux_guess, xs_total, xs_scatter, external, \
+                        boundary_x, medium_map, delta_x, angle_x, angle_w, info)
         return source_iteration(flux_guess, xs_total, xs_scatter, external, \
                     boundary_x, medium_map, delta_x, angle_x, angle_w, info)
     # Dynamic Mode Decomposition
@@ -66,40 +71,87 @@ cdef double[:,:] source_iteration(double[:,:]& flux_guess, \
     cdef int count = 1
     cdef double change = 0.0
 
-    # Iterate until energy group convergence
-    while not (converged):
-
-        # Zero out flux
+    while not converged:
         flux[:,:] = 0.0
 
-        # Iterate over energy groups
         for gg in range(info.groups):
 
-            # Determine dimensions of external and boundary sources
             qq = 0 if external.shape[2] == 1 else gg
             bc = 0 if boundary_x.shape[2] == 1 else gg
 
-            # Select the specific group from last iteration
             flux_1g[:] = flux_old[:,gg]
 
-            # Calculate up and down scattering term using Gauss-Seidel
             tools._off_scatter(flux, flux_old, medium_map, xs_scatter, \
                                off_scatter, info, gg)
 
-            # Use discrete ordinates for the angular dimension
-            discrete_ordinates(flux[:,gg], flux_1g, xs_total[:,gg], \
-                    xs_scatter[:,gg,gg], off_scatter, external[:,:,qq], \
-                    boundary_x[:,:,bc], medium_map, delta_x, angle_x, \
-                    angle_w, info)
+            discrete_ordinates(flux[:,gg], flux_1g, xs_total[:,gg], xs_scatter[:,gg,gg], \
+                    off_scatter, external[:,:,qq], boundary_x[:,:,bc], medium_map, \
+                    delta_x, angle_x, angle_w, info)
 
-        # Check for convergence
         change = tools.group_convergence(flux, flux_old, info)
         if isnan(change) or isinf(change):
             change = 0.5
         converged = (change < info.tol_energy) or (count >= info.max_iter_energy)
         count += 1
 
-        # Update old flux
+        flux_old[:,:] = flux[:,:]
+
+    return flux[:,:]
+
+
+cdef double[:,:] jacobi_iteration(double[:,:]& flux_guess, double[:,:]& xs_total, \
+        double[:,:,:]& xs_scatter, double[:,:,:]& external, double[:,:,:]& boundary_x, \
+        int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
+        double[:]& angle_w, params info):
+
+    # Initialize components
+    cdef int gg, qq, bc
+    cdef params info_1t
+
+    # Initialize flux
+    flux = tools.array_2d(info.cells_x, info.groups)
+    flux_old = flux_guess.copy()
+
+    # Create off-scattering term
+    off_scatter_all = tools.array_2d(info.groups, info.cells_x)
+    flux_old_snap = tools.array_2d(info.groups, info.cells_x)
+
+    # Copy params; for GROUP mode disable inner angle prange to avoid
+    # oversubscription; for BOTH mode keep the full thread count so the
+    # inner angle prange also runs in parallel (requires OMP_MAX_ACTIVE_LEVELS=2).
+    info_1t = info
+    if info.parallel_type == 2:
+        info_1t.num_threads = 1
+
+    # Set convergence limits
+    cdef bint converged = False
+    cdef int count = 1
+    cdef double change = 0.0
+
+    while not converged:
+        flux[:,:] = 0.0
+
+        # Refresh per-group snapshot from the current flux_old
+        for gg in range(info.groups):
+            flux_old_snap[gg, :] = flux_old[:, gg]
+
+        # Compute Jacobi off-scatter for every group in parallel (nogil)
+        for gg in prange(info.groups, nogil=True, num_threads=info.num_threads):
+            tools._off_scatter_jacobi(flux_old, medium_map, xs_scatter, off_scatter_all, info, gg)
+
+        for gg in prange(info.groups, nogil=True, num_threads=info.num_threads):
+            qq = 0 if external.shape[2] == 1 else gg
+            bc = 0 if boundary_x.shape[2] == 1 else gg
+            with gil:
+                discrete_ordinates(flux[:,gg], flux_old_snap[gg], xs_total[:,gg], \
+                        xs_scatter[:,gg,gg], off_scatter_all[gg], external[:,:,qq], \
+                        boundary_x[:,:,bc], medium_map, delta_x, angle_x, angle_w, info_1t)
+
+        change = tools.group_convergence(flux, flux_old, info)
+        if isnan(change) or isinf(change):
+            change = 0.5
+        converged = (change < info.tol_energy) or (count >= info.max_iter_energy)
+        count += 1
         flux_old[:,:] = flux[:,:]
 
     return flux[:,:]

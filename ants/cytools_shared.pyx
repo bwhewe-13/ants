@@ -14,15 +14,76 @@
 # cython: boundscheck=False
 # cython: nonecheck=False
 # cython: wraparound=False
-# cython: infertypes=True
+# cython: infertypes=False
 # cython: initializedcheck=False
 # cython: cdivision=True
-# cython: profile=True
+# cython: profile=False
 # distutils: language = c++
+# distutils: extra_compile_args = -O3 -march=native -ffast-math
 
+from cython.view cimport array as cvarray
 from libc.math cimport pow, sqrt
 
 from ants.parameters cimport params
+
+################################################################################
+# Memoryview allocation functions
+################################################################################
+
+cdef double[:] array_1d(int dim1):
+    dd1 = cvarray((dim1,), itemsize=sizeof(double), format="d")
+    cdef double[:] arr = dd1
+    arr[:] = 0.0
+    return arr
+
+
+cdef int[:] int_array_1d(int dim1):
+    dd1 = cvarray((dim1,), itemsize=sizeof(int), format="i")
+    cdef int[:] arr = dd1
+    arr[:] = 0
+    return arr
+
+
+cdef double[:,:] array_2d(int dim1, int dim2):
+    dd2 = cvarray((dim1, dim2), itemsize=sizeof(double), format="d")
+    cdef double[:,:] arr = dd2
+    arr[:,:] = 0.0
+    return arr
+
+
+cdef double[:,:,:] array_3d(int dim1, int dim2, int dim3):
+    dd3 = cvarray((dim1, dim2, dim3), itemsize=sizeof(double), format="d")
+    cdef double[:,:,:] arr = dd3
+    arr[:,:,:] = 0.0
+    return arr
+
+
+cdef double[:,:,:,:] array_4d(int dim1, int dim2, int dim3, int dim4):
+    dd4 = cvarray((dim1, dim2, dim3, dim4), itemsize=sizeof(double), format="d")
+    cdef double[:,:,:,:] arr = dd4
+    arr[:,:,:,:] = 0.0
+    return arr
+
+
+cdef double[:,:,:,:,:] array_5d(int dim1, int dim2, int dim3, int dim4, int dim5):
+    dd5 = cvarray((dim1, dim2, dim3, dim4, dim5), itemsize=sizeof(double), format="d")
+    cdef double[:,:,:,:,:] arr = dd5
+    arr[:,:,:,:,:] = 0.0
+    return arr
+
+
+cdef float[:,:,:,:] farray_4d(int dim1, int dim2, int dim3, int dim4):
+    dd4 = cvarray((dim1, dim2, dim3, dim4), itemsize=sizeof(float), format="f")
+    cdef float[:,:,:,:] arr = dd4
+    arr[:,:,:,:] = 0.0
+    return arr
+
+
+cdef float[:,:,:,:,:] farray_5d(int dim1, int dim2, int dim3, int dim4, int dim5):
+    dd5 = cvarray((dim1, dim2, dim3, dim4, dim5), itemsize=sizeof(float), format="f")
+    cdef float[:,:,:,:,:] arr = dd5
+    arr[:,:,:,:,:] = 0.0
+    return arr
 
 ################################################################################
 # Convergence functions
@@ -176,3 +237,25 @@ cdef void _total_velocity(double[:,:]& xs_total, double[:]& velocity,
     for gg in range(info.groups):
         for mm in range(info.materials):
             xs_total[mm, gg] += constant / (velocity[gg] * info.dt)
+
+
+cdef double[:,:,:] _fission_matrix(object fission, object chi):
+    cdef int mm, og, ig
+    cdef double[:,:] nu_fission
+    cdef double[:,:] chi_view
+    cdef double[:,:,:] xs_fission
+    cdef int n_mat, n_grp
+    if chi is not None:
+        nu_fission = fission
+        chi_view = chi
+        n_mat = nu_fission.shape[0]
+        n_grp = nu_fission.shape[1]
+        xs_fission = array_3d(n_mat, n_grp, n_grp)
+        for mm in range(n_mat):
+            for og in range(n_grp):
+                for ig in range(n_grp):
+                    xs_fission[mm, og, ig] = nu_fission[mm, ig] * chi_view[mm, og]
+        return xs_fission
+    else:
+        xs_fission = fission
+        return xs_fission
