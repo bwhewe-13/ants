@@ -21,3 +21,33 @@ table {
     margin-top: 25px;
     margin-bottom: 25px;
 }
+
+
+/* The pydata theme styles display equations with
+   `div.math mjx-container { overflow: auto; padding-bottom: .2rem }`, which
+   leaves a spurious scrollbar on equations that already fit. Restrict the
+   scrollbar to the horizontal axis (only when an equation genuinely overflows)
+   and drop the extra padding that triggers it. */
+div.math mjx-container,
+mjx-container {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 0;
+}
+
+
+/* The home-page ANTS logo is a fixed-width binary-art <pre> (~200 chars). Make
+   its wrapper a query container so the <pre> font-size — and therefore its
+   width — scales down to the content column, fitting without a page scrollbar.
+   The plain `font-size: 9px` line above (inline) is the fallback for browsers
+   without container-query units. */
+.ants-logo {
+    container-type: inline-size;
+    text-align: center;
+}
+
+.ants-logo pre {
+    width: fit-content;
+    max-width: 100%;
+    margin-inline: auto;
+}
