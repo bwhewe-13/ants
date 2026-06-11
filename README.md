@@ -14,6 +14,8 @@ There are a number of different acceleration methods used including a collision-
 
 There are also verification procedures to ensure both the code and solutions are correct. For code verification, manufactured solutions are used for one- and two-dimenisonal slab problems to ensure proper discretization. Solution verification uses the method of nearby problems, which uses one spatial grid.
 
+📖 **Documentation:** The full ANTS documentation is hosted online at [bwhewe-13.github.io/ants](https://bwhewe-13.github.io/ants/).
+
 &nbsp;
 
 ## Installation
@@ -71,7 +73,8 @@ pytest tests --cov=ants --cov-report=term --cov-report=xml
 pre-commit run --all-files
 ```
 
-### Build docs locally
+### Documentation
+The full documentation is hosted online at [bwhewe-13.github.io/ants](https://bwhewe-13.github.io/ants/). To build it locally:
 ```bash
 python -m pip install sphinx sphinxcontrib-bibtex sphinxcontrib-tikz
 make -C docs html
