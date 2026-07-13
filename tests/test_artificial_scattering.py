@@ -17,9 +17,17 @@ import pytest
 from scipy.special import erf
 
 import ants
-from ants.datatypes import GeometryData, MaterialData, SolverData, SourceData
+from ants import hybrid2d, timed2d
+from ants.datatypes import (
+    GeometryData,
+    MaterialData,
+    SolverData,
+    SourceData,
+    TimeDependentData,
+)
 from ants.fixed2d import fixed_source
 from ants.quadrature import artificial_scatter_matrix
+from ants.utils import hybrid as hytools
 
 ########################################################################
 # Helpers
@@ -243,6 +251,86 @@ def test_as_sn_mitigates_ray_effects():
         f"as-SN did not reduce ray effects: CoV {variation_as:.3f} "
         f"vs standard {variation_std:.3f}"
     )
+
+
+def _time_problem(cells, angles, sigma_as, temporal, steps=30, dt=0.5):
+    """Time-dependent version of the lattice-like problem with a constant
+    source, run long enough to reach steady state (sigma_t = v = 1)."""
+    mat_data, sources, geometry, quadrature, solver, edges = _lattice_like_problem(
+        cells, angles, sigma_as=sigma_as
+    )
+    mat_data.velocity = np.ones((1,))
+    N2 = len(quadrature.angle_x)
+    external = sources.external[None]  # broadcast over time
+    boundary_x = np.zeros((1, 2, 1, 1, 1))
+    boundary_y = np.zeros((1, 2, 1, 1, 1))
+    if temporal in (2, 4):  # CN / TR-BDF2 need edge-based initial flux
+        sources = SourceData(
+            external=external,
+            boundary_x=boundary_x,
+            boundary_y=boundary_y,
+            initial_flux_x=np.zeros((cells + 1, cells, N2, 1)),
+            initial_flux_y=np.zeros((cells, cells + 1, N2, 1)),
+        )
+    else:  # BDF1 / BDF2 need cell-centered initial flux
+        sources = SourceData(
+            external=external,
+            boundary_x=boundary_x,
+            boundary_y=boundary_y,
+            initial_flux=np.zeros((cells, cells, N2, 1)),
+        )
+    time_data = TimeDependentData(steps=steps, dt=dt, time_disc=temporal)
+    return mat_data, sources, geometry, quadrature, solver, time_data
+
+
+@pytest.mark.slab2d
+@pytest.mark.time_dependent
+@pytest.mark.parametrize("temporal", [1, 2, 3, 4])
+def test_as_sn_time_dependent_steady_state(temporal):
+    """A time-dependent as-SN run with a constant source must relax to the
+    steady as-SN solution from fixed2d. This checks the sigma_as placement
+    and stage factors of every temporal discretization."""
+    cells, angles, sigma_as = 20, 4, 5.0
+
+    reference = fixed_source(*_lattice_like_problem(cells, angles, sigma_as)[:5])
+
+    problem = _time_problem(cells, angles, sigma_as, temporal)
+    flux = timed2d.time_dependent(*problem)
+
+    err = np.max(np.abs(flux - reference)) / np.max(reference)
+    assert err < 1e-3, f"temporal={temporal} steady-state error {err:.2e}"
+
+
+@pytest.mark.slab2d
+@pytest.mark.hybrid
+@pytest.mark.parametrize("temporal", [1, 4])
+def test_as_sn_hybrid_steady_state(temporal):
+    """The hybrid solver with identical fine/coarse grids and sigma_as > 0
+    must relax to the same steady as-SN solution."""
+    cells, angles, sigma_as = 20, 4, 5.0
+
+    reference = fixed_source(*_lattice_like_problem(cells, angles, sigma_as)[:5])
+
+    mat_data, sources, geometry, quadrature, solver, time_data = _time_problem(
+        cells, angles, sigma_as, temporal
+    )
+    edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(None, 1, 1)
+    hybrid_data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
+
+    flux = hybrid2d.time_dependent(
+        mat_data,
+        mat_data,
+        sources,
+        geometry,
+        quadrature,
+        quadrature,
+        solver,
+        time_data,
+        hybrid_data,
+    )
+
+    err = np.max(np.abs(flux - reference)) / np.max(reference)
+    assert err < 1e-3, f"temporal={temporal} hybrid steady-state error {err:.2e}"
 
 
 @pytest.mark.slab2d

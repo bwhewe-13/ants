@@ -19,6 +19,51 @@ logger = logging.getLogger(__name__)
 
 
 ########################################################################
+# Artificial Scattering (as-SN) helpers for time-dependent solvers
+#
+# Implements the time-lagged treatment of the artificial scattering
+# operator from Frank et al. (2020): the sigma_as out-scattering is
+# folded into the effective total cross section (implicit), while the
+# forward-peaked in-scatter source M_as . psi is evaluated with the
+# previous time step's angular flux. The lag introduces an O(dt) error
+# in the artificial term only; it vanishes at steady state.
+########################################################################
+def artificial_scatter_setup(angle_x, angle_y, angle_w, sigma_as, beta_as):
+    """Build the M_as matrix for a quadrature set, or None when disabled."""
+    if sigma_as <= 0.0:
+        return None
+    from ants.quadrature import artificial_scatter_matrix
+
+    return artificial_scatter_matrix(
+        np.asarray(angle_x),
+        np.asarray(angle_y),
+        np.asarray(angle_w),
+        sigma_as,
+        beta_as,
+    )
+
+
+def artificial_scatter_source(q_star, M_as, psi, scale=1.0):
+    """Add the lagged as-SN in-scatter source to q_star in place:
+    q_star[i,j,q,g] += scale * sum_p M_as[q,p] * psi[i,j,p,g].
+
+    ``scale`` matches the convention of the temporal stage: 1 for fully
+    implicit stages (BDF1, BDF2), 2 for Crank-Nicolson-form stages
+    written with the doubled operator (time coefficient 2/(v*dt), the
+    physical operator applied once implicitly and once explicitly);
+    sigma_as must be added to the stage's total cross section with the
+    same factor."""
+    np.asarray(q_star)[:] += scale * np.einsum("qp,ijpg->ijqg", M_as, np.asarray(psi))
+
+
+def edge_to_center_angular(psi_x, psi_y):
+    """Cell-centered angular flux estimate from x/y edge angular fluxes
+    (shapes (I+1, J, N, G) and (I, J+1, N, G))."""
+    px, py = np.asarray(psi_x), np.asarray(psi_y)
+    return 0.25 * (px[:-1] + px[1:] + py[:, :-1] + py[:, 1:])
+
+
+########################################################################
 # Evaluating Fluxes
 ########################################################################
 def reaction_rates(flux, xs_matrix, medium_map):

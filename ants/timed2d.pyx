@@ -30,6 +30,11 @@ from ants cimport parameters
 from ants.parameters cimport params
 
 from ants.datatypes import TemporalDiscretization, create_params
+from ants.utils.pytools import (
+    artificial_scatter_setup,
+    artificial_scatter_source,
+    edge_to_center_angular,
+)
 
 
 def time_dependent(materials, sources, geometry, quadrature, solver, time_data):
@@ -151,6 +156,13 @@ cdef double[:,:,:] backward_euler(double[:,:,:,:]& flux_last, \
     xs_total_v[:,:] = xs_total[:,:]
     tools._total_velocity(xs_total_v, velocity, 1.0, info)
 
+    # Artificial scattering (as-SN): sigma_as out-scattering on the LHS,
+    # lagged in-scatter source M_as . psi^{ell} added to q_star below
+    M_as = artificial_scatter_setup(angle_x, angle_y, angle_w, \
+                                    info.sigma_as, info.beta_as)
+    if M_as is not None:
+        np.asarray(xs_total_v)[:] += info.sigma_as
+
     # Combine last time step and source term
     q_star = tools.array_4d(info.cells_x, info.cells_y, \
                             info.angles * info.angles, info.groups)
@@ -174,6 +186,10 @@ cdef double[:,:,:] backward_euler(double[:,:,:,:]& flux_last, \
         # Update q_star as external + 1/(v*dt) * psi
         tools._time_source_star_bdf1(flux_last, q_star, external[qq], \
                                      velocity, info)
+
+        # Add lagged artificial in-scatter source M_as . psi^{ell}
+        if M_as is not None:
+            artificial_scatter_source(q_star, M_as, flux_last)
 
         # Run source iteration
         mg_result = mg.multi_group(scalar_flux, xs_total_v, \
@@ -216,6 +232,14 @@ cdef double[:,:,:] crank_nicolson(double[:,:,:,:]& flux_last_x, \
     xs_total_v[:,:] = xs_total[:,:]
     tools._total_velocity(xs_total_v, velocity, 2.0, info)
 
+    # Artificial scattering (as-SN): implicit sigma_as out-scattering,
+    # lagged in-scatter from the previous step's edge angular flux.
+    # Factor 2 matches the doubled CN operator convention.
+    M_as = artificial_scatter_setup(angle_x, angle_y, angle_w, \
+                                    info.sigma_as, info.beta_as)
+    if M_as is not None:
+        np.asarray(xs_total_v)[:] += 2.0 * info.sigma_as
+
     # Combine last time step and source term
     q_star = tools.array_4d(info.cells_x, info.cells_y,\
                             info.angles * info.angles, info.groups)
@@ -243,6 +267,11 @@ cdef double[:,:,:] crank_nicolson(double[:,:,:,:]& flux_last_x, \
                 xs_total, xs_scatter, velocity, q_star, external[qqa], \
                 external[qq], medium_map, delta_x, delta_y, angle_x, \
                 angle_y, 2.0, info)
+
+        # Add lagged artificial in-scatter source 2 * M_as . psi^{ell}
+        if M_as is not None:
+            artificial_scatter_source(q_star, M_as, \
+                    edge_to_center_angular(flux_last_x, flux_last_y), 2.0)
 
         # Run source iteration
         mg_result = mg.multi_group(scalar_flux, xs_total_v, \
@@ -278,6 +307,13 @@ cdef double[:,:,:] bdf2(double[:,:,:,:]& flux_last_1, double[:,:]& xs_total, \
     xs_total_v[:,:] = xs_total[:,:]
     tools._total_velocity(xs_total_v, velocity, 1.0, info)
 
+    # Artificial scattering (as-SN): sigma_as out-scattering on the LHS,
+    # lagged in-scatter source M_as . psi^{ell-1} added to q_star below
+    M_as = artificial_scatter_setup(angle_x, angle_y, angle_w, \
+                                    info.sigma_as, info.beta_as)
+    if M_as is not None:
+        np.asarray(xs_total_v)[:] += info.sigma_as
+
     # Combine last time step and source term
     q_star = tools.array_4d(info.cells_x, info.cells_y, \
                             info.angles * info.angles, info.groups)
@@ -312,6 +348,10 @@ cdef double[:,:,:] bdf2(double[:,:,:,:]& flux_last_1, double[:,:]& xs_total, \
             tools._time_source_star_bdf2(flux_last_1, flux_last_2, q_star, \
                                          external[qq], velocity, info)
 
+        # Add lagged artificial in-scatter source M_as . psi^{ell-1}
+        if M_as is not None:
+            artificial_scatter_source(q_star, M_as, flux_last_1)
+
         # Run source iteration
         mg_result = mg.multi_group(scalar_flux, xs_total_v, \
                                 xs_scatter, q_star, bc_x_full, \
@@ -335,6 +375,8 @@ cdef double[:,:,:] bdf2(double[:,:,:,:]& flux_last_1, double[:,:]& xs_total, \
         if step == 0:
             xs_total_v[:,:] = xs_total[:,:]
             tools._total_velocity(xs_total_v, velocity, 1.5, info)
+            if M_as is not None:
+                np.asarray(xs_total_v)[:] += info.sigma_as
 
     return scalar_flux
 
@@ -411,6 +453,13 @@ cdef double[:,:,:] multi_group_bdf2_restart(double[:,:,:,:]& flux_last_1, \
     xs_total_v[:,:] = xs_total[:,:]
     tools._total_velocity(xs_total_v, velocity, 1.5, info)
 
+    # Artificial scattering (as-SN): sigma_as out-scattering on the LHS,
+    # lagged in-scatter source M_as . psi^{ell-1} added to q_star below
+    M_as = artificial_scatter_setup(angle_x, angle_y, angle_w, \
+                                    info.sigma_as, info.beta_as)
+    if M_as is not None:
+        np.asarray(xs_total_v)[:] += info.sigma_as
+
     # Combine last time step and source term
     q_star = tools.array_4d(info.cells_x, info.cells_y, \
                             info.angles * info.angles, info.groups)
@@ -434,6 +483,10 @@ cdef double[:,:,:] multi_group_bdf2_restart(double[:,:,:,:]& flux_last_1, \
         # Run BDF2 on rest of time steps
         tools._time_source_star_bdf2(flux_last_1, flux_last_2, q_star, \
                                      external[qq], velocity, info)
+
+        # Add lagged artificial in-scatter source M_as . psi^{ell-1}
+        if M_as is not None:
+            artificial_scatter_source(q_star, M_as, flux_last_1)
 
         # Run source iteration
         mg_result = mg.multi_group(scalar_flux, xs_total_v, \
@@ -521,6 +574,13 @@ cdef double[:,:,:,:,:] multi_group_bdf2_angular(int[:]& time_steps, double[:,:,:
     xs_total_v[:,:] = xs_total[:,:]
     tools._total_velocity(xs_total_v, velocity, 1.0, info)
 
+    # Artificial scattering (as-SN): sigma_as out-scattering on the LHS,
+    # lagged in-scatter source M_as . psi^{ell-1} added to q_star below
+    M_as = artificial_scatter_setup(angle_x, angle_y, angle_w, \
+                                    info.sigma_as, info.beta_as)
+    if M_as is not None:
+        np.asarray(xs_total_v)[:] += info.sigma_as
+
     # Combine last time step and source term
     q_star = tools.array_4d(info.cells_x, info.cells_y, \
                             info.angles * info.angles, info.groups)
@@ -557,6 +617,10 @@ cdef double[:,:,:,:,:] multi_group_bdf2_angular(int[:]& time_steps, double[:,:,:
                                 flux_last_2, xs_scatter, velocity, q_star, \
                                 external[qq], medium_map, info)
 
+        # Add lagged artificial in-scatter source M_as . psi^{ell-1}
+        if M_as is not None:
+            artificial_scatter_source(q_star, M_as, flux_last_1)
+
         # Solve for angular flux of previous time step
         flux_last_2[:,:,:,:] = flux_last_1[:,:,:,:]
         flux_last_1[:,:,:,:] = mg._known_source_angular(xs_total_v, q_star, \
@@ -577,6 +641,8 @@ cdef double[:,:,:,:,:] multi_group_bdf2_angular(int[:]& time_steps, double[:,:,:
         if step == 0:
             xs_total_v[:,:] = xs_total[:,:]
             tools._total_velocity(xs_total_v, velocity, 1.5, info)
+            if M_as is not None:
+                np.asarray(xs_total_v)[:] += info.sigma_as
 
     return flux_time[:,:,:,:,:]
 
@@ -605,6 +671,16 @@ cdef double[:,:,:] tr_bdf2(double[:,:,:,:]& flux_ell_x, double[:,:,:,:]& flux_el
     xs_total_v_bdf2[:,:] = xs_total[:,:]
     tools._total_velocity(xs_total_v_bdf2, velocity, \
                           (2.0 - gamma) / (1.0 - gamma), info)
+
+    # Artificial scattering (as-SN): sigma_as out-scattering on the LHS
+    # of both stages, lagged in-scatter sources added to q_star below.
+    # The CN stage uses the doubled operator convention (factor 2); the
+    # BDF2 stage is fully implicit (factor 1).
+    M_as = artificial_scatter_setup(angle_x, angle_y, angle_w, \
+                                    info.sigma_as, info.beta_as)
+    if M_as is not None:
+        np.asarray(xs_total_v_cn)[:] += 2.0 * info.sigma_as
+        np.asarray(xs_total_v_bdf2)[:] += info.sigma_as
 
     # Combine last time step and source term
     q_star = tools.array_4d(info.cells_x, info.cells_y, \
@@ -654,6 +730,11 @@ cdef double[:,:,:] tr_bdf2(double[:,:,:,:]& flux_ell_x, double[:,:,:,:]& flux_el
                     external[qqa], medium_map, delta_x, delta_y, angle_x, \
                     angle_y, 2.0 / gamma, info)
 
+        # Add lagged artificial in-scatter source 2 * M_as . psi^{ell}
+        if M_as is not None:
+            artificial_scatter_source(q_star, M_as, \
+                    edge_to_center_angular(flux_ell_x, flux_ell_y), 2.0)
+
         # Solve for the \ell + gamma time step
         scalar_flux[:,:,:] = mg.multi_group(scalar_flux, xs_total_v_cn, \
                             xs_scatter, q_star, bc_x_full, \
@@ -673,6 +754,10 @@ cdef double[:,:,:] tr_bdf2(double[:,:,:,:]& flux_ell_x, double[:,:,:,:]& flux_el
         # Update q_star for BDF2 Step
         tools._time_source_star_tr_bdf2(flux_ell_x, flux_ell_y, flux_last_gamma, \
                             q_star, external[qqb], velocity, gamma, info)
+
+        # Add lagged artificial in-scatter source M_as . psi^{ell+gamma}
+        if M_as is not None:
+            artificial_scatter_source(q_star, M_as, flux_last_gamma)
 
         # Solve for the \ell + 1 time step
         mg_result = mg.multi_group(scalar_flux, xs_total_v_bdf2, \

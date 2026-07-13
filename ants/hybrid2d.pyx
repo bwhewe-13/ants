@@ -30,6 +30,11 @@ from ants cimport parameters
 from ants.parameters cimport params
 
 from ants.datatypes import TemporalDiscretization, create_params
+from ants.utils.pytools import (
+    artificial_scatter_setup,
+    artificial_scatter_source,
+    edge_to_center_angular,
+)
 
 # Uncollided is fine grid (N^2 x G)
 # Collided is coarse grid (N'^2 x G')
@@ -180,6 +185,15 @@ cdef double[:,:,:] backward_euler(double[:,:,:,:]& flux_last, \
     xs_total_vc[:,:] = xs_total_c[:,:]
     tools._total_velocity(xs_total_vc, velocity_c, 1.0, info_c)
 
+    # Artificial scattering (as-SN): sigma_as out-scattering applies to
+    # both the uncollided and collided components; the lagged in-scatter
+    # M_as . psi^{ell} is a known source and joins the uncollided q_star
+    M_as = artificial_scatter_setup(angle_xu, angle_yu, angle_wu, \
+                                    info_u.sigma_as, info_u.beta_as)
+    if M_as is not None:
+        np.asarray(xs_total_vu)[:] += info_u.sigma_as
+        np.asarray(xs_total_vc)[:] += info_u.sigma_as
+
     # Combine last time step and source term
     q_star = tools.array_4d(info_u.cells_x, info_u.cells_y, \
                             info_u.angles * info_u.angles, info_u.groups)
@@ -209,6 +223,11 @@ cdef double[:,:,:] backward_euler(double[:,:,:,:]& flux_last, \
         # Update q_star as external + 1/(v*dt) * psi
         tools._time_source_star_bdf1(flux_last, q_star, external_u[qq], \
                                      velocity_u, info_u)
+
+        # Add lagged artificial in-scatter source M_as . psi^{ell}
+        if M_as is not None:
+            artificial_scatter_source(q_star, M_as, flux_last)
+
         # Run hybrid method
         hybrid_method(flux_u, flux_c, xs_total_vu, xs_total_vc, \
                       xs_scatter_u, xs_scatter_c, q_star, source_c, \
@@ -259,6 +278,16 @@ cdef double[:,:,:] crank_nicolson(double[:,:,:,:]& flux_last_x, \
     xs_total_vc[:,:] = xs_total_c[:,:]
     tools._total_velocity(xs_total_vc, velocity_c, 2.0, info_c)
 
+    # Artificial scattering (as-SN): sigma_as out-scattering applies to
+    # both the uncollided and collided components; the lagged in-scatter
+    # M_as . psi^{ell} is a known source and joins the uncollided q_star.
+    # Factor 2 matches the doubled CN operator convention.
+    M_as = artificial_scatter_setup(angle_xu, angle_yu, angle_wu, \
+                                    info_u.sigma_as, info_u.beta_as)
+    if M_as is not None:
+        np.asarray(xs_total_vu)[:] += 2.0 * info_u.sigma_as
+        np.asarray(xs_total_vc)[:] += 2.0 * info_u.sigma_as
+
     # Combine last time step and source term
     q_star = tools.array_4d(info_u.cells_x, info_u.cells_y, \
                             info_u.angles * info_u.angles, info_u.groups)
@@ -292,6 +321,11 @@ cdef double[:,:,:] crank_nicolson(double[:,:,:,:]& flux_last_x, \
                         xs_total_u, xs_scatter_u, velocity_u, q_star, \
                         external_u[qqa], external_u[qq], medium_map, \
                         delta_x, delta_y, angle_xu, angle_yu, 2.0, info_u)
+
+        # Add lagged artificial in-scatter source 2 * M_as . psi^{ell}
+        if M_as is not None:
+            artificial_scatter_source(q_star, M_as, \
+                    edge_to_center_angular(flux_last_x, flux_last_y), 2.0)
 
         # Run hybrid method
         hybrid_method(flux_u, flux_c, xs_total_vu, xs_total_vc, \
@@ -341,6 +375,15 @@ cdef double[:,:,:] bdf2(double[:,:,:,:]& flux_last_1, \
     xs_total_vc[:,:] = xs_total_c[:,:]
     tools._total_velocity(xs_total_vc, velocity_c, 1.0, info_c)
 
+    # Artificial scattering (as-SN): sigma_as out-scattering applies to
+    # both the uncollided and collided components; the lagged in-scatter
+    # M_as . psi^{ell-1} is a known source and joins the uncollided q_star
+    M_as = artificial_scatter_setup(angle_xu, angle_yu, angle_wu, \
+                                    info_u.sigma_as, info_u.beta_as)
+    if M_as is not None:
+        np.asarray(xs_total_vu)[:] += info_u.sigma_as
+        np.asarray(xs_total_vc)[:] += info_u.sigma_as
+
     # Combine last time step and source term
     q_star = tools.array_4d(info_u.cells_x, info_u.cells_y, \
                             info_u.angles * info_u.angles, info_u.groups)
@@ -381,6 +424,10 @@ cdef double[:,:,:] bdf2(double[:,:,:,:]& flux_last_1, \
             tools._time_source_star_bdf2(flux_last_1, flux_last_2, q_star, \
                                          external_u[qq], velocity_u, info_u)
 
+        # Add lagged artificial in-scatter source M_as . psi^{ell-1}
+        if M_as is not None:
+            artificial_scatter_source(q_star, M_as, flux_last_1)
+
         # Run hybrid method
         hybrid_method(flux_u, flux_c, xs_total_vu, xs_total_vc, \
                       xs_scatter_u, xs_scatter_c, q_star, source_c, \
@@ -406,6 +453,9 @@ cdef double[:,:,:] bdf2(double[:,:,:,:]& flux_last_1, \
             tools._total_velocity(xs_total_vu, velocity_u, 1.5, info_u)
             xs_total_vc[:,:] = xs_total_c[:,:]
             tools._total_velocity(xs_total_vc, velocity_c, 1.5, info_c)
+            if M_as is not None:
+                np.asarray(xs_total_vu)[:] += info_u.sigma_as
+                np.asarray(xs_total_vc)[:] += info_u.sigma_as
 
     return flux_out
 
@@ -506,6 +556,15 @@ cdef double[:,:,:] multi_group_bdf2_restart(double[:,:,:,:]& flux_last_1, \
     xs_total_vc[:,:] = xs_total_c[:,:]
     tools._total_velocity(xs_total_vc, velocity_c, 1.5, info_c)
 
+    # Artificial scattering (as-SN): sigma_as out-scattering applies to
+    # both the uncollided and collided components; the lagged in-scatter
+    # M_as . psi^{ell-1} is a known source and joins the uncollided q_star
+    M_as = artificial_scatter_setup(angle_xu, angle_yu, angle_wu, \
+                                    info_u.sigma_as, info_u.beta_as)
+    if M_as is not None:
+        np.asarray(xs_total_vu)[:] += info_u.sigma_as
+        np.asarray(xs_total_vc)[:] += info_u.sigma_as
+
     # Combine last time step and source term
     q_star = tools.array_4d(info_u.cells_x, info_u.cells_y, \
                             info_u.angles * info_u.angles, info_u.groups)
@@ -535,6 +594,10 @@ cdef double[:,:,:] multi_group_bdf2_restart(double[:,:,:,:]& flux_last_1, \
         # Run BDF2 on all other steps
         tools._time_source_star_bdf2(flux_last_1, flux_last_2, q_star, \
                                      external_u[qq], velocity_u, info_u)
+
+        # Add lagged artificial in-scatter source M_as . psi^{ell-1}
+        if M_as is not None:
+            artificial_scatter_source(q_star, M_as, flux_last_1)
 
         # Run hybrid method
         hybrid_method(flux_u, flux_c, xs_total_vu, xs_total_vc, \
@@ -595,6 +658,19 @@ cdef double[:,:,:] tr_bdf2(double[:,:,:,:]& flux_ell_x, \
     tools._total_velocity(xs_total_vc_bdf2, velocity_c, \
                             (2.0 - gamma) / (1.0 - gamma), info_c)
 
+    # Artificial scattering (as-SN): sigma_as out-scattering applies to
+    # both components in both stages; the lagged in-scatter sources are
+    # known and join the uncollided q_star. The CN stage uses the
+    # doubled operator convention (factor 2); the BDF2 stage is fully
+    # implicit (factor 1).
+    M_as = artificial_scatter_setup(angle_xu, angle_yu, angle_wu, \
+                                    info_u.sigma_as, info_u.beta_as)
+    if M_as is not None:
+        np.asarray(xs_total_vu_cn)[:] += 2.0 * info_u.sigma_as
+        np.asarray(xs_total_vc_cn)[:] += 2.0 * info_u.sigma_as
+        np.asarray(xs_total_vu_bdf2)[:] += info_u.sigma_as
+        np.asarray(xs_total_vc_bdf2)[:] += info_u.sigma_as
+
     # Combine last time step and source term
     q_star = tools.array_4d(info_u.cells_x, info_u.cells_y, \
                             info_u.angles * info_u.angles, info_u.groups)
@@ -641,6 +717,11 @@ cdef double[:,:,:] tr_bdf2(double[:,:,:,:]& flux_ell_x, \
                 external_u[qqa], medium_map, delta_x, delta_y, angle_xu, \
                 angle_yu, 2.0 / gamma, info_u)
 
+        # Add lagged artificial in-scatter source 2 * M_as . psi^{ell}
+        if M_as is not None:
+            artificial_scatter_source(q_star, M_as, \
+                    edge_to_center_angular(flux_ell_x, flux_ell_y), 2.0)
+
         # Run hybrid method
         hybrid_method(flux_u, flux_c, xs_total_vu_cn, xs_total_vc_cn, \
                       xs_scatter_u, xs_scatter_c, q_star, source_c, \
@@ -660,6 +741,10 @@ cdef double[:,:,:] tr_bdf2(double[:,:,:,:]& flux_ell_x, \
         # Update q_star for BDF2 Step
         tools._time_source_star_tr_bdf2(flux_ell_x, flux_ell_y, flux_last_gamma, \
                         q_star, external_u[qqb], velocity_u, gamma, info_u)
+
+        # Add lagged artificial in-scatter source M_as . psi^{ell+gamma}
+        if M_as is not None:
+            artificial_scatter_source(q_star, M_as, flux_last_gamma)
 
         # Run hybrid method
         hybrid_method(flux_u, flux_c, xs_total_vu_bdf2, \
