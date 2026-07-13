@@ -59,8 +59,18 @@ def fixed_source(materials, sources, geometry, quadrature, solver):
     # Initialize flux_old to zeros
     flux_old = tools.array_3d(info.cells_x, info.cells_y, info.groups)
 
+    # Effective total cross section / external source returned by the as-SN
+    # solver (plain arrays when artificial scattering is disabled)
+    xs_total_eff = xs_total
+    external_eff = external
+
     # Multigroup solver
-    if params.mg_solver == MultigroupSolver.SOURCE_ITERATION:
+    if info.sigma_as > 0.0:
+        # Artificial scattering (as-SN) ray effect mitigation
+        flux, xs_total_eff, external_eff = source_iteration_as(flux_old, \
+                    xs_total, xs_matrix, external, boundary_x, boundary_y, \
+                    medium_map, delta_x, delta_y, angle_x, angle_y, angle_w, info)
+    elif params.mg_solver == MultigroupSolver.SOURCE_ITERATION:
         flux = mg.source_iteration(flux_old, xs_total, xs_matrix, external, \
                     boundary_x, boundary_y, medium_map, delta_x, delta_y, angle_x, \
                     angle_y, angle_w, info)
@@ -68,18 +78,17 @@ def fixed_source(materials, sources, geometry, quadrature, solver):
         flux = mg.dynamic_mode_decomp(flux_old, xs_total, xs_matrix, external, \
                     boundary_x, boundary_y, medium_map, delta_x, delta_y, angle_x, \
                     angle_y, angle_w, info)
-    # if info.sigma_as > 0.0:
-    #     flux = source_iteration_as(flux_old, xs_total, xs_matrix, external, \
-    #                 boundary_x, boundary_y, medium_map, delta_x, delta_y, \
-    #                 angle_x, angle_y, angle_w, info)
 
     # Return scalar flux cell centers
     if (info.angular == False) and (params.flux_at_edges == 0):
         return np.asarray(flux)
 
-    # For angular flux or scalar flux edges
-    return known_flux(flux, xs_total, xs_matrix, external, boundary_x, boundary_y, \
-                    geometry, quadrature, params)
+    # For angular flux or scalar flux edges. For as-SN runs, the effective
+    # total cross section (sigma_t + sigma_as) and the combined source
+    # (external + artificial in-scatter) reproduce the converged transport
+    # balance in the known-source sweeps.
+    return known_flux(flux, xs_total_eff, xs_matrix, external_eff, boundary_x, \
+                    boundary_y, geometry, quadrature, params)
 
 
 def source_iteration_as(double[:,:,:] flux_guess, double[:,:] xs_total, \
@@ -88,52 +97,79 @@ def source_iteration_as(double[:,:,:] flux_guess, double[:,:] xs_total, \
         int[:,:] medium_map, double[:] delta_x, double[:] delta_y, \
         double[:] angle_x, double[:] angle_y, double[:] angle_w, \
         parameters.params info):
-    """Solve with artificial scattering (as-SN method) in 2D."""
-    cdef int as_iter, ii, jj, nn, mm, gg
-    cdef double as_change, factor
+    """Solve a 2D fixed-source problem with artificial scattering (as-SN).
+
+    Implements Eq. (17) of Frank, Kusch, Camminady & Hauck (2020), "Ray
+    Effect Mitigation for the Discrete Ordinates Method Using Artificial
+    Scattering", Nucl. Sci. Eng.:
+
+        Omega_q . grad(psi_q) + (sigma_t + sigma_as) psi_q
+            = sigma_s Phi + sum_p M_as[q,p] psi_p + q_ext
+
+    The artificial out-scattering sigma_as is folded into the total cross
+    section (stabilizing the iteration, per the paper), and the
+    forward-peaked in-scatter source M_as . psi is lagged one outer
+    iteration (the source-iteration treatment of Eq. (25)).  Each outer
+    pass reuses the standard multigroup solver for the physical scattering
+    and a known-source sweep to recover the angular flux.
+
+    Returns (scalar_flux, xs_total_as, external_combined) so callers can
+    reproduce the converged transport balance in known-source sweeps.
+    """
+    cdef int as_iter
+    cdef double as_change
     cdef double[:,:,:] flux = flux_guess.copy()
-    cdef double[:,:,:] flux_old
+    cdef double[:,:,:] flux_old = flux_guess.copy()
     cdef double[:,:,:,:] ext_combined
-    cdef double[:,:] _M_as
+    cdef double[:,:,:,:] psi
+    cdef double[:,:] xs_total_as_view
     cdef int N_angles = info.angles * info.angles
 
-    # Compute artificial scatter matrix M_as once
-    M_as = artificial_scatter_matrix(np.asarray(angle_x), np.asarray(angle_w),
-                                      info.sigma_as, info.beta_as, np.asarray(angle_y))
-    _M_as = M_as
+    # Compute artificial scatter matrix M_as[q,p] once. Rows sum to
+    # sigma_as (particle conservation), balancing the sigma_as psi_q
+    # out-scattering term added to the total cross section below.
+    M_as = artificial_scatter_matrix(np.asarray(angle_x), np.asarray(angle_y), \
+                np.asarray(angle_w), info.sigma_as, info.beta_as)
 
-    # Initialize artificial scatter source (I x J x N^2 x G)
-    art_source = tools.array_4d(info.cells_x, info.cells_y, N_angles, info.groups)
+    # Add artificial out-scattering to the total cross section (Eq. 17 LHS)
+    xs_total_as = np.asarray(xs_total) + info.sigma_as
+    xs_total_as_view = xs_total_as
 
-    # Iterate on artificial scatter source
+    # Artificial in-scatter source (I x J x N^2 x G), lagged one iteration
+    art_source = np.zeros((info.cells_x, info.cells_y, N_angles, info.groups))
+    external_combined = np.asarray(external) + art_source
+
+    # Buffer for the known-source sweep: (sigma_s + sigma_f) phi + external
+    source = tools.array_4d(info.cells_x, info.cells_y, N_angles, info.groups)
+
+    # Iterate on the artificial scatter source
     for as_iter in range(info.max_iter_angular):
-        # Combine external + art_source for this iteration
-        external_combined = np.asarray(external) + np.asarray(art_source)
         ext_combined = external_combined
 
         # Solve standard multigroup problem with combined source
-        flux_old = flux.copy()
-        flux = mg.source_iteration(flux, xs_total, xs_matrix, ext_combined, \
-                            boundary_x, boundary_y, medium_map, delta_x, \
-                            delta_y, angle_x, angle_y, angle_w, info)
+        flux_old[:,:,:] = flux[:,:,:]
+        flux = mg.source_iteration(flux, xs_total_as_view, xs_matrix, \
+                            ext_combined, boundary_x, boundary_y, medium_map, \
+                            delta_x, delta_y, angle_x, angle_y, angle_w, info)
 
-        # Update artificial scatter source for next iteration
-        # Approximate angular flux as uniformly distributed
-        art_source[:,:,:,:] = 0.0
-        factor = info.sigma_as / <double>(N_angles)
-        for gg in range(info.groups):
-            for ii in range(info.cells_x):
-                for jj in range(info.cells_y):
-                    for nn in range(N_angles):
-                        for mm in range(N_angles):
-                            art_source[ii, jj, nn, gg] += factor * _M_as[nn, mm] * flux[ii, jj, gg]
+        # Recover the angular flux from the converged scalar flux
+        tools._source_total(source, flux, xs_matrix, medium_map, \
+                            ext_combined, info)
+        psi = mg._known_source_angular(xs_total_as_view, source, boundary_x, \
+                            boundary_y, medium_map, delta_x, delta_y, \
+                            angle_x, angle_y, angle_w, info)
+
+        # Update artificial in-scatter source:
+        # art_source[i,j,q,g] = sum_p M_as[q,p] psi[i,j,p,g]
+        art_source = np.einsum("qp,ijpg->ijqg", M_as, np.asarray(psi))
+        external_combined = np.asarray(external) + art_source
 
         # Check convergence: difference in scalar flux
         as_change = tools.group_convergence(flux, flux_old, info)
         if as_change < info.tol_angular:
             break
 
-    return flux
+    return np.asarray(flux), xs_total_as, external_combined
 
 
 def known_flux(double[:,:,:] flux, double[:,:] xs_total, double[:,:,:] xs_matrix, \

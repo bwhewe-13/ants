@@ -326,43 +326,6 @@ cdef int _reflected_index(double[:]& angle_opp, double[:]& angle_sim, \
 
 
 ################################################################################
-# Artificial Scattering functions (ray effect mitigation)
-################################################################################
-
-cdef void _build_art_source(double[:,:,:]& psi_angular, double[:,:]& M_as, \
-        double[:,:,:,:]& art_source, params info):
-    """Build artificial scatter source: art_source[i,j,n,g] = sum_m M_as[n,m] * psi[i,j,m,g]"""
-    # Initialize iterables
-    cdef int ii, jj, nn, mm, gg
-    cdef int N_angles = info.angles * info.angles
-    # Zero out art_source
-    art_source[:,:,:,:] = 0.0
-    # For each cell (i,j), group, angle n: apply matrix M_as to angular flux
-    for gg in range(info.groups):
-        for ii in range(info.cells_x):
-            for jj in range(info.cells_y):
-                for nn in range(N_angles):
-                    for mm in range(N_angles):
-                        art_source[ii,jj,nn,gg] += M_as[nn,mm] * psi_angular[ii,jj,mm]
-
-
-cdef double _angular_flux_change(double[:,:,:]& psi_new, double[:,:,:]& psi_old, \
-        params info):
-    """Compute L-inf norm change in angular flux for convergence check"""
-    cdef int ii, jj, nn
-    cdef double max_change = 0.0
-    cdef double change
-    cdef int N_angles = info.angles * info.angles
-    for ii in range(info.cells_x):
-        for jj in range(info.cells_y):
-            for nn in range(N_angles):
-                change = abs(psi_new[ii,jj,nn] - psi_old[ii,jj,nn])
-                if change > max_change:
-                    max_change = change
-    return max_change
-
-
-################################################################################
 # Time Dependent functions
 ################################################################################
 

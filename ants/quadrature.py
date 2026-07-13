@@ -34,6 +34,17 @@ _LDFE_ANGLE_TO_LEVEL = {4: 1, 8: 2, 16: 3}
 # Lazily loaded LDFE-SA first-octant tables (columns: mu, eta, xi, weight).
 _LDFE_SA_CACHE = None
 
+# Supported boundary conditions per axis: vacuum-vacuum, or one reflecting side
+_SUPPORTED_BC = ([0, 0], [1, 0], [0, 1])
+
+
+def _validate_bc(bc, name):
+    if list(bc) not in [list(supported) for supported in _SUPPORTED_BC]:
+        raise ValueError(
+            f"{name}={bc} is not supported; must be one of "
+            f"{_SUPPORTED_BC} (reflecting on both sides is unavailable)"
+        )
+
 
 def angular_x(angles, bc_x=[0, 0], datatype=True):
     """Compute 1D Gauss-Legendre quadrature angles and weights.
@@ -52,6 +63,7 @@ def angular_x(angles, bc_x=[0, 0], datatype=True):
         Normalized quadrature weights summing to 1.
     """
 
+    _validate_bc(bc_x, "bc_x")
     angle_x, angle_w = np.polynomial.legendre.leggauss(angles)
     angle_w /= np.sum(angle_w)
     # Ordering for reflective boundaries
@@ -132,7 +144,7 @@ def _angular_xy(angles, bc_x, bc_y):
     return angular_xy(angles, bc_x, bc_y, False)
 
 
-def artificial_scatter_matrix(angle_x, angle_y, angle_w, sigma_as, beta):
+def artificial_scatter_matrix(angle_x, angle_y, angle_w, sigma_as, beta, angle_z=None):
     """Compute the normalized artificial scattering matrix M_as[N, N].
 
     Implements the forward-peaked scattering kernel from Frank et al. (2020),
@@ -141,7 +153,9 @@ def artificial_scatter_matrix(angle_x, angle_y, angle_w, sigma_as, beta):
 
     The kernel is s_eps(mu) = (2 / (sqrt(pi) * eps * Erf(2/eps)))
                                 * exp(-(1 - mu)**2 / eps**2)
-    with eps = beta / N_q, where N_q is the number of ordinates.
+    with eps = beta / N_q, where N_q is the number of ordinates, and
+    mu = Omega_q . Omega_p the full three-dimensional dot product between
+    ordinates on the unit sphere.
 
     Parameters
     ----------
@@ -155,6 +169,10 @@ def artificial_scatter_matrix(angle_x, angle_y, angle_w, sigma_as, beta):
         Artificial scattering strength parameter. Set to 0 to disable.
     beta : float
         Kernel width parameter. Typical values: 4.5 (explicit), 4.0 (implicit).
+    angle_z : ndarray, shape (N,), optional
+        z-direction cosines. If None (the 2D case, where ``angular_xy``
+        keeps only the upper hemisphere), reconstructed as
+        ``sqrt(1 - angle_x**2 - angle_y**2)``.
 
     Returns
     -------
@@ -164,8 +182,16 @@ def artificial_scatter_matrix(angle_x, angle_y, angle_w, sigma_as, beta):
     N = len(angle_x)
     eps = beta / N if N > 0 else 1.0
 
-    # Compute pairwise dot products
-    dots = np.outer(angle_x, angle_x) + np.outer(angle_y, angle_y)  # (N, N)
+    # Reconstruct the (positive-hemisphere) polar cosine when not supplied
+    if angle_z is None:
+        angle_z = np.sqrt(np.clip(1.0 - angle_x**2 - angle_y**2, 0.0, None))
+
+    # Compute pairwise dot products Omega_q . Omega_p on the unit sphere
+    dots = (
+        np.outer(angle_x, angle_x)
+        + np.outer(angle_y, angle_y)
+        + np.outer(angle_z, angle_z)
+    )  # (N, N)
 
     # Kernel Eq. (6) from Frank et al.
     if eps > 1e-15:
@@ -287,6 +313,8 @@ def _ldfe_quadrature(angles):
 
 
 def _ordering_angles_xy(angle_x, angle_y, angle_w, bc_x, bc_y):
+    _validate_bc(bc_x, "bc_x")
+    _validate_bc(bc_y, "bc_y")
     # Get number of discrete ordinates
     angles = int(np.sqrt(angle_x.shape[0]))
     # Get only positive angles
@@ -343,6 +371,9 @@ def _ordering_angles_xy(angle_x, angle_y, angle_w, bc_x, bc_y):
 
 
 def _ordering_angles_xyz(angle_x, angle_y, angle_z, angle_w, bc_x, bc_y, bc_z):
+    _validate_bc(bc_x, "bc_x")
+    _validate_bc(bc_y, "bc_y")
+    _validate_bc(bc_z, "bc_z")
     # Get unique magnitude combinations, repeat for all 8 octants
     matrix = np.fabs(np.vstack((angle_x, angle_y, angle_z, angle_w)))
     unique_matrix = np.unique(matrix, axis=1)

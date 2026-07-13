@@ -1,3 +1,5 @@
+.. _chapter-neutron-transport:
+
 The Neutron Transport Equation
 ==============================
 

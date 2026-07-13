@@ -89,6 +89,16 @@ mathjax3_config = {
             "keff": r"k_{\mathrm{eff}}",
             "bbR": r"\mathbb{R}",
             "Tilde": [r"\widetilde{#1}", 1],
+            # Method of Nearby Problems (MNP) shorthand.
+            "mnp": r"^{\mathrm{MNP}}",
+            "bX": r"\mathbf{X}",
+            "bB": r"\mathbf{B}",
+            "bu": r"\mathbf{u}",
+            "bU": r"\mathbf{U}",
+            "bY": r"\mathbf{Y}",
+            "tx": r"\widetilde{x}",
+            "ty": r"\widetilde{y}",
+            "qquand": r"\qquad\text{and}\qquad",
         }
     }
 }

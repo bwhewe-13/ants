@@ -29,6 +29,19 @@ PARAMETERS = [
     for spatial in SPATIAL
 ]
 
+# Some methods solve a manufactured problem exactly (e.g. step characteristic
+# with cell-wise flat sources), leaving only roundoff error where the order
+# of accuracy is undefined -- treat machine-precision errors as a pass.
+EXACT_TOL = 1e-12
+
+
+def _check_order_accuracy(errs, cells, order, atol):
+    if max(errs) < EXACT_TOL:
+        return
+    for err in range(len(errs) - 1):
+        ratio = cells[err + 1] / cells[err]
+        assert abs(tools.order_accuracy(errs[err], errs[err + 1], ratio) - order) < atol
+
 
 @pytest.mark.smoke
 @pytest.mark.slab1d
@@ -53,9 +66,7 @@ def test_manufactured_01(angular, edges, spatial):
             exact = np.sum(exact * quadrature.angle_w[None, :, None], axis=1)
         errs.append(tools.spatial_error(flux, exact))
     atol = 5e-2 if edges else 5e-3
-    for err in range(len(errs) - 1):
-        ratio = cells[err + 1] / cells[err]
-        assert abs(tools.order_accuracy(errs[err], errs[err + 1], ratio) - order) < atol
+    _check_order_accuracy(errs, cells, order, atol)
 
 
 @pytest.mark.slab1d
@@ -80,9 +91,7 @@ def test_manufactured_02(angular, edges, spatial):
             exact = np.sum(exact * quadrature.angle_w[None, :, None], axis=1)
         errs.append(tools.spatial_error(flux, exact))
     atol = 5e-2 if edges else 5e-3
-    for err in range(len(errs) - 1):
-        ratio = cells[err + 1] / cells[err]
-        assert abs(tools.order_accuracy(errs[err], errs[err + 1], ratio) - order) < atol
+    _check_order_accuracy(errs, cells, order, atol)
 
 
 @pytest.mark.slab1d
@@ -107,9 +116,7 @@ def test_manufactured_03(angular, edges, spatial):
             exact = np.sum(exact * quadrature.angle_w[None, :, None], axis=1)
         errs.append(tools.spatial_error(flux, exact))
     atol = 5e-2 if edges else 5e-3
-    for err in range(len(errs) - 1):
-        ratio = cells[err + 1] / cells[err]
-        assert abs(tools.order_accuracy(errs[err], errs[err + 1], ratio) - order) < atol
+    _check_order_accuracy(errs, cells, order, atol)
 
 
 @pytest.mark.slab1d
@@ -134,9 +141,7 @@ def test_manufactured_04(angular, edges, spatial):
             exact = np.sum(exact * quadrature.angle_w[None, :, None], axis=1)
         errs.append(tools.spatial_error(flux, exact))
     atol = 5e-2 if edges else 5e-3
-    for err in range(len(errs) - 1):
-        ratio = cells[err + 1] / cells[err]
-        assert abs(tools.order_accuracy(errs[err], errs[err + 1], ratio) - order) < atol
+    _check_order_accuracy(errs, cells, order, atol)
 
 
 @pytest.mark.slab1d
@@ -161,6 +166,4 @@ def test_manufactured_05(angular, edges, spatial):
             exact = np.sum(exact * quadrature.angle_w[None, :, None], axis=1)
         errs.append(tools.spatial_error(flux, exact))
     atol = 5e-2 if edges else 5e-3
-    for err in range(len(errs) - 1):
-        ratio = cells[err + 1] / cells[err]
-        assert abs(tools.order_accuracy(errs[err], errs[err + 1], ratio) - order) < atol
+    _check_order_accuracy(errs, cells, order, atol)

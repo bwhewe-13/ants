@@ -406,7 +406,7 @@ cdef void _nearby_off_scatter(double[:,:]& residual, \
     cdef int ii, mat, og, ig
 
     # Initialize off-scattering term
-    cdef float off_scatter
+    cdef double off_scatter
 
     # Iterate over spatial cells
     for ii in range(info.cells_x):

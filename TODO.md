@@ -1,7 +1,7 @@
 # To Do
 
 ## Planned Updates for 0.3.0
-- [ ] Implement artificial scattering for ray effect correction (2D).
+- [x] Implement artificial scattering for ray effect correction (2D).
 - [ ] Add anisotropic scattering support.
 - [x] Add chi vector support.
 - [ ] Add 3D transport sweep capabilities.

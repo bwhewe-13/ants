@@ -1,0 +1,46 @@
+\begin{tikzpicture}
+
+% Highlight cell
+\filldraw[fill=red!20, draw=black, text opacity=1] (5,0) rectangle (10,5);
+
+% Grid
+\draw[step=5.0, black] (2, 0) grid (13, 8);
+\draw[step=5.0, black, dotted, xshift=-2.5cm, yshift=-2.5cm, very thick] (5, 5) grid +(10, 5);
+
+% Add points - cell edges
+\foreach\i in {5,10} \foreach\j in {0,5}{
+    \node[circle,draw,fill=black,minimum size=5pt, inner sep=0pt] at (\i,\j){};
+}
+
+% Add points - knots
+\foreach\i in {2.5,7.5,12.5} \foreach\j in {2.5,7.5}{
+    \node at (\i, \j) {$\star$};
+}
+
+% Add labels - knots
+\node[above right] at (2.5, 2.5) {\small ($x_{i-1}, y_{j}$)};
+\node[below right] at (2.5, 7.5) {\small ($x_{i-1}, y_{j+1}$)};
+\node[above left] at (7.5, 2.5) {\small ($x_{i}, y_{j}$)};
+\node[below left] at (7.5, 7.5) {\small ($x_{i}, y_{j+1}$)};
+\node[above left] at (12.5, 2.5) {\small ($x_{i+1}, y_{j}$)};
+\node[below left] at (12.5, 7.5) {\small ($x_{i+1}, y_{j+1}$)};
+
+% Add labels - cell edges
+\node[below right] at (5, 0) {\small ($x_{i-1/2}, y_{j-1/2}$)};
+\node[below right] at (5, 5) {\small ($x_{i-1/2}, y_{j+1/2}$)};
+\node[above right] at (10, 0) {\small ($x_{i+1/2}, y_{j-1/2}$)};
+\node[above left] at (10, 5) {\small ($x_{i+1/2}, y_{j+1/2}$)};
+
+% Add labels - lines
+\draw [decorate,decoration={brace,amplitude=10pt,raise=2ex}]
+  (2.5, 7.5) -- (7.45, 7.5) node[midway,yshift=2.5em]{Spline $S_{i-1,j}(x, y)$};
+\draw [decorate,decoration={brace,amplitude=10pt,raise=2ex}]
+  (7.55, 7.5) -- (12.5, 7.5) node[midway,yshift=2.5em]{Spline $S_{i,j}(x, y)$};
+\draw[->,thick] (8.75, 6.5) node (knot) [below] {\small Spline Knot} -- (7.6, 7.4);
+\draw[->,thick] (3.5, 1.5) node (edge) [above] {\small Spatial Cell Edge} -- (4.9, 0.1);
+
+% Add split
+\draw[dashdotted, thick, black](7.5, 2.5) -- (7.5, 0) node [above right] {\small ($x_{i}, y_{j-1/2}$)};
+\node[circle,draw,fill=white,minimum size=6pt, inner sep=0pt] at (7.5, 0){};
+
+\end{tikzpicture}

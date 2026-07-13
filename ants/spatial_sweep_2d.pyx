@@ -161,7 +161,7 @@ cdef void square_sweep(double[:,:]& flux, double[:,:]& flux_old, \
                           delta_y, angle_x, angle_y, angle_w, info)
 
 
-cdef float spatial_coef(int spatial) noexcept nogil:
+cdef double spatial_coef(int spatial) noexcept nogil:
     if (spatial == 1):
         return 1.0
     elif (spatial == 2):
@@ -248,8 +248,8 @@ cdef double square_forward_x(double[:,:]& flux, double[:,:]& flux_old, \
     cdef double center, coef_x
 
     # Spatial discretization
-    cdef float alpha = spatial_coef(info.spatial)
-    cdef float alpha_x = 2.0 / (1.0 + alpha)
+    cdef double alpha = spatial_coef(info.spatial)
+    cdef double alpha_x = 2.0 / (1.0 + alpha)
 
     # Step Characteristic per-cell variables
     cdef double tau_x, tau_y, W_x, W_y, coef_y_eff
@@ -556,8 +556,8 @@ cdef double interface_forward_x(double[:]& flux_edge_x, double[:]& flux_edge_y, 
     cdef double center, coef_x
 
     # Spatial discretization
-    cdef float alpha = spatial_coef(info.spatial)
-    cdef float alpha_x = 2.0 / (1.0 + alpha)
+    cdef double alpha = spatial_coef(info.spatial)
+    cdef double alpha_x = 2.0 / (1.0 + alpha)
 
     # Step Characteristic per-cell variables
     cdef double tau_x, tau_y, W_x, W_y, coef_y_eff
@@ -609,8 +609,8 @@ cdef double interface_backward_x(double[:]& flux_edge_x, double[:]& flux_edge_y,
     cdef double center, coef_x
 
     # Spatial discretization
-    cdef float alpha = spatial_coef(info.spatial)
-    cdef float alpha_x = 2.0 / (1.0 + alpha)
+    cdef double alpha = spatial_coef(info.spatial)
+    cdef double alpha_x = 2.0 / (1.0 + alpha)
 
     # Step Characteristic per-cell variables
     cdef double tau_x, tau_y, W_x, W_y, coef_y_eff

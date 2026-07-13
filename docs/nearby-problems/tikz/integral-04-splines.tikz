@@ -1,0 +1,50 @@
+\begin{tikzpicture}
+
+% Highlight cell
+\filldraw[fill=red!20, draw=black, text opacity=1] (5,5) rectangle (10,10);
+
+% Grid
+\draw[step=5.0, black] (2, 2) grid (13, 13);
+\draw[step=5.0, black, dotted, xshift=-2.5cm, yshift=-2.5cm, very thick] (5, 5) grid +(10, 10);
+
+% Add points - cell edges
+\foreach\i in {5,10} \foreach\j in {5,10}{
+    \node[circle,draw,fill=black,minimum size=5pt, inner sep=0pt] at (\i,\j){};
+}
+
+% Add points - knots
+\foreach\i in {2.5,7.5,12.5} \foreach\j in {2.5,7.5,12.5}{
+    \node at (\i, \j) {$\star$};
+}
+
+% Add labels - knots
+\node[above right] at (2.5, 2.5) {\small ($x_{i-1}, y_{j-1}$)};
+\node[below right] at (2.5, 7.5) {\small ($x_{i-1}, y_{j}$)};
+\node[below right] at (2.5, 12.5) {\small ($x_{i-1}, y_{j+1}$)};
+\node[above left] at (7.5, 2.5) {\small ($x_{i}, y_{j-1}$)};
+\node[below left] at (7.5, 7.5) {\small ($x_{i}, y_{j}$)};
+\node[below left] at (7.5, 12.5) {\small ($x_{i}, y_{j+1}$)};
+\node[above left] at (12.5, 2.5) {\small ($x_{i+1}, y_{j-1}$)};
+\node[below left] at (12.5, 7.5) {\small ($x_{i+1}, y_{j}$)};
+\node[below left] at (12.5, 12.5) {\small ($x_{i+1}, y_{j+1}$)};
+
+% Add labels - cell edges
+\node[below right] at (5, 5) {\small ($x_{i-1/2}, y_{j-1/2}$)};
+\node[below right] at (5, 10) {\small ($x_{i-1/2}, y_{j+1/2}$)};
+\node[above left] at (10, 5) {\small ($x_{i+1/2}, y_{j-1/2}$)};
+\node[above left] at (10, 10) {\small ($x_{i+1/2}, y_{j+1/2}$)};
+
+% Add labels - lines
+\draw [decorate,decoration={brace,amplitude=10pt,raise=2ex}]
+  (2.5, 12.5) -- (7.45, 12.5) node[midway,yshift=2.5em]{Spline $S_{i-1,j}(x, y)$};
+\draw [decorate,decoration={brace,amplitude=10pt,raise=2ex}]
+  (7.55, 12.5) -- (12.5, 12.5) node[midway,yshift=2.5em]{Spline $S_{i,j}(x, y)$};
+\draw [decorate,decoration={brace,amplitude=10pt,mirror,raise=2ex}]
+  (2.5, 2.5) -- (7.45, 2.5) node[midway,yshift=-2.5em]{Spline $S_{i-1,j-1}(x, y)$};
+\draw [decorate,decoration={brace,amplitude=10pt,mirror,raise=2ex}]
+  (7.55, 2.5) -- (12.5, 2.5) node[midway,yshift=-2.5em]{Spline $S_{i,j-1}(x, y)$};
+
+\draw[->,thick] (8.75, 3.5) node (knot) [above] {\small Spline Knot} -- (7.6, 2.6);
+\draw[->,thick] (4, 5.5) node (edge) [above,align=center] {\small Spatial \\ \small Cell Edge} -- (4.9, 5.1);
+
+\end{tikzpicture}

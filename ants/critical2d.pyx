@@ -53,8 +53,8 @@ def k_criticality(materials, geometry, quadrature, solver):
     # Initialize keff
     cdef double[1] keff = [0.95]
 
-    # Initialize and normalize flux
-    flux_old = np.random.rand(info.cells_x, info.cells_y, info.groups)
+    # Initialize and normalize flux (fixed seed for reproducible iterations)
+    flux_old = np.random.default_rng(42).random((info.cells_x, info.cells_y, info.groups))
     tools._normalize_flux(flux_old, info)
 
     # Solve using the power iteration
@@ -179,8 +179,8 @@ def nearby_power_iteration(double[:,:,:,:] residual, double n_rate, materials, \
     info = parameters._to_params(params)
     parameters._check_critical2d_nearby_power(info)
 
-    # Initialize flux
-    flux_old = np.random.rand(info.cells_x, info.cells_y, info.groups)
+    # Initialize flux (fixed seed for reproducible iterations)
+    flux_old = np.random.default_rng(42).random((info.cells_x, info.cells_y, info.groups))
     tools._normalize_flux(flux_old, info)
 
     # Initialize keffective
