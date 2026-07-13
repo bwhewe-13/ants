@@ -226,7 +226,7 @@ cdef double slab_backward(double[:]& flux, double[:]& flux_old, double[:]& xs_to
         mat = medium_map[ii]
         # Step Characteristic
         if info.spatial == 3:
-            tau = xs_total[mat] * delta_x[ii] / (angle_x)
+            tau = xs_total[mat] * delta_x[ii] / fabs(angle_x)
             alpha1 = 0.5 * (1.0 - (1.0 / tanh(0.5 * tau) - 2.0 / tau))
             alpha2 = 0.5 * (1.0 + (1.0 / tanh(0.5 * tau) - 2.0 / tau))
         # Calculate cell edge unknown
@@ -359,18 +359,22 @@ cdef void sphere_forward(double[:]& flux, double[:]& flux_old, \
     cdef int ii, mat
     cdef double edge1 = half_angle[0]
     cdef double area1, area2, center, volume
+    # Track cell edge radii (supports non-uniform meshes)
+    cdef double rho1 = 0.0, rho2
     if info.flux_at_edges:
         flux[0] += weight * edge1
     # Iterate over cells from 0 -> I (center to edge)
     for ii in range(info.cells_x):
         # For determining the material cross sections
         mat = medium_map[ii]
+        # Calculate radius at unknown cell edge
+        rho2 = rho1 + delta_x[ii]
         # Calculate surface area at known cell edge
-        area1 = edge_surface_area(ii * delta_x[ii])
+        area1 = edge_surface_area(rho1)
         # Calculate surface area at unknown cell edge
-        area2 = edge_surface_area((ii + 1) * delta_x[ii])
+        area2 = edge_surface_area(rho2)
         # Calculate volume of cell
-        volume = cell_volume((ii + 1) * delta_x[ii], ii * delta_x[ii])
+        volume = cell_volume(rho2, rho1)
         # Calculate flux at cell center
         center = (angle_x * (area2 + area1) * edge1 \
                 + 1 / angle_w * (area2 - area1) * (alpha_plus + alpha_minus) * half_angle[ii] \
@@ -393,6 +397,8 @@ cdef void sphere_forward(double[:]& flux, double[:]& flux_old, \
         # Update half angle coefficient
         if ii != 0:
             half_angle[ii] = 1 / tau * (center - (1 - tau) * half_angle[ii])
+        # Update known cell edge radius
+        rho1 = rho2
 
 
 cdef void sphere_backward(double[:]& flux, double[:]& flux_old, \
@@ -404,18 +410,24 @@ cdef void sphere_backward(double[:]& flux, double[:]& flux_old, \
     cdef int ii, mat
     cdef double edge1 = boundary_x
     cdef double area1, area2, center, volume
+    # Track cell edge radii (supports non-uniform meshes)
+    cdef double rho1, rho2 = 0.0
+    for ii in range(info.cells_x):
+        rho2 += delta_x[ii]
     if info.flux_at_edges:
         flux[info.cells_x] += weight * edge1
 
     for ii in range(info.cells_x-1, -1, -1):
         # For determining the material cross sections
         mat = medium_map[ii]
-        # Calculate the surface area at known cell edge
-        area1 = edge_surface_area(ii * delta_x[ii])
-        # Calculate the surface area at unknown cell edge
-        area2 = edge_surface_area((ii + 1) * delta_x[ii])
+        # Calculate radius at inner (unknown) cell edge
+        rho1 = rho2 - delta_x[ii]
+        # Calculate the surface area at inner cell edge
+        area1 = edge_surface_area(rho1)
+        # Calculate the surface area at outer (known) cell edge
+        area2 = edge_surface_area(rho2)
         # Calculate volume of the cell
-        volume = cell_volume((ii + 1) * delta_x[ii], ii * delta_x[ii])
+        volume = cell_volume(rho2, rho1)
         # Calculate the flux at the cell center
         center = (fabs(angle_x) * (area2 + area1) * edge1 \
                 + 1 / angle_w * (area2 - area1) * (alpha_plus + alpha_minus) * half_angle[ii] \
@@ -438,6 +450,8 @@ cdef void sphere_backward(double[:]& flux, double[:]& flux_old, \
         # Update half angle coefficient
         if ii != 0:
             half_angle[ii] = 1 / tau * (center - (1 - tau) * half_angle[ii])
+        # Update known cell edge radius
+        rho2 = rho1
 
 
 cdef double edge_surface_area(double rho) noexcept nogil:
