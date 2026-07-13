@@ -28,14 +28,21 @@ _COORD_PRECISION = 12
 
 def energy_grid(grid, groups_fine, groups_coarse=None, optimize=True):
     """
-    Calculate energy grid bounds (MeV) and index for coarsening
+    Calculate energy grid bounds and index for coarsening
+
+    Note on units and ordering: the stored grids are not uniform. The 87-
+    and 361-group grids are in eV, ascending; the 618-group grid is in MeV,
+    descending. Any other ``grid`` value returns unitless ascending edges
+    (0, 1, ..., groups_fine).
+
     Arguments:
         grid (int): specified energy grid to use (87, 361, 618)
         groups_fine (int): Number of fine energy groups for problem
         groups_coarse (int): Number of coarse energy groups for problem
         optimize (bool): Whether to use predetermined group edges (Default True)
     Returns:
-        edges_g (float [grid + 1]): MeV energy group bounds
+        edges_g (float [grid + 1]): energy group bounds (eV for 87/361,
+            MeV for 618)
         edges_gidx_fine (int [groups + 1]): Location of fine grid index for problem
         edges_gidx_coarse (int [groups + 1]): Location of coarse grid index for problem
     """
@@ -105,7 +112,11 @@ def energy_velocity(groups, edges_g=None):
     groups : int
         Number of energy groups.
     edges_g : ndarray, shape (groups + 1,), optional
-        Energy group bounds in MeV. If None, returns unit velocities.
+        Energy group bounds in eV (matching the 87- and 361-group grids
+        from ``energy_grid``). If None, returns unit velocities.
+
+        Warning: the 618-group grid from ``energy_grid`` is stored in MeV;
+        convert it to eV (multiply by 1e6) before passing it here.
 
     Returns
     -------
@@ -174,11 +185,13 @@ def spatial1d(layers, edges_x):
 
 
 def _find_edge_index(edges, value, axis_name):
-    matches = np.argwhere(edges == np.round(value, _COORD_PRECISION))
+    matches = np.argwhere(
+        np.isclose(edges, value, rtol=0.0, atol=10.0**-_COORD_PRECISION)
+    )
     if len(matches) == 0:
         raise ValueError(
             f"{value} does not match any {axis_name} edge "
-            f"(rounded to {_COORD_PRECISION} decimal places)"
+            f"(within {10.0 ** -_COORD_PRECISION})"
         )
     return matches[0, 0]
 
@@ -361,8 +374,9 @@ def _inside_rectangle(rectangles, x, y, tally, index):
     """
     # Iterate through rectangles
     for ii, [(x1, y1), dx, dy] in enumerate(rectangles):
-        tally[index[ii]] = (x1 <= x <= (x1 + dx)) and (y1 <= y < (y1 + dy))
-        if (x1 <= x <= (x1 + dx)) and (y1 <= y < (y1 + dy)):
+        inside = (x1 <= x <= (x1 + dx)) and (y1 <= y <= (y1 + dy))
+        tally[index[ii]] = inside
+        if inside:
             break
 
 
