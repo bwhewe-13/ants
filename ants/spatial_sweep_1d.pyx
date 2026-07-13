@@ -158,7 +158,7 @@ cdef double slab_sweep(double[:]& flux, double[:]& flux_old, double[:]& xs_total
     return 0.0
 
 
-cdef float spatial_coef(int spatial) noexcept nogil:
+cdef double spatial_coef(int spatial) noexcept nogil:
     if (spatial == 1):
         return 1.0
     elif (spatial == 2):
@@ -176,8 +176,8 @@ cdef double slab_forward(double[:]& flux, double[:]& flux_old, \
     cdef double edge2 = 0.0
     # Initialize discretization constants
     cdef double tau = 0.0
-    cdef float alpha1 = 0.5 * (1.0 - spatial_coef(info.spatial))
-    cdef float alpha2 = 0.5 * (1.0 + spatial_coef(info.spatial))
+    cdef double alpha1 = 0.5 * (1.0 - spatial_coef(info.spatial))
+    cdef double alpha2 = 0.5 * (1.0 + spatial_coef(info.spatial))
     # Determine flux edge
     if info.flux_at_edges:
         flux[0] += angle_w * edge1
@@ -215,8 +215,8 @@ cdef double slab_backward(double[:]& flux, double[:]& flux_old, double[:]& xs_to
     cdef double edge2 = 0.0
     # Initialize discretization constants
     cdef double tau = 0.0
-    cdef float alpha1 = 0.5 * (1.0 - spatial_coef(info.spatial))
-    cdef float alpha2 = 0.5 * (1.0 + spatial_coef(info.spatial))
+    cdef double alpha1 = 0.5 * (1.0 - spatial_coef(info.spatial))
+    cdef double alpha2 = 0.5 * (1.0 + spatial_coef(info.spatial))
     # Determine flux edge
     if info.flux_at_edges:
         flux[info.cells_x] += angle_w * edge1
