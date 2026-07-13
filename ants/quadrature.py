@@ -34,6 +34,17 @@ _LDFE_ANGLE_TO_LEVEL = {4: 1, 8: 2, 16: 3}
 # Lazily loaded LDFE-SA first-octant tables (columns: mu, eta, xi, weight).
 _LDFE_SA_CACHE = None
 
+# Supported boundary conditions per axis: vacuum-vacuum, or one reflecting side
+_SUPPORTED_BC = ([0, 0], [1, 0], [0, 1])
+
+
+def _validate_bc(bc, name):
+    if list(bc) not in [list(supported) for supported in _SUPPORTED_BC]:
+        raise ValueError(
+            f"{name}={bc} is not supported; must be one of "
+            f"{_SUPPORTED_BC} (reflecting on both sides is unavailable)"
+        )
+
 
 def angular_x(angles, bc_x=[0, 0], datatype=True):
     """Compute 1D Gauss-Legendre quadrature angles and weights.
@@ -52,6 +63,7 @@ def angular_x(angles, bc_x=[0, 0], datatype=True):
         Normalized quadrature weights summing to 1.
     """
 
+    _validate_bc(bc_x, "bc_x")
     angle_x, angle_w = np.polynomial.legendre.leggauss(angles)
     angle_w /= np.sum(angle_w)
     # Ordering for reflective boundaries
@@ -287,6 +299,8 @@ def _ldfe_quadrature(angles):
 
 
 def _ordering_angles_xy(angle_x, angle_y, angle_w, bc_x, bc_y):
+    _validate_bc(bc_x, "bc_x")
+    _validate_bc(bc_y, "bc_y")
     # Get number of discrete ordinates
     angles = int(np.sqrt(angle_x.shape[0]))
     # Get only positive angles
@@ -343,6 +357,9 @@ def _ordering_angles_xy(angle_x, angle_y, angle_w, bc_x, bc_y):
 
 
 def _ordering_angles_xyz(angle_x, angle_y, angle_z, angle_w, bc_x, bc_y, bc_z):
+    _validate_bc(bc_x, "bc_x")
+    _validate_bc(bc_y, "bc_y")
+    _validate_bc(bc_z, "bc_z")
     # Get unique magnitude combinations, repeat for all 8 octants
     matrix = np.fabs(np.vstack((angle_x, angle_y, angle_z, angle_w)))
     unique_matrix = np.unique(matrix, axis=1)
