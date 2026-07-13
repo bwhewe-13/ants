@@ -81,6 +81,10 @@ def materials(groups, materials, key=False, datatype=True):
         ), "Material not recognized, use:\n{}".format(__materials)
         # Calculate cross section
         total, scatter, fission = _generate_cross_section(groups, material)
+        assert total.shape[0] == groups, (
+            f"Material {material!r} data has {total.shape[0]} energy groups, "
+            f"but {groups} groups were requested"
+        )
         xs_total.append(total)
         xs_scatter.append(scatter)
         xs_fission.append(fission)
@@ -113,6 +117,7 @@ def _generate_cross_section(groups, material):
     fission : ndarray, shape (groups, groups)
     """
     data = {}
+    enrichment = None
     if "%" in material:
         parts = material.split("-%")
         if len(parts) != 2:
@@ -125,6 +130,10 @@ def _generate_cross_section(groups, material):
             raise ValueError(
                 f"Enrichment must be between 0 and 100%, got: {enrichment_str!r}"
             )
+    if material in __enrichment_materials and enrichment is None:
+        raise ValueError(
+            f"{material!r} requires an enrichment suffix, " f"e.g. '{material}-%20%'"
+        )
 
     if material == "vacuum":
         return (
