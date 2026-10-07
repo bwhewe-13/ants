@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+<title>ants</title>
+<g fill="none" stroke="#1f2433" stroke-width="2.55" stroke-linecap="round" stroke-linejoin="round">
+<polyline points="58.53,43.02 43.93,36.64 36.64,22.96"/>
+<polyline points="56.7,49.41 37.55,53.06 24.78,65.82"/>
+<polyline points="58.53,55.79 41.2,71.3 33.9,96.83"/>
+<polyline points="60.35,21.13 53.06,9.28"/>
+<polyline points="69.47,43.02 84.07,36.64 91.36,22.96"/>
+<polyline points="71.3,49.41 90.45,53.06 103.22,65.82"/>
+<polyline points="69.47,55.79 86.8,71.3 94.1,96.83"/>
+<polyline points="67.65,21.13 74.94,9.28"/>
+</g>
+<g stroke-width="1.37" stroke-linejoin="round">
+<polygon points="54.64,29.34 59.32,21.23 68.68,21.23 73.36,29.34 68.68,37.45 59.32,37.45" fill="#fac62d" stroke="#fac62d"/>
+<polygon points="59.52,40.19 68.48,40.19 71.23,48.5 68.47,57.16 59.53,57.16 56.77,48.5" fill="#f98e09" stroke="#f98e09"/>
+<polygon points="59.22,59.9 68.78,59.9 77.37,71.61 64,77.11 50.63,71.61" fill="#e75e2e" stroke="#e75e2e"/>
+<polygon points="49.56,74.13 62.63,79.51 62.63,92.26 47.31,87.66" fill="#a62d60" stroke="#a62d60"/>
+<polygon points="78.44,74.13 65.37,79.51 65.37,92.26 80.69,87.66" fill="#a62d60" stroke="#a62d60"/>
+<polygon points="47.89,90.69 62.63,95.12 62.63,115.6 53.33,107.01" fill="#4a0c6b" stroke="#4a0c6b"/>
+<polygon points="80.11,90.69 65.37,95.12 65.37,115.6 74.67,107.01" fill="#4a0c6b" stroke="#4a0c6b"/>
+</g>
+</svg>
