@@ -1,7 +1,3 @@
-.. raw:: html
-   :file: ants-logo.html
-
-
 A Neutron Transport Solver (ANTS)
 ===========================================
 

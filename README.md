@@ -1,5 +1,7 @@
-
-# A Neutron Transport Solution (ANTS)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/bwhewe-13/ants/main/docs/_static/logo-dark.svg">
+  <img alt="ants" src="https://raw.githubusercontent.com/bwhewe-13/ants/main/docs/_static/logo.svg" width="202">
+</picture>
 
 [![Python Versions](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue)](https://pypi.org/project/ants/)
 [![Style](https://img.shields.io/github/actions/workflow/status/bwhewe-13/ants/ci.yml?label=Style)](https://github.com/bwhewe-13/ants/actions/workflows/ci.yml)

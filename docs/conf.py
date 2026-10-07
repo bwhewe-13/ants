@@ -119,6 +119,11 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 #
 html_theme = "pydata_sphinx_theme"
 html_theme_options = {
+    "logo": {
+        "image_light": "_static/logo.svg",
+        "image_dark": "_static/logo-dark.svg",
+        "alt_text": "ants",
+    },
     "icon_links": [
         {
             "name": "GitHub",
@@ -137,6 +142,7 @@ html_theme_options = {
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 html_css_files = ["basic.css"]
+html_favicon = "_static/favicon.png"
 
 
 latex_elements = {
