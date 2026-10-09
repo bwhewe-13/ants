@@ -282,3 +282,28 @@ def test_interpolation_wrapper_selects_correct_instance():
         quintic=False,
     )
     assert isinstance(w3.instance, interp3d.BlockInterpolation)
+
+
+def test_block_interpolation_single_block_axis():
+    """One block along y and z (two along x) must interpolate without IndexError."""
+    kx = np.linspace(0.25, 3.75, 8)
+    ky = np.linspace(0.25, 2.75, 6)
+    kz = np.linspace(0.5, 2.5, 5)
+    mx, my, mz = np.meshgrid(kx, ky, kz, indexing="ij")
+    psi = mx**2 + my - 2.0 * mz
+    blk = interp3d.BlockInterpolation(
+        interp3d.CubicHermite,
+        psi,
+        kx,
+        ky,
+        kz,
+        None,
+        np.array([0, 4, 8]),
+        np.array([0, 6]),
+        np.array([0, 5]),
+    )
+    qx, qy, qz = np.array([0.0, 2.5, 4.0]), np.array([0.0, 1.3]), np.array([1.0, 3.0])
+    gx, gy, gz = np.meshgrid(qx, qy, qz, indexing="ij")
+    np.testing.assert_allclose(
+        blk.interpolate(qx, qy, qz), gx**2 + gy - 2.0 * gz, atol=1e-12
+    )

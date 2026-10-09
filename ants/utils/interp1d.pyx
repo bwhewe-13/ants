@@ -524,7 +524,9 @@ class BlockInterpolation:
         for ii in range(n_blocks):
             x1 = self.x_splits[ii]
             x2 = self.x_splits[ii + 1]
-            if ii == 0:
+            if n_blocks == 1:
+                idx_x = np.arange(nx.shape[0])
+            elif ii == 0:
                 idx_x = np.argwhere(nx < self.knots_x[x2]).flatten()
             elif ii == n_blocks - 1:
                 idx_x = np.argwhere(nx >= self.knots_x[x1]).flatten()

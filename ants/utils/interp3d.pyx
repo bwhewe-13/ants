@@ -956,7 +956,9 @@ class BlockInterpolation:
         splines_psi = np.zeros((nx.shape[0], ny.shape[0], nz.shape[0]))
         for ii in range(n_xblocks):
             x1 = self.x_splits[ii]; x2 = self.x_splits[ii + 1]
-            if ii == 0:
+            if n_xblocks == 1:
+                idx_x = np.arange(nx.shape[0])
+            elif ii == 0:
                 idx_x = np.argwhere(nx < self.knots_x[x2]).flatten()
             elif ii == n_xblocks - 1:
                 idx_x = np.argwhere(nx >= self.knots_x[x1]).flatten()
@@ -966,7 +968,9 @@ class BlockInterpolation:
                 ).flatten()
             for jj in range(n_yblocks):
                 y1 = self.y_splits[jj]; y2 = self.y_splits[jj + 1]
-                if jj == 0:
+                if n_yblocks == 1:
+                    idx_y = np.arange(ny.shape[0])
+                elif jj == 0:
                     idx_y = np.argwhere(ny < self.knots_y[y2]).flatten()
                 elif jj == n_yblocks - 1:
                     idx_y = np.argwhere(ny >= self.knots_y[y1]).flatten()
@@ -976,7 +980,9 @@ class BlockInterpolation:
                     ).flatten()
                 for kk in range(n_zblocks):
                     z1 = self.z_splits[kk]; z2 = self.z_splits[kk + 1]
-                    if kk == 0:
+                    if n_zblocks == 1:
+                        idx_z = np.arange(nz.shape[0])
+                    elif kk == 0:
                         idx_z = np.argwhere(nz < self.knots_z[z2]).flatten()
                     elif kk == n_zblocks - 1:
                         idx_z = np.argwhere(nz >= self.knots_z[z1]).flatten()

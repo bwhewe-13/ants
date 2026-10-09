@@ -271,3 +271,52 @@ def test_quintic_hermite_integrate(function, edges):
     assert convergence_int_psi < 1e-6, "int_psi not converged correctly"
     assert convergence_int_dxpsi < 1e-6, "int_dxpsi not converged correctly"
     assert convergence_int_dypsi < 1e-6, "int_dypsi not converged correctly"
+
+
+def _cell_differences(F, edges_x, edges_y):
+    """Integral of f over each cell from an antiderivative F(x, y)."""
+    v = F(edges_x[:, None], edges_y[None, :])
+    return v[1:, 1:] - v[:-1, 1:] - v[1:, :-1] + v[:-1, :-1]
+
+
+@pytest.mark.math
+@pytest.mark.parametrize("Splines", [interp2d.CubicHermite, interp2d.QuinticHermite])
+def test_integrate_centers_each_cell(Splines):
+    """Cell-centered knots on a nonuniform grid: every cell integral is exact."""
+
+    def f(x, y):
+        return x**2 * y**2 + x * y + x - y
+
+    def F(x, y):
+        return x**3 * y**3 / 9 + x**2 * y**2 / 4 + x**2 * y / 2 - x * y**2 / 2
+
+    def df_dx(x, y):
+        return x**2 * y**3 / 3 + x * y**2 / 2 + x * y - y**2 / 2
+
+    def df_dy(x, y):
+        return x**3 * y**2 / 3 + x**2 * y / 2 - x * y
+
+    kx = 0.1 + 2.8 * np.linspace(0.0, 1.0, 8) ** 1.3
+    ky = 0.2 + 1.6 * np.linspace(0.0, 1.0, 6) ** 1.2
+    ex = np.concatenate(([0.0], 0.5 * (kx[1:] + kx[:-1]), [3.1]))
+    ey = np.concatenate(([0.0], 0.5 * (ky[1:] + ky[:-1]), [2.0]))
+
+    splines = Splines(f(kx[:, None], ky[None, :]), kx, ky)
+    int_psi, int_dxpsi, int_dypsi = splines.integrate_centers(ex, ey)
+    np.testing.assert_allclose(int_psi, _cell_differences(F, ex, ey), atol=1e-11)
+    np.testing.assert_allclose(int_dxpsi, _cell_differences(df_dx, ex, ey), atol=1e-11)
+    np.testing.assert_allclose(int_dypsi, _cell_differences(df_dy, ex, ey), atol=1e-11)
+
+
+def test_block_interpolation_single_block_axis():
+    """One block along y (two along x) must interpolate without IndexError."""
+    kx = np.linspace(0.25, 3.75, 8)
+    ky = np.linspace(0.25, 2.75, 6)
+    psi = kx[:, None] ** 2 + ky[None, :]
+    blk = interp2d.BlockInterpolation(
+        interp2d.CubicHermite, psi, kx, ky, None, np.array([0, 4, 8]), np.array([0, 6])
+    )
+    qx = np.array([0.0, 1.0, 2.5, 4.0])
+    qy = np.array([0.0, 1.3, 3.0])
+    expected = qx[:, None] ** 2 + qy[None, :]
+    np.testing.assert_allclose(blk.interpolate(qx, qy), expected, atol=1e-12)

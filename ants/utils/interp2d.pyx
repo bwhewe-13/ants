@@ -270,10 +270,11 @@ def _integral_4_splines(func, lim_x, knots_x, lim_y, knots_y, coefs):
     xa, xb = lim_x
     yk0, yc, yk1 = knots_y
     ya, yb = lim_y
+    # Each quadrant uses the knot interval it lies in along both x and y
     tx1, dtx1, ty1, dty1 = func(xa, xc, xk0, xc, ya, yc, yk0, yc)
-    tx2, dtx2, ty2, dty2 = func(xc, xb, xc, xk1, ya, yc, yc, yk1)
+    tx2, dtx2, ty2, dty2 = func(xc, xb, xc, xk1, ya, yc, yk0, yc)
     tx3, dtx3, ty3, dty3 = func(xc, xb, xc, xk1, yc, yb, yc, yk1)
-    tx4, dtx4, ty4, dty4 = func(xa, xc, xk0, xc, yc, yb, yk0, yc)
+    tx4, dtx4, ty4, dty4 = func(xa, xc, xk0, xc, yc, yb, yc, yk1)
     int_psi = (
         (tx1.T @ coefs[:, :, 0, 0] @ ty1)
         + (tx2.T @ coefs[:, :, 1, 0] @ ty2)
@@ -783,7 +784,9 @@ class BlockInterpolation:
         for ii in range(n_xblocks):
             x1 = self.x_splits[ii]
             x2 = self.x_splits[ii + 1]
-            if ii == 0:
+            if n_xblocks == 1:
+                idx_x = np.arange(nx.shape[0])
+            elif ii == 0:
                 idx_x = np.argwhere(nx < self.knots_x[x2]).flatten()
             elif ii == n_xblocks - 1:
                 idx_x = np.argwhere(nx >= self.knots_x[x1]).flatten()
@@ -794,7 +797,9 @@ class BlockInterpolation:
             for jj in range(n_yblocks):
                 y1 = self.y_splits[jj]
                 y2 = self.y_splits[jj + 1]
-                if jj == 0:
+                if n_yblocks == 1:
+                    idx_y = np.arange(ny.shape[0])
+                elif jj == 0:
                     idx_y = np.argwhere(ny < self.knots_y[y2]).flatten()
                 elif jj == n_yblocks - 1:
                     idx_y = np.argwhere(ny >= self.knots_y[y1]).flatten()
