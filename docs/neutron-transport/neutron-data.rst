@@ -46,5 +46,5 @@ This is simplified so
 .. math::
    :label: velocity-04
 
-      v = \frac{c}{\gamma} \sqrt{c^2 - 1} \qquad \text{where} \qquad
+      v = \frac{c}{\gamma} \sqrt{\gamma^2 - 1} \qquad \text{where} \qquad
       \gamma = \frac{E}{m c^2} + 1
