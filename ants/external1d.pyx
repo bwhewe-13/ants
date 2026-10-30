@@ -19,13 +19,11 @@
 # distutils: language = c++
 # distutils: extra_compile_args = -O3 -march=native -ffast-math
 
-from importlib.resources import files as _importlib_files
-
 import numpy as np
 
+from ants.data.external import AMBE_EDGES, AMBE_MAGNITUDE
 from ants.utils import pytools as tools
 
-DATA_PATH = str(_importlib_files("ants").joinpath("sources/"))
 
 def manufactured_ss_03(x, angle_x):
     # One group, angle dependent source
@@ -140,18 +138,19 @@ def ambe(delta_x, loc_x, edges_g):
 
     external = np.zeros((delta_x.shape[0], 1, edges_g.shape[0] - 1))
 
-    data = np.load(DATA_PATH + "external/AmBe_source_050G.npz")
-    # Convert to MeV
-    if np.max(edges_g) > 20.0:
-        edges_g *= 1E-6
+    # Convert to eV (without changing edges_g)
+    edges_g = np.array(edges_g, dtype=float)
+    if np.max(edges_g) <= 20.0:
+        edges_g *= 1E6
 
     centers_g = tools.average_array(edges_g)
     loc_g = lambda x1, x2: np.argwhere((centers_g > x1) & (centers_g <= x2)).flatten()
 
-    for ii in range(len(data["magnitude"])):
-        idx = loc_g(data["edges"][ii], data["edges"][ii+1])
+    # AmBe edges are descending
+    for ii in range(AMBE_MAGNITUDE.shape[0]):
+        idx = loc_g(AMBE_EDGES[ii+1], AMBE_EDGES[ii])
         for xx in loc_x:
-            external[xx, 0, idx] = data["magnitude"][ii] / delta_x[xx]
+            external[xx, 0, idx] = AMBE_MAGNITUDE[ii] / delta_x[xx]
 
     return external
 

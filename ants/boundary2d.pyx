@@ -132,9 +132,17 @@ def manufactured_td_02(x, y, angle_x, angle_y, edges_t):
     return boundary_x, boundary_y
 
 
+def _source_group(edges_g, energy):
+    # Group whose lower energy bound is nearest the source energy
+    edges_g = np.asarray(edges_g)
+    groups = edges_g.shape[0] - 1
+    lower = np.minimum(edges_g[:groups], edges_g[1:])
+    return np.argmin(abs(lower - energy))
+
+
 def deuterium_deuterium(loc_x, loc_y, edges_g):
     # Source entering from 2.45 MeV
-    group = np.argmin(abs(edges_g - 2.45E6))
+    group = _source_group(edges_g, 2.45E6)
     boundary_x = np.zeros((2, 1, 1, edges_g.shape[0] - 1))
     boundary_y = np.zeros((2, 1, 1, edges_g.shape[0] - 1))
     if loc_x >= 0:
@@ -146,7 +154,7 @@ def deuterium_deuterium(loc_x, loc_y, edges_g):
 
 def deuterium_tritium(loc_x, loc_y, edges_g):
     # Source entering from 14.1 MeV
-    group = np.argmin(abs(edges_g - 14.1E6))
+    group = _source_group(edges_g, 14.1E6)
     boundary_x = np.zeros((2, 1, 1, edges_g.shape[0] - 1))
     boundary_y = np.zeros((2, 1, 1, edges_g.shape[0] - 1))
     if isinstance(loc_x, list) or loc_x >= 0:

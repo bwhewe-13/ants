@@ -174,7 +174,8 @@ cdef double[:,:] backward_euler(int[:] groups_c, int[:] angles_c, \
 
             # len(edges_gidx_c) = groups_c + 1
             edges_gidx_c = tools.int_array_1d(info_c.groups + 1)
-            edges_gidx_c = ants._energy_grid(info_u.groups, info_c.groups)
+            edges_gidx_c = ants._energy_grid(grid=info_u.groups, \
+                                             energy_groups=info_c.groups)
 
             star_coef_c = tools.array_1d(info_c.groups)
             tools._vhybrid_velocity(star_coef_c, velocity_u, edges_gidx_c, 1.0, info_c)
@@ -258,7 +259,8 @@ cdef double[:,:] crank_nicolson(int[:] groups_c, int[:] angles_c, \
 
             # len(edges_gidx_c) = groups_c + 1
             edges_gidx_c = tools.int_array_1d(info_c.groups + 1)
-            edges_gidx_c = ants._energy_grid(info_u.groups, info_c.groups)
+            edges_gidx_c = ants._energy_grid(grid=info_u.groups, \
+                                             energy_groups=info_c.groups)
 
             star_coef_c = tools.array_1d(info_c.groups)
             tools._vhybrid_velocity(star_coef_c, velocity_u, edges_gidx_c, 2.0, info_c)
@@ -348,7 +350,8 @@ cdef double[:,:] bdf2(int[:] groups_c, int[:] angles_c, double[:,:,:]& flux_last
 
             # len(edges_gidx_c) = groups_c + 1
             edges_gidx_c = tools.int_array_1d(info_c.groups + 1)
-            edges_gidx_c = ants._energy_grid(info_u.groups, info_c.groups)
+            edges_gidx_c = ants._energy_grid(grid=info_u.groups, \
+                                             energy_groups=info_c.groups)
 
             star_coef_c = tools.array_1d(info_c.groups)
             coef = 1.0 if step == 0 else 1.5
@@ -464,7 +467,8 @@ cdef double[:,:] tr_bdf2(int[:] groups_c, int[:] angles_c, \
 
             # len(edges_gidx_c) = groups_c + 1
             edges_gidx_c = tools.int_array_1d(info_c.groups + 1)
-            edges_gidx_c = ants._energy_grid(info_u.groups, info_c.groups)
+            edges_gidx_c = ants._energy_grid(grid=info_u.groups, \
+                                             energy_groups=info_c.groups)
 
             star_coef_cn_c = tools.array_1d(info_c.groups)
             tools._vhybrid_velocity(star_coef_cn_c, velocity_u, edges_gidx_c, 2.0 / gamma, info_c)

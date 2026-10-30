@@ -19,14 +19,11 @@
 # distutils: language = c++
 # distutils: extra_compile_args = -O3 -march=native -ffast-math
 
-from importlib.resources import files as _importlib_files
-
 import numpy as np
 
 import ants
+from ants.data.external import AMBE_EDGES, AMBE_MAGNITUDE
 from ants.utils import pytools as tools
-
-DATA_PATH = str(_importlib_files("ants").joinpath("sources/"))
 
 
 def manufactured_ss_03(x, y, angle_x, angle_y):
@@ -94,12 +91,16 @@ def ambe(edges_x, edges_y, coordinates, edges_g):
     external = np.zeros((edges_x.shape[0] - 1, edges_y.shape[0] - 1, \
                          1, edges_g.shape[0] - 1))
 
-    data = np.load(DATA_PATH + "external/AmBe_source_050G.npz")
-    # Convert to MeV
-    if np.max(edges_g) > 20.0:
-        edges_g *= 1E-6
-    # Get energy spectra of AmBe source
-    value = tools.resize_array_1d(edges_g, data["edges"], data["magnitude"])
+    # Convert to eV (without changing edges_g)
+    edges_g = np.array(edges_g, dtype=float)
+    if np.max(edges_g) <= 20.0:
+        edges_g *= 1E6
+    # Get energy spectra of AmBe source (resizing requires ascending edges)
+    descending = edges_g[0] > edges_g[edges_g.shape[0] - 1]
+    value = tools.resize_array_1d(np.sort(edges_g), np.flip(AMBE_EDGES), \
+                                  np.flip(AMBE_MAGNITUDE))
+    if descending:
+        value = np.flip(value)
     # Put in location
     external = ants.spatial2d(external, value, coordinates, edges_x, edges_y)
     return external

@@ -18,9 +18,13 @@ from importlib.resources import files
 import numpy as np
 
 from ants.constants import EV_TO_JOULES, LIGHT_SPEED, MASS_NEUTRON
+from ants.data.energy import get_structure
 from ants.utils.hybrid import energy_coarse_index
 
 DATA_PATH = str(files("ants").joinpath("sources/energy/"))
+
+# Legacy integer grids: 361 and 618 are public structures, 87 is local only
+_LEGACY_GRIDS = {87: None, 361: "shem_cea_epm_361", 618: "lanl_618"}
 
 # Decimal places used when rounding coordinates for edge-matching
 _COORD_PRECISION = 12
@@ -30,37 +34,30 @@ def energy_grid(grid, groups_fine, groups_coarse=None, optimize=True):
     """
     Calculate energy grid bounds and index for coarsening
 
-    Note on units and ordering: the stored grids are not uniform. The 87-
-    and 361-group grids are in eV, ascending; the 618-group grid is in MeV,
-    descending. Any other ``grid`` value returns unitless ascending edges
-    (0, 1, ..., groups_fine).
+    All energy grids are returned in eV and descending order (group 0 is
+    the fastest group). Named structures (e.g. ``"casmo_70"``,
+    ``"lanl_618"``) come from ``ants.list_structures()``. The integer
+    grids 361 and 618 are the public SHEM-361 and LANL-618 structures,
+    while 87 requires the local (unreleased) ``ants/sources/`` data. Any
+    other ``grid`` value returns unitless edges (0, 1, ..., groups_fine).
 
     Arguments:
-        grid (int): specified energy grid to use (87, 361, 618)
+        grid (str or int): energy structure name, or 87, 361, 618
         groups_fine (int): Number of fine energy groups for problem
         groups_coarse (int): Number of coarse energy groups for problem
         optimize (bool): Whether to use predetermined group edges (Default True)
     Returns:
-        edges_g (float [grid + 1]): energy group bounds (eV for 87/361,
-            MeV for 618)
+        edges_g (float [grid + 1]): energy group bounds (eV, descending)
         edges_gidx_fine (int [groups + 1]): Location of fine grid index for problem
         edges_gidx_coarse (int [groups + 1]): Location of coarse grid index for problem
     """
     # Create energy grid
-    if grid in [87, 361, 618]:
-        edges_g = np.load(os.path.join(DATA_PATH, "energy_grids.npz"))[str(grid)]
-
-        # Collect grid boundary indices
-        fgrid = str(grid).zfill(3)
-        edges_data = np.load(os.path.join(DATA_PATH, f"G{fgrid}_grid_index.npz"))
-
-    else:
-        edges_g = np.arange(groups_fine + 1, dtype=float)
-        edges_data = None
+    edges_g, edges_data = _load_energy_grid(grid, groups_fine)
+    legacy = (not isinstance(grid, str)) and (grid in _LEGACY_GRIDS)
 
     # Calculate the indices for the specific fine grid
     edges_gidx_fine = _group_indexing(
-        grid, len(edges_g) - 1, groups_fine, edges_data=edges_data, optimize=optimize
+        len(edges_g) - 1, groups_fine, edges_data, optimize, legacy
     )
 
     if groups_coarse is None:
@@ -68,11 +65,11 @@ def energy_grid(grid, groups_fine, groups_coarse=None, optimize=True):
 
     # Calculate the indices for the specific coarse grid
     edges_gidx_coarse = _group_indexing(
-        grid, groups_fine, groups_coarse, edges_data=edges_data, optimize=optimize
+        groups_fine, groups_coarse, edges_data, optimize, legacy
     )
 
     # Check for both reduced (hybrid splitting)
-    if (groups_fine == groups_coarse) and (groups_fine not in [87, 361, 618]):
+    if (groups_fine == groups_coarse) and (not legacy):
         edges_gidx_coarse = np.arange(groups_coarse + 1, dtype=np.int32)
 
     return edges_g, edges_gidx_fine, edges_gidx_coarse
@@ -84,19 +81,51 @@ def _energy_grid(grid, energy_groups):
     return edges_gidx
 
 
-def _group_indexing(grid, groups_fine, groups_coarse, edges_data=None, optimize=True):
-    # Calculate the indices for the specific grid
-    if (grid in [87, 361, 618]) and (optimize):
-        # Predefined coarse grid index
-        try:
-            label = str(groups_coarse).zfill(3)
-            edges_gidx = edges_data[label].copy()
+def _load_energy_grid(grid, groups_fine):
+    # Named energy structure
+    if isinstance(grid, str):
+        return get_structure(grid), None
 
-        except KeyError:
-            edges_gidx = energy_coarse_index(groups_fine, groups_coarse)
+    if grid not in _LEGACY_GRIDS:
+        return np.arange(groups_fine + 1, dtype=float), None
+
+    # Predetermined coarsening indices (local only)
+    fgrid = str(grid).zfill(3)
+    index_file = os.path.join(DATA_PATH, f"G{fgrid}_grid_index.npz")
+    edges_data = None
+    if os.path.isfile(index_file):
+        edges_data = dict(np.load(index_file))
+
+    if _LEGACY_GRIDS[grid] is not None:
+        return get_structure(_LEGACY_GRIDS[grid]), edges_data
+
+    grid_file = os.path.join(DATA_PATH, "energy_grids.npz")
+    if not os.path.isfile(grid_file):
+        raise FileNotFoundError(
+            f"The {grid}-group energy grid is only available with the local "
+            f"ants/sources/ data ({grid_file} not found). Use a named "
+            "structure from ants.list_structures() instead."
+        )
+    # Stored in eV, ascending
+    edges_g = np.load(grid_file)[str(grid)][::-1].copy()
+    return edges_g, edges_data
+
+
+def _group_indexing(
+    groups_fine, groups_coarse, edges_data=None, optimize=True, legacy=False
+):
+    # Calculate the indices for the specific grid
+    label = str(groups_coarse).zfill(3)
+    if (edges_data is not None) and (label in edges_data) and (optimize):
+        # Predefined coarse grid index
+        edges_gidx = edges_data[label]
 
     else:
         edges_gidx = energy_coarse_index(groups_fine, groups_coarse)
+
+    # Legacy grids were indexed in ascending energy
+    if legacy:
+        edges_gidx = edges_gidx[-1] - edges_gidx[::-1]
 
     # Convert to correct type
     edges_gidx = edges_gidx.astype(np.int32)
@@ -112,11 +141,8 @@ def energy_velocity(groups, edges_g=None):
     groups : int
         Number of energy groups.
     edges_g : ndarray, shape (groups + 1,), optional
-        Energy group bounds in eV (matching the 87- and 361-group grids
-        from ``energy_grid``). If None, returns unit velocities.
-
-        Warning: the 618-group grid from ``energy_grid`` is stored in MeV;
-        convert it to eV (multiply by 1e6) before passing it here.
+        Energy group bounds in eV, as returned by ``energy_grid``. If
+        None, returns unit velocities.
 
     Returns
     -------
