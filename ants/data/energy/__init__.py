@@ -15,10 +15,9 @@ All boundary arrays are in eV and descending order (fast -> thermal), so
 that group 0 is the highest energy group. This is the ANTS convention
 for energy grids and cross sections.
 
-The data were copied from PyCNiC (MIT License), which collected them
-from the NJOY2016 GROUPR module, the Serpent data repository, the
-OpenMC ``mgxs`` module, and published benchmarks (C5G7, XMAS, VITAMIN,
-SHEM).
+The data were collected from the NJOY2016 GROUPR module, the Serpent
+data repository, the OpenMC ``mgxs`` module, and published benchmarks
+(C5G7, XMAS, VITAMIN, SHEM).
 """
 
 import numpy as np

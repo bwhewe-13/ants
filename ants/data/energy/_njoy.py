@@ -5,7 +5,7 @@
 #                     / ___ |/ /|  / / /  ___/ /
 #                    /_/  |_/_/ |_/ /_/  /____/
 #
-# Copied from PyCNiC (MIT License, Copyright (c) 2026 Ben Whewell).
+# NJOY2016 GROUPR built-in energy group structures
 #
 ########################################################################
 
