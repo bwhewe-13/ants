@@ -3,7 +3,7 @@
   <img alt="ants" src="https://raw.githubusercontent.com/bwhewe-13/ants/main/docs/_static/logo.svg" width="202">
 </picture>
 
-[![Python Versions](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue)](https://pypi.org/project/ants/)
+[![Python Versions](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue)](https://pypi.org/project/ants/)
 [![Style](https://img.shields.io/github/actions/workflow/status/bwhewe-13/ants/ci.yml?label=Style)](https://github.com/bwhewe-13/ants/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/github/actions/workflow/status/bwhewe-13/ants/tests.yml?label=Tests)](https://github.com/bwhewe-13/ants/actions/workflows/tests.yml)
 [![Coverage](https://codecov.io/gh/bwhewe-13/ants/graph/badge.svg)](https://codecov.io/gh/bwhewe-13/ants)
@@ -23,7 +23,7 @@ There are also verification procedures to ensure both the code and solutions are
 ## Installation
 
 ### Requirements
-- Python 3.9+
+- Python 3.11+
 - A C/C++ compiler
 - OpenMP runtime support (Linux typically available by default)
 

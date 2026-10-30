@@ -2,7 +2,9 @@ name: Docs
 
 on:
   push:
+    tags: ["v*"]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -26,7 +28,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.13"
 
       - name: Install LaTeX dependencies
         run: |
@@ -50,8 +52,9 @@ jobs:
     name: Deploy to GitHub Pages
     needs: build
     runs-on: ubuntu-latest
-    # Only publish from pushes to main; PR builds validate but never deploy.
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # Only publish from pushes to tags or manual workflow dispatch; PR builds validate but never deploy.
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+
 
     environment:
       name: github-pages
