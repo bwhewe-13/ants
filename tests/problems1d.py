@@ -90,7 +90,7 @@ def sphere_01(ptype):
     edges_x = np.linspace(0, length_x, cells_x + 1)
 
     # Energy Grid
-    edges_g, edges_gidx = ants.energy_grid(groups, 87)
+    edges_g, edges_gidx = ants.energy_grid(87, groups)
 
     # Layout and Materials
     layout = [

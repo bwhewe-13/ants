@@ -28,6 +28,9 @@ dev = [
     "flake8",
     "pre-commit",
 ]
+library = [
+    "h5py",
+]
 docs = [
     "sphinx",
     "sphinxcontrib-bibtex",

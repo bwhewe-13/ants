@@ -45,6 +45,20 @@ _QUADRATURE_EXPORTS = (
     "artificial_scatter_matrix",
 )
 
+_ENERGY_EXPORTS = (
+    "get_structure",
+    "list_structures",
+)
+
+_LIBRARY_EXPORTS = ("Library",)
+
+_BENCHMARK_EXPORTS = (
+    "build_problem",
+    "get_benchmark",
+    "list_benchmarks",
+    "run_suite",
+)
+
 _MAIN_EXPORTS = (
     "_energy_grid",
     "energy_grid",
@@ -56,16 +70,31 @@ _MAIN_EXPORTS = (
     "weight_spatial2d",
 )
 
-_MATERIAL_EXPORTS = ("materials",)
+_MATERIAL_EXPORTS = (
+    "combine_materials",
+    "create_material",
+    "materials",
+    "named_material",
+    "normalize_nuclide",
+    "parse_composition",
+)
 
 __all__ = [
     "__version__",
     *_MODULE_EXPORTS,
     *_DATATYPE_EXPORTS,
     *_QUADRATURE_EXPORTS,
+    *_ENERGY_EXPORTS,
+    *_LIBRARY_EXPORTS,
+    *_BENCHMARK_EXPORTS,
     *_MAIN_EXPORTS,
     *_MATERIAL_EXPORTS,
 ]
+
+
+# The materials() function shares its name with the ants.materials module,
+# so bind it now; otherwise importing the module would shadow the function.
+from ants.materials import materials  # noqa: E402, F401
 
 
 def __getattr__(name):
@@ -77,6 +106,12 @@ def __getattr__(name):
         value = getattr(import_module(".datatypes", __name__), name)
     elif name in _QUADRATURE_EXPORTS:
         value = getattr(import_module(".quadrature", __name__), name)
+    elif name in _ENERGY_EXPORTS:
+        value = getattr(import_module(".data.energy", __name__), name)
+    elif name in _LIBRARY_EXPORTS:
+        value = getattr(import_module(".library", __name__), name)
+    elif name in _BENCHMARK_EXPORTS:
+        value = getattr(import_module(".benchmarks.icsbep", __name__), name)
     elif name in _MAIN_EXPORTS:
         value = getattr(import_module(".main", __name__), name)
     elif name in _MATERIAL_EXPORTS:
