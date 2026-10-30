@@ -29,6 +29,7 @@ from ants cimport parameters
 from ants.parameters cimport params
 
 from ants.datatypes import create_params
+from ants.utils.pytools import check_keffective, warn_not_converged
 
 logger = logging.getLogger(__name__)
 
@@ -99,6 +100,7 @@ cdef double[:,:] power_iteration(double[:,:]& flux_guess,double[:]& keff,\
         # Update keffective
         keff[0] = tools._update_keffective(flux, flux_old, xs_fission, \
                                            medium_map, info, keff[0])
+        check_keffective(keff[0], count)
 
         # Normalize flux
         tools._normalize_flux(flux, info)
@@ -110,6 +112,8 @@ cdef double[:,:] power_iteration(double[:,:]& flux_guess,double[:]& keff,\
         count += 1
         flux_old[:,:] = flux[:,:]
 
+    if change >= info.tol_keff:
+        warn_not_converged("Power", "max_iter_keff")
     logger.info(f"Convergence: {change:.6e}")
     return flux[:,:]
 
@@ -213,6 +217,7 @@ cdef double[:,:] multi_group_nearby(double[:,:]& flux_guess, double[:]& keff, \
         # Update keffective
         keff[0] = tools._update_keffective(flux, flux_old, xs_fission, \
                                            medium_map, info, keff[0])
+        check_keffective(keff[0], count)
 
         # Normalize flux
         tools._normalize_flux(flux, info)
@@ -224,5 +229,7 @@ cdef double[:,:] multi_group_nearby(double[:,:]& flux_guess, double[:]& keff, \
         count += 1
         flux_old[:,:] = flux[:,:]
 
+    if change >= info.tol_keff:
+        warn_not_converged("Power", "max_iter_keff")
     logger.info(f"Convergence: {change:.6e}")
     return flux[:,:]

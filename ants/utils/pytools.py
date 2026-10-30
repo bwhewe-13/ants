@@ -10,12 +10,42 @@
 ########################################################################
 
 import logging
+import warnings
 
 import numpy as np
 from scipy.linalg import qr as scipy_qr
 from scipy.linalg import svd as scipy_svd
 
 logger = logging.getLogger(__name__)
+
+
+########################################################################
+# Iteration Checks
+########################################################################
+def check_keffective(keff, count):
+    """Raise if the power iteration produced an invalid k-effective.
+
+    A zero or non-finite fission rate (e.g. a diverging inner iteration
+    or negative scattering cross sections) makes k-effective infinite,
+    negative, or NaN.
+    """
+    if (not np.isfinite(keff)) or (keff <= 0.0):
+        raise FloatingPointError(
+            f"k-effective is {keff} at power iteration {count}: the fission "
+            "rate is zero, negative, or not finite. Check for negative "
+            "scattering cross sections or unconverged multigroup iterations "
+            "(SolverData.max_iter_energy)."
+        )
+
+
+def warn_not_converged(iteration, limit):
+    """Warn that an iteration stopped at its limit without converging."""
+    warnings.warn(
+        f"{iteration} iterations stopped at {limit} without converging; "
+        "the solution may be inaccurate",
+        RuntimeWarning,
+        stacklevel=2,
+    )
 
 
 ########################################################################

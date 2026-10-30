@@ -18,6 +18,7 @@ import pytest
 import ants
 from ants.critical1d import k_criticality
 from ants.datatypes import SolverData
+from ants.utils import pytools
 from tests import criticality_benchmarks as benchmarks
 from tests import problems1d
 
@@ -257,3 +258,37 @@ def test_sphere_01_power_iteration():
     ref_keff = np.load(path)
     assert np.isclose(flux, ref_flux).all()
     assert np.fabs(keff - ref_keff) < 1e-05
+
+
+@pytest.mark.power_iteration
+@pytest.mark.parametrize("keff", [np.inf, -np.inf, np.nan, -1.9e95, 0.0])
+def test_check_keffective_invalid(keff):
+    with pytest.raises(FloatingPointError):
+        pytools.check_keffective(keff, 1)
+
+
+@pytest.mark.power_iteration
+def test_zero_fission_rate_raises():
+    materials, geometry = benchmarks.PUa_1_0(50, [0, 0])
+    materials.fission = np.zeros_like(materials.fission)
+    quadrature = ants.angular_x(angles=8, bc_x=[0, 0])
+    with pytest.raises(FloatingPointError):
+        k_criticality(materials, geometry, quadrature, SolverData())
+
+
+@pytest.mark.power_iteration
+def test_power_iteration_not_converged_warns():
+    materials, geometry = benchmarks.PU_2_0(50, [0, 0], 1)
+    quadrature = ants.angular_x(angles=8, bc_x=[0, 0])
+    solver = SolverData(max_iter_keff=2)
+    with pytest.warns(RuntimeWarning, match="Power iterations"):
+        k_criticality(materials, geometry, quadrature, solver)
+
+
+@pytest.mark.power_iteration
+def test_multigroup_not_converged_warns():
+    materials, geometry = benchmarks.PU_2_0(50, [0, 0], 1)
+    quadrature = ants.angular_x(angles=8, bc_x=[0, 0])
+    solver = SolverData(max_iter_energy=1, tol_energy=1e-14)
+    with pytest.warns(RuntimeWarning, match="Multigroup iterations"):
+        k_criticality(materials, geometry, quadrature, solver)

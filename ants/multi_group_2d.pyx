@@ -32,7 +32,7 @@ from ants.spatial_sweep_2d cimport (
     discrete_ordinates,
 )
 
-from ants.utils.pytools import dmd_2d
+from ants.utils.pytools import dmd_2d, warn_not_converged
 
 
 cdef double[:,:,:] multi_group(double[:,:,:]& flux_guess, \
@@ -131,6 +131,10 @@ cdef double[:,:,:] source_iteration(double[:,:,:]& flux_guess, \
             count += 1
             flux_old[:,:,:] = flux[:,:,:]
 
+        # Warn if the energy iterations did not converge
+        if change >= info.tol_energy:
+            warn_not_converged("Multigroup", "max_iter_energy")
+
         return flux[:,:,:]
 
     # -----------------------------------------------------------------------
@@ -166,6 +170,10 @@ cdef double[:,:,:] source_iteration(double[:,:,:]& flux_guess, \
         count += 1
 
         flux_old[:,:,:] = flux[:,:,:]
+
+    # Warn if the energy iterations did not converge
+    if change >= info.tol_energy:
+        warn_not_converged("Multigroup", "max_iter_energy")
 
     return flux[:,:,:]
 
@@ -231,6 +239,10 @@ cdef double[:,:,:] jacobi_iteration(double[:,:,:]& flux_guess, \
         count += 1
         flux_old[:,:,:] = flux[:,:,:]
 
+    # Warn if the energy iterations did not converge
+    if change >= info.tol_energy:
+        warn_not_converged("Multigroup", "max_iter_energy")
+
     return flux[:,:,:]
 
 
@@ -294,6 +306,10 @@ cdef double[:,:,:] variable_source_iteration(double[:,:,:]& flux_guess, \
 
         # Update old flux
         flux_old[:,:,:] = flux[:,:,:]
+
+    # Warn if the energy iterations did not converge
+    if change >= info.tol_energy:
+        warn_not_converged("Multigroup", "max_iter_energy")
 
     return flux[:,:,:]
 
