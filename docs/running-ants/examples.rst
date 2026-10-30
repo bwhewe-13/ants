@@ -52,6 +52,12 @@ One-Dimensional Criticality
     Spherical criticality calculation (``geometry=2``, reflective at origin)
     with 87-group uranium cross sections.
 
+``icsbep_suite.py``
+    Suite of ICSBEP fast metal sphere benchmarks (Jezebel, Godiva, Flattop, ...)
+    built from an HDF5 library with ``ants.run_suite()``, varying the number of
+    angles and spatial cells and comparing k-effective to the benchmark values.
+    Run with ``python examples/icsbep_suite.py path/to/library.h5``.
+
 
 One-Dimensional Time-Dependent
 --------------------------------

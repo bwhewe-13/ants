@@ -17,10 +17,79 @@ The neutron cross-sectional data required are:
 * **Fission matrix**: :math:`\chi \, \nu \, \sigma^{\mathrm{f}}` — shape :math:`(M \times G \times G)`
 
 where :math:`M` is the number of materials and :math:`G` is the number of energy groups.
+Energy groups are ordered from fastest to slowest (group 0 is the highest energy), and the
+scattering and fission matrices are indexed ``[material, group out, group in]``.
 
-The ANTS package provides a utility function to retrieve real cross-sectional data:
+
+Energy Grids
+~~~~~~~~~~~~
+
+The NJOY, Serpent, CASMO, SCALE, and other standard group structures are included with ANTS.
+All energy bounds are in eV and descending order.
+
+.. code-block:: python
+
+    edges_g = ants.get_structure("casmo_70")
+    ants.list_structures("njoy")
+
+    # Bounds and coarsening indices (here 70 fine groups to 10 coarse groups)
+    edges_g, edges_gidx_fine, edges_gidx_coarse = ants.energy_grid("casmo_70", 70, 10)
+
+.. autofunction:: ants.get_structure
+
+.. autofunction:: ants.energy_grid
+
+
+Cross Section Libraries
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Macroscopic cross sections are built from number densities (atoms/barn-cm) and a
+HDF5 multigroup library (requires ``pip install ants[library]``). Compositions
+can be copied directly from MCNP or PARTISN input decks, and the common materials
+(enriched uranium, uranium hydride, enriched plutonium, ...) are available by name.
+
+.. code-block:: python
+
+    library = ants.Library("endf_xmas172.h5")
+
+    # MCNP material card or PARTISN material block
+    fuel = ants.create_material("m1 94239.80c 3.7047E-02 31069.80c 8.3603E-04", library)
+
+    # Named materials and compositions
+    mat_data = ants.materials(172, ["uranium-%20%", "stainless-steel-440",
+                                    {"H-1": 0.0668, "O-16": 0.0334}], library=library)
 
 .. autofunction:: ants.materials
+
+.. autofunction:: ants.create_material
+
+.. autofunction:: ants.parse_composition
+
+.. autoclass:: ants.library.Library
+    :members: microscopic, macroscopic, materials
+
+
+ICSBEP Benchmarks
+~~~~~~~~~~~~~~~~~
+
+The geometry, material layout, and number densities of ICSBEP criticality benchmarks
+(``ants.list_benchmarks()``) are included, so the same benchmark can be run with any
+number of cells, angles, and energy groups. The data are from the *International
+Handbook of Evaluated Criticality Safety Benchmark Experiments*, NEA/NSC/DOC(95)03
+(OECD-NEA, September 2015); the full evaluations are available from the NEA, and
+publications using these benchmarks should cite the Handbook.
+
+.. code-block:: python
+
+    materials, geometry, quadrature, solver = ants.build_problem(
+        "PU-MET-FAST-001", library, cells=200, angles=8
+    )
+    results = ants.run_suite(ants.list_benchmarks("MET-FAST"), library,
+                             cells=[100, 400], angles=[4, 8, 16])
+
+.. autofunction:: ants.build_problem
+
+.. autofunction:: ants.run_suite
 
 
 Material Locations

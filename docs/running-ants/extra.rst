@@ -36,14 +36,13 @@ Holds cross sections and neutron velocity for a set of materials.
     )
 
 For fixed-source and criticality problems ``velocity`` can be omitted.
-The cross sections can be loaded from ANTS's built-in library via
-``ants.materials()``:
+The cross sections can be built from an HDF5 library via ``ants.materials()``
+(see :doc:`standard-inputs`), which also sets the velocity:
 
 .. code-block:: python
 
-    mat_data = ants.materials(87, ["uranium-%0.7%", "high-density-polyethyene-087"],
-                              datatype=True)
-    mat_data.velocity = ants.energy_velocity(groups, edges_g)
+    mat_data = ants.materials(70, ["uranium-%0.7%", "high-density-polyethylene"],
+                              library="endf_lanl70.h5")
 
 
 SourceData

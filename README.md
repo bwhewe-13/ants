@@ -39,6 +39,15 @@ python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
 ```
 
+### Cross section libraries
+Cross sections are built from HDF5 multigroup libraries of microscopic cross sections
+(layout in `ants/library.py`), which requires the `library` extra:
+```bash
+python -m pip install ".[library]"
+```
+The standard NJOY and Serpent energy group structures (`ants.list_structures()`) and
+ICSBEP benchmark specifications (`ants.list_benchmarks()`) are included with ANTS.
+
 ### Enable pre-commit hooks
 ```bash
 pre-commit install
@@ -51,6 +60,7 @@ Run one of the provided examples from the repository root:
 ```bash
 python examples/fixed_source_1d_reeds.py
 python examples/critical_1d_uranium_slab.py
+python examples/icsbep_suite.py path/to/library.h5
 ```
 
 ## Testing, Coverage, and Docs
