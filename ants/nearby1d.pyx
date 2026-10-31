@@ -34,6 +34,8 @@ from ants cimport parameters
 from ants.parameters cimport params
 
 from ants.datatypes import SourceData, create_params
+from ants.quadrature import legendre_data
+from ants.timed1d import _scatter_moments
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +91,6 @@ def calculate_numerical_flux(numerical_flux, materials, sources, geometry, \
     """Calculate numerical flux for nearby fixed source problem."""
     # Unpack Python DataTypes to Cython memoryviews (used by ndim==2 path)
     cdef double[:,:] xs_total = materials.total
-    cdef double[:,:,:] xs_scatter = materials.scatter
     cdef double[:,:,:] xs_fission = tools._fission_matrix(materials.fission, materials.chi)
     # Restore C struct from Python object that crosses the def boundary
     cdef params _info = info
@@ -101,8 +102,9 @@ def calculate_numerical_flux(numerical_flux, materials, sources, geometry, \
                                             quadrature, angular_solver)
     # Scalar flux provided, compute angular flux with single transport sweep
     elif numerical_flux.ndim == 2:
+        _check_scalar_flux(_info)
         xs_matrix = tools.array_3d(_info.materials, _info.groups, _info.groups)
-        tools._xs_matrix(xs_matrix, xs_scatter, xs_fission, _info)
+        tools._xs_matrix(xs_matrix, materials.scatter, xs_fission, _info)
         angular_params = create_params(materials, quadrature, geometry, angular_solver)
         return fixed1d.known_flux(numerical_flux, xs_total, xs_matrix, sources.external, \
                             sources.boundary_x, geometry, quadrature, angular_params)
@@ -115,7 +117,7 @@ def calculate_residual(numerical_flux, materials, sources, geometry, quadrature,
     """Calculate curve fit and residual for nearby fixed source problem."""
     # Unpack Python DataTypes to Cython memoryviews
     cdef double[:,:] xs_total = materials.total
-    cdef double[:,:,:] xs_scatter = materials.scatter
+    cdef double[:,:,:,:] xs_scatter = _scatter_moments(materials.scatter)
     cdef double[:,:,:] xs_fission = tools._fission_matrix(materials.fission, materials.chi)
     cdef double[:,:,:] external = sources.external
     cdef int[:] medium_map = geometry.medium_map
@@ -135,9 +137,10 @@ def calculate_residual(numerical_flux, materials, sources, geometry, quadrature,
         # Build cell-edge grid (scalar residual requires center knots)
         edges_x = np.insert(np.cumsum(delta_x), 0, 0)
 
+        # Moments l > 0 integrate to zero over angle, so only P0 is needed
         logger.info("Calculating Scalar Curve Fit Solution and Residual...")
         _scalar_curve_fit_residual(numerical_flux, curve_fit_flux, \
-                curve_fit_boundary_x, residual, xs_total, xs_scatter, \
+                curve_fit_boundary_x, residual, xs_total, xs_scatter[:,:,:,0], \
                 xs_fission, external, medium_map, delta_x, knots_x, edges_x, \
                 x_splits, angle_x, angle_w, block, quintic, _info)
 
@@ -159,9 +162,17 @@ def calculate_residual(numerical_flux, materials, sources, geometry, quadrature,
 
         # Calculate residual for each cell
         logger.info("Calculating Angular Residual...")
-        _angular_residual(residual, int_angular, int_dx_angular, int_scalar, \
-                xs_total, xs_scatter, xs_fission, external, medium_map, \
-                delta_x, angle_x, _info)
+        if _info.moments == 1:
+            _angular_residual(residual, int_angular, int_dx_angular, int_scalar, \
+                    xs_total, xs_scatter[:,:,:,0], xs_fission, external, \
+                    medium_map, delta_x, angle_x, _info)
+        else:
+            P_source, P_weights = legendre_data(quadrature, _info.moments)
+            int_moments = tools.array_3d(_info.cells_x, _info.groups, _info.moments)
+            tools._angular_to_moments(int_angular, int_moments, P_weights, _info)
+            _angular_residual_aniso(residual, int_angular, int_dx_angular, \
+                    int_moments, xs_total, xs_scatter, xs_fission, external, \
+                    medium_map, delta_x, angle_x, P_source, _info)
 
     curve_fit_flux = np.asarray(curve_fit_flux)
     residual = np.asarray(residual)
@@ -184,7 +195,7 @@ def k_criticality(materials, geometry, quadrature, solver, knots_x, **kwargs):
 
     # Unpack Python DataTypes to Cython memoryviews
     cdef double[:,:] xs_total = materials.total
-    cdef double[:,:,:] xs_scatter = materials.scatter
+    cdef double[:,:,:,:] xs_scatter = _scatter_moments(materials.scatter)
     cdef double[:,:,:] xs_fission = tools._fission_matrix(materials.fission, materials.chi)
     cdef int[:] medium_map = geometry.medium_map
     cdef double[:] delta_x = geometry.delta_x
@@ -221,18 +232,27 @@ def k_criticality(materials, geometry, quadrature, solver, knots_x, **kwargs):
             knots_x, delta_x, angle_w, block, quintic, info)
 
     # Create curve fit fission source, curve fit keff, and nearby reaction rate
+    # (moments l > 0 integrate to zero over angle, so only P0 is needed)
     curve_fit_source = tools.array_2d(info.cells_x, info.groups)
     nearby_rate, curve_fit_keff = _curve_fit_fission_source(int_angular, \
-                            int_dx_angular, int_scalar, xs_total, xs_scatter, \
+                            int_dx_angular, int_scalar, xs_total, xs_scatter[:,:,:,0], \
                             xs_fission, curve_fit_source, medium_map, delta_x, \
                             angle_x, angle_w, info)
 
     # Calculate residual for each cell
     logger.info("Calculating Residual...")
     residual = np.zeros((info.cells_x, info.angles, info.groups))
-    _angular_residual_critical(residual, int_angular, int_dx_angular, \
-            int_scalar, xs_total, xs_scatter, curve_fit_source, medium_map, \
-            angle_x, curve_fit_keff, info)
+    if info.moments == 1:
+        _angular_residual_critical(residual, int_angular, int_dx_angular, \
+                int_scalar, xs_total, xs_scatter[:,:,:,0], curve_fit_source, \
+                medium_map, angle_x, curve_fit_keff, info)
+    else:
+        P_source, P_weights = legendre_data(quadrature, info.moments)
+        int_moments = tools.array_3d(info.cells_x, info.groups, info.moments)
+        tools._angular_to_moments(int_angular, int_moments, P_weights, info)
+        _angular_residual_critical_aniso(residual, int_angular, int_dx_angular, \
+                int_moments, xs_total, xs_scatter, curve_fit_source, medium_map, \
+                angle_x, curve_fit_keff, P_source, info)
     if save_residual:
         fangles = str(info.angles).zfill(2)
         fcells = str(info.cells_x).zfill(3)
@@ -257,6 +277,14 @@ def calculate_k_numerical_flux(numerical_flux, numerical_keff, materials, \
     """Calculate numerical flux for nearby k criticality problem."""
     # Ensure solving for angular flux at cell centers (fixed1d solver requirement)
     angular_solver = replace(solver, angular=True, flux_at_edges=0)
+    # Anisotropic scattering: angular flux from the flux moments
+    if (numerical_flux is None) and (materials.scatter.ndim == 4):
+        flux, numerical_keff = critical1d.flux_moments(materials, geometry, \
+                                                       quadrature, solver)
+        angular_params = create_params(materials, quadrature, geometry, angular_solver)
+        numerical_flux = critical1d.known_flux_moments(flux, numerical_keff, \
+                                materials, geometry, quadrature, angular_params)
+        return numerical_flux, numerical_keff
     # No numerical flux provided: run power iteration for keff then get angular flux
     if numerical_flux is None:
         scalar_solver = replace(solver, angular=False, flux_at_edges=0)
@@ -269,6 +297,7 @@ def calculate_k_numerical_flux(numerical_flux, numerical_keff, materials, \
     # Scalar flux provided, compute angular flux with single transport sweep
     elif numerical_flux.ndim == 2:
         angular_params = create_params(materials, quadrature, geometry, angular_solver)
+        _check_scalar_flux(parameters._to_params(angular_params))
         return critical1d.known_flux(numerical_flux, numerical_keff, materials, \
                                      geometry, quadrature, angular_params), numerical_keff
     # Angular flux provided, no change needed
@@ -504,3 +533,75 @@ cdef void _angular_residual_critical(double[:,:,:]& residual, \
                 residual[ii,nn,og] = (angle_x[nn] * int_dx[ii,nn,og] \
                                     + int_psi[ii,nn,og] * xs_total[mat,og]) \
                                     - off_scatter - source[ii,og] / keff
+
+
+cdef void _check_scalar_flux(params info) except *:
+    # Higher flux moments cannot be recovered from the scalar flux
+    if info.moments > 1:
+        raise ValueError("Anisotropic scattering needs the angular flux as " \
+                         "numerical_flux, not the scalar flux")
+
+
+cdef void _angular_residual_aniso(double[:,:,:]& residual, double[:,:,:]& psi, \
+        double[:,:,:]& int_dx, double[:,:,:]& phi, double[:,:]& xs_total, \
+        double[:,:,:,:]& xs_scatter, double[:,:,:]& xs_fission, \
+        double[:,:,:]& external, int[:]& medium_map, double[:]& delta_x, \
+        double[:]& angle_x, double[:,:]& P_source, params info):
+    # Angular residual with anisotropic scattering, see _angular_residual
+    # phi holds the cell integrated flux moments (cells_x, groups, moments)
+
+    # Initialize angle, group and cell
+    cdef int ii, nn, nn_q, og, ig, og_q, mat
+
+    # Fission is isotropic and only adds to the l = 0 moment
+    group_moments = tools.array_1d(info.moments)
+
+    # Iterate over spatial cells
+    for ii in range(info.cells_x):
+        mat = medium_map[ii]
+
+        # Iterate over groups
+        for og in range(info.groups):
+            og_q = 0 if external.shape[2] == 1 else og
+
+            tools._group_moments(group_moments, phi, xs_scatter, mat, ii, og, info)
+            for ig in range(info.groups):
+                group_moments[0] += phi[ii,ig,0] * xs_fission[mat,og,ig]
+
+            # Iterate over angles
+            for nn in range(info.angles):
+                nn_q = 0 if external.shape[1] == 1 else nn
+
+                residual[ii,nn,og] = (angle_x[nn] * int_dx[ii,nn,og] \
+                        + psi[ii,nn,og] * xs_total[mat,og]) \
+                        - tools._legendre_sum(group_moments, P_source, nn, info) \
+                        - external[ii,nn_q,og_q] * delta_x[ii]
+
+
+cdef void _angular_residual_critical_aniso(double[:,:,:]& residual, \
+        double[:,:,:]& int_psi, double[:,:,:]& int_dx, double[:,:,:]& int_phi, \
+        double[:,:]& xs_total, double[:,:,:,:]& xs_scatter, \
+        double[:,:]& source, int[:]& medium_map, double[:]& angle_x, \
+        double keff, double[:,:]& P_source, params info):
+    # Angular residual with anisotropic scattering, see _angular_residual_critical
+    # int_phi holds the cell integrated flux moments (cells_x, groups, moments)
+
+    # Initialize cell, angle, and group iterables
+    cdef int ii, nn, og, mat
+
+    group_moments = tools.array_1d(info.moments)
+
+    # Iterate over spatial cells
+    for ii in range(info.cells_x):
+        mat = medium_map[ii]
+
+        # Iterate over groups
+        for og in range(info.groups):
+            tools._group_moments(group_moments, int_phi, xs_scatter, mat, ii, og, info)
+
+            # Iterate over angles
+            for nn in range(info.angles):
+                residual[ii,nn,og] = (angle_x[nn] * int_dx[ii,nn,og] \
+                        + int_psi[ii,nn,og] * xs_total[mat,og]) \
+                        - tools._legendre_sum(group_moments, P_source, nn, info) \
+                        - source[ii,og] / keff
