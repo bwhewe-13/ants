@@ -127,6 +127,63 @@ def test_library_materials(library_path):
     assert np.allclose(mat_data.velocity, ants.energy_velocity(GROUPS, EDGES_G))
 
 
+def _scatter_legendre(scale, moments=4):
+    # Stored as [in, out, legendre], higher moments scaled down
+    return np.concatenate([_scatter(scale) * 0.5**ll for ll in range(moments)], axis=-1)
+
+
+@pytest.fixture(scope="module")
+def legendre_path(tmp_path_factory):
+    path = tmp_path_factory.mktemp("library") / "legendre.h5"
+    with h5py.File(path, "w") as f:
+        f.attrs["n_groups"] = GROUPS
+        f.attrs["n_legendre"] = 4
+        f.create_dataset("group_boundaries", data=EDGES_G)
+        for name, scale in [("H-1", 1.0), ("O-16", 2.0)]:
+            data = f.create_group(name)
+            data.create_dataset("xs_total", data=np.array([4.0, 20.0, 30.0]))
+            data.create_dataset("xs_scatter", data=_scatter_legendre(scale))
+        # Nuclide without scattering data
+        data = f.create_group("Pu-239")
+        data.create_dataset("xs_total", data=np.array([6.0, 9.0, 12.0]))
+    return str(path)
+
+
+def test_library_legendre(legendre_path):
+    library = ants.Library(legendre_path)
+    # P0 by default, P2 transposed to [out, in, legendre]
+    _, scatter, _ = library.microscopic("H-1")
+    assert scatter.shape == (GROUPS, GROUPS)
+    _, scatter, _ = library.microscopic("H-1", legendre=2)
+    assert scatter.shape == (GROUPS, GROUPS, 3)
+    assert np.array_equal(scatter, _scatter_legendre(1.0, 3).transpose(1, 0, 2))
+    # No scattering data has zero moments
+    _, scatter, _ = library.microscopic("Pu-239", legendre=5)
+    assert scatter.shape == (GROUPS, GROUPS, 6) and not np.any(scatter)
+    with pytest.raises(ValueError, match="Legendre moments"):
+        library.microscopic("H-1", legendre=4)
+
+
+def test_library_legendre_materials(legendre_path):
+    library = ants.Library(legendre_path)
+    compositions = [{"H-1": 0.06, "O-16": 0.03}, {"Pu-239": 0.04}]
+    p0 = library.materials(compositions)
+    p3 = library.materials(compositions, legendre=3)
+    assert p3.scatter.shape == (2, GROUPS, GROUPS, 4)
+    assert np.allclose(p3.scatter[..., 0], p0.scatter)
+    assert np.allclose(p3.scatter[..., 1], 0.5 * p0.scatter)
+    # Each moment is collapsed like the P0 scatter matrix
+    with pytest.warns(UserWarning, match="Collapsing"):
+        coarse_p0 = library.materials(compositions, groups=1)
+        coarse_p3 = library.materials(compositions, groups=1, legendre=3)
+    assert coarse_p3.scatter.shape == (2, 1, 1, 4)
+    assert np.allclose(coarse_p3.scatter[..., 0], coarse_p0.scatter)
+    assert np.allclose(coarse_p3.scatter[..., 2], 0.25 * coarse_p0.scatter)
+    # Single material from a composition
+    material = ants.create_material({"H-1": 0.06}, legendre_path, legendre=1)
+    assert material.scatter.shape == (1, GROUPS, GROUPS, 2)
+
+
 @pytest.mark.parametrize(
     ("nuclide", "expected"),
     [

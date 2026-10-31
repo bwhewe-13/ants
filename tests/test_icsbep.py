@@ -85,3 +85,22 @@ def test_run_suite():
     for row in results:
         # P0 libraries without a transport correction overestimate keff
         assert 0.95 < row["keff"] < 1.2
+
+
+@pytest.mark.skipif(LIBRARY_PATH is None, reason="Set ANTS_XS_LIBRARY")
+@pytest.mark.sphere1d
+@pytest.mark.anisotropic
+@pytest.mark.power_iteration
+def test_run_suite_legendre():
+    # P3 scattering moves keff closer to the benchmark than P0 scattering
+    names = ["HEU-MET-FAST-001", "PU-MET-FAST-001"]
+    try:
+        p3 = ants.run_suite(names, LIBRARY_PATH, cells=[50], angles=[8], legendre=3)
+    except ValueError as error:
+        if "Legendre moments" not in str(error):
+            raise
+        pytest.skip(f"Library has too few Legendre moments: {error}")
+    p0 = ants.run_suite(names, LIBRARY_PATH, cells=[50], angles=[8])
+    for row_p0, row_p3 in zip(p0, p3):
+        assert row_p3["legendre"] == 3
+        assert abs(row_p3["diff_pcm"]) < abs(row_p0["diff_pcm"])

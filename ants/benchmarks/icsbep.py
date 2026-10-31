@@ -130,7 +130,9 @@ def _region_cells(radii, cells):
     return region_cells
 
 
-def build_problem(benchmark, library, cells, angles, groups=None, temperature=None):
+def build_problem(
+    benchmark, library, cells, angles, groups=None, temperature=None, legendre=0
+):
     """Create the ANTS k-eigenvalue problem for an ICSBEP benchmark.
 
     Parameters
@@ -150,6 +152,8 @@ def build_problem(benchmark, library, cells, angles, groups=None, temperature=No
         weighting). Defaults to the library groups.
     temperature : float, optional
         Library temperature (K); defaults to the benchmark temperature.
+    legendre : int, optional
+        Legendre order of the scattering (0 for isotropic P0 scattering).
 
     Returns
     -------
@@ -168,7 +172,10 @@ def build_problem(benchmark, library, cells, angles, groups=None, temperature=No
     material_names = list(dict.fromkeys(benchmark.regions))
     compositions = benchmark.compositions()
     mat_data = library.materials(
-        [compositions[name] for name in material_names], temperature, groups
+        [compositions[name] for name in material_names],
+        temperature,
+        groups,
+        legendre,
     )
 
     # Spatial
@@ -193,7 +200,13 @@ def build_problem(benchmark, library, cells, angles, groups=None, temperature=No
 
 
 def run_suite(
-    names, library, cells=(100,), angles=(8,), groups=(None,), temperature=None
+    names,
+    library,
+    cells=(100,),
+    angles=(8,),
+    groups=(None,),
+    temperature=None,
+    legendre=0,
 ):
     """Run k-eigenvalue calculations over a suite of ICSBEP benchmarks.
 
@@ -208,12 +221,14 @@ def run_suite(
         in ``groups`` uses the library groups.
     temperature : float, optional
         Library temperature (K); defaults to each benchmark temperature.
+    legendre : int, optional
+        Legendre order of the scattering (0 for isotropic P0 scattering).
 
     Returns
     -------
     list[dict]
         One row per run with keys ``name``, ``groups``, ``angles``,
-        ``cells``, ``keff``, ``reference``, ``uncertainty``, and
+        ``cells``, ``legendre``, ``keff``, ``reference``, ``uncertainty``, and
         ``diff_pcm`` (calculated minus benchmark k, in pcm).
     """
     from ants.critical1d import k_criticality
@@ -225,7 +240,7 @@ def run_suite(
     ):
         benchmark = get_benchmark(name)
         materials, geometry, quadrature, solver = build_problem(
-            benchmark, library, ncells, nangles, ngroups, temperature
+            benchmark, library, ncells, nangles, ngroups, temperature, legendre
         )
         _, keff = k_criticality(materials, geometry, quadrature, solver)
         results.append(
@@ -234,6 +249,7 @@ def run_suite(
                 "groups": materials.total.shape[1],
                 "angles": nangles,
                 "cells": int(np.sum(_region_cells(benchmark.radii, ncells))),
+                "legendre": legendre,
                 "keff": keff,
                 "reference": benchmark.keff,
                 "uncertainty": benchmark.keff_unc,
