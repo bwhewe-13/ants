@@ -61,3 +61,26 @@ cdef double[:,:] _known_source_scalar(double[:,:]& xs_total, \
         double[:,:,:]& source, double[:,:,:]& boundary_x, \
         int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
         double[:]& angle_w, params info)
+
+
+cdef double[:,:,:] multi_group_moments(double[:,:,:]& flux_guess, \
+        double[:,:]& xs_total, double[:,:,:,:]& xs_scatter, \
+        double[:,:,:]& external, double[:,:,:]& boundary_x, \
+        int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
+        double[:]& angle_w, double[:,:]& P_source, double[:,:]& P_weights, \
+        params info)
+
+
+cdef double[:,:,:] variable_source_iteration_moments(double[:,:,:]& flux_guess, \
+        double[:,:]& xs_total_u, double[:]& star_coef_c, \
+        double[:,:,:,:]& xs_scatter_u, double[:,:,:]& external, \
+        double[:,:,:]& boundary_x, int[:]& medium_map, double[:]& delta_x, \
+        double[:]& angle_x, double[:]& angle_w, double[:]& edges_g, \
+        int[:]& edges_gidx_c, double[:,:]& P_source, double[:,:]& P_weights, \
+        params info)
+
+
+cdef double[:,:,:] _known_source_moments(double[:,:]& xs_total, \
+        double[:,:,:]& source, double[:,:,:]& boundary_x, \
+        int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
+        double[:]& angle_w, double[:,:]& P_weights, params info)
