@@ -309,10 +309,10 @@ cdef double[:,:] dynamic_mode_decomp(double[:,:]& flux_guess, \
         # Update old flux
         flux_old[:,:] = flux[:,:]
 
-    # Perform DMD
-    flux = dmd_1d(flux, y_minus, y_plus, info.dmd_snapshots)
+    # Perform DMD (new name keeps flux a typed memoryview in the loop)
+    flux_dmd = dmd_1d(flux, y_minus, y_plus, info.dmd_snapshots)
 
-    return flux[:,:]
+    return flux_dmd[:,:]
 
 
 cdef double[:,:,:] _known_source_angular(double[:,:]& xs_total, \
