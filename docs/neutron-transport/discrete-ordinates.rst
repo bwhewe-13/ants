@@ -135,6 +135,37 @@ further discretized in both space and time in
 :ref:`temporal <sec-nte-temporal>` discretization sections.
 
 
+.. _sec-nte-anisotropic:
+
+Anisotropic Scattering
+----------------------
+
+Equation :eq:`nte-discrete` assumes isotropic scattering. In one dimension,
+anisotropic scattering is included by expanding the scattering cross section in
+Legendre polynomials :math:`P_\ell` of the scattering cosine, truncated at order
+:math:`L`. The scattering source of angle :math:`m` and energy group :math:`g` is
+then
+
+.. math::
+   :label: nte-anisotropic
+
+   \sum_{g'=1}^{G} \sum_{\ell=0}^{L} (2\ell + 1) P_\ell(\mu_m) \sig[g' \rightarrow g]{s,\ell} \phi_{\ell, g'},
+
+where the flux moments are
+
+.. math::
+
+   \phi_{\ell, g} = \sum_{m=1}^{M_{\text{Angles}}} w_{m} P_\ell(\mu_m) \psi_{m,g}.
+
+Since :math:`P_0 = 1`, the :math:`\ell = 0` term is the isotropic scattering
+source in Equation :eq:`nte-discrete` with :math:`\phi_{0, g} = \phi_g`. Every
+group-to-group transfer uses all :math:`L + 1` moments, and fission is isotropic
+so it only adds to the :math:`\ell = 0` moment. The moments
+:math:`\sig[g' \rightarrow g]{s,\ell}` are stored without the :math:`(2\ell + 1)`
+factor as the last axis of the scattering matrix (see
+:doc:`../running-ants/standard-inputs`).
+
+
 Fixed Source Neutron Transport Equation
 ---------------------------------------
 

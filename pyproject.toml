@@ -68,6 +68,7 @@ markers = [
     "math: test math functions - interpolation, error estimation, etc.",
     "nearby1d: One-dimensional nearby problems",
     "nearby2d: Two-dimensional nearby problems",
+    "anisotropic: Anisotropic (Legendre P_N) scattering",
 ]
 
 [tool.black]
