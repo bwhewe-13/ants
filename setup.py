@@ -22,18 +22,23 @@ if platform.system() == "Darwin":
         "ants/utils/*", sources=["ants/utils/*.pyx"], include_dirs=[np.get_include()]
     )
 else:
+    # MSVC ignores -fopenmp (warning D9002), so Windows needs /openmp
+    if platform.system() == "Windows":
+        compile_args, link_args = ["/openmp"], []
+    else:
+        compile_args, link_args = ["-fopenmp"], ["-fopenmp"]
     ext = Extension(
         "ants/*",
         sources=["ants/*.pyx"],
-        extra_compile_args=["-fopenmp"],
-        extra_link_args=["-fopenmp"],
+        extra_compile_args=compile_args,
+        extra_link_args=link_args,
         include_dirs=[np.get_include()],
     )
     ext_utils = Extension(
         "ants/utils/*",
         sources=["ants/utils/*.pyx"],
-        extra_compile_args=["-fopenmp"],
-        extra_link_args=["-fopenmp"],
+        extra_compile_args=compile_args,
+        extra_link_args=link_args,
         include_dirs=[np.get_include()],
     )
 
