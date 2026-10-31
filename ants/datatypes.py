@@ -158,7 +158,11 @@ class MaterialData:
     total : numpy.ndarray
         Total macroscopic cross section, shape ``(materials, groups)``.
     scatter : numpy.ndarray
-        Scattering cross section, shape ``(materials, groups, groups)``.
+        Scattering cross section indexed ``[material, out, in]``, shape
+        ``(materials, groups, groups)``. For anisotropic scattering, the
+        Legendre moments are on a last axis, shape
+        ``(materials, groups, groups, L + 1)``, without the ``(2l + 1)``
+        factor (1D only).
     fission : numpy.ndarray
         Fission cross section, shape ``(materials, groups)`` if ``chi`` is
         ``None``, else
@@ -443,6 +447,8 @@ class ProblemParameters:
         Energy-group convergence tolerance.
     tol_keff : float
         k-eigenvalue convergence tolerance.
+    moments : int
+        Number of Legendre scattering moments (L + 1); 1 is isotropic.
     """
 
     cells_x: int
@@ -472,6 +478,7 @@ class ProblemParameters:
     tol_angular: float
     tol_energy: float
     tol_keff: float
+    moments: int = 1
 
 
 def create_params(materials, quadrature, geometry, solver, time=None):
@@ -532,4 +539,5 @@ def create_params(materials, quadrature, geometry, solver, time=None):
         tol_angular=solver.tol_angular,
         tol_energy=solver.tol_energy,
         tol_keff=solver.tol_keff,
+        moments=materials.scatter.shape[3] if materials.scatter.ndim == 4 else 1,
     )

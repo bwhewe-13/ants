@@ -43,6 +43,8 @@ _QUADRATURE_EXPORTS = (
     "angular_xy",
     "angular_xyz",
     "artificial_scatter_matrix",
+    "legendre_data",
+    "legendre_polynomials",
 )
 
 _ENERGY_EXPORTS = (

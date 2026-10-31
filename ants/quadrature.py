@@ -84,6 +84,73 @@ def _angular_x(angles, bc_x):
     return angular_x(angles, bc_x, False)
 
 
+def legendre_polynomials(n_moments, angle_x):
+    """Evaluate the Legendre polynomials P_0 to P_L at each ordinate.
+
+    Uses the three-term recurrence relation.
+
+    Parameters
+    ----------
+    n_moments : int
+        Number of Legendre moments (L + 1).
+    angle_x : ndarray, shape (angles,)
+        Direction cosines on [-1, 1].
+
+    Returns
+    -------
+    P : ndarray, shape (n_moments, angles)
+        ``P[l, n] = P_l(mu_n)``.
+    """
+    angle_x = np.asarray(angle_x, dtype=float)
+    P = np.zeros((n_moments, angle_x.shape[0]))
+    P[0] = 1.0
+    if n_moments == 1:
+        return P
+    P[1] = angle_x
+    for ll in range(2, n_moments):
+        P[ll] = ((2 * ll - 1) * angle_x * P[ll - 1] - (ll - 1) * P[ll - 2]) / ll
+    return P
+
+
+def legendre_data(quadrature, n_moments):
+    """Legendre arrays used by the anisotropic scattering source.
+
+    Fills ``quadrature.P`` and ``quadrature.P_weights`` when they are
+    missing or do not match ``n_moments``.
+
+    Parameters
+    ----------
+    quadrature : QuadratureData
+        One-dimensional angular quadrature.
+    n_moments : int
+        Number of Legendre moments (L + 1).
+
+    Returns
+    -------
+    P_source : ndarray, shape (n_moments, angles)
+        ``(2l + 1) * P_l(mu_n)``, which expands flux moments into the
+        angular scattering source.
+    P_weights : ndarray, shape (n_moments, angles)
+        ``w_n * P_l(mu_n)``, which projects angular flux onto moments.
+    """
+    angle_x = np.asarray(quadrature.angle_x, dtype=float)
+    expected = (n_moments, angle_x.shape[0])
+    if (quadrature.P is None) or (np.shape(quadrature.P) != expected):
+        quadrature.P = legendre_polynomials(n_moments, angle_x)
+        quadrature.P_weights = None
+    if (quadrature.P_weights is None) or (np.shape(quadrature.P_weights) != expected):
+        quadrature.P_weights = np.asarray(quadrature.angle_w)[None, :] * quadrature.P
+    P_source = (2 * np.arange(n_moments) + 1)[:, None] * quadrature.P
+    return P_source, np.ascontiguousarray(quadrature.P_weights, dtype=float)
+
+
+# Called from cython
+def _legendre_data(angle_x, angle_w, n_moments):
+    P = legendre_polynomials(n_moments, angle_x)
+    P_source = (2 * np.arange(n_moments) + 1)[:, None] * P
+    return P_source, np.asarray(angle_w)[None, :] * P
+
+
 def angular_xy(angles, bc_x=[0, 0], bc_y=[0, 0], datatype=True, method="product"):
     """Compute 2D quadrature angles and weights for slab geometry.
 

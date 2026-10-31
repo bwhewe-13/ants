@@ -79,6 +79,8 @@ cdef params _to_params(object pydic):
     info.tol_energy = pydic.tol_energy
     info.tol_keff = pydic.tol_keff
 
+    # Number of Legendre scattering moments (1 = isotropic)
+    info.moments = pydic.moments
 
     return info
 

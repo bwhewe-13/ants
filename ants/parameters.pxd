@@ -107,6 +107,9 @@ cdef struct params:
     double sigma_as
     double beta_as
 
+    # Number of Legendre scattering moments (1 = isotropic)
+    int moments
+
 
 cdef params _to_params(object pydic)
 
