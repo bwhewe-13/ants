@@ -166,6 +166,13 @@ cdef double spatial_coef(int spatial) noexcept nogil:
     return 0.0
 
 
+cdef double characteristic_coef(double tau) noexcept nogil:
+    # coth(tau / 2) - 2 / tau, series for thin and void cells
+    if tau < 1e-4:
+        return tau / 6.0
+    return 1.0 / tanh(0.5 * tau) - 2.0 / tau
+
+
 cdef double slab_forward(double[:]& flux, double[:]& flux_old, \
         double[:]& xs_total, double[:]& xs_scatter, double[:]& off_scatter, \
         double[:]& external, double edge1, int[:]& medium_map, \
@@ -186,9 +193,9 @@ cdef double slab_forward(double[:]& flux, double[:]& flux_old, \
         # For determining the material cross sections
         mat = medium_map[ii]
         if info.spatial == 3:
-            tau = xs_total[mat] * delta_x[ii] / angle_x
-            alpha1 = 0.5 * (1.0 - (1.0 / tanh(0.5 * tau) - 2.0 / tau))
-            alpha2 = 0.5 * (1.0 + (1.0 / tanh(0.5 * tau) - 2.0 / tau))
+            tau = (xs_total[mat] - info.xs_time) * delta_x[ii] / angle_x
+            alpha1 = 0.5 * (1.0 - characteristic_coef(tau))
+            alpha2 = 0.5 * (1.0 + characteristic_coef(tau))
         # Calculate cell edge unknown
         edge2 = (xs_scatter[mat] * flux_old[ii] + external[ii] + off_scatter[ii] \
                 + edge1 * (fabs(angle_x) / delta_x[ii] - alpha1 * xs_total[mat])) \
@@ -226,9 +233,9 @@ cdef double slab_backward(double[:]& flux, double[:]& flux_old, double[:]& xs_to
         mat = medium_map[ii]
         # Step Characteristic
         if info.spatial == 3:
-            tau = xs_total[mat] * delta_x[ii] / fabs(angle_x)
-            alpha1 = 0.5 * (1.0 - (1.0 / tanh(0.5 * tau) - 2.0 / tau))
-            alpha2 = 0.5 * (1.0 + (1.0 / tanh(0.5 * tau) - 2.0 / tau))
+            tau = (xs_total[mat] - info.xs_time) * delta_x[ii] / fabs(angle_x)
+            alpha1 = 0.5 * (1.0 - characteristic_coef(tau))
+            alpha2 = 0.5 * (1.0 + characteristic_coef(tau))
         # Calculate cell edge unknown
         edge2 = (xs_scatter[mat] * flux_old[ii] + external[ii] + off_scatter[ii] \
                 + edge1 * (fabs(angle_x) / delta_x[ii] - alpha1 * xs_total[mat])) \

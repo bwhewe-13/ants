@@ -226,17 +226,21 @@ cdef double _update_keffective(scalar_flux_nd flux_new, scalar_flux_nd flux_old,
 # Time Dependent functions
 ################################################################################
 
-cdef void _total_velocity(double[:,:]& xs_total, double[:]& velocity,
+cdef double[:] _total_velocity(double[:,:]& xs_total, double[:]& velocity,
                            double constant, params info):
-    """Add 1/(v*dt) term to total cross section in-place.
+    """Add 1/(v*dt) term to total cross section in-place and return the
+    term for each group.
 
     Signature is identical between 1D and 2D (xs_total is always (materials,
     groups)), so no fused dispatch is needed.
     """
     cdef int mm, gg
+    cdef double[:] xs_time = array_1d(info.groups)
     for gg in range(info.groups):
+        xs_time[gg] = constant / (velocity[gg] * info.dt)
         for mm in range(info.materials):
-            xs_total[mm, gg] += constant / (velocity[gg] * info.dt)
+            xs_total[mm, gg] += xs_time[gg]
+    return xs_time
 
 
 cdef double[:,:,:] _fission_matrix(object fission, object chi):

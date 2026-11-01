@@ -68,6 +68,7 @@ cdef params _to_params(object pydic):
     # Artificial scattering parameters (ray effect mitigation)
     info.sigma_as = pydic.sigma_as
     info.beta_as = pydic.beta_as
+    info.xs_time = 0.0
 
     # Convergence parameters - iterations
     info.max_iter_angular = pydic.max_iter_angular
@@ -221,8 +222,12 @@ cdef int _check_cn_timed2d(params info, int psi_x_shape, int psi_y_shape, \
         int q_shape, int bc_x_shape, int bc_y_shape, int xs_shape) except -1:
     # Go through time-dependent default checks
     _check_timed2d(info, bc_x_shape, bc_y_shape, xs_shape)
-    assert psi_x_shape == (info.cells_x + 1), "Need initial flux at cell edges"
-    assert psi_y_shape == (info.cells_y + 1), "Need initial flux at cell edges"
+    if info.geometry == 4:
+        # Polygon meshes have face fluxes in psi_x and cell centers in psi_y
+        assert psi_y_shape == 1, "Need initial flux at cell centers in psi_y"
+    else:
+        assert psi_x_shape == (info.cells_x + 1), "Need initial flux at cell edges"
+        assert psi_y_shape == (info.cells_y + 1), "Need initial flux at cell edges"
     if q_shape > 1:
         assert q_shape == (info.steps + 1), "Need time-dependent external " \
                 "source for each time step and initial time step"
@@ -239,8 +244,12 @@ cdef int _check_tr_bdf_timed2d(params info, int psi_x_shape, int psi_y_shape, \
         int q_shape, int bc_x_shape, int bc_y_shape, int xs_shape) except -1:
     # Go through time-dependent default checks
     _check_timed2d(info, bc_x_shape, bc_y_shape, xs_shape)
-    assert psi_x_shape == (info.cells_x + 1), "Need initial flux at cell edges"
-    assert psi_y_shape == (info.cells_y + 1), "Need initial flux at cell edges"
+    if info.geometry == 4:
+        # Polygon meshes have face fluxes in psi_x and cell centers in psi_y
+        assert psi_y_shape == 1, "Need initial flux at cell centers in psi_y"
+    else:
+        assert psi_x_shape == (info.cells_x + 1), "Need initial flux at cell edges"
+        assert psi_y_shape == (info.cells_y + 1), "Need initial flux at cell edges"
     if q_shape > 1:
         assert q_shape == (info.steps * 2 + 1), "Need time-dependent " \
             "external source for each time step, gamma step, and initial step"

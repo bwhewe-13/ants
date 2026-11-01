@@ -16,6 +16,15 @@ import os
 import numpy as np
 import pytest
 
+import ants
+from ants.datatypes import (
+    Geometry,
+    GeometryData,
+    MaterialData,
+    MultigroupSolver,
+    SolverData,
+    SourceData,
+)
 from ants.fixed1d import fixed_source
 from ants.utils import manufactured_1d as mms
 from tests import problems1d
@@ -142,3 +151,40 @@ def test_sphere_01_source_iteration():
     path = os.path.join(problems1d.PATH, "uranium_sphere_source_iteration_flux.npy")
     reference = np.load(path)
     assert np.isclose(flux, reference).all()
+
+
+@pytest.mark.slab1d
+@pytest.mark.source_iteration
+def test_dynamic_mode_decomposition():
+    # Strong group to group scattering so the DMD estimate is needed
+    groups = 4
+    cells_x = 40
+    scatter = 0.99 / 3 * (np.ones((groups, groups)) - np.eye(groups))
+    mat_data = MaterialData(
+        total=np.ones((1, groups)),
+        scatter=scatter[None],
+        fission=np.zeros((1, groups, groups)),
+    )
+    sources = SourceData(
+        external=np.ones((cells_x, 1, groups)),
+        boundary_x=np.zeros((2, 1, 1)),
+    )
+    geometry = GeometryData(
+        medium_map=np.zeros((cells_x,), dtype=np.int32),
+        delta_x=np.repeat(1.0 / cells_x, cells_x),
+        geometry=Geometry.SLAB1D,
+    )
+    quadrature = ants.angular_x(8)
+    solver = SolverData(tol_energy=1e-14, max_iter_energy=5000)
+    reference = fixed_source(mat_data, sources, geometry, quadrature, solver)
+
+    # Same number of iterations as DMD (dmd_rank + dmd_snapshots)
+    solver = SolverData(tol_energy=1e-14, max_iter_energy=22)
+    flux_si = fixed_source(mat_data, sources, geometry, quadrature, solver)
+    solver = SolverData(tol_energy=1e-14, mg_solver=MultigroupSolver.DMD)
+    flux_dmd = fixed_source(mat_data, sources, geometry, quadrature, solver)
+
+    error_si = np.max(np.fabs(flux_si - reference)) / np.max(reference)
+    error_dmd = np.max(np.fabs(flux_dmd - reference)) / np.max(reference)
+    assert error_dmd < 1e-10
+    assert error_dmd < 1e-3 * error_si

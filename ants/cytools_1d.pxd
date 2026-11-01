@@ -72,12 +72,16 @@ cdef void _angular_to_scalar(double[:,:,:]& angular_flux, \
         double[:,:]& scalar_flux, double[:]& angle_w, params info)
 
 cdef void _angular_edge_to_scalar(double[:,:,:]& angular_flux, \
-        double[:,:]& scalar_flux, double[:]& angle_w, params info)
+        double[:,:]& scalar_flux, double[:,:]& xs_total, int[:]& medium_map, \
+        double[:]& delta_x, double[:]& angle_x, double[:]& angle_w, params info)
+
+cdef double _edge_center(double edge_1, double edge_2, double xs_total, \
+        double delta_x, double angle_x, params info)
 
 ################################################################################
 # Time Dependent functions
 ################################################################################
-cdef void _total_velocity(double[:,:]& xs_total, double[:]& velocity, \
+cdef double[:] _total_velocity(double[:,:]& xs_total, double[:]& velocity, \
         double constant, params info)
 
 cdef void _time_source_star_bdf1(double[:,:,:]& flux, double[:,:,:]& q_star, \
@@ -94,8 +98,9 @@ cdef void _time_source_star_bdf2(double[:,:,:]& flux_1, \
         double[:,:,:]& external, double[:]& velocity, params info)
 
 cdef void _time_source_star_tr_bdf2(double[:,:,:]& flux_1, double[:,:,:]& flux_2, \
-        double[:,:,:]& q_star, double[:,:,:]& external, double[:]& velocity, \
-        double gamma, params info)
+        double[:,:,:]& q_star, double[:,:,:]& external, double[:,:]& xs_total, \
+        int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
+        double[:]& velocity, double gamma, params info)
 
 cdef void _time_right_side(double[:,:,:]& q_star, double[:,:]& flux, \
         double[:,:,:]& xs_scatter, int[:]& medium_map, params info)

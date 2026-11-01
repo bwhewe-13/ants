@@ -75,7 +75,7 @@ cdef double _update_keffective(scalar_flux_nd flux_new, scalar_flux_nd flux_old,
                                 medium_map_nd medium_map,
                                 params info, double keff)
 
-cdef void _total_velocity(double[:,:]& xs_total, double[:]& velocity,
+cdef double[:] _total_velocity(double[:,:]& xs_total, double[:]& velocity,
                            double constant, params info)
 
 cdef double[:,:,:] _fission_matrix(object fission, object chi)

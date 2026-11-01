@@ -20,6 +20,7 @@
 # distutils: language = c++
 # distutils: extra_compile_args = -O3 -march=native -ffast-math
 
+from libc.math cimport fabs, tanh
 
 from ants.cytools_shared cimport _fission_matrix as _shared_fission_matrix
 from ants.cytools_shared cimport _normalize_flux as _shared_normalize_flux
@@ -194,28 +195,48 @@ cdef void _angular_to_scalar(double[:,:,:]& angular_flux, \
 
 
 cdef void _angular_edge_to_scalar(double[:,:,:]& angular_flux, \
-        double[:,:]& scalar_flux, double[:]& angle_w, params info):
+        double[:,:]& scalar_flux, double[:,:]& xs_total, int[:]& medium_map, \
+        double[:]& delta_x, double[:]& angle_x, double[:]& angle_w, params info):
     # Initialize iterables
-    cdef int ii, nn, gg
+    cdef int ii, nn, gg, mat
     # Zero out scalar flux term
     scalar_flux[:,:] = 0.0
     # Iterate over all spatial cells, angles, energy groups
     for ii in range(info.cells_x):
+        mat = medium_map[ii]
         for nn in range(info.angles):
             for gg in range(info.groups):
-                scalar_flux[ii,gg] += 0.5 * angle_w[nn] * (angular_flux[ii,nn,gg] \
-                                        + angular_flux[ii+1,nn,gg])
+                scalar_flux[ii,gg] += angle_w[nn] * _edge_center( \
+                        angular_flux[ii,nn,gg], angular_flux[ii+1,nn,gg], \
+                        xs_total[mat,gg], delta_x[ii], angle_x[nn], info)
+
+
+cdef double _edge_center(double edge_1, double edge_2, double xs_total, \
+        double delta_x, double angle_x, params info):
+    # Cell center from the spatial closure of the cell edges, so the
+    # center matches the sweep (edge_1 is the left or bottom edge)
+    cdef double tau, weight = 1.0
+    # Diamond difference (and sphere geometry)
+    if (info.spatial == 2) or (info.geometry == 2):
+        weight = 0.0
+    # Step characteristic
+    elif info.spatial == 3:
+        tau = (xs_total + info.sigma_as) * delta_x / fabs(angle_x)
+        weight = tau / 6.0 if tau < 1e-4 else 1.0 / tanh(0.5 * tau) - 2.0 / tau
+    if angle_x > 0.0:
+        return 0.5 * ((1.0 - weight) * edge_1 + (1.0 + weight) * edge_2)
+    return 0.5 * ((1.0 + weight) * edge_1 + (1.0 - weight) * edge_2)
 
 
 ################################################################################
 # Time Dependent functions
 ################################################################################
 
-cdef void _total_velocity(double[:,:]& xs_total, double[:]& velocity, \
+cdef double[:] _total_velocity(double[:,:]& xs_total, double[:]& velocity, \
         double constant, params info):
     cdef double[:,:] _xs_total = xs_total
     cdef double[:] _velocity = velocity
-    _shared_total_velocity(_xs_total, _velocity, constant, info)
+    return _shared_total_velocity(_xs_total, _velocity, constant, info)
 
 
 cdef void _time_source_star_bdf1(double[:,:,:]& flux, double[:,:,:]& q_star, \
@@ -258,7 +279,8 @@ cdef void _time_source_star_cn(double[:,:,:]& psi_edges, double[:,:]& phi, \
             for nn in range(info.angles):
                 nn_q = 0 if external.shape[1] == 1 else nn
                 # Calculate angular flux center
-                psi = 0.5 * (psi_edges[ii,nn,og] + psi_edges[ii+1,nn,og])
+                psi = _edge_center(psi_edges[ii,nn,og], psi_edges[ii+1,nn,og], \
+                        xs_total[mat,og], delta_x[ii], angle_x[nn], info)
                 # Calculate cell flux derivative
                 dpsi = (psi_edges[ii+1,nn,og] - psi_edges[ii,nn,og]) / delta_x[ii]
                 # loc = og + info.groups * (nn + ii * info.angles)
@@ -290,13 +312,14 @@ cdef void _time_source_star_bdf2(double[:,:,:]& flux_1, \
 
 
 cdef void _time_source_star_tr_bdf2(double[:,:,:]& flux_1, double[:,:,:]& flux_2, \
-        double[:,:,:]& q_star, double[:,:,:]& external, double[:]& velocity, \
-        double gamma, params info):
+        double[:,:,:]& q_star, double[:,:,:]& external, double[:,:]& xs_total, \
+        int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
+        double[:]& velocity, double gamma, params info):
     # flux_1 is time step \ell (edges)
     # flux_2 is time step \ell + gamma (centers)
 
     # Initialize iterables
-    cdef int ii, nn, gg, nn_q, gg_q
+    cdef int ii, nn, gg, nn_q, gg_q, mat
     # Zero out previous values
     q_star[:,:,:] = 0.0
     # Iterate over cells, angles, groups
@@ -306,9 +329,11 @@ cdef void _time_source_star_tr_bdf2(double[:,:,:]& flux_1, double[:,:,:]& flux_2
             nn_q = 0 if external.shape[1] == 1 else nn
             for ii in range(info.cells_x):
                 # loc = gg + info.groups * (nn + ii * info.angles)
+                mat = medium_map[ii]
                 q_star[ii,nn,gg] = external[ii,nn_q,gg_q] + flux_2[ii,nn,gg] \
                         * 1 / (gamma * (1 - gamma) * velocity[gg] * info.dt) \
-                        - 0.5 * (flux_1[ii,nn,gg] + flux_1[ii+1,nn,gg]) \
+                        - _edge_center(flux_1[ii,nn,gg], flux_1[ii+1,nn,gg], \
+                        xs_total[mat,gg], delta_x[ii], angle_x[nn], info) \
                         * (1 - gamma) / (gamma * velocity[gg] * info.dt)
 
 

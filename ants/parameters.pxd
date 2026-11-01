@@ -107,6 +107,10 @@ cdef struct params:
     double sigma_as
     double beta_as
 
+    # Time term 1 / (v * dt) in the total cross section, left out of
+    # the step characteristic weight
+    double xs_time
+
 
 cdef params _to_params(object pydic)
 

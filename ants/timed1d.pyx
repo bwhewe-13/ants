@@ -126,7 +126,7 @@ cdef double[:,:] backward_euler(double[:,:,:]& flux_last, \
     # Create sigma_t + 1 / (v * dt)
     xs_total_v = tools.array_2d(info.materials, info.groups)
     xs_total_v[:,:] = xs_total[:,:]
-    tools._total_velocity(xs_total_v, velocity, 1.0, info)
+    xs_time = tools._total_velocity(xs_total_v, velocity, 1.0, info)
 
     # Combine last time step and source term
     q_star = tools.array_3d(info.cells_x, info.angles, info.groups)
@@ -151,7 +151,7 @@ cdef double[:,:] backward_euler(double[:,:,:]& flux_last, \
         # Solve for the current time step
         mg_result = mg.multi_group(scalar_flux, xs_total_v, xs_scatter, \
                                    q_star, bc_full, medium_map, \
-                                   delta_x, angle_x, angle_w, info)
+                                   delta_x, angle_x, angle_w, info, xs_time)
         scalar_flux[:,:] = mg_result[:,:]
         if flux_file is not None:
             flux_file[step] = np.asarray(scalar_flux)
@@ -162,7 +162,7 @@ cdef double[:,:] backward_euler(double[:,:,:]& flux_last, \
         # Solve for angular flux of previous time step
         flux_last[:,:,:] = mg._known_source_angular(xs_total_v, q_star, \
                                     bc_full, medium_map, \
-                                    delta_x, angle_x, angle_w, info)
+                                    delta_x, angle_x, angle_w, info, xs_time)
 
     return scalar_flux
 
@@ -180,14 +180,15 @@ cdef double[:,:] crank_nicolson(double[:,:,:]& flux_last, \
     # Create sigma_t + 2 / (v * dt)
     xs_total_v = tools.array_2d(info.materials, info.groups)
     xs_total_v[:,:] = xs_total[:,:]
-    tools._total_velocity(xs_total_v, velocity, 2.0, info)
+    xs_time = tools._total_velocity(xs_total_v, velocity, 2.0, info)
 
     # Combine last time step and source term
     q_star = tools.array_3d(info.cells_x, info.angles, info.groups)
 
     # Initialize scalar flux for previous time step
     scalar_flux = tools.array_2d(info.cells_x, info.groups)
-    tools._angular_edge_to_scalar(flux_last, scalar_flux, angle_w, info)
+    tools._angular_edge_to_scalar(flux_last, scalar_flux, xs_total, medium_map, \
+            delta_x, angle_x, angle_w, info)
 
     # Iterate over time steps
     for step in tqdm(range(info.steps), desc="CN      ", ascii=True):
@@ -208,7 +209,7 @@ cdef double[:,:] crank_nicolson(double[:,:,:]& flux_last, \
         # Solve for the current time step
         mg_result = mg.multi_group(scalar_flux, xs_total_v, \
                                 xs_scatter, q_star, bc_full, \
-                                medium_map, delta_x, angle_x, angle_w, info)
+                                medium_map, delta_x, angle_x, angle_w, info, xs_time)
         scalar_flux[:,:] = mg_result[:,:]
         if flux_file is not None:
             flux_file[step] = np.asarray(scalar_flux)
@@ -217,7 +218,7 @@ cdef double[:,:] crank_nicolson(double[:,:,:]& flux_last, \
         # Solve for angular flux of previous time step
         flux_last[:,:,:] = mg._known_source_angular(xs_total_v, q_star, \
                                         bc_full, medium_map, \
-                                        delta_x, angle_x, angle_w, info_edge)
+                                        delta_x, angle_x, angle_w, info_edge, xs_time)
 
     return scalar_flux
 
@@ -235,7 +236,7 @@ cdef double[:,:] bdf2(double[:,:,:]& flux_last_1, double[:,:]& xs_total, \
     # Combine total cross section and time coefficient (BDF1 time step)
     xs_total_v = tools.array_2d(info.materials, info.groups)
     xs_total_v[:,:] = xs_total[:,:]
-    tools._total_velocity(xs_total_v, velocity, 1.0, info)
+    xs_time = tools._total_velocity(xs_total_v, velocity, 1.0, info)
 
     # Combine last time step and source term
     q_star = tools.array_3d(info.cells_x, info.angles, info.groups)
@@ -270,7 +271,7 @@ cdef double[:,:] bdf2(double[:,:,:]& flux_last_1, double[:,:]& xs_total, \
         # Solve for the current time step
         mg_result = mg.multi_group(scalar_flux, xs_total_v, \
                                 xs_scatter, q_star, bc_full, \
-                                medium_map, delta_x, angle_x, angle_w, info)
+                                medium_map, delta_x, angle_x, angle_w, info, xs_time)
         scalar_flux[:,:] = mg_result[:,:]
         if flux_file is not None:
             flux_file[step] = np.asarray(scalar_flux)
@@ -282,12 +283,12 @@ cdef double[:,:] bdf2(double[:,:,:]& flux_last_1, double[:,:]& xs_total, \
         flux_last_2[:,:,:] = flux_last_1[:,:,:]
         flux_last_1[:,:,:] = mg._known_source_angular(xs_total_v, q_star, \
                                         bc_full, medium_map, \
-                                        delta_x, angle_x, angle_w, info)
+                                        delta_x, angle_x, angle_w, info, xs_time)
 
         # Create sigma_t + 3 / (2 * v * dt) (For BDF2 time steps)
         if step == 0:
             xs_total_v[:,:] = xs_total[:,:]
-            tools._total_velocity(xs_total_v, velocity, 1.5, info)
+            xs_time = tools._total_velocity(xs_total_v, velocity, 1.5, info)
 
     return scalar_flux
 
@@ -307,12 +308,12 @@ cdef double[:,:] tr_bdf2(double[:,:,:]& flux_last_ell, double[:,:]& xs_total, \
     # Create sigma_t + 2 / (gamma * v * dt) - CN Step
     xs_total_v_cn = tools.array_2d(info.materials, info.groups)
     xs_total_v_cn[:,:] = xs_total[:,:]
-    tools._total_velocity(xs_total_v_cn, velocity, 2.0 / gamma, info)
+    xs_time_cn = tools._total_velocity(xs_total_v_cn, velocity, 2.0 / gamma, info)
 
     # Create sigma_t + (2 - gamma) / ((1 - gamma) * v * dt) - BDF2 Step
     xs_total_v_bdf2 = tools.array_2d(info.materials, info.groups)
     xs_total_v_bdf2[:,:] = xs_total[:,:]
-    tools._total_velocity(xs_total_v_bdf2, velocity, \
+    xs_time_bdf2 = tools._total_velocity(xs_total_v_bdf2, velocity, \
                           (2.0 - gamma) / (1.0 - gamma), info)
 
     # Combine last time step and source term
@@ -320,7 +321,8 @@ cdef double[:,:] tr_bdf2(double[:,:,:]& flux_last_ell, double[:,:]& xs_total, \
 
     # Initialize scalar flux for previous time step
     scalar_flux_ell = tools.array_2d(info.cells_x, info.groups)
-    tools._angular_edge_to_scalar(flux_last_ell, scalar_flux_ell, angle_w, info)
+    tools._angular_edge_to_scalar(flux_last_ell, scalar_flux_ell, xs_total, \
+            medium_map, delta_x, angle_x, angle_w, info)
     scalar_flux_gamma = tools.array_2d(info.cells_x, info.groups)
 
     # Create angular flux of previous time steps
@@ -362,6 +364,7 @@ cdef double[:,:] tr_bdf2(double[:,:,:]& flux_last_ell, double[:,:]& xs_total, \
             angle_x,
             angle_w,
             info,
+            xs_time_cn,
         )
 
         # Create (sigma_s + sigma_f) * phi^{\ell} + Q*
@@ -370,13 +373,14 @@ cdef double[:,:] tr_bdf2(double[:,:,:]& flux_last_ell, double[:,:]& xs_total, \
         # Solve for angular flux of previous time step
         flux_last_gamma = mg._known_source_angular(xs_total_v_cn, q_star, \
                                         bc_full, medium_map, \
-                                        delta_x, angle_x, angle_w, info)
+                                        delta_x, angle_x, angle_w, info, xs_time_cn)
         ################################################################
         # BDF2
         ################################################################
         # Update q_star for BDF2 Step
-        tools._time_source_star_tr_bdf2(flux_last_ell, flux_last_gamma, \
-                    q_star, external[qqb], velocity, gamma, info)
+        tools._time_source_star_tr_bdf2(flux_last_ell, flux_last_gamma, q_star, \
+                    external[qqb], xs_total, medium_map, delta_x, angle_x, \
+                    velocity, gamma, info)
 
         # Solve for the \ell + 1 time step
         mg_result = mg.multi_group(
@@ -390,6 +394,7 @@ cdef double[:,:] tr_bdf2(double[:,:,:]& flux_last_ell, double[:,:]& xs_total, \
             angle_x,
             angle_w,
             info,
+            xs_time_bdf2,
         )
         scalar_flux_ell[:,:] = mg_result[:,:]
         if flux_file is not None:
@@ -401,7 +406,7 @@ cdef double[:,:] tr_bdf2(double[:,:,:]& flux_last_ell, double[:,:]& xs_total, \
         # Solve for angular flux of previous time step
         flux_last_ell[:,:,:] = mg._known_source_angular(xs_total_v_bdf2, \
                                     q_star, bca_full, medium_map, \
-                                    delta_x, angle_x, angle_w, info_edge)
+                                    delta_x, angle_x, angle_w, info_edge, xs_time_bdf2)
 
     return scalar_flux_ell
 

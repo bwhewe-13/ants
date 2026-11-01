@@ -67,6 +67,32 @@ def test_reed_bdf2(boundary):
     assert np.isclose(fixed_flux[:, 0], timed_flux[:, 0]).all(), "Incorrect Flux"
 
 
+@pytest.mark.slab1d
+@pytest.mark.parametrize(("time_disc"), [1, 2, 3, 4])
+@pytest.mark.parametrize(("spatial"), [1, 2, 3])
+def test_reed_steady_state(time_disc, spatial):
+    # Includes a void region, CN and TR-BDF2 carry the cell edges. Crank
+    # Nicolson damps slowly in the thick region
+    mat_data, sources, geometry, quadrature, solver = prob.reeds([0, 0])
+    geometry.space_disc = spatial
+    fixed_flux = fixed1d.fixed_source(mat_data, sources, geometry, quadrature, solver)
+    time_data = TimeDependentData(steps=4000, dt=1.0, time_disc=time_disc)
+    sources.external = sources.external[None, ...].copy()
+    sources.boundary_x = sources.boundary_x[None, ...].copy()
+    edges = 1 if time_disc in (2, 4) else 0
+    sources.initial_flux = np.zeros(
+        (
+            geometry.delta_x.size + edges,
+            quadrature.angle_x.size,
+            mat_data.total.shape[1],
+        )
+    )
+    timed_flux = timed1d.time_dependent(
+        mat_data, sources, geometry, quadrature, solver, time_data
+    )
+    assert np.allclose(fixed_flux[:, 0], timed_flux[:, 0], rtol=1e-8)
+
+
 @pytest.mark.sphere1d
 @pytest.mark.bdf1
 @pytest.mark.multigroup1d
