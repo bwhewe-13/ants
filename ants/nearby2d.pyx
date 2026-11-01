@@ -27,8 +27,9 @@ import numpy as np
 from tqdm.auto import tqdm
 
 from ants import critical2d, fixed2d
-from ants.datatypes import SourceData, create_params
+from ants.datatypes import Geometry, SourceData, create_params
 from ants.utils.interp2d import Interpolation
+from ants.utils.interp_polygon import PolygonInterpolation, polygon_quadrature
 from ants.utils.pytools import average_array
 
 from ants cimport cytools_2d as tools
@@ -73,6 +74,11 @@ def fixed_source(materials, sources, geometry, quadrature, solver, **kwargs):
     ----------------------------------
     ... + nearby_flux
     """
+    # Polygon meshes use polynomial curve fits
+    if geometry.geometry == Geometry.POLYGON2D:
+        return _fixed_source_polygon(materials, sources, geometry, quadrature, \
+                                     solver, kwargs)
+
     quintic = kwargs.get("quintic", True)
     scalar_residual = kwargs.get("scalar_residual", False)
     save_residual = kwargs.get("save_residual", True)
@@ -227,6 +233,11 @@ def k_criticality(materials, geometry, quadrature, solver, **kwargs):
     numerical_scalar, numerical_keff, curve_fit_scalar, curve_fit_keff,
     nearby_scalar, nearby_keff, nearby_rate
     """
+    # Polygon meshes use polynomial curve fits
+    if geometry.geometry == Geometry.POLYGON2D:
+        return _k_criticality_polygon(materials, geometry, quadrature, solver, \
+                                      kwargs)
+
     quintic = kwargs.get("quintic", True)
     scalar_residual = kwargs.get("scalar_residual", False)
     save_residual = kwargs.get("save_residual", True)
@@ -364,6 +375,241 @@ def k_criticality(materials, geometry, quadrature, solver, **kwargs):
 
     return np.asarray(numerical_scalar), numerical_keff, np.asarray(curve_fit_scalar), \
            curve_fit_keff, nearby_scalar, nearby_keff, nearby_rate
+
+
+########################################################################
+# Polygon Meshes
+#
+# The curve fit is a Legendre polynomial for each material block (see
+# ants.utils.interp_polygon). Residuals use the same functions as the
+# rectangular cells with the cell areas in place of delta_x * delta_y.
+# Curve fit boundaries are at the boundary face centers with shape
+# (1, F_b, N**2, G); boundary_y is a placeholder.
+#
+# kwargs: numerical_flux, numerical_keff, scalar_residual, return_nearby,
+# save_residual, zero_bounds, block as for rectangular cells. quintic
+# selects degree 5 (default) or 3, or set degree directly.
+########################################################################
+
+def _fixed_source_polygon(materials, sources, geometry, quadrature, solver, kwargs):
+    scalar_residual = kwargs.get("scalar_residual", False)
+    save_residual = kwargs.get("save_residual", True)
+    return_nearby = kwargs.get("return_nearby", False)
+    numerical_flux = kwargs.get("numerical_flux", None)
+    degree = kwargs.get("degree", 5 if kwargs.get("quintic", True) else 3)
+
+    # Unpack Python DataTypes to Cython memoryviews
+    cdef double[:,:] xs_total = materials.total
+    cdef double[:,:,:] xs_scatter = materials.scatter
+    cdef double[:,:,:] xs_fission = tools._fission_matrix(materials.fission, materials.chi)
+    cdef double[:,:,:,:] external = sources.external
+    cdef int[:,:] medium_map = geometry.medium_map
+    cdef double[:] angle_x = quadrature.angle_x
+    cdef double[:] angle_y = quadrature.angle_y
+    cdef double[:] angle_w = quadrature.angle_w
+
+    # Cell areas in place of delta_x * delta_y
+    cdef double[:] cell_area = geometry.mesh.cell_area
+    cdef double[:] unit_y = np.ones((1,))
+
+    # Convert ProblemParameters to type params
+    params = create_params(materials, quadrature, geometry, solver)
+    info = parameters._to_params(params)
+    parameters._check_nearby2d_fixed_source(info, xs_total.shape[0])
+    block = False if (info.materials == 1) else kwargs.get("block", True)
+
+    # Angular directions
+    cdef int NN = info.angles * info.angles
+
+    # --- Numerical flux ---
+    logger.info("Calculating Numerical Solution...")
+    angular_solver = replace(solver, angular=True, flux_at_edges=0)
+    if numerical_flux is None:
+        numerical_flux = fixed2d.fixed_source(materials, sources, geometry,
+                                              quadrature, angular_solver)
+    elif np.asarray(numerical_flux).ndim == 3:
+        angular_params = create_params(materials, quadrature, geometry, angular_solver)
+        xs_matrix = np.asarray(xs_scatter) + np.asarray(xs_fission)
+        numerical_flux = fixed2d.known_flux(numerical_flux, xs_total, xs_matrix,
+                                            sources.external, sources.boundary_x,
+                                            sources.boundary_y, geometry, quadrature,
+                                            angular_params)
+
+    # --- Curve fit + residual ---
+    logger.info("Calculating Angular Curve Fit Solution...")
+    curve_fit_flux, curve_fit_boundary_x, int_angular, int_dx_angular, \
+        int_dy_angular, int_scalar = _angular_curve_fit_polygon(numerical_flux,
+                geometry.mesh, medium_map, angle_w, block, degree, info)
+    curve_fit_boundary_y = np.zeros((1, 1, 1, 1))
+
+    logger.info("Calculating Angular Residual...")
+    residual = tools.array_4d(info.cells_x, info.cells_y, NN, info.groups)
+    _angular_residual(residual, int_angular, int_dx_angular, int_dy_angular,
+            int_scalar, xs_total, xs_scatter, xs_fission, external,
+            medium_map, cell_area, unit_y, angle_x, angle_y, info)
+    residual = np.asarray(residual)
+
+    if scalar_residual:
+        residual = np.einsum("cjng,n->cjg", residual, angle_w)
+        curve_fit_boundary_x = np.einsum("sbng,n->sbg", curve_fit_boundary_x, angle_w)
+        curve_fit_boundary_y = np.zeros((1, 1, 1))
+
+    if save_residual:
+        fangles = str(info.angles).zfill(2)
+        fcells = str(info.cells_x).zfill(3)
+        np.save(f"nearby_residual_x{fcells}_n{fangles}.npy", residual)
+        np.save(f"nearby_boundary_x_x{fcells}_n{fangles}.npy", curve_fit_boundary_x)
+
+    if not return_nearby:
+        return numerical_flux, curve_fit_flux, curve_fit_boundary_x, \
+               curve_fit_boundary_y, residual
+
+    # --- Nearby solve ---
+    logger.info("Calculating Nearby Solution...")
+    if kwargs.get("zero_bounds", False):
+        logger.info("Removing Curve Fit Boundary Conditions...")
+        nearby_boundary_x = np.asarray(sources.boundary_x).copy()
+    elif scalar_residual:
+        nearby_boundary_x = curve_fit_boundary_x[:,:,None,:]
+    else:
+        nearby_boundary_x = curve_fit_boundary_x
+
+    nearby_residual = residual[:,:,None,:] if scalar_residual else residual
+    nearby_sources = SourceData(
+        np.asarray(sources.external) + nearby_residual,
+        nearby_boundary_x,
+        np.zeros((1, 1, 1, 1)),
+    )
+    scalar_solver = replace(solver, angular=False, flux_at_edges=0)
+    nearby_flux = fixed2d.fixed_source(materials, nearby_sources, geometry,
+                                       quadrature, scalar_solver)
+
+    return numerical_flux, curve_fit_flux, curve_fit_boundary_x, \
+           curve_fit_boundary_y, residual, nearby_flux
+
+
+def _k_criticality_polygon(materials, geometry, quadrature, solver, kwargs):
+    save_residual = kwargs.get("save_residual", True)
+    numerical_flux = kwargs.get("numerical_flux", None)
+    numerical_keff = kwargs.get("numerical_keff", None)
+    degree = kwargs.get("degree", 5 if kwargs.get("quintic", True) else 3)
+
+    # Unpack Python DataTypes to Cython memoryviews
+    cdef double[:,:] xs_total = materials.total
+    cdef double[:,:,:] xs_scatter = materials.scatter
+    cdef double[:,:,:] xs_fission = tools._fission_matrix(materials.fission, materials.chi)
+    cdef int[:,:] medium_map = geometry.medium_map
+    cdef double[:] angle_x = quadrature.angle_x
+    cdef double[:] angle_y = quadrature.angle_y
+    cdef double[:] angle_w = quadrature.angle_w
+
+    # Cell areas in place of delta_x * delta_y
+    cdef double[:] cell_area = geometry.mesh.cell_area
+    cdef double[:] unit_y = np.ones((1,))
+
+    # Convert ProblemParameters to type params
+    params = create_params(materials, quadrature, geometry, solver)
+    info = parameters._to_params(params)
+    parameters._check_nearby2d_criticality(info)
+    block = False if (info.materials == 1) else kwargs.get("block", True)
+
+    # Angular directions
+    cdef int NN = info.angles * info.angles
+
+    # --- Numerical flux + keff ---
+    logger.info("Calculating Numerical Solution...")
+    angular_solver = replace(solver, angular=True, flux_at_edges=0)
+    angular_params = create_params(materials, quadrature, geometry, angular_solver)
+
+    if numerical_flux is None:
+        scalar_solver = replace(solver, angular=False, flux_at_edges=0)
+        scalar_flux, numerical_keff = critical2d.k_criticality(materials, geometry,
+                                                               quadrature, scalar_solver)
+        numerical_flux = critical2d.known_flux(scalar_flux, numerical_keff, materials,
+                                               geometry, quadrature, angular_params)
+    elif np.asarray(numerical_flux).ndim == 3:
+        numerical_flux = critical2d.known_flux(numerical_flux, numerical_keff, materials,
+                                               geometry, quadrature, angular_params)
+
+    logger.info("Calculating Angular Curve Fit Solution...")
+    curve_fit_scalar, _, int_angular, int_dx_angular, int_dy_angular, \
+        int_scalar = _angular_curve_fit_polygon(numerical_flux, geometry.mesh,
+                medium_map, angle_w, block, degree, info)
+
+    # Curve-fit keff and nearby reaction rate
+    fission_source = tools.array_3d(info.cells_x, info.cells_y, info.groups)
+    nearby_rate, curve_fit_keff = _angular_curve_fit_source(int_angular,
+                            int_dx_angular, int_dy_angular, int_scalar,
+                            xs_total, xs_scatter, xs_fission, fission_source,
+                            medium_map, cell_area, unit_y, angle_x, angle_y,
+                            angle_w, info)
+
+    logger.info("Calculating Residual...")
+    angular_residual = tools.array_4d(info.cells_x, info.cells_y, NN, info.groups)
+    _angular_residual_critical(angular_residual, int_angular, int_dx_angular,
+            int_dy_angular, int_scalar, xs_total, xs_scatter, fission_source,
+            medium_map, angle_x, angle_y, curve_fit_keff, info)
+
+    if save_residual:
+        fangles = str(info.angles).zfill(2)
+        fcells = str(info.cells_x).zfill(3)
+        np.save(f"nearby_residual_x{fcells}_n{fangles}.npy", np.asarray(angular_residual))
+
+    logger.info("Calculating Nearby Solution...")
+    scalar_residual_arr = tools.array_4d(info.cells_x, info.cells_y, 1, info.groups)
+    tools._nearby_angular_to_scalar(angular_residual, scalar_residual_arr, angle_w, info)
+
+    nearby_scalar, nearby_keff = critical2d.nearby_power_iteration(
+                        scalar_residual_arr, nearby_rate, materials, geometry,
+                        quadrature, solver)
+
+    numerical_scalar = tools.array_3d(info.cells_x, info.cells_y, info.groups)
+    tools._angular_to_scalar(numerical_flux, numerical_scalar, angle_w, info)
+
+    return np.asarray(numerical_scalar), numerical_keff, curve_fit_scalar, \
+           curve_fit_keff, nearby_scalar, nearby_keff, nearby_rate
+
+
+cdef object _angular_curve_fit_polygon(object flux, object mesh, int[:,:]& medium_map, \
+        double[:]& angle_w, bint block, int degree, params info):
+    # Initialize angle and group
+    cdef int nn, gg
+    cdef int NN = info.angles * info.angles
+
+    flux = np.asarray(flux)
+    weights = np.asarray(angle_w)
+    curve_fit = np.zeros((info.cells_x, 1, info.groups))
+    boundary = np.zeros((1, mesh.boundary_faces.size, NN, info.groups))
+    int_angular = np.zeros((info.cells_x, 1, NN, info.groups))
+    int_dx_angular = np.zeros((info.cells_x, 1, NN, info.groups))
+    int_dy_angular = np.zeros((info.cells_x, 1, NN, info.groups))
+
+    # Quadrature points are shared between angles and groups
+    cell_quadrature = polygon_quadrature(mesh, degree)
+
+    # Iterate over groups
+    for gg in tqdm(range(info.groups), desc="Curve Fit Groups", ascii=True, position=0):
+        # Iterate over angles
+        for nn in tqdm(range(NN), desc="Curve Fit Angles", ascii=True, position=1, leave=False):
+            # Create function
+            approx = PolygonInterpolation(flux[:,0,nn,gg], mesh, np.asarray(medium_map), \
+                                          block, degree, cell_quadrature)
+
+            # Interpolate the centers and boundary faces
+            curve_fit[:,0,gg] += weights[nn] * approx.interpolate_centers()
+            boundary[0,:,nn,gg] = approx.interpolate_faces(mesh.boundary_faces)
+
+            # Calculate integrals
+            int_psi, int_dx, int_dy = approx.integrate_centers()
+            int_angular[:,0,nn,gg] = int_psi
+            int_dx_angular[:,0,nn,gg] = int_dx
+            int_dy_angular[:,0,nn,gg] = int_dy
+
+    # Populate int_scalar flux
+    int_scalar = np.einsum("cjng,n->cjg", int_angular, weights)
+
+    return curve_fit, boundary, int_angular, int_dx_angular, int_dy_angular, \
+           int_scalar
 
 
 def off_scatter_corrector(double[:,:,:]& residual, double[:,:,:]& scalar_flux, \
