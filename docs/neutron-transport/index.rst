@@ -8,5 +8,6 @@ The Neutron Transport Equation
     continuous-equation.rst
     discrete-ordinates.rst
     spatial-discretization.rst
+    polygon-meshes.rst
     temporal-discretization.rst
     neutron-data.rst

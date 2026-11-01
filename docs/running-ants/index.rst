@@ -7,5 +7,6 @@ Running ANTS
     standard-inputs.rst
     medium-map.rst
     time-dependent-inputs.rst
+    polygon-meshes.rst
     extra.rst
     examples.rst

@@ -367,3 +367,35 @@ The angular flux at the cell edges, :math:`\psi_{i+1/2,j,m}` and
 :math:`\psi_{i,j+1/2,m}`, are updated using the diamond difference Equations
 :eq:`nte-dd-2d-x` and :eq:`nte-dd-2d-y` before proceeding to the next spatial
 cell.
+
+
+Step and Step Characteristic Methods
+------------------------------------
+
+The step and step characteristic methods replace the diamond difference with a
+weighted average of the incoming and outgoing edges
+
+.. math::
+   :label: nte-weighted-1d
+
+   \psi_{i,m} = \frac{1}{2} \left(1 - W \right) \psi_{i-1/2,m} + \frac{1}{2} \left(1 + W \right) \psi_{i+1/2,m}
+
+when :math:`\mu_{m} > 0`, where :math:`W = 0` is the diamond difference,
+:math:`W = 1` is the step method, and
+
+.. math::
+
+   W = \coth\left(\frac{\tau}{2}\right) - \frac{2}{\tau}, \hspace{30pt} \tau = \frac{\sig{t} \, \Delta x_{i}}{|\mu_{m}|}
+
+is the step characteristic method, which comes from solving the transport
+equation exactly across the cell with a flat source. Inserting Equation
+:eq:`nte-weighted-1d` into the slab transport equation, the outgoing edge is
+
+.. math::
+
+   \psi_{i+1/2,m}^{\ell+1} \left( \frac{|\mu_{m}|}{\Delta x_{i}} + \alpha_{2} \sig{t} \right) = \sig{s} \phi_{i}^{\ell} + \chi \nu \sig{f} \phi_{i}^{\ell} + q_{i,m} + \psi_{i-1/2,m}^{\ell+1} \left( \frac{|\mu_{m}|}{\Delta x_{i}} - \alpha_{1} \sig{t} \right)
+
+with :math:`\alpha_{1} = (1 - W) / 2` and :math:`\alpha_{2} = (1 + W) / 2`. In two
+dimensions, the weight is applied separately in :math:`x` and :math:`y`. The same
+weighted closure is used on :ref:`polygon meshes <sec-nte-polygon>`, where it is
+written in terms of the cell and face fluxes.

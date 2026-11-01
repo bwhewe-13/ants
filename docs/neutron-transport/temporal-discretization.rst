@@ -130,6 +130,13 @@ This results in
 which can be used with Equation :eq:`nte-spatial` for the second order accurate
 Crank-Nicolson temporal discretization method.
 
+The streaming term :math:`\bsOmega \cdot \nabla \psi^{n}` is found from the
+angular flux at the cell edges, which is kept between time steps. The cell flux
+:math:`\psi^{n}_{m}` is then found from the edges with the same closure as the
+spatial sweep (Equation :eq:`nte-weighted-1d`), so a problem with constant
+sources converges to the fixed source solution for the step, diamond difference,
+and step characteristic methods. The same is done for the TR-BDF2 scheme below.
+
 
 Second Order Backward Differentiation Formula
 ---------------------------------------------

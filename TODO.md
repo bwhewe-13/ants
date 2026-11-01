@@ -28,7 +28,7 @@
 - [ ] Add geometry support (gmsh, shapely, PyVista).
 - [ ] Add Diffusion Synthetic Acceleration.
 - [ ] Add Generalized Minimal Residual (GMRES) Acceleration.
-- [ ] Add banded triangular meshes (2D).
+- [x] Add banded triangular meshes (2D).
 - [ ] Implement discontinuous Galerkin spatial discretization (1D/2D).
 - [x] Add Step Characteristic spatial discretization support for 2D.
 - [ ] Add Neutron depletion calculations.
