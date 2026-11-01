@@ -24,7 +24,13 @@ from libc.math cimport tanh
 from cython.parallel import prange, threadid
 
 from ants cimport cytools_2d as tools
+from ants.cytools_polygon cimport PolygonSweep
 from ants.parameters cimport params
+from ants.spatial_sweep_polygon cimport (
+    _known_polygon,
+    _known_polygon_interface,
+    polygon_ordinates,
+)
 
 ########################################################################
 # Iterative Sweep - Square Geometry
@@ -46,13 +52,18 @@ cdef void discrete_ordinates(double[:,:]& flux, double[:,:]& flux_old,
         double[:]& xs_total, double[:]& xs_scatter, double[:,:]& off_scatter, \
         double[:,:,:]& external, double[:,:,:]& boundary_x, \
         double[:,:,:]& boundary_y, int[:,:]& medium_map, double[:]& delta_x, \
-        double[:]& delta_y, double[:]& angle_x, double[:]& angle_y, \
-        double[:]& angle_w, params info):
+        double[:]& delta_y, PolygonSweep mesh, double[:]& angle_x, \
+        double[:]& angle_y, double[:]& angle_w, params info):
     # Rectangular spatial cells (SLAB2D = 3)
     if info.geometry == 3:
         square_ordinates(flux, flux_old, xs_total, xs_scatter, off_scatter, \
                          external, boundary_x, boundary_y, medium_map, \
                          delta_x, delta_y, angle_x, angle_y, angle_w, info)
+    # Polygon spatial cells (POLYGON2D = 4)
+    elif info.geometry == 4:
+        polygon_ordinates(flux, flux_old, xs_total, xs_scatter, off_scatter, \
+                          external, boundary_x, medium_map, mesh, angle_x, \
+                          angle_y, angle_w, info)
 
 
 cdef void square_ordinates(double[:,:]& flux, double[:,:]& flux_old, \
@@ -169,6 +180,13 @@ cdef double spatial_coef(int spatial) noexcept nogil:
     return 1.0
 
 
+cdef double characteristic_coef(double tau) noexcept nogil:
+    # coth(tau / 2) - 2 / tau, series for thin and void cells
+    if tau < 1e-4:
+        return tau / 6.0
+    return 1.0 / tanh(0.5 * tau) - 2.0 / tau
+
+
 cdef void square_forward_y(double[:,:]& flux, double[:,:]& flux_old, \
         double[:]& xs_total, double[:]& xs_scatter, double[:,:]& off_scatter, \
         double[:,:]& external, double[:]& known_x, double[:]& known_y, \
@@ -261,11 +279,11 @@ cdef double square_forward_x(double[:,:]& flux, double[:,:]& flux_old, \
 
         if info.spatial == 3:
             # coef_x and coef_y are base coefficients (alpha==1) for spatial==3
-            tau_x = xs_total[mat] / coef_x
-            W_x = 1.0 / tanh(0.5 * tau_x) - 2.0 / tau_x
+            tau_x = (xs_total[mat] - info.xs_time) / coef_x
+            W_x = characteristic_coef(tau_x)
             coef_x = 2.0 / (1.0 + W_x) * coef_x
-            tau_y = xs_total[mat] / coef_y
-            W_y = 1.0 / tanh(0.5 * tau_y) - 2.0 / tau_y
+            tau_y = (xs_total[mat] - info.xs_time) / coef_y
+            W_y = characteristic_coef(tau_y)
             coef_y_eff = 2.0 / (1.0 + W_y) * coef_y
         else:
             W_x = alpha
@@ -312,11 +330,11 @@ cdef double square_backward_x(double[:,:]& flux, double[:,:]& flux_old, \
 
         if info.spatial == 3:
             # coef_x = -angle_x/dx > 0 (angle_x < 0 in backward); coef_y is base
-            tau_x = xs_total[mat] / coef_x
-            W_x = 1.0 / tanh(0.5 * tau_x) - 2.0 / tau_x
+            tau_x = (xs_total[mat] - info.xs_time) / coef_x
+            W_x = characteristic_coef(tau_x)
             coef_x = 2.0 / (1.0 + W_x) * coef_x
-            tau_y = xs_total[mat] / coef_y
-            W_y = 1.0 / tanh(0.5 * tau_y) - 2.0 / tau_y
+            tau_y = (xs_total[mat] - info.xs_time) / coef_y
+            W_y = characteristic_coef(tau_y)
             coef_y_eff = 2.0 / (1.0 + W_y) * coef_y
         else:
             W_x = alpha
@@ -349,8 +367,13 @@ cdef void _known_center_sweep(double[:,:,:]& flux, double[:]& xs_total, \
         double[:,:]& zero_2d, double[:,:,:]& source, \
         double[:,:,:]& boundary_x, double[:,:,:]& boundary_y, \
         int[:,:]& medium_map, double[:]& delta_x, double[:]& delta_y, \
-        double[:]& angle_x, double[:]& angle_y, double[:]& angle_w, \
-        params info):
+        PolygonSweep mesh, double[:]& angle_x, double[:]& angle_y, \
+        double[:]& angle_w, params info):
+    # Polygon spatial cells
+    if info.geometry == 4:
+        _known_polygon(flux, xs_total, zero_2d, source, boundary_x, \
+                       medium_map, mesh, angle_x, angle_y, angle_w, info)
+        return
     # Rectangular spatial cells
     _known_square(flux, xs_total, zero_2d, source, boundary_x, \
                   boundary_y, medium_map, delta_x, delta_y, angle_x, \
@@ -413,8 +436,16 @@ cdef void _known_interface_sweep(double[:,:,:]& flux_edge_x, \
         double[:,:,:]& flux_edge_y, double[:]& xs_total, \
         double[:,:,:]& source, double[:,:,:]& boundary_x, \
         double[:,:,:]& boundary_y, int[:,:]& medium_map, \
-        double[:]& delta_x, double[:]& delta_y, double[:]& angle_x, \
-        double[:]& angle_y, double[:]& angle_w, params info):
+        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, \
+        double[:]& angle_x, double[:]& angle_y, double[:]& angle_w, \
+        params info):
+
+    # Polygon spatial cells - face fluxes in flux_edge_x, centers in flux_edge_y
+    if info.geometry == 4:
+        _known_polygon_interface(flux_edge_x, flux_edge_y, xs_total, source, \
+                    boundary_x, medium_map, mesh, angle_x, angle_y, angle_w, \
+                    info)
+        return
 
     # Initialize indices etc
     cdef int nn, qq, bcx, bcy
@@ -571,11 +602,11 @@ cdef double interface_forward_x(double[:]& flux_edge_x, double[:]& flux_edge_y, 
         coef_x = (alpha_x * angle_x / delta_x[ii])
 
         if info.spatial == 3:
-            tau_x = xs_total[mat] / coef_x
-            W_x = 1.0 / tanh(0.5 * tau_x) - 2.0 / tau_x
+            tau_x = (xs_total[mat] - info.xs_time) / coef_x
+            W_x = characteristic_coef(tau_x)
             coef_x = 2.0 / (1.0 + W_x) * coef_x
-            tau_y = xs_total[mat] / coef_y
-            W_y = 1.0 / tanh(0.5 * tau_y) - 2.0 / tau_y
+            tau_y = (xs_total[mat] - info.xs_time) / coef_y
+            W_y = characteristic_coef(tau_y)
             coef_y_eff = 2.0 / (1.0 + W_y) * coef_y
         else:
             W_x = alpha
@@ -624,11 +655,11 @@ cdef double interface_backward_x(double[:]& flux_edge_x, double[:]& flux_edge_y,
         coef_x = (-alpha_x * angle_x / delta_x[ii])
 
         if info.spatial == 3:
-            tau_x = xs_total[mat] / coef_x
-            W_x = 1.0 / tanh(0.5 * tau_x) - 2.0 / tau_x
+            tau_x = (xs_total[mat] - info.xs_time) / coef_x
+            W_x = characteristic_coef(tau_x)
             coef_x = 2.0 / (1.0 + W_x) * coef_x
-            tau_y = xs_total[mat] / coef_y
-            W_y = 1.0 / tanh(0.5 * tau_y) - 2.0 / tau_y
+            tau_y = (xs_total[mat] - info.xs_time) / coef_y
+            W_y = characteristic_coef(tau_y)
             coef_y_eff = 2.0 / (1.0 + W_y) * coef_y
         else:
             W_x = alpha

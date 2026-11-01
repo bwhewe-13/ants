@@ -19,6 +19,7 @@
 # distutils: language = c++
 # distutils: extra_compile_args = -O3 -march=native -ffast-math
 
+from ants.cytools_polygon cimport PolygonSweep
 from ants.parameters cimport params
 
 
@@ -82,7 +83,14 @@ cdef void _angular_to_scalar(double[:,:,:,:]& angular_flux, \
         double[:,:,:]& scalar_flux, double[:]& angle_w, params info)
 
 cdef void _angular_edge_to_scalar(double[:,:,:,:]& psi_x, double[:,:,:,:]& psi_y, \
-        double[:,:,:]& scalar_flux, double[:]& angle_w, params info)
+        double[:,:,:]& scalar_flux, double[:,:]& xs_total, int[:,:]& medium_map, \
+        double[:]& delta_x, double[:]& delta_y, double[:]& angle_x, \
+        double[:]& angle_y, double[:]& angle_w, params info)
+
+cdef double _edge_center_xy(double[:,:,:,:]& psi_x, double[:,:,:,:]& psi_y, \
+        double xs_total, double[:]& delta_x, double[:]& delta_y, \
+        double[:]& angle_x, double[:]& angle_y, int ii, int jj, int nn, \
+        int gg, params info)
 
 cdef void initialize_known_y(double[:]& known_y, double[:,:]& boundary_y, \
         double[:,:,:]& reflected_y, double[:]& angle_y, int angle, params info)
@@ -97,7 +105,7 @@ cdef void update_reflector(double[:]& known_x, double[:,:,:]& reflected_x, \
 ################################################################################
 # Time Dependent functions
 ################################################################################
-cdef void _total_velocity(double[:,:]& xs_total, double[:]& velocity, \
+cdef double[:] _total_velocity(double[:,:]& xs_total, double[:]& velocity, \
         double constant, params info)
 
 cdef void _time_source_star_bdf1(double[:,:,:,:]& flux, \
@@ -113,7 +121,8 @@ cdef void _time_source_star_cn(double[:,:,:,:]& psi_x, double[:,:,:,:]& psi_y, \
         double[:]& velocity, double[:,:,:,:]& q_star, \
         double[:,:,:,:]& external_prev, double[:,:,:,:]& external, \
         int[:,:]& medium_map, double[:]& delta_x, double[:]& delta_y, \
-        double[:]& angle_x, double[:]& angle_y, double constant, params info)
+        PolygonSweep mesh, double[:]& angle_x, double[:]& angle_y, \
+        double constant, params info)
 
 cdef void _time_source_star_bdf2(double[:,:,:,:]& flux_1, \
         double[:,:,:,:]& flux_2, double[:,:,:,:]& q_star, \
@@ -127,17 +136,21 @@ cdef void _time_source_total_bdf2(double[:,:,:]& scalar, \
 cdef void _time_source_star_tr_bdf2(double[:,:,:,:]& psi_x, \
         double[:,:,:,:]& psi_y, double[:,:,:,:]& flux_2, \
         double[:,:,:,:]& q_star, double[:,:,:,:]& external, \
+        double[:,:]& xs_total, int[:,:]& medium_map, double[:]& delta_x, \
+        double[:]& delta_y, double[:]& angle_x, double[:]& angle_y, \
         double[:]& velocity, double gamma, params info)
 
 cdef void _time_source_star_tr_bdf2_mem(double[:,:,:,:]& psi_x, double[:,:,:,:]& psi_y, \
-        double[:,:,:,:]& flux_2, double[:,:,:,:]& external, double[:]& velocity, \
+        double[:,:,:,:]& flux_2, double[:,:,:,:]& external, double[:,:]& xs_total, \
+        int[:,:]& medium_map, double[:]& delta_x, double[:]& delta_y, \
+        double[:]& angle_x, double[:]& angle_y, double[:]& velocity, \
         double gamma, params info)
 
 cdef void _time_right_side(double[:,:,:,:]& q_star, double[:,:,:]& flux, \
         double[:,:,:]& xs_scatter, int[:,:]& medium_map, params info)
 
 cdef double[:,:,:,:] _expand_boundary_x(double[:,:,:,:]& half_bc, \
-        double[:]& angle_x, params info)
+        PolygonSweep mesh, double[:]& angle_x, double[:]& angle_y, params info)
 
 cdef double[:,:,:,:] _expand_boundary_y(double[:,:,:,:]& half_bc, \
         double[:]& angle_y, params info)

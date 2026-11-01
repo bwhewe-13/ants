@@ -1,0 +1,43 @@
+########################################################################
+#                        ___    _   _____________
+#                       /   |  / | / /_  __/ ___/
+#                      / /| | /  |/ / / /  \__ \
+#                     / ___ |/ /|  / / /  ___/ /
+#                    /_/  |_/_/ |_/ /_/  /____/
+#
+# Header file for spatial_sweep_polygon.pyx
+#
+########################################################################
+
+# cython: boundscheck=False
+# cython: nonecheck=False
+# cython: wraparound=False
+# cython: infertypes=False
+# cython: initializedcheck=False
+# cython: cdivision=True
+# cython: profile=False
+# distutils: language = c++
+# distutils: extra_compile_args = -O3 -march=native -ffast-math
+
+from ants.cytools_polygon cimport PolygonSweep
+from ants.parameters cimport params
+
+
+cdef void polygon_ordinates(double[:,:]& flux, double[:,:]& flux_old, \
+        double[:]& xs_total, double[:]& xs_scatter, double[:,:]& off_scatter, \
+        double[:,:,:]& external, double[:,:,:]& boundary, \
+        int[:,:]& medium_map, PolygonSweep mesh, double[:]& angle_x, \
+        double[:]& angle_y, double[:]& angle_w, params info)
+
+
+cdef void _known_polygon(double[:,:,:]& flux, double[:]& xs_total, \
+        double[:,:]& zero_2d, double[:,:,:]& source, double[:,:,:]& boundary, \
+        int[:,:]& medium_map, PolygonSweep mesh, double[:]& angle_x, \
+        double[:]& angle_y, double[:]& angle_w, params info)
+
+
+cdef void _known_polygon_interface(double[:,:,:]& flux_face, \
+        double[:,:,:]& flux_center, double[:]& xs_total, double[:,:,:]& source, \
+        double[:,:,:]& boundary, int[:,:]& medium_map, PolygonSweep mesh, \
+        double[:]& angle_x, double[:]& angle_y, double[:]& angle_w, \
+        params info)

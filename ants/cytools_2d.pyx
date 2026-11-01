@@ -21,8 +21,11 @@
 # distutils: extra_compile_args = -O3 -march=native -ffast-math
 
 from cython.parallel import prange
+
 from cython.view cimport array as cvarray
 
+from ants.cytools_1d cimport _edge_center
+from ants.cytools_polygon cimport _expand_boundary_polygon, _time_source_star_cn_polygon
 from ants.cytools_shared cimport _fission_matrix as _shared_fission_matrix
 from ants.cytools_shared cimport _normalize_flux as _shared_normalize_flux
 from ants.cytools_shared cimport _total_velocity as _shared_total_velocity
@@ -240,19 +243,38 @@ cdef void _angular_to_scalar(double[:,:,:,:]& angular_flux, \
 
 
 cdef void _angular_edge_to_scalar(double[:,:,:,:]& psi_x, double[:,:,:,:]& psi_y, \
-        double[:,:,:]& scalar_flux, double[:]& angle_w, params info):
+        double[:,:,:]& scalar_flux, double[:,:]& xs_total, int[:,:]& medium_map, \
+        double[:]& delta_x, double[:]& delta_y, double[:]& angle_x, \
+        double[:]& angle_y, double[:]& angle_w, params info):
     # Initialize iterables
-    cdef int ii, jj, nn, gg
+    cdef int ii, jj, nn, gg, mat
+    # Polygon meshes have cell centers in psi_y
+    if info.geometry == 4:
+        _angular_to_scalar(psi_y, scalar_flux, angle_w, info)
+        return
     # Zero out scalar flux term
     scalar_flux[:,:,:] = 0.0
     # Iterate over all spatial cells, angles, energy groups
     for ii in range(info.cells_x):
         for jj in range(info.cells_y):
+            mat = medium_map[ii,jj]
             for nn in range(info.angles * info.angles):
                 for gg in range(info.groups):
-                    scalar_flux[ii,jj,gg] += 0.25 * angle_w[nn] \
-                            * (psi_x[ii,jj,nn,gg] + psi_x[ii+1,jj,nn,gg] \
-                            + psi_y[ii,jj,nn,gg] + psi_y[ii,jj+1,nn,gg])
+                    scalar_flux[ii,jj,gg] += angle_w[nn] * _edge_center_xy(psi_x, \
+                            psi_y, xs_total[mat,gg], delta_x, delta_y, angle_x, \
+                            angle_y, ii, jj, nn, gg, info)
+
+
+cdef double _edge_center_xy(double[:,:,:,:]& psi_x, double[:,:,:,:]& psi_y, \
+        double xs_total, double[:]& delta_x, double[:]& delta_y, \
+        double[:]& angle_x, double[:]& angle_y, int ii, int jj, int nn, \
+        int gg, params info):
+    # Cell center from the spatial closure in x and y, so the center
+    # matches the sweep
+    return 0.5 * (_edge_center(psi_x[ii,jj,nn,gg], psi_x[ii+1,jj,nn,gg], \
+                    xs_total, delta_x[ii], angle_x[nn], info) \
+                + _edge_center(psi_y[ii,jj,nn,gg], psi_y[ii,jj+1,nn,gg], \
+                    xs_total, delta_y[jj], angle_y[nn], info))
 
 
 cdef void initialize_known_y(double[:]& known_y, double[:,:]& boundary_y, \
@@ -329,11 +351,11 @@ cdef int _reflected_index(double[:]& angle_opp, double[:]& angle_sim, \
 # Time Dependent functions
 ################################################################################
 
-cdef void _total_velocity(double[:,:]& xs_total, double[:]& velocity, \
+cdef double[:] _total_velocity(double[:,:]& xs_total, double[:]& velocity, \
         double constant, params info):
     cdef double[:,:] _xs_total = xs_total
     cdef double[:] _velocity = velocity
-    _shared_total_velocity(_xs_total, _velocity, constant, info)
+    return _shared_total_velocity(_xs_total, _velocity, constant, info)
 
 
 cdef void _time_source_star_bdf1(double[:,:,:,:]& flux, \
@@ -398,7 +420,8 @@ cdef void _time_source_star_cn(double[:,:,:,:]& psi_x, double[:,:,:,:]& psi_y, \
         double[:]& velocity, double[:,:,:,:]& q_star, \
         double[:,:,:,:]& external_prev, double[:,:,:,:]& external, \
         int[:,:]& medium_map, double[:]& delta_x, double[:]& delta_y, \
-        double[:]& angle_x, double[:]& angle_y, double constant, params info):
+        PolygonSweep mesh, double[:]& angle_x, double[:]& angle_y, \
+        double constant, params info):
 
     # Combining the source (I x N x G) with the angular flux (I x N x G)
     # external_prev is time step \ell, source is time step \ell + 1
@@ -409,6 +432,13 @@ cdef void _time_source_star_cn(double[:,:,:,:]& psi_x, double[:,:,:,:]& psi_y, \
 
     # Initialize angular flux center estimates
     cdef double psi, dpsi_x, dpsi_y
+
+    # Polygon meshes have face fluxes in psi_x and cell centers in psi_y
+    if info.geometry == 4:
+        _time_source_star_cn_polygon(psi_x, psi_y, phi, xs_total, xs_scatter, \
+                velocity, q_star, external_prev, external, medium_map, mesh, \
+                angle_x, angle_y, constant, info)
+        return
 
     # Zero out previous values
     q_star[:,:,:,:] = 0.0
@@ -426,8 +456,8 @@ cdef void _time_source_star_cn(double[:,:,:,:]& psi_x, double[:,:,:,:]& psi_y, \
                 for nn in range(info.angles * info.angles):
                     nn_q = 0 if external.shape[2] == 1 else nn
                     # Calculate angular flux center
-                    psi = 0.25 * (psi_x[ii,jj,nn,og] + psi_x[ii+1,jj,nn,og] \
-                               + psi_y[ii,jj,nn,og] + psi_y[ii,jj+1,nn,og])
+                    psi = _edge_center_xy(psi_x, psi_y, xs_total[mat,og], \
+                            delta_x, delta_y, angle_x, angle_y, ii, jj, nn, og, info)
                     # Calculate cell flux derivative
                     dpsi_x = (psi_x[ii+1,jj,nn,og] - psi_x[ii,jj,nn,og]) / delta_x[ii]
                     dpsi_y = (psi_y[ii,jj+1,nn,og] - psi_y[ii,jj,nn,og]) / delta_y[jj]
@@ -500,6 +530,8 @@ cdef void _time_source_total_bdf2(double[:,:,:]& scalar, \
 cdef void _time_source_star_tr_bdf2(double[:,:,:,:]& psi_x, \
         double[:,:,:,:]& psi_y, double[:,:,:,:]& flux_2, \
         double[:,:,:,:]& q_star, double[:,:,:,:]& external, \
+        double[:,:]& xs_total, int[:,:]& medium_map, double[:]& delta_x, \
+        double[:]& delta_y, double[:]& angle_x, double[:]& angle_y, \
         double[:]& velocity, double gamma, params info):
     # Combining the source (I x J x N^2 x G) with the angular flux (I x J x N^2 x G)
     # psi_x is time step \ell (edges), flux_2 is time step \ell + gamma (centers)
@@ -526,8 +558,13 @@ cdef void _time_source_star_tr_bdf2(double[:,:,:,:]& psi_x, \
                     # loc = gg + info.groups * (nn + info.angles * info.angles \
                     #         * (jj + ii * info.cells_y))
 
-                    psi = 0.25 * (psi_x[ii,jj,nn,gg] + psi_x[ii+1,jj,nn,gg] \
-                               + psi_y[ii,jj,nn,gg] + psi_y[ii,jj+1,nn,gg])
+                    # Polygon meshes have cell centers in psi_y
+                    if info.geometry == 4:
+                        psi = psi_y[ii,jj,nn,gg]
+                    else:
+                        psi = _edge_center_xy(psi_x, psi_y, \
+                                xs_total[medium_map[ii,jj],gg], delta_x, delta_y, \
+                                angle_x, angle_y, ii, jj, nn, gg, info)
 
                     q_star[ii,jj,nn,gg] = external[ii,jj,nn_q,gg_q] \
                             + flux_2[ii,jj,nn,gg] * 1 / (gamma * (1 - gamma) \
@@ -535,7 +572,9 @@ cdef void _time_source_star_tr_bdf2(double[:,:,:,:]& psi_x, \
                             - psi * (1 - gamma) / (gamma * velocity[gg] * info.dt)
 
 cdef void _time_source_star_tr_bdf2_mem(double[:,:,:,:]& psi_x, double[:,:,:,:]& psi_y, \
-        double[:,:,:,:]& flux_2, double[:,:,:,:]& external, double[:]& velocity, \
+        double[:,:,:,:]& flux_2, double[:,:,:,:]& external, double[:,:]& xs_total, \
+        int[:,:]& medium_map, double[:]& delta_x, double[:]& delta_y, \
+        double[:]& angle_x, double[:]& angle_y, double[:]& velocity, \
         double gamma, params info):
     # Combining the source (I x J x N^2 x G) with the angular flux (I x J x N^2 x G)
     # psi_x is time step \ell (edges), flux_2 is time step \ell + gamma (centers)
@@ -559,8 +598,13 @@ cdef void _time_source_star_tr_bdf2_mem(double[:,:,:,:]& psi_x, double[:,:,:,:]&
 
             for ii in range(info.cells_x):
                 for jj in range(info.cells_y):
-                    psi = 0.25 * (psi_x[ii,jj,nn,gg] + psi_x[ii+1,jj,nn,gg] \
-                               + psi_y[ii,jj,nn,gg] + psi_y[ii,jj+1,nn,gg])
+                    # Polygon meshes have cell centers in psi_y
+                    if info.geometry == 4:
+                        psi = psi_y[ii,jj,nn,gg]
+                    else:
+                        psi = _edge_center_xy(psi_x, psi_y, \
+                                xs_total[medium_map[ii,jj],gg], delta_x, delta_y, \
+                                angle_x, angle_y, ii, jj, nn, gg, info)
 
                     flux_2[ii,jj,nn,gg] = flux_2[ii,jj,nn,gg] * gamma_vel_01 \
                                     + external[ii,jj,nn_q,gg_q] - psi * gamma_vel_02
@@ -1178,7 +1222,7 @@ cdef void _vhybrid_source_total(double[:,:,:]& flux_u, double[:,:,:]& flux_c, \
 ################################################################################
 
 cdef double[:,:,:,:] _expand_boundary_x(double[:,:,:,:]& half_bc,
-        double[:]& angle_x, params info):
+        PolygonSweep mesh, double[:]& angle_x, double[:]& angle_y, params info):
     # Expand a half-angle (or broadcast) x-boundary array into a full-angle
     # x-boundary array with shape (2, cells_y, angles**2, groups).
     #
@@ -1190,6 +1234,10 @@ cdef double[:,:,:,:] _expand_boundary_x(double[:,:,:,:]& half_bc,
     #                             angle (angle_x > 0), in traversal order
     #   half_bc[1, jj, ii, gg] = right boundary for y-cell jj, ii-th incoming
     #                             angle (angle_x < 0), in traversal order
+    #
+    # Polygon meshes keep every boundary face in half_bc[0]
+    if info.geometry == 4:
+        return _expand_boundary_polygon(half_bc, mesh, angle_x, angle_y, info)
     cdef int N2 = info.angles * info.angles
     full_bc = array_4d(2, info.cells_y, N2, info.groups)
     cdef int nn, jj, gg, ii_pos, ii_neg
@@ -1227,6 +1275,10 @@ cdef double[:,:,:,:] _expand_boundary_y(double[:,:,:,:]& half_bc,
     #                             angle (angle_y > 0), in traversal order
     #   half_bc[1, ii, jj, gg] = top    boundary for x-cell ii, jj-th incoming
     #                             angle (angle_y < 0), in traversal order
+    #
+    # Polygon meshes have no y boundary
+    if info.geometry == 4:
+        return array_4d(1, 1, 1, 1)
     cdef int N2 = info.angles * info.angles
     full_bc = array_4d(2, info.cells_x, N2, info.groups)
     cdef int nn, ii, gg, ii_pos, ii_neg
