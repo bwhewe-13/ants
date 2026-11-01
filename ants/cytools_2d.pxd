@@ -250,3 +250,83 @@ cdef void _variable_off_scatter(double[:,:,:]& flux, double[:,:,:]& flux_old, \
 cdef void _vhybrid_source_total(double[:,:,:]& flux_u, double[:,:,:]& flux_c, \
         double[:,:,:]& xs_matrix_u, double[:,:,:,:]& source, int[:,:]& medium_map, \
         double[:]& edges_g, int[:]& edges_gidx_c, params info_u, params info_c)
+
+########################################################################
+# Anisotropic Scattering (spherical harmonic moments)
+########################################################################
+
+cdef void _xs_matrix_aniso(double[:,:,:,:]& mat1, double[:,:,:,:]& mat2, \
+        double[:,:,:]& mat3, params info)
+
+cdef void _group_moments(double[:]& group_moments, double[:,:,:,:]& flux, \
+        double[:,:,:,:]& xs_matrix, int mat, int ii, int jj, int group, \
+        params info) noexcept nogil
+
+cdef void _off_scatter_moments(double[:,:,:,:]& flux, double[:,:,:,:]& flux_old, \
+        int[:,:]& medium_map, double[:,:,:,:]& xs_matrix, \
+        double[:,:,:]& off_scatter, params info, int group)
+
+cdef void _off_scatter_jacobi_moments(double[:,:,:,:]& flux_old, \
+        int[:,:]& medium_map, double[:,:,:,:]& xs_matrix, \
+        double[:,:,:,:]& off_scatter_all, params info, int group) noexcept nogil
+
+cdef void _source_total_aniso(double[:,:,:,:]& source, double[:,:,:,:]& flux, \
+        double[:,:,:,:]& xs_matrix, int[:,:]& medium_map, \
+        double[:,:,:,:]& external, double[:,:]& P_source, params info)
+
+cdef void _angular_to_moments(double[:,:,:,:]& angular_flux, \
+        double[:,:,:,:]& flux, double[:,:]& P_weights, params info)
+
+cdef void _angular_edge_to_moments(double[:,:,:,:]& psi_x, \
+        double[:,:,:,:]& psi_y, double[:,:,:,:]& flux, double[:,:]& P_weights, \
+        params info)
+
+cdef void _time_source_star_cn_aniso(double[:,:,:,:]& psi_x, \
+        double[:,:,:,:]& psi_y, double[:,:,:,:]& phi, double[:,:]& xs_total, \
+        double[:,:,:,:]& xs_scatter, double[:]& velocity, \
+        double[:,:,:,:]& q_star, double[:,:,:,:]& external_prev, \
+        double[:,:,:,:]& external, int[:,:]& medium_map, double[:]& delta_x, \
+        double[:]& delta_y, double[:]& angle_x, double[:]& angle_y, \
+        double[:,:]& P_source, double constant, params info)
+
+cdef void _time_right_side_aniso(double[:,:,:,:]& q_star, \
+        double[:,:,:,:]& flux, double[:,:,:,:]& xs_scatter, \
+        int[:,:]& medium_map, double[:,:]& P_source, params info)
+
+cdef void _normalize_moments(double[:,:,:,:]& flux, params info)
+
+cdef void _source_total_critical_aniso(double[:,:,:,:]& source, \
+        double[:,:,:,:]& flux, double[:,:,:,:]& xs_scatter, \
+        double[:,:,:]& xs_fission, int[:,:]& medium_map, double keff, \
+        double[:,:]& P_source, params info)
+
+cdef void _hybrid_source_collided_aniso(double[:,:,:,:]& flux_u, \
+        double[:,:,:,:]& xs_scatter, double[:,:,:,:]& source_c, \
+        int[:,:]& medium_map, int[:]& coarse_idx, double[:,:]& P_source_c, \
+        params info_u, params info_c)
+
+cdef void _hybrid_source_total_aniso(double[:,:,:,:]& flux_u, \
+        double[:,:,:,:]& flux_c, double[:,:,:,:]& xs_matrix, \
+        double[:,:,:,:]& source, int[:,:]& medium_map, int[:]& coarse_idx, \
+        double[:]& factor_u, double[:,:]& P_source_u, params info_u, \
+        params info_c)
+
+cdef void _vhybrid_source_c_aniso(double[:,:,:,:]& flux_u, \
+        double[:,:,:,:]& xs_scatter, double[:,:,:,:]& source_c, \
+        int[:,:]& medium_map, int[:]& edges_gidx_c, double[:,:]& P_source_c, \
+        params info_u, params info_c)
+
+cdef void _coarsen_moments(double[:,:,:,:]& flux_u, double[:,:,:,:]& flux_c, \
+        int[:]& edges_gidx_c, params info_c)
+
+cdef void _variable_off_scatter_aniso(double[:,:,:,:]& flux, \
+        double[:,:,:,:]& flux_old, int[:,:]& medium_map, \
+        double[:,:,:,:]& xs_matrix, double[:,:,:]& off_scatter, int group, \
+        double[:]& edges_g, int[:]& edges_gidx_c, int out_idx1, int out_idx2, \
+        params info)
+
+cdef void _vhybrid_source_total_aniso(double[:,:,:,:]& flux_u, \
+        double[:,:,:,:]& flux_c, double[:,:,:,:]& xs_matrix_u, \
+        double[:,:,:,:]& source, int[:,:]& medium_map, double[:]& edges_g, \
+        int[:]& edges_gidx_c, double[:,:]& P_source_u, params info_u, \
+        params info_c)

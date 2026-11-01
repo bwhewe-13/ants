@@ -162,7 +162,7 @@ class MaterialData:
         ``(materials, groups, groups)``. For anisotropic scattering, the
         Legendre moments are on a last axis, shape
         ``(materials, groups, groups, L + 1)``, without the ``(2l + 1)``
-        factor (1D only).
+        factor.
     fission : numpy.ndarray
         Fission cross section, shape ``(materials, groups)`` if ``chi`` is
         ``None``, else
@@ -448,7 +448,9 @@ class ProblemParameters:
     tol_keff : float
         k-eigenvalue convergence tolerance.
     moments : int
-        Number of Legendre scattering moments (L + 1); 1 is isotropic.
+        Number of scattering moments; 1 is isotropic. This is the number of
+        Legendre moments (L + 1) in 1D and of spherical harmonic moments,
+        (L + 1)(L + 2) / 2, in 2D.
     """
 
     cells_x: int
@@ -539,5 +541,14 @@ def create_params(materials, quadrature, geometry, solver, time=None):
         tol_angular=solver.tol_angular,
         tol_energy=solver.tol_energy,
         tol_keff=solver.tol_keff,
-        moments=materials.scatter.shape[3] if materials.scatter.ndim == 4 else 1,
+        moments=_scatter_moments(materials.scatter, quadrature),
     )
+
+
+def _scatter_moments(scatter, quadrature):
+    # Legendre moments in 1D, spherical harmonic moments in 2D
+    if scatter.ndim != 4:
+        return 1
+    if quadrature.angle_y is None:
+        return scatter.shape[3]
+    return scatter.shape[3] * (scatter.shape[3] + 1) // 2

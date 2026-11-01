@@ -650,3 +650,133 @@ cdef double interface_backward_x(double[:]& flux_edge_x, double[:]& flux_edge_y,
         flux_edge_x[ii] += angle_w * edge_x
 
     return edge_x
+
+
+########################################################################
+# Anisotropic Scattering (spherical harmonic moments)
+########################################################################
+# flux and flux_old are (cells_x, cells_y, moments), xs_scatter is the
+# within-group (materials, moments) and off_scatter is the off-group
+# (cells_x, cells_y, moments). Each ordinate builds its scattering source
+# and reuses the isotropic sweep with zero scattering, then adds
+# w_n Y_k(Omega_n) psi_n to the moments.
+
+cdef void discrete_ordinates_aniso(double[:,:,:]& flux, \
+        double[:,:,:]& flux_old, double[:]& xs_total, \
+        double[:,:]& xs_scatter, double[:,:,:]& off_scatter, \
+        double[:,:,:]& external, double[:,:,:]& boundary_x, \
+        double[:,:,:]& boundary_y, int[:,:]& medium_map, double[:]& delta_x, \
+        double[:]& delta_y, double[:]& angle_x, double[:]& angle_y, \
+        double[:]& angle_w, double[:,:]& P_source, double[:,:]& P_weights, \
+        params info):
+    # Rectangular spatial cells (SLAB2D = 3)
+    if info.geometry == 3:
+        square_ordinates_aniso(flux, flux_old, xs_total, xs_scatter, \
+                off_scatter, external, boundary_x, boundary_y, medium_map, \
+                delta_x, delta_y, angle_x, angle_y, angle_w, P_source, \
+                P_weights, info)
+
+
+cdef void _angle_source(double[:,:]& source, double[:,:,:]& flux_old, \
+        double[:,:]& xs_scatter, double[:,:,:]& off_scatter, \
+        double[:,:]& external, int[:,:]& medium_map, double[:]& P_source, \
+        params info) noexcept nogil:
+    # sum_k (2l + 1) Y_k(Omega) (sigma_l * phi_k + off_k) + external
+    cdef int ii, jj, kk, mat
+    cdef double one_angle
+    for ii in range(info.cells_x):
+        for jj in range(info.cells_y):
+            mat = medium_map[ii,jj]
+            one_angle = external[ii,jj]
+            for kk in range(info.moments):
+                one_angle += P_source[kk] * (xs_scatter[mat,kk] \
+                            * flux_old[ii,jj,kk] + off_scatter[ii,jj,kk])
+            source[ii,jj] = one_angle
+
+
+cdef void _project_moments(double[:,:,:]& flux, double[:,:]& psi, \
+        double[:]& P_weights, params info) noexcept nogil:
+    # Add w_n Y_k(Omega_n) psi_n to the moments and reset psi for the next angle
+    cdef int ii, jj, kk
+    for ii in range(info.cells_x):
+        for jj in range(info.cells_y):
+            for kk in range(info.moments):
+                flux[ii,jj,kk] += P_weights[kk] * psi[ii,jj]
+            psi[ii,jj] = 0.0
+
+
+cdef void square_ordinates_aniso(double[:,:,:]& flux, \
+        double[:,:,:]& flux_old, double[:]& xs_total, \
+        double[:,:]& xs_scatter, double[:,:,:]& off_scatter, \
+        double[:,:,:]& external, double[:,:,:]& boundary_x, \
+        double[:,:,:]& boundary_y, int[:,:]& medium_map, double[:]& delta_x, \
+        double[:]& delta_y, double[:]& angle_x, double[:]& angle_y, \
+        double[:]& angle_w, double[:,:]& P_source, double[:,:]& P_weights, \
+        params info):
+
+    cdef int nn, ii, jj, kk, qq, bcx, bcy, tid
+    cdef int N2 = info.angles * info.angles
+
+    # Per-thread angular flux, source, and moment buffers
+    thread_psi = tools.array_3d(info.num_threads, info.cells_x, info.cells_y)
+    thread_source = tools.array_3d(info.num_threads, info.cells_x, info.cells_y)
+    thread_flux = tools.array_4d(info.num_threads, info.cells_x, info.cells_y, \
+                                 info.moments)
+
+    # Zero scattering for the isotropic sweep
+    zero_2d = tools.array_2d(info.cells_x, info.cells_y)
+    zero_xs = tools.array_1d(info.materials)
+
+    # Reflector and per-angle known-edge arrays, see square_ordinates
+    reflected_y = tools.array_3d(2, info.cells_x, N2)
+    reflected_x = tools.array_3d(2, info.cells_y, N2)
+    known_y_work = tools.array_2d(N2, info.cells_x)
+    known_x_work = tools.array_2d(N2, info.cells_y)
+
+    cdef bint converged = False
+    cdef int count = 1
+    cdef double change = 0.0
+
+    while not converged:
+
+        flux[:,:,:] = 0.0
+        thread_flux[:,:,:,:] = 0.0
+
+        # Initialize per-angle known edges from boundary/reflector arrays
+        for nn in range(N2):
+            bcx = 0 if boundary_x.shape[2] == 1 else nn
+            bcy = 0 if boundary_y.shape[2] == 1 else nn
+            tools.initialize_known_y(known_y_work[nn, :], boundary_y[:, :, bcy], \
+                                     reflected_y, angle_y, nn, info)
+            tools.initialize_known_x(known_x_work[nn, :], boundary_x[:, :, bcx], \
+                                     reflected_x, angle_x, nn, info)
+
+        # Parallel angular sweep, see square_ordinates
+        for nn in prange(N2, nogil=True, schedule="static", num_threads=info.num_threads):
+            qq = 0 if external.shape[2] == 1 else nn
+            tid = threadid()
+            _angle_source(thread_source[tid, :, :], flux_old, xs_scatter, \
+                    off_scatter, external[:, :, qq], medium_map, P_source[:, nn], info)
+            square_sweep_private(thread_psi[tid, :, :], zero_2d, xs_total, \
+                    zero_xs, zero_2d, thread_source[tid, :, :], known_x_work[nn, :], \
+                    known_y_work[nn, :], medium_map, delta_x, delta_y, angle_x[nn], \
+                    angle_y[nn], 1.0, info)
+            _project_moments(thread_flux[tid], thread_psi[tid, :, :], \
+                             P_weights[:, nn], info)
+
+        # Sequential reduction into flux moments
+        for nn in range(info.num_threads):
+            for ii in range(info.cells_x):
+                for jj in range(info.cells_y):
+                    for kk in range(info.moments):
+                        flux[ii,jj,kk] += thread_flux[nn,ii,jj,kk]
+
+        # Update reflectors from exit edges left in known_{x,y}_work
+        for nn in range(N2):
+            tools.update_reflector(known_x_work[nn, :], reflected_x, angle_x, \
+                            known_y_work[nn, :], reflected_y, angle_y, nn, info)
+
+        change = tools.angle_convergence(flux[:,:,0], flux_old[:,:,0], info)
+        converged = (change < info.tol_angular) or (count >= info.max_iter_angular)
+        count += 1
+        flux_old[:,:,:] = flux[:,:,:]

@@ -43,8 +43,11 @@ _QUADRATURE_EXPORTS = (
     "angular_xy",
     "angular_xyz",
     "artificial_scatter_matrix",
+    "harmonic_data",
+    "harmonic_degrees",
     "legendre_data",
     "legendre_polynomials",
+    "spherical_harmonics",
 )
 
 _ENERGY_EXPORTS = (
