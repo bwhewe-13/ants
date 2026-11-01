@@ -468,6 +468,8 @@ def known_source_calculation(flux, materials, sources, geometry, \
         xs_matrix = tools.array_4d(info.materials, info.groups, info.groups, \
                                    info.moments)
         tools._xs_matrix_aniso(xs_matrix, materials.scatter, xs_fission, info)
+        # Legendre polynomials for the scattering source
+        P_source, _ = legendre_data(quadrature, info.moments)
     else:
         xs_matrix = tools.array_3d(info.materials, info.groups, info.groups)
         tools._xs_matrix(xs_matrix, materials.scatter, xs_fission, info)
@@ -494,7 +496,7 @@ def known_source_calculation(flux, materials, sources, geometry, \
         if anisotropic:
             angular_flux[step] = steady_state_moments(flux[step], xs_total, \
                                         xs_matrix, external[qq], bc_full, \
-                                        geometry, quadrature, params)
+                                        P_source, geometry, quadrature, params)
         else:
             angular_flux[step] = steady_state(flux[step], xs_total, xs_matrix, \
                                         external[qq], bc_full, geometry, \

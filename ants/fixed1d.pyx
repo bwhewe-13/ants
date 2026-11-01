@@ -149,12 +149,14 @@ def fixed_source_aniso(materials, sources, geometry, quadrature, solver):
 
     # For angular flux or scalar flux edges
     return known_flux_moments(flux, xs_total, xs_matrix, external, boundary_x, \
-                              geometry, quadrature, params)
+                              P_source, geometry, quadrature, params)
 
 
 def known_flux_moments(double[:,:,:] flux, double[:,:] xs_total, \
         double[:,:,:,:] xs_matrix, double[:,:,:] external, \
-        double[:,:,:] boundary_x, geometry, quadrature, params):
+        double[:,:,:] boundary_x, double[:,:] P_source, geometry, \
+        quadrature, params):
+    # P_source is the (2l + 1) P_l array from legendre_data
     # Unpack Python DataTypes to Cython memoryviews
     cdef int[:] medium_map = geometry.medium_map
     cdef double[:] delta_x = geometry.delta_x
@@ -163,10 +165,6 @@ def known_flux_moments(double[:,:,:] flux, double[:,:] xs_total, \
 
     # Covert dictionary to type params
     info = parameters._to_params(params)
-
-    # Legendre polynomials for the scattering source
-    P_source_np, _ = legendre_data(quadrature, info.moments)
-    cdef double[:,:] P_source = P_source_np
 
     # Create sum_l (2l + 1) P_l (sigma_s + sigma_f)_l * phi_l + external
     source = tools.array_3d(info.cells_x, info.angles, info.groups)

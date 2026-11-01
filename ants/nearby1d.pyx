@@ -279,8 +279,9 @@ def calculate_k_numerical_flux(numerical_flux, numerical_keff, materials, \
     angular_solver = replace(solver, angular=True, flux_at_edges=0)
     # Anisotropic scattering: angular flux from the flux moments
     if (numerical_flux is None) and (materials.scatter.ndim == 4):
+        params = create_params(materials, quadrature, geometry, solver)
         flux, numerical_keff = critical1d.flux_moments(materials, geometry, \
-                                                       quadrature, solver)
+                                                       quadrature, params)
         angular_params = create_params(materials, quadrature, geometry, angular_solver)
         numerical_flux = critical1d.known_flux_moments(flux, numerical_keff, \
                                 materials, geometry, quadrature, angular_params)

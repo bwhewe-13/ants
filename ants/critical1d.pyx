@@ -250,11 +250,13 @@ cdef double[:,:] multi_group_nearby(double[:,:]& flux_guess, double[:]& keff, \
 ################################################################################
 
 def k_criticality_aniso(materials, geometry, quadrature, solver):
+    # Covert ProblemParameters to type params
+    params = create_params(materials, quadrature, geometry, solver)
+
     # Solve for the flux moments and keff
-    flux, keff = flux_moments(materials, geometry, quadrature, solver)
+    flux, keff = flux_moments(materials, geometry, quadrature, params)
 
     # Return scalar flux at cell centers and keff
-    params = create_params(materials, quadrature, geometry, solver)
     if (params.angular == False) and (params.flux_at_edges == 0):
         return np.ascontiguousarray(flux[:,:,0]), keff
 
@@ -262,7 +264,7 @@ def k_criticality_aniso(materials, geometry, quadrature, solver):
     return known_flux_moments(flux, keff, materials, geometry, quadrature, params)
 
 
-def flux_moments(materials, geometry, quadrature, solver):
+def flux_moments(materials, geometry, quadrature, params):
     # Flux moments (cells_x, groups, moments) and keff for anisotropic scattering
     # Unpack Python DataTypes to Cython memoryviews
     cdef double[:,:] xs_total = materials.total
@@ -273,8 +275,7 @@ def flux_moments(materials, geometry, quadrature, solver):
     cdef double[:] angle_x = quadrature.angle_x
     cdef double[:] angle_w = quadrature.angle_w
 
-    # Covert ProblemParameters to type params
-    params = create_params(materials, quadrature, geometry, solver)
+    # Covert dictionary to type params
     info = parameters._to_params(params)
     parameters._check_critical1d_power_iteration(info)
 
