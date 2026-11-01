@@ -18,9 +18,11 @@ from ants.datatypes import (
     MaterialData,
     SolverData,
     SourceData,
+    SpatialDiscretization,
     TimeDependentData,
 )
 from ants.utils import manufactured_2d as mms
+from ants.utils import mesh2d
 
 # Path for reference solutions
 PATH = "data/references_multigroup/"
@@ -424,3 +426,87 @@ def manufactured_td_02(cells, angles, edges_t, dt, temporal=1):
     time_data = TimeDependentData(steps=edges_t.shape[0] - 1, dt=dt, time_disc=temporal)
 
     return mat_data, sources, geometry, quadrature, solver, time_data
+
+
+def manufactured_ss_01_polygon(mesh, angles):
+    # Same as manufactured_ss_01 on a polygon mesh of the unit square
+    quadrature = ants.angular_xy(angles)
+
+    mat_data = MaterialData(
+        total=np.array([[1.0]]),
+        scatter=np.array([[[0.0]]]),
+        fission=np.array([[[0.0]]]),
+    )
+
+    # Exact solution on the boundary faces
+    centers = mesh.face_center[mesh.boundary_faces]
+    boundary_x = mms.solution_ss_01_points(centers[:, 0], quadrature.angle_x)[
+        None, :, :, None
+    ]
+
+    sources = SourceData(
+        external=0.5 * np.ones((mesh.cells, 1, 1, 1)),
+        boundary_x=boundary_x,
+        boundary_y=np.zeros((1, 1, 1, 1)),
+    )
+
+    geometry = GeometryData(
+        medium_map=np.zeros((mesh.cells, 1), dtype=np.int32),
+        geometry=Geometry.POLYGON2D,
+        space_disc=SpatialDiscretization.STEP,
+        mesh=mesh,
+    )
+    solver = SolverData()
+
+    return mat_data, sources, geometry, quadrature, solver
+
+
+def slab_to_polygon(sources, geometry):
+    # Rectangular cells of a SLAB2D problem as a POLYGON2D problem, with
+    # cell ii * cells_y + jj = (ii, jj). Time dependent sources have a
+    # leading time axis.
+    edges_x = np.concatenate(([0.0], np.cumsum(geometry.delta_x)))
+    edges_y = np.concatenate(([0.0], np.cumsum(geometry.delta_y)))
+    centers_x = 0.5 * (edges_x[1:] + edges_x[:-1])
+    centers_y = 0.5 * (edges_y[1:] + edges_y[:-1])
+    cells = centers_x.size * centers_y.size
+    mesh = mesh2d.rectangle_mesh(edges_x, edges_y)
+
+    timed = sources.boundary_x.ndim == 5
+    boundary_x = sources.boundary_x if timed else sources.boundary_x[None]
+    boundary_y = sources.boundary_y if timed else sources.boundary_y[None]
+    external = sources.external if timed else sources.external[None]
+
+    # Boundary faces from the x and y boundaries
+    sides = mesh.face_side[mesh.boundary_faces]
+    centers = mesh.face_center[mesh.boundary_faces]
+    boundary = np.zeros((boundary_x.shape[0], 1, sides.size) + boundary_x.shape[3:])
+    for bb, (side, (x, y)) in enumerate(zip(sides, centers)):
+        if side < 2:
+            jj = 0 if boundary_x.shape[2] == 1 else np.argmin(np.fabs(centers_y - y))
+            boundary[:, 0, bb] = boundary_x[:, side, jj]
+        else:
+            ii = 0 if boundary_y.shape[2] == 1 else np.argmin(np.fabs(centers_x - x))
+            boundary[:, 0, bb] = boundary_y[:, side - 2, ii]
+
+    if external.shape[1] > 1:
+        external = external.reshape((external.shape[0], cells, 1) + external.shape[3:])
+
+    initial_flux = sources.initial_flux
+    if initial_flux is not None:
+        initial_flux = initial_flux.reshape((cells, 1) + initial_flux.shape[2:])
+
+    polygon_sources = SourceData(
+        external=external if timed else external[0],
+        boundary_x=boundary if timed else boundary[0],
+        boundary_y=np.zeros((1, 1, 1, 1, 1) if timed else (1, 1, 1, 1)),
+        initial_flux=initial_flux,
+    )
+    polygon_geometry = GeometryData(
+        medium_map=geometry.medium_map.reshape(cells, 1),
+        geometry=Geometry.POLYGON2D,
+        space_disc=SpatialDiscretization.STEP,
+        mesh=mesh,
+        bc_sides=list(geometry.bc_x) + list(geometry.bc_y),
+    )
+    return polygon_sources, polygon_geometry

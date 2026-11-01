@@ -24,8 +24,9 @@ import numpy as np
 from ants cimport cytools_2d as tools
 from ants cimport multi_group_2d as mg
 from ants cimport parameters
+from ants.cytools_polygon cimport PolygonSweep
 
-from ants.datatypes import MultigroupSolver, create_params
+from ants.datatypes import Geometry, MultigroupSolver, create_params
 from ants.quadrature import artificial_scatter_matrix
 
 
@@ -49,6 +50,11 @@ def fixed_source(materials, sources, geometry, quadrature, solver):
     info = parameters._to_params(params)
     parameters._check_fixed2d_source_iteration(info, xs_total.shape[0])
 
+    # Polygon mesh connectivity and sweep ordering
+    cdef PolygonSweep mesh = None
+    if geometry.geometry == Geometry.POLYGON2D:
+        mesh = PolygonSweep(geometry, angle_x, angle_y)
+
     # Add fission matrix to scattering
     xs_matrix = tools.array_3d(info.materials, info.groups, info.groups)
     tools._xs_matrix(xs_matrix, xs_scatter, xs_fission, info)
@@ -69,15 +75,16 @@ def fixed_source(materials, sources, geometry, quadrature, solver):
         # Artificial scattering (as-SN) ray effect mitigation
         flux, xs_total_eff, external_eff = source_iteration_as(flux_old, \
                     xs_total, xs_matrix, external, boundary_x, boundary_y, \
-                    medium_map, delta_x, delta_y, angle_x, angle_y, angle_w, info)
+                    medium_map, delta_x, delta_y, mesh, angle_x, angle_y, \
+                    angle_w, info)
     elif params.mg_solver == MultigroupSolver.SOURCE_ITERATION:
         flux = mg.source_iteration(flux_old, xs_total, xs_matrix, external, \
-                    boundary_x, boundary_y, medium_map, delta_x, delta_y, angle_x, \
-                    angle_y, angle_w, info)
+                    boundary_x, boundary_y, medium_map, delta_x, delta_y, \
+                    mesh, angle_x, angle_y, angle_w, info)
     elif params.mg_solver == MultigroupSolver.DMD:
         flux = mg.dynamic_mode_decomp(flux_old, xs_total, xs_matrix, external, \
-                    boundary_x, boundary_y, medium_map, delta_x, delta_y, angle_x, \
-                    angle_y, angle_w, info)
+                    boundary_x, boundary_y, medium_map, delta_x, delta_y, \
+                    mesh, angle_x, angle_y, angle_w, info)
 
     # Return scalar flux cell centers
     if (info.angular == False) and (params.flux_at_edges == 0):
@@ -95,8 +102,8 @@ def source_iteration_as(double[:,:,:] flux_guess, double[:,:] xs_total, \
         double[:,:,:] xs_matrix, double[:,:,:,:] external, \
         double[:,:,:,:] boundary_x, double[:,:,:,:] boundary_y, \
         int[:,:] medium_map, double[:] delta_x, double[:] delta_y, \
-        double[:] angle_x, double[:] angle_y, double[:] angle_w, \
-        parameters.params info):
+        PolygonSweep mesh, double[:] angle_x, double[:] angle_y, \
+        double[:] angle_w, parameters.params info):
     """Solve a 2D fixed-source problem with artificial scattering (as-SN).
 
     Implements Eq. (17) of Frank, Kusch, Camminady & Hauck (2020), "Ray
@@ -150,13 +157,14 @@ def source_iteration_as(double[:,:,:] flux_guess, double[:,:] xs_total, \
         flux_old[:,:,:] = flux[:,:,:]
         flux = mg.source_iteration(flux, xs_total_as_view, xs_matrix, \
                             ext_combined, boundary_x, boundary_y, medium_map, \
-                            delta_x, delta_y, angle_x, angle_y, angle_w, info)
+                            delta_x, delta_y, mesh, angle_x, angle_y, angle_w, \
+                            info)
 
         # Recover the angular flux from the converged scalar flux
         tools._source_total(source, flux, xs_matrix, medium_map, \
                             ext_combined, info)
         psi = mg._known_source_angular(xs_total_as_view, source, boundary_x, \
-                            boundary_y, medium_map, delta_x, delta_y, \
+                            boundary_y, medium_map, delta_x, delta_y, mesh, \
                             angle_x, angle_y, angle_w, info)
 
         # Update artificial in-scatter source:
@@ -186,6 +194,11 @@ def known_flux(double[:,:,:] flux, double[:,:] xs_total, double[:,:,:] xs_matrix
     # Covert dictionary to type params
     info = parameters._to_params(params)
 
+    # Polygon mesh connectivity and sweep ordering
+    cdef PolygonSweep mesh = None
+    if geometry.geometry == Geometry.POLYGON2D:
+        mesh = PolygonSweep(geometry, angle_x, angle_y)
+
     # Create (sigma_s + sigma_f) * phi + external function
     source = tools.array_4d(info.cells_x, info.cells_y, \
                             info.angles * info.angles, info.groups)
@@ -195,8 +208,24 @@ def known_flux(double[:,:,:] flux, double[:,:] xs_total, double[:,:,:] xs_matrix
     if (info.angular == True) and (info.flux_at_edges == 0):
         angular_flux = mg._known_source_angular(xs_total, source, boundary_x, \
                                 boundary_y, medium_map, delta_x, delta_y, \
-                                angle_x, angle_y, angle_w, info)
+                                mesh, angle_x, angle_y, angle_w, info)
         return np.asarray(angular_flux)
+
+    # Polygon mesh face fluxes (F x N^2 x G) or (F x G)
+    elif (info.geometry == 4) and (info.flux_at_edges == 1):
+        flux_edge_x = tools.array_4d(geometry.mesh.faces, 1, \
+                    info.angles * info.angles if info.angular else info.groups, \
+                    info.groups if info.angular else 1)
+        flux_edge_y = tools.array_4d(1, 1, 1, 1)
+        if info.angular:
+            mg._interface_angular(flux_edge_x, flux_edge_y, xs_total, source, \
+                             boundary_x, boundary_y, medium_map, delta_x, \
+                             delta_y, mesh, angle_x, angle_y, angle_w, info)
+            return np.asarray(flux_edge_x[:,0])
+        mg._interface_scalar(flux_edge_x, flux_edge_y, xs_total, source, \
+                             boundary_x, boundary_y, medium_map, delta_x, \
+                             delta_y, mesh, angle_x, angle_y, angle_w, info)
+        return np.asarray(flux_edge_x[:,0,:,0])
 
     # Solve for angular flux cell interfaces
     elif (info.angular == True) and (info.flux_at_edges == 1):
@@ -206,7 +235,7 @@ def known_flux(double[:,:,:] flux, double[:,:] xs_total, double[:,:,:] xs_matrix
                                      info.angles * info.angles, info.groups)
         mg._interface_angular(flux_edge_x, flux_edge_y, xs_total, source, \
                              boundary_x, boundary_y, medium_map, delta_x, \
-                             delta_y, angle_x, angle_y, angle_w, info)
+                             delta_y, mesh, angle_x, angle_y, angle_w, info)
         return np.asarray(flux_edge_x), np.asarray(flux_edge_y)
 
     # Solve for scalar flux cell interfaces
@@ -215,7 +244,7 @@ def known_flux(double[:,:,:] flux, double[:,:] xs_total, double[:,:,:] xs_matrix
         flux_edge_y = tools.array_4d(info.cells_x, info.cells_y + 1, info.groups, 1)
         mg._interface_scalar(flux_edge_x, flux_edge_y, xs_total, source, \
                              boundary_x, boundary_y, medium_map, delta_x, \
-                             delta_y, angle_x, angle_y, angle_w, info)
+                             delta_y, mesh, angle_x, angle_y, angle_w, info)
         return np.asarray(flux_edge_x[...,0]), np.asarray(flux_edge_y[...,0])
 
     return -1
@@ -236,6 +265,11 @@ def known_flux_single(int group, double[:,:,:] flux, double[:,:] xs_total, \
     # Covert dictionary to type params
     info = parameters._to_params(params)
 
+    # Polygon mesh connectivity and sweep ordering
+    cdef PolygonSweep mesh = None
+    if geometry.geometry == Geometry.POLYGON2D:
+        mesh = PolygonSweep(geometry, angle_x, angle_y)
+
     # Create (sigma_s + sigma_f) * phi + external function
     source = tools.array_4d(info.cells_x, info.cells_y, external.shape[2], 1)
     if external.shape[2] == 1:
@@ -247,6 +281,6 @@ def known_flux_single(int group, double[:,:,:] flux, double[:,:] xs_total, \
 
     # Solve for angular flux at cell centers
     angular_flux = mg._known_source_single(xs_total, source, boundary_x, \
-                            boundary_y, medium_map, delta_x, delta_y, \
+                            boundary_y, medium_map, delta_x, delta_y, mesh, \
                             angle_x, angle_y, angle_w, group, info)
     return np.asarray(angular_flux)

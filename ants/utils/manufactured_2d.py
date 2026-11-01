@@ -13,6 +13,17 @@
 import numpy as np
 
 
+def solution_ss_01_points(x, angle_x):
+    """One material, no scattering, at points with x coordinates x"""
+    flux = np.zeros(x.shape + (angle_x.shape[0],))
+    for n, mu in enumerate(angle_x):
+        if mu > 0.0:
+            flux[:, n] = 0.5 + np.exp(-x / mu)
+        else:
+            flux[:, n] = 0.5 + np.exp((1 - x) / mu)
+    return flux
+
+
 def solution_ss_01(centers_x, centers_y, angle_x, angle_y):
     """One material, no scattering"""
     angles = angle_x.shape[0]

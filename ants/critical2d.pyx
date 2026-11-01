@@ -26,9 +26,10 @@ import numpy as np
 from ants cimport cytools_2d as tools
 from ants cimport multi_group_2d as mg
 from ants cimport parameters
+from ants.cytools_polygon cimport PolygonSweep
 from ants.parameters cimport params
 
-from ants.datatypes import create_params
+from ants.datatypes import Geometry, create_params
 from ants.utils.pytools import check_keffective, warn_not_converged
 
 logger = logging.getLogger(__name__)
@@ -51,6 +52,11 @@ def k_criticality(materials, geometry, quadrature, solver):
     info = parameters._to_params(params)
     parameters._check_critical2d_power_iteration(info)
 
+    # Polygon mesh connectivity and sweep ordering
+    cdef PolygonSweep mesh = None
+    if geometry.geometry == Geometry.POLYGON2D:
+        mesh = PolygonSweep(geometry, angle_x, angle_y)
+
     # Initialize keff
     cdef double[1] keff = [0.95]
 
@@ -60,7 +66,8 @@ def k_criticality(materials, geometry, quadrature, solver):
 
     # Solve using the power iteration
     flux = power_iteration(flux_old, xs_total, xs_scatter, xs_fission, medium_map, \
-                        delta_x, delta_y, angle_x, angle_y, angle_w, info, keff)
+                        delta_x, delta_y, mesh, angle_x, angle_y, angle_w, \
+                        info, keff)
 
     # Return scalar flux at cell centers and keff
     if (info.angular == False) and (info.flux_at_edges == 0):
@@ -73,8 +80,8 @@ def k_criticality(materials, geometry, quadrature, solver):
 cdef double[:,:,:] power_iteration(double[:,:,:]& flux_guess, \
         double[:,:]& xs_total, double[:,:,:]& xs_scatter, \
         double[:,:,:]& xs_fission, int[:,:]& medium_map, double[:]& delta_x, \
-        double[:]& delta_y, double[:]& angle_x, double[:]& angle_y, \
-        double[:]& angle_w, params info, double[:]& keff):
+        double[:]& delta_y, PolygonSweep mesh, double[:]& angle_x, \
+        double[:]& angle_y, double[:]& angle_w, params info, double[:]& keff):
 
     # Initialize flux
     flux = tools.array_3d(info.cells_x, info.cells_y, info.groups)
@@ -102,7 +109,7 @@ cdef double[:,:,:] power_iteration(double[:,:,:]& flux_guess, \
         # Solve for scalar flux
         flux = mg.multi_group(flux_old, xs_total, xs_scatter, source, \
                             boundary_x, boundary_y, medium_map, delta_x, \
-                            delta_y, angle_x, angle_y, angle_w, info)
+                            delta_y, mesh, angle_x, angle_y, angle_w, info)
 
         # Calculate k-effective
         keff[0] = tools._update_keffective(flux, flux_old, xs_fission, \
@@ -140,6 +147,11 @@ def known_flux(double[:,:,:] flux, keff,  materials, geometry, quadrature, param
     # Covert dictionary to type params
     info = parameters._to_params(params)
 
+    # Polygon mesh connectivity and sweep ordering
+    cdef PolygonSweep mesh = None
+    if geometry.geometry == Geometry.POLYGON2D:
+        mesh = PolygonSweep(geometry, angle_x, angle_y)
+
     # Create (sigma_s + sigma_f) * phi + external function
     source = tools.array_4d(info.cells_x, info.cells_y, 1, info.groups)
     tools._source_total_critical(source, flux, xs_scatter, xs_fission, \
@@ -153,13 +165,13 @@ def known_flux(double[:,:,:] flux, keff,  materials, geometry, quadrature, param
     if (info.angular == False) and (info.flux_at_edges == 1):
         scalar_flux = mg._known_source_scalar(xs_total, source, boundary_x, \
                                 boundary_y, medium_map, delta_x, delta_y, \
-                                angle_x, angle_y, angle_w, info)
+                                mesh, angle_x, angle_y, angle_w, info)
         return np.asarray(scalar_flux)
 
     # Solve for angular flux
     angular_flux = mg._known_source_angular(xs_total, source, boundary_x, \
                                 boundary_y, medium_map, delta_x, delta_y, \
-                                angle_x, angle_y, angle_w, info)
+                                mesh, angle_x, angle_y, angle_w, info)
 
     # Return angular flux (either edges or centers)
     return np.asarray(angular_flux)
@@ -183,6 +195,11 @@ def nearby_power_iteration(double[:,:,:,:] residual, double n_rate, materials, \
     info = parameters._to_params(params)
     parameters._check_critical2d_nearby_power(info)
 
+    # Polygon mesh connectivity and sweep ordering
+    cdef PolygonSweep mesh = None
+    if geometry.geometry == Geometry.POLYGON2D:
+        mesh = PolygonSweep(geometry, angle_x, angle_y)
+
     # Initialize flux (fixed seed for reproducible iterations)
     flux_old = np.random.default_rng(42).random((info.cells_x, info.cells_y, info.groups))
     tools._normalize_flux(flux_old, info)
@@ -195,8 +212,8 @@ def nearby_power_iteration(double[:,:,:,:] residual, double n_rate, materials, \
 
     # Solve using the modified power iteration
     flux = multi_group_nearby(flux_old, keff, residual, xs_total, xs_scatter, \
-                            xs_fission, medium_map, delta_x, delta_y, angle_x, \
-                            angle_y, angle_w, info)
+                            xs_fission, medium_map, delta_x, delta_y, mesh, \
+                            angle_x, angle_y, angle_w, info)
 
     return np.asarray(flux), keff[0]
 
@@ -204,8 +221,9 @@ def nearby_power_iteration(double[:,:,:,:] residual, double n_rate, materials, \
 cdef double[:,:,:] multi_group_nearby(double[:,:,:]& flux_guess, \
         double[:]& keff, double[:,:,:,:]& residual, double[:,:]& xs_total, \
         double[:,:,:]& xs_scatter, double[:,:,:]& xs_fission,  int[:,:]& medium_map, \
-        double[:]& delta_x, double[:]& delta_y, double[:]& angle_x, \
-        double[:]& angle_y, double[:]& angle_w, params info):
+        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, \
+        double[:]& angle_x, double[:]& angle_y, double[:]& angle_w, \
+        params info):
 
     # Initialize flux
     flux = tools.array_3d(info.cells_x, info.cells_y, info.groups)
@@ -232,7 +250,7 @@ cdef double[:,:,:] multi_group_nearby(double[:,:,:]& flux_guess, \
         # Solve for scalar flux
         flux = mg.multi_group(flux_old, xs_total, xs_scatter, fission_source, \
                             boundary_x, boundary_y, medium_map, delta_x, \
-                            delta_y, angle_x, angle_y, angle_w, info)
+                            delta_y, mesh, angle_x, angle_y, angle_w, info)
 
         # Update keffective
         keff[0] = tools._update_keffective(flux, flux_old, xs_fission, \
