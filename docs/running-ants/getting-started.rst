@@ -51,7 +51,6 @@ Current Limitations
 -------------------
 
 * No beta decay or delayed neutrons
-* Anisotropic scattering is one-dimensional only
 * No temperature feedback or Doppler effects
 
 

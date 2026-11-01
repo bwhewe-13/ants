@@ -165,6 +165,35 @@ so it only adds to the :math:`\ell = 0` moment. The moments
 factor as the last axis of the scattering matrix (see
 :doc:`../running-ants/standard-inputs`).
 
+In two dimensions, the scattering cosine depends on both directions, so the
+Legendre polynomials are expanded with the addition theorem,
+:math:`P_\ell(\bsOmega \cdot \bsOmega') = \sum_{k} Y_{\ell k}(\bsOmega) Y_{\ell k}(\bsOmega')`,
+using real spherical harmonics with the polar axis along :math:`z`,
+
+.. math::
+
+   Y_{\ell k}(\bsOmega) = \sqrt{(2 - \delta_{k0}) \frac{(\ell - |k|)!}{(\ell + |k|)!}}
+   P_\ell^{|k|}(\xi) \begin{cases} \cos(k \varphi) & k \geq 0 \\
+   \sin(|k| \varphi) & k < 0 \end{cases},
+
+where :math:`\xi` is the direction cosine in :math:`z` and :math:`\varphi` is the
+azimuthal angle measured from :math:`x`. The order :math:`k` is the usual :math:`m`
+of :math:`Y_{\ell m}`, renamed since :math:`m` indexes the ordinates. The
+two-dimensional quadrature only keeps directions with :math:`\xi > 0`, so the
+flux is symmetric in :math:`\xi` and only
+the harmonics with :math:`\ell + k` even are kept. This gives :math:`\ell + 1`
+harmonics of degree :math:`\ell` and :math:`(L + 1)(L + 2) / 2` in total. The
+scattering source and flux moments are then
+
+.. math::
+
+   \sum_{g'=1}^{G} \sum_{\ell=0}^{L} (2\ell + 1) \sig[g' \rightarrow g]{s,\ell}
+   \sum_{k} Y_{\ell k}(\bsOmega_m) \phi_{\ell k, g'}, \qquad
+   \phi_{\ell k, g} = \sum_{m=1}^{M_{\text{Angles}}} w_{m} Y_{\ell k}(\bsOmega_m) \psi_{m,g},
+
+and the same Legendre moments :math:`\sig[g' \rightarrow g]{s,\ell}` are used in
+one and two dimensions.
+
 
 Fixed Source Neutron Transport Equation
 ---------------------------------------

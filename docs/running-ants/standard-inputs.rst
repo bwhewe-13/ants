@@ -20,13 +20,14 @@ where :math:`M` is the number of materials and :math:`G` is the number of energy
 Energy groups are ordered from fastest to slowest (group 0 is the highest energy), and the
 scattering and fission matrices are indexed ``[material, group out, group in]``.
 
-For anisotropic scattering (one-dimensional problems), the scattering matrix has the
+For anisotropic scattering, the scattering matrix has the
 Legendre moments :math:`\ell = 0, \ldots, L` on a last axis, shape
 :math:`(M \times G \times G \times (L + 1))`, indexed
 ``[material, group out, group in, moment]``. The moments do not include the
 :math:`(2\ell + 1)` factor (see :ref:`anisotropic scattering <sec-nte-anisotropic>`).
-All one-dimensional solvers select anisotropic scattering from the shape of the
-scattering matrix.
+All one- and two-dimensional solvers select anisotropic scattering from the shape
+of the scattering matrix. Two-dimensional problems use the same Legendre moments,
+which are expanded into spherical harmonics internally.
 
 .. code-block:: python
 
