@@ -474,8 +474,8 @@ def known_source_calculation(flux, materials, sources, geometry, \
         xs_matrix = tools.array_3d(info.materials, info.groups, info.groups)
         tools._xs_matrix(xs_matrix, materials.scatter, xs_fission, info)
 
-    # Initialize angular flux
-    angular_flux = tools.array_4d(info.steps, info.cells_x, info.angles, info.groups)
+    # Initialize angular flux (numpy array, each step is filled by an array)
+    angular_flux = np.zeros((info.steps, info.cells_x, info.angles, info.groups))
 
     cdef double[:] angle_x = quadrature.angle_x
 
@@ -502,4 +502,4 @@ def known_source_calculation(flux, materials, sources, geometry, \
                                         external[qq], bc_full, geometry, \
                                         quadrature, params)
 
-    return np.asarray(angular_flux)
+    return angular_flux

@@ -360,6 +360,33 @@ def test_time_dependent_steady_state(time_disc):
     assert np.allclose(approx, steady, rtol=1e-5)
 
 
+@pytest.mark.slab1d
+@pytest.mark.anisotropic
+@pytest.mark.parametrize("moments", [None, [1.0, 0.3, 0.1]])
+def test_known_source_calculation(moments):
+    # Angular flux at each step from the scalar flux or flux moments
+    solver = SolverData(angular=True)
+    materials, sources, geometry, quadrature = multigroup_problem(moments=moments)
+    angular = fixed1d.fixed_source(materials, sources, geometry, quadrature, solver)
+    if moments is None:
+        flux = np.einsum("n,ing->ig", quadrature.angle_w, angular)
+    else:
+        _, P_weights = ants.legendre_data(quadrature, len(moments))
+        flux = np.einsum("ln,ing->igl", P_weights, angular)
+    time_data = TimeDependentData(steps=2, dt=0.1)
+    approx = timed1d.known_source_calculation(
+        np.stack([flux, flux]),
+        materials,
+        time_sources(sources),
+        geometry,
+        quadrature,
+        solver,
+        time_data,
+    )
+    assert approx.shape == (2,) + angular.shape
+    assert np.allclose(approx, angular[None], rtol=1e-6, atol=1e-10)
+
+
 def hybrid_problem(time_disc, moments):
     # Collided and uncollided grids are the same, which is the full solution
     edges = int(time_disc in (2, 4))
