@@ -33,16 +33,19 @@ from ants.cytools_1d cimport _vhybrid_velocity, int_array_1d
 from ants.parameters cimport params
 
 from ants.datatypes import TemporalDiscretization, create_params
+from ants.quadrature import _harmonic_data, _harmonic_order, _scatter_harmonics
+from ants.timed2d import _harmonic_arrays
 
 # Uncollided is fine grid (N^2 x G)
 # Collided is coarse grid (N'^2 x G')
+# Scattering is carried as spherical harmonic moments, see timed2d
 
 
 def time_dependent(materials_u, groups_c, sources, geometry, quadrature_u, \
         angles_c, solver, time_data, edges_g):
     # Unpack Python DataTypes to Cython memoryviews
     cdef double[:,:] xs_total_u = materials_u.total
-    cdef double[:,:,:] xs_scatter_u = materials_u.scatter
+    cdef double[:,:,:,:] xs_scatter_u = _scatter_harmonics(materials_u.scatter)
     cdef double[:,:,:] xs_fission_u = tools._fission_matrix(materials_u.fission, materials_u.chi)
     cdef double[:] velocity_u = materials_u.velocity
     cdef double[:,:,:,:,:] external_u = sources.external
@@ -74,9 +77,15 @@ def time_dependent(materials_u, groups_c, sources, geometry, quadrature_u, \
     params_c.angles = angles_c[0]
     info_c = parameters._to_params(params_c)
 
+    # Spherical harmonics for the scattering source and flux moments
+    P_source_u_np, P_weights_u_np = _harmonic_arrays(materials_u, quadrature_u)
+    cdef double[:,:] P_source_u = P_source_u_np
+    cdef double[:,:] P_weights_u = P_weights_u_np
+
     # Combine fission and scattering - Uncollided groups
-    xs_matrix_u = tools.array_3d(info_u.materials, info_u.groups, info_u.groups)
-    tools._xs_matrix(xs_matrix_u, xs_scatter_u, xs_fission_u, info_u)
+    xs_matrix_u = tools.array_4d(info_u.materials, info_u.groups, info_u.groups, \
+                                 info_u.moments)
+    tools._xs_matrix_aniso(xs_matrix_u, xs_scatter_u, xs_fission_u, info_u)
 
     half_angles = info_u.angles * info_u.angles // 2
     assert boundary_xu.shape[3] in (1, half_angles), \
@@ -98,7 +107,8 @@ def time_dependent(materials_u, groups_c, sources, geometry, quadrature_u, \
         flux_final = backward_euler(groups_c, angles_c, initial_flux.copy(), xs_total_u,
                         xs_matrix_u, velocity_u, external_u, boundary_xu.copy(), \
                         boundary_yu.copy(), medium_map, delta_x, delta_y, angle_xu, \
-                        angle_yu, angle_wu, edges_g, flux_file, info_u, info_c)
+                        angle_yu, angle_wu, edges_g, P_source_u, P_weights_u, \
+                        flux_file, info_u, info_c)
     elif params_u.time_disc == TemporalDiscretization.CN:
         # Run Crank Nicolson method
         parameters._check_cn_timed2d(info_u, initial_flux_x.shape[0], \
@@ -113,7 +123,8 @@ def time_dependent(materials_u, groups_c, sources, geometry, quadrature_u, \
                         initial_flux_y.copy(), xs_total_u, xs_matrix_u, velocity_u, \
                         external_u, boundary_xu.copy(), boundary_yu.copy(), \
                         medium_map, delta_x, delta_y, angle_xu, angle_yu, angle_wu, \
-                        edges_g, flux_file, info_u, info_c, info_edge)
+                        edges_g, P_source_u, P_weights_u, flux_file, info_u, \
+                        info_c, info_edge)
     elif params_u.time_disc == TemporalDiscretization.BDF2:
         # Run BDF2 method
         parameters._check_bdf_timed2d(info_u, initial_flux.shape[0], external_u.shape[0], \
@@ -121,7 +132,8 @@ def time_dependent(materials_u, groups_c, sources, geometry, quadrature_u, \
         flux_final = bdf2(groups_c, angles_c, initial_flux.copy(), xs_total_u, \
                     xs_matrix_u, velocity_u, external_u, boundary_xu.copy(), \
                     boundary_yu.copy(), medium_map, delta_x, delta_y, angle_xu, \
-                    angle_yu, angle_wu, edges_g, flux_file, info_u, info_c)
+                    angle_yu, angle_wu, edges_g, P_source_u, P_weights_u, \
+                    flux_file, info_u, info_c)
 
     elif params_u.time_disc == TemporalDiscretization.TR_BDF2:
         # Run TR-BDF2 method
@@ -137,17 +149,19 @@ def time_dependent(materials_u, groups_c, sources, geometry, quadrature_u, \
                         initial_flux_y.copy(), xs_total_u, xs_matrix_u, velocity_u, \
                         external_u, boundary_xu.copy(), boundary_yu.copy(), \
                         medium_map, delta_x, delta_y, angle_xu, angle_yu, angle_wu, \
-                        edges_g, flux_file, info_u, info_c, info_edge)
+                        edges_g, P_source_u, P_weights_u, flux_file, info_u, \
+                        info_c, info_edge)
 
     return np.asarray(flux_final)
 
 
 cdef double[:,:,:] backward_euler(int[:] groups_c, int[:] angles_c, \
-        double[:,:,:,:]& flux_last, double[:,:]& xs_total_u, double[:,:,:]& xs_scatter_u, \
+        double[:,:,:,:]& flux_last, double[:,:]& xs_total_u, double[:,:,:,:]& xs_scatter_u, \
         double[:]& velocity_u, double[:,:,:,:,:]& external_u, double[:,:,:,:,:]& boundary_xu, \
         double[:,:,:,:,:]& boundary_yu, int[:,:]& medium_map, double[:]& delta_x, \
         double[:]& delta_y, double[:]& angle_xu, double[:]& angle_yu, double[:]& angle_wu,
-        double[:]& edges_g, object flux_file, params info_u, params info_c):
+        double[:]& edges_g, double[:,:]& P_source_u, double[:,:]& P_weights_u, \
+        object flux_file, params info_u, params info_c):
 
     # Initialize time step, external and boundary indices
     cdef int step, qq, bcx, bcy
@@ -161,14 +175,12 @@ cdef double[:,:,:] backward_euler(int[:] groups_c, int[:] angles_c, \
     q_star = tools.array_4d(info_u.cells_x, info_u.cells_y, \
                             info_u.angles * info_u.angles, info_u.groups)
 
-    # Initialize scalar fluxes
-    flux_u = tools.array_3d(info_u.cells_x, info_u.cells_y, info_u.groups)
-    tools._angular_to_scalar(flux_last, flux_u, angle_wu, info_u)
+    # Initialize flux moments
+    flux_u = tools.array_4d(info_u.cells_x, info_u.cells_y, info_u.groups, \
+                            info_u.moments)
+    tools._angular_to_moments(flux_last, flux_u, P_weights_u, info_u)
     flux_out = tools.array_3d(info_u.cells_x, info_u.cells_y, info_u.groups)
 
-    xs_total_c = tools.array_1d(info_c.materials)
-    xs_scatter_c = tools.array_1d(info_c.materials)
-    off_scatter = tools.array_2d(info_c.cells_x, info_c.cells_y)
     boundary_c = tools.array_4d(2, 1, 1, 1)
 
     # Iterate over time steps
@@ -190,13 +202,17 @@ cdef double[:,:,:] backward_euler(int[:] groups_c, int[:] angles_c, \
             angle_yc = tools.array_1d(info_c.angles)
             angle_wc = tools.array_1d(info_c.angles)
             angle_xc, angle_yc, angle_wc = ants._angular_xy(info_c.angles, info_c.bc_x, info_c.bc_y)
+            P_source_c, P_weights_c = _harmonic_data(angle_xc, angle_yc, \
+                                    angle_wc, _harmonic_order(info_c.moments))
+            source_c = _collided_source(info_c)
 
         if (step == 0) or ((step > 0) and (groups_c[step] != groups_c[step - 1])):
             info_c.groups = groups_c[step]
 
             # Initialize flux, external sources of appropriate size
-            flux_c = tools.array_3d(info_c.cells_x, info_c.cells_y, info_c.groups)
-            source_c = tools.array_4d(info_c.cells_x, info_c.cells_y, 1, info_c.groups)
+            flux_c = tools.array_4d(info_c.cells_x, info_c.cells_y, info_c.groups, \
+                                    info_c.moments)
+            source_c = _collided_source(info_c)
 
             # len(edges_gidx_c) = groups_c + 1
             edges_gidx_c = int_array_1d(info_c.groups + 1)
@@ -216,11 +232,11 @@ cdef double[:,:,:] backward_euler(int[:] groups_c, int[:] angles_c, \
                                      velocity_u, info_u)
 
         # Run hybrid method
-        hybrid_method(flux_u, flux_c, xs_total_u, xs_total_c, xs_total_vu, xs_scatter_u, \
-                xs_scatter_c, q_star, off_scatter, source_c, bcx_full, \
-                bcy_full, boundary_c, medium_map, delta_x, delta_y, angle_xu, \
-                angle_xc, angle_yu, angle_yc, angle_wu, angle_wc, star_coef_c, \
-                edges_g, edges_gidx_c, info_u, info_c)
+        hybrid_method(flux_u, flux_c, xs_total_u, xs_total_vu, xs_scatter_u, \
+                q_star, source_c, bcx_full, bcy_full, boundary_c, medium_map, \
+                delta_x, delta_y, angle_xu, angle_xc, angle_yu, angle_yc, \
+                angle_wu, angle_wc, star_coef_c, edges_g, edges_gidx_c, \
+                P_source_u, P_weights_u, P_source_c, P_weights_c, info_u, info_c)
 
         # Solve for angular flux of time step
         flux_last[:,:,:,:] = mg._known_source_angular(xs_total_vu, q_star, \
@@ -238,11 +254,12 @@ cdef double[:,:,:] backward_euler(int[:] groups_c, int[:] angles_c, \
 
 cdef double[:,:,:] crank_nicolson(int[:] groups_c, int[:] angles_c, \
         double[:,:,:,:]& flux_last_x, double[:,:,:,:]& flux_last_y, double[:,:]& xs_total_u, \
-        double[:,:,:]& xs_scatter_u, double[:]& velocity_u, double[:,:,:,:,:]& external_u, \
+        double[:,:,:,:]& xs_scatter_u, double[:]& velocity_u, double[:,:,:,:,:]& external_u, \
         double[:,:,:,:,:]& boundary_xu, double[:,:,:,:,:]& boundary_yu, \
         int[:,:]& medium_map, double[:]& delta_x, double[:]& delta_y, double[:]& angle_xu, \
         double[:]& angle_yu, double[:]& angle_wu, double[:]& edges_g, \
-        object flux_file, params info_u, params info_c, params info_edge):
+        double[:,:]& P_source_u, double[:,:]& P_weights_u, object flux_file, \
+        params info_u, params info_c, params info_edge):
     # flux_last_x = (cells_x + 1, cells_y, angles**2, groups) - x edges
     # flux_last_y = (cells_x, cells_y + 1, angles**2, groups) - y edges
 
@@ -258,16 +275,13 @@ cdef double[:,:,:] crank_nicolson(int[:] groups_c, int[:] angles_c, \
     q_star = tools.array_4d(info_u.cells_x, info_u.cells_y, \
                             info_u.angles * info_u.angles, info_u.groups)
 
-    # Initialize scalar fluxes
-    flux_u = tools.array_3d(info_u.cells_x, info_u.cells_y, info_u.groups)
-    tools._angular_edge_to_scalar(flux_last_x, flux_last_y, flux_u, \
-                                  angle_wu, info_u)
-    flux_c = tools.array_3d(info_c.cells_x, info_c.cells_y, info_c.groups)
+    # Initialize flux moments
+    flux_u = tools.array_4d(info_u.cells_x, info_u.cells_y, info_u.groups, \
+                            info_u.moments)
+    tools._angular_edge_to_moments(flux_last_x, flux_last_y, flux_u, \
+                                   P_weights_u, info_u)
     flux_out = tools.array_3d(info_u.cells_x, info_u.cells_y, info_u.groups)
 
-    xs_total_c = tools.array_1d(info_c.materials)
-    xs_scatter_c = tools.array_1d(info_c.materials)
-    off_scatter = tools.array_2d(info_c.cells_x, info_c.cells_y)
     boundary_c = tools.array_4d(2, 1, 1, 1)
 
     # Iterate over time steps
@@ -290,13 +304,17 @@ cdef double[:,:,:] crank_nicolson(int[:] groups_c, int[:] angles_c, \
             angle_yc = tools.array_1d(info_c.angles)
             angle_wc = tools.array_1d(info_c.angles)
             angle_xc, angle_yc, angle_wc = ants._angular_xy(info_c.angles, info_c.bc_x, info_c.bc_y)
+            P_source_c, P_weights_c = _harmonic_data(angle_xc, angle_yc, \
+                                    angle_wc, _harmonic_order(info_c.moments))
+            source_c = _collided_source(info_c)
 
         if (step == 0) or ((step > 0) and (groups_c[step] != groups_c[step - 1])):
             info_c.groups = groups_c[step]
 
             # Initialize flux, external sources of appropriate size
-            flux_c = tools.array_3d(info_c.cells_x, info_c.cells_y, info_c.groups)
-            source_c = tools.array_4d(info_c.cells_x, info_c.cells_y, 1, info_c.groups)
+            flux_c = tools.array_4d(info_c.cells_x, info_c.cells_y, info_c.groups, \
+                                    info_c.moments)
+            source_c = _collided_source(info_c)
 
             # len(edges_gidx_c) = groups_c + 1
             edges_gidx_c = int_array_1d(info_c.groups + 1)
@@ -312,17 +330,18 @@ cdef double[:,:,:] crank_nicolson(int[:] groups_c, int[:] angles_c, \
         bcy_full = tools._expand_boundary_y(boundary_yu[bcy], angle_yu, info_u)
 
         # Update q_star
-        tools._time_source_star_cn(flux_last_x, flux_last_y, flux_u, \
+        tools._time_source_star_cn_aniso(flux_last_x, flux_last_y, flux_u, \
                         xs_total_u, xs_scatter_u, velocity_u, q_star, \
                         external_u[qqa], external_u[qq], medium_map, \
-                        delta_x, delta_y, angle_xu, angle_yu, 2.0, info_u)
+                        delta_x, delta_y, angle_xu, angle_yu, P_source_u, \
+                        2.0, info_u)
 
         # Run hybrid method
-        hybrid_method(flux_u, flux_c, xs_total_u, xs_total_c, xs_total_vu, xs_scatter_u, \
-                xs_scatter_c, q_star, off_scatter, source_c, bcx_full, \
-                bcy_full, boundary_c, medium_map, delta_x, delta_y, angle_xu, \
-                angle_xc, angle_yu, angle_yc, angle_wu, angle_wc, star_coef_c, \
-                edges_g, edges_gidx_c, info_u, info_c)
+        hybrid_method(flux_u, flux_c, xs_total_u, xs_total_vu, xs_scatter_u, \
+                q_star, source_c, bcx_full, bcy_full, boundary_c, medium_map, \
+                delta_x, delta_y, angle_xu, angle_xc, angle_yu, angle_yc, \
+                angle_wu, angle_wc, star_coef_c, edges_g, edges_gidx_c, \
+                P_source_u, P_weights_u, P_source_c, P_weights_c, info_u, info_c)
 
         # Solve for angular flux of previous time step
         mg._interface_angular(flux_last_x, flux_last_y, xs_total_vu, \
@@ -334,17 +353,19 @@ cdef double[:,:,:] crank_nicolson(int[:] groups_c, int[:] angles_c, \
                                       flux_out, angle_wu, info_u)
         if flux_file is not None:
             flux_file[step] = flux_out
-        flux_u[:,:,:] = flux_out
+        tools._angular_edge_to_moments(flux_last_x, flux_last_y, flux_u, \
+                                       P_weights_u, info_u)
 
     return flux_out
 
 
 cdef double[:,:,:] bdf2(int[:]& groups_c, int[:]& angles_c, double[:,:,:,:]& flux_last_1, \
-        double[:,:]& xs_total_u, double[:,:,:]& xs_scatter_u, double[:]& velocity_u, \
+        double[:,:]& xs_total_u, double[:,:,:,:]& xs_scatter_u, double[:]& velocity_u, \
         double[:,:,:,:,:]& external_u, double[:,:,:,:,:]& boundary_xu, \
         double[:,:,:,:,:]& boundary_yu, int[:,:]& medium_map, double[:]& delta_x, \
         double[:]& delta_y, double[:]& angle_xu, double[:]& angle_yu, double[:]& angle_wu, \
-        double[:]& edges_g, object flux_file, params info_u, params info_c):
+        double[:]& edges_g, double[:,:]& P_source_u, double[:,:]& P_weights_u, \
+        object flux_file, params info_u, params info_c):
 
     # Initialize time step, external and boundary indices
     cdef int step, qq, bcx, bcy
@@ -363,14 +384,12 @@ cdef double[:,:,:] bdf2(int[:]& groups_c, int[:]& angles_c, double[:,:,:,:]& flu
     flux_last_2 = tools.array_4d(info_u.cells_x, info_u.cells_y, \
                                  info_u.angles * info_u.angles, info_u.groups)
 
-    # Initialize scalar fluxes
-    flux_u = tools.array_3d(info_u.cells_x, info_u.cells_y, info_u.groups)
-    tools._angular_to_scalar(flux_last_1, flux_u, angle_wu, info_u)
+    # Initialize flux moments
+    flux_u = tools.array_4d(info_u.cells_x, info_u.cells_y, info_u.groups, \
+                            info_u.moments)
+    tools._angular_to_moments(flux_last_1, flux_u, P_weights_u, info_u)
     flux_out = tools.array_3d(info_u.cells_x, info_u.cells_y, info_u.groups)
 
-    xs_total_c = tools.array_1d(info_c.materials)
-    xs_scatter_c = tools.array_1d(info_c.materials)
-    off_scatter = tools.array_2d(info_c.cells_x, info_c.cells_y)
     boundary_c = tools.array_4d(2, 1, 1, 1)
 
     # Iterate over time steps
@@ -392,13 +411,17 @@ cdef double[:,:,:] bdf2(int[:]& groups_c, int[:]& angles_c, double[:,:,:,:]& flu
             angle_yc = tools.array_1d(info_c.angles)
             angle_wc = tools.array_1d(info_c.angles)
             angle_xc, angle_yc, angle_wc = ants._angular_xy(info_c.angles, info_c.bc_x, info_c.bc_y)
+            P_source_c, P_weights_c = _harmonic_data(angle_xc, angle_yc, \
+                                    angle_wc, _harmonic_order(info_c.moments))
+            source_c = _collided_source(info_c)
 
         if (step == 0) or ((step > 0) and (groups_c[step] != groups_c[step - 1])):
             info_c.groups = groups_c[step]
 
             # Initialize flux, external sources of appropriate size
-            flux_c = tools.array_3d(info_c.cells_x, info_c.cells_y, info_c.groups)
-            source_c = tools.array_4d(info_c.cells_x, info_c.cells_y, 1, info_c.groups)
+            flux_c = tools.array_4d(info_c.cells_x, info_c.cells_y, info_c.groups, \
+                                    info_c.moments)
+            source_c = _collided_source(info_c)
 
             # len(edges_gidx_c) = groups_c + 1
             edges_gidx_c = int_array_1d(info_c.groups + 1)
@@ -429,11 +452,11 @@ cdef double[:,:,:] bdf2(int[:]& groups_c, int[:]& angles_c, double[:,:,:,:]& flu
                                          external_u[qq], velocity_u, info_u)
 
         # Run hybrid method
-        hybrid_method(flux_u, flux_c, xs_total_u, xs_total_c, xs_total_vu, xs_scatter_u, \
-                xs_scatter_c, q_star, off_scatter, source_c, bcx_full, \
-                bcy_full, boundary_c, medium_map, delta_x, delta_y, angle_xu, \
-                angle_xc, angle_yu, angle_yc, angle_wu, angle_wc, star_coef_c, \
-                edges_g, edges_gidx_c, info_u, info_c)
+        hybrid_method(flux_u, flux_c, xs_total_u, xs_total_vu, xs_scatter_u, \
+                q_star, source_c, bcx_full, bcy_full, boundary_c, medium_map, \
+                delta_x, delta_y, angle_xu, angle_xc, angle_yu, angle_yc, \
+                angle_wu, angle_wc, star_coef_c, edges_g, edges_gidx_c, \
+                P_source_u, P_weights_u, P_source_c, P_weights_c, info_u, info_c)
 
         # Step 5: Update steps
         flux_last_2[:,:,:,:] = flux_last_1[:,:,:,:]
@@ -455,12 +478,12 @@ cdef double[:,:,:] bdf2(int[:]& groups_c, int[:]& angles_c, double[:,:,:,:]& flu
 
 
 cdef double[:,:,:] tr_bdf2(int[:] groups_c, int[:] angles_c, double[:,:,:,:]& flux_ell_x, \
-        double[:,:,:,:]& flux_ell_y, double[:,:]& xs_total_u, double[:,:,:]& xs_scatter_u, \
+        double[:,:,:,:]& flux_ell_y, double[:,:]& xs_total_u, double[:,:,:,:]& xs_scatter_u, \
         double[:]& velocity_u, double[:,:,:,:,:]& external_u, double[:,:,:,:,:]& boundary_xu, \
         double[:,:,:,:,:]& boundary_yu, int[:,:]& medium_map, double[:]& delta_x, \
         double[:]& delta_y, double[:]& angle_xu, double[:]& angle_yu, double[:]& angle_wu, \
-        double[:]& edges_g, object flux_file, params info_u, params info_c, \
-        params info_edge):
+        double[:]& edges_g, double[:,:]& P_source_u, double[:,:]& P_weights_u, \
+        object flux_file, params info_u, params info_c, params info_edge):
 
     # Initialize time step, external and boundary indices
     cdef int step, qq, qqa, qqb, bcx, bcxa, bcy, bcya
@@ -483,14 +506,12 @@ cdef double[:,:,:] tr_bdf2(int[:] groups_c, int[:] angles_c, double[:,:,:,:]& fl
     flux_last_gamma = tools.array_4d(info_u.cells_x, info_u.cells_y, \
                                info_u.angles * info_u.angles, info_u.groups)
 
-    # Initialize scalar fluxes - Uncollided
-    flux_u = tools.array_3d(info_u.cells_x, info_u.cells_y, info_u.groups)
-    tools._angular_edge_to_scalar(flux_ell_x, flux_ell_y, flux_u, angle_wu, info_u)
+    # Initialize flux moments - Uncollided
+    flux_u = tools.array_4d(info_u.cells_x, info_u.cells_y, info_u.groups, \
+                            info_u.moments)
+    tools._angular_edge_to_moments(flux_ell_x, flux_ell_y, flux_u, P_weights_u, info_u)
     flux_out = tools.array_3d(info_u.cells_x, info_u.cells_y, info_u.groups)
 
-    xs_total_c = tools.array_1d(info_c.materials)
-    xs_scatter_c = tools.array_1d(info_c.materials)
-    off_scatter = tools.array_2d(info_c.cells_x, info_c.cells_y)
     boundary_c = tools.array_4d(2, 1, 1, 1)
 
     # Iterate over time steps
@@ -518,13 +539,17 @@ cdef double[:,:,:] tr_bdf2(int[:] groups_c, int[:] angles_c, double[:,:,:,:]& fl
             angle_yc = tools.array_1d(info_c.angles)
             angle_wc = tools.array_1d(info_c.angles)
             angle_xc, angle_yc, angle_wc = ants._angular_xy(info_c.angles, info_c.bc_x, info_c.bc_y)
+            P_source_c, P_weights_c = _harmonic_data(angle_xc, angle_yc, \
+                                    angle_wc, _harmonic_order(info_c.moments))
+            source_c = _collided_source(info_c)
 
         if (step == 0) or ((step > 0) and (groups_c[step] != groups_c[step - 1])):
             info_c.groups = groups_c[step]
 
             # Initialize flux, external sources of appropriate size
-            flux_c = tools.array_3d(info_c.cells_x, info_c.cells_y, info_c.groups)
-            source_c = tools.array_4d(info_c.cells_x, info_c.cells_y, 1, info_c.groups)
+            flux_c = tools.array_4d(info_c.cells_x, info_c.cells_y, info_c.groups, \
+                                    info_c.moments)
+            source_c = _collided_source(info_c)
 
             # len(edges_gidx_c) = groups_c + 1
             edges_gidx_c = int_array_1d(info_c.groups + 1)
@@ -548,16 +573,18 @@ cdef double[:,:,:] tr_bdf2(int[:] groups_c, int[:] angles_c, double[:,:,:,:]& fl
         # Crank Nicolson
         ################################################################
         # Update q_star for CN step
-        tools._time_source_star_cn(flux_ell_x, flux_ell_y, flux_u, xs_total_u, \
+        tools._time_source_star_cn_aniso(flux_ell_x, flux_ell_y, flux_u, xs_total_u, \
                 xs_scatter_u, velocity_u, flux_last_gamma, external_u[qq], external_u[qqa], \
-                medium_map, delta_x, delta_y, angle_xu, angle_yu, 2.0 / gamma, info_u)
+                medium_map, delta_x, delta_y, angle_xu, angle_yu, P_source_u, \
+                2.0 / gamma, info_u)
 
         # Run hybrid method
-        hybrid_method(flux_u, flux_c, xs_total_u, xs_total_c, xs_total_vu_cn, \
-                xs_scatter_u, xs_scatter_c, flux_last_gamma, off_scatter, source_c, \
-                bcx_full, bcy_full, boundary_c, medium_map, delta_x, \
-                delta_y, angle_xu, angle_xc, angle_yu, angle_yc, angle_wu, angle_wc, \
-                star_coef_cn_c, edges_g, edges_gidx_c, info_u, info_c)
+        hybrid_method(flux_u, flux_c, xs_total_u, xs_total_vu_cn, xs_scatter_u, \
+                flux_last_gamma, source_c, bcx_full, bcy_full, boundary_c, \
+                medium_map, delta_x, delta_y, angle_xu, angle_xc, angle_yu, \
+                angle_yc, angle_wu, angle_wc, star_coef_cn_c, edges_g, \
+                edges_gidx_c, P_source_u, P_weights_u, P_source_c, P_weights_c, \
+                info_u, info_c)
 
         # Solve for angular flux of time step \ell + gamma
         flux_last_gamma = mg._known_source_angular(xs_total_vu_cn, flux_last_gamma, \
@@ -570,11 +597,12 @@ cdef double[:,:,:] tr_bdf2(int[:] groups_c, int[:] angles_c, double[:,:,:,:]& fl
         tools._time_source_star_tr_bdf2_mem(flux_ell_x, flux_ell_y, flux_last_gamma, \
                             external_u[qqb], velocity_u, gamma, info_u)
 
-        hybrid_method(flux_u, flux_c, xs_total_u, xs_total_c, xs_total_vu_bdf2, \
-                xs_scatter_u, xs_scatter_c, flux_last_gamma, off_scatter, source_c, \
-                bcxa_full, bcya_full, boundary_c, medium_map, \
-                delta_x, delta_y, angle_xu, angle_xc, angle_yu, angle_yc, angle_wu, \
-                angle_wc, star_coef_bdf2_c, edges_g, edges_gidx_c, info_u, info_c)
+        hybrid_method(flux_u, flux_c, xs_total_u, xs_total_vu_bdf2, xs_scatter_u, \
+                flux_last_gamma, source_c, bcxa_full, bcya_full, boundary_c, \
+                medium_map, delta_x, delta_y, angle_xu, angle_xc, angle_yu, \
+                angle_yc, angle_wu, angle_wc, star_coef_bdf2_c, edges_g, \
+                edges_gidx_c, P_source_u, P_weights_u, P_source_c, P_weights_c, \
+                info_u, info_c)
 
         # Solve for angular flux of previous time step
         mg._interface_angular(flux_ell_x, flux_ell_y, xs_total_vu_bdf2, flux_last_gamma, \
@@ -586,38 +614,48 @@ cdef double[:,:,:] tr_bdf2(int[:] groups_c, int[:] angles_c, double[:,:,:,:]& fl
                                       angle_wu, info_u)
         if flux_file is not None:
             flux_file[step] = flux_out
-        flux_u[:,:,:] = flux_out
+        tools._angular_edge_to_moments(flux_ell_x, flux_ell_y, flux_u, \
+                                       P_weights_u, info_u)
 
     return flux_out
 
 
-cdef void hybrid_method(double[:,:,:]& flux_u, double[:,:,:]& flux_c, \
-        double[:,:]& xs_total_u, double[:]& xs_total_c, double[:,:]& xs_total_vu, \
-        double[:,:,:]& xs_scatter_u, double[:]& xs_scatter_c, double[:,:,:,:]& q_star, \
-        double[:,:]& off_scatter, double[:,:,:,:]& source_c, double[:,:,:,:]& boundary_xu, \
-        double[:,:,:,:]& boundary_yu, double[:,:,:,:]& boundary_c, int[:,:]& medium_map, \
-        double[:]& delta_x, double[:]& delta_y, double[:]& angle_xu, double[:]& angle_xc, \
-        double[:]& angle_yu, double[:]& angle_yc, double[:]& angle_wu, double[:]& angle_wc, \
+cdef double[:,:,:,:] _collided_source(params info_c):
+    # Isotropic collided source is the same for every collided ordinate
+    cdef int angles = 1 if info_c.moments == 1 else info_c.angles * info_c.angles
+    return tools.array_4d(info_c.cells_x, info_c.cells_y, angles, info_c.groups)
+
+
+cdef void hybrid_method(double[:,:,:,:]& flux_u, double[:,:,:,:]& flux_c, \
+        double[:,:]& xs_total_u, double[:,:]& xs_total_vu, \
+        double[:,:,:,:]& xs_scatter_u, double[:,:,:,:]& q_star, \
+        double[:,:,:,:]& source_c, double[:,:,:,:]& boundary_xu, \
+        double[:,:,:,:]& boundary_yu, double[:,:,:,:]& boundary_c, \
+        int[:,:]& medium_map, double[:]& delta_x, double[:]& delta_y, \
+        double[:]& angle_xu, double[:]& angle_xc, double[:]& angle_yu, \
+        double[:]& angle_yc, double[:]& angle_wu, double[:]& angle_wc, \
         double[:]& star_coef_c, double[:]& edges_g, int[:]& edges_gidx_c, \
+        double[:,:]& P_source_u, double[:,:]& P_weights_u, \
+        double[:,:]& P_source_c, double[:,:]& P_weights_c, \
         params info_u, params info_c):
 
-    # Step 1: Solve Uncollided Equation known_source (I x N x G) -> (I x G)
-    flux_u[:,:,:] = mg._known_source_scalar(xs_total_vu, q_star, boundary_xu, \
+    # Step 1: Solve Uncollided Equation known_source (I x N x G) -> (I x G x K)
+    flux_u[:,:,:,:] = mg._known_source_moments(xs_total_vu, q_star, boundary_xu, \
                             boundary_yu, medium_map, delta_x, delta_y, angle_xu, \
-                            angle_yu, angle_wu, info_u)
+                            angle_yu, angle_wu, P_weights_u, info_u)
 
-    # Step 2: Compute collided source (I x J x G')
-    tools._vhybrid_source_c(flux_u, xs_scatter_u, source_c, medium_map, \
-                            edges_gidx_c, info_u, info_c)
+    # Step 2: Compute collided source (I x J x N'^2 x G')
+    tools._vhybrid_source_c_aniso(flux_u, xs_scatter_u, source_c, medium_map, \
+                            edges_gidx_c, P_source_c, info_u, info_c)
 
-    # Step 3: Solve Collided Equation (I x J x G')
-    tools._coarsen_flux(flux_u, flux_c, edges_gidx_c, info_c)
-    flux_c[:,:,:] = mg.variable_source_iteration(flux_c, xs_total_u, xs_total_c, \
-                            star_coef_c, xs_scatter_u, xs_scatter_c, off_scatter, \
-                            source_c, boundary_c, boundary_c, medium_map, delta_x, \
-                            delta_y, angle_xc, angle_yc, angle_wc, edges_g, \
-                            edges_gidx_c, info_c)
+    # Step 3: Solve Collided Equation (I x J x G' x K)
+    tools._coarsen_moments(flux_u, flux_c, edges_gidx_c, info_c)
+    flux_c[:,:,:,:] = mg.variable_source_iteration_moments(flux_c, xs_total_u, \
+                            star_coef_c, xs_scatter_u, source_c, boundary_c, \
+                            boundary_c, medium_map, delta_x, delta_y, angle_xc, \
+                            angle_yc, angle_wc, edges_g, edges_gidx_c, P_source_c, \
+                            P_weights_c, info_c)
 
     # Step 4: Create a new source and solve for angular flux
-    tools._vhybrid_source_total(flux_u, flux_c, xs_scatter_u, q_star, medium_map, \
-                                edges_g, edges_gidx_c, info_u, info_c)
+    tools._vhybrid_source_total_aniso(flux_u, flux_c, xs_scatter_u, q_star, \
+                    medium_map, edges_g, edges_gidx_c, P_source_u, info_u, info_c)
