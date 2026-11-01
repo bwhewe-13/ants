@@ -424,6 +424,33 @@ def _inside_circle(circles, x, y, tally, index):
             break
 
 
+def _inside_hexagon(hexagons, x, y, tally, index):
+    """Checking if point is inside hexagon
+    Arguments:
+        hexagons (list [(x1, y1), pitch] or [(x1, y1), pitch, orientation]):
+            list of all hexagon centers and flat-to-flat widths (in cm),
+            orientation is "flat" (default, flat top) or "pointy"
+        x, y (float): x, y coordinates to test
+        tally (int [length materials]): List of which hexagon to tally
+    Returns:
+        Updated tally array
+    """
+    # Iterate through hexagons
+    for ii, hexagon in enumerate(hexagons):
+        (x1, y1), pitch = hexagon[:2]
+        dx = np.fabs(x - x1)
+        dy = np.fabs(y - y1)
+        # Rotate pointy hexagons to flat
+        if len(hexagon) > 2 and hexagon[2] == "pointy":
+            dx, dy = dy, dx
+        inside = (dy <= 0.5 * pitch) and (
+            0.5 * np.sqrt(3) * dx + 0.5 * dy <= 0.5 * pitch
+        )
+        tally[index[ii]] = inside
+        if inside:
+            break
+
+
 def _quarter_symmetry(weight_matrix, circles, edges_x, edges_y):
     # Ensure symmetrical
     symmetrical_weight_matrix = np.zeros(weight_matrix.shape)

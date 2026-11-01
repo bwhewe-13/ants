@@ -72,11 +72,15 @@ class Geometry(IntEnum):
         One-dimensional spherical geometry.
     SLAB2D : int
         Two-dimensional slab (Cartesian) geometry.
+    POLYGON2D : int
+        Two-dimensional unstructured mesh of convex polygons (triangles,
+        hexagons, etc.).
     """
 
     SLAB1D = 1
     SPHERE1D = 2
     SLAB2D = 3
+    POLYGON2D = 4
 
 
 class BoundaryCondition(IntEnum):
@@ -204,6 +208,17 @@ class SourceData:
     initial_flux_y : numpy.ndarray, optional
         Edge-based initial angular flux at y faces for 2D time-dependent
         problems (CN/TR-BDF2). Shape ``(I, J + 1, N**2, G)``.
+
+    Notes
+    -----
+    For ``POLYGON2D`` meshes with ``C`` cells, ``F`` faces, and ``F_b``
+    boundary faces (ordered as ``mesh.boundary_faces``), the cell axes
+    ``(I, J)`` become ``(C, 1)``. ``boundary_x`` has shape
+    ``(1, F_b, N**2, G)`` where time-dependent problems use the incoming
+    angles (``Omega . n < 0``) of each face, and ``boundary_y`` is a
+    placeholder of shape ``(1, 1, 1, 1)``. For CN/TR-BDF2,
+    ``initial_flux_x`` holds the face fluxes ``(F, 1, N**2, G)`` and
+    ``initial_flux_y`` the cell center fluxes ``(C, 1, N**2, G)``.
     """
 
     external: np.ndarray
@@ -243,15 +258,80 @@ class QuadratureData:
 
 
 @dataclass
+class PolygonMesh:
+    """Two-dimensional mesh of convex polygons.
+
+    Built with :func:`ants.utils.mesh2d.polygon_mesh`. Face normals point
+    outward from ``face_cells[:, 0]``.
+
+    Attributes
+    ----------
+    vertices : numpy.ndarray
+        Vertex coordinates, shape ``(V, 2)``.
+    cell_vertices : numpy.ndarray
+        Counter-clockwise vertex indices per cell, padded with -1, shape
+        ``(C, max_faces)``.
+    cell_faces : numpy.ndarray
+        Face indices per cell, padded with -1, shape ``(C, max_faces)``.
+    face_cells : numpy.ndarray
+        Owner and neighbor cell of each face (-1 on the boundary), shape
+        ``(F, 2)``.
+    face_normal : numpy.ndarray
+        Unit normal of each face, shape ``(F, 2)``.
+    face_length : numpy.ndarray
+        Length of each face, shape ``(F,)``.
+    face_center : numpy.ndarray
+        Midpoint of each face, shape ``(F, 2)``.
+    cell_area : numpy.ndarray
+        Area of each cell, shape ``(C,)``.
+    cell_centroid : numpy.ndarray
+        Centroid of each cell, shape ``(C, 2)``.
+    face_side : numpy.ndarray
+        Boundary side of each face (-1 for interior faces), shape ``(F,)``.
+    side_normal : numpy.ndarray
+        Outward unit normal of each boundary side, shape ``(S, 2)``.
+    boundary_faces : numpy.ndarray
+        Face index of each boundary face, shape ``(F_b,)``. Boundary sources
+        are ordered the same way.
+    """
+
+    vertices: np.ndarray
+    cell_vertices: np.ndarray
+    cell_faces: np.ndarray
+    face_cells: np.ndarray
+    face_normal: np.ndarray
+    face_length: np.ndarray
+    face_center: np.ndarray
+    cell_area: np.ndarray
+    cell_centroid: np.ndarray
+    face_side: np.ndarray
+    side_normal: np.ndarray
+    boundary_faces: np.ndarray
+
+    @property
+    def cells(self):
+        return self.cell_area.size
+
+    @property
+    def faces(self):
+        return self.face_length.size
+
+    @property
+    def sides(self):
+        return self.side_normal.shape[0]
+
+
+@dataclass
 class GeometryData:
     """Spatial cell widths.
 
     Attributes
     ----------
     medium_map : numpy.ndarray
-        Maps each spatial cell to a material index.
+        Maps each spatial cell to a material index. Shape ``(C, 1)`` for
+        ``POLYGON2D`` meshes.
     delta_x : numpy.ndarray
-        Cell widths in x, shape ``(cells_x,)``.
+        Cell widths in x, shape ``(cells_x,)``. Not used for ``POLYGON2D``.
     delta_y : numpy.ndarray, optional
         Cell widths in y for 2D problems, shape ``(cells_y,)``.
     bc_x : list[int], optional
@@ -263,15 +343,22 @@ class GeometryData:
         Geometry type.
     space_disc : SpatialDiscretization
         Spatial discretization type.
+    mesh : PolygonMesh, optional
+        Polygon mesh for ``POLYGON2D`` problems.
+    bc_sides : list[int], optional
+        Boundary condition for each side of a ``POLYGON2D`` mesh as
+        ``BoundaryCondition`` values. Defaults to vacuum on every side.
     """
 
     medium_map: np.ndarray
-    delta_x: np.ndarray
+    delta_x: Optional[np.ndarray] = None
     delta_y: Optional[np.ndarray] = None
     bc_x: Optional[List[int]] = field(default_factory=_default_vacuum_bc)
     bc_y: Optional[List[int]] = field(default_factory=_default_vacuum_bc)
     geometry: Geometry = Geometry.SLAB1D
     space_disc: SpatialDiscretization = SpatialDiscretization.DIAMOND
+    mesh: Optional[PolygonMesh] = None
+    bc_sides: Optional[List[int]] = None
 
 
 @dataclass
@@ -504,9 +591,16 @@ def create_params(materials, quadrature, geometry, solver, time=None):
         else int(np.sqrt(quadrature.angle_x.size))
     )
 
+    if geometry.mesh is not None:
+        cells_x = geometry.mesh.cells
+        cells_y = 1
+    else:
+        cells_x = geometry.delta_x.size
+        cells_y = geometry.delta_y.size if geometry.delta_y is not None else 1
+
     return ProblemParameters(
-        cells_x=geometry.delta_x.size,
-        cells_y=geometry.delta_y.size if geometry.delta_y is not None else 1,
+        cells_x=cells_x,
+        cells_y=cells_y,
         angles=angles,
         groups=materials.total.shape[1],
         materials=materials.total.shape[0],

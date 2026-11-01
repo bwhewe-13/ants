@@ -30,6 +30,7 @@ _DATATYPE_EXPORTS = (
     "GeometryData",
     "HybridData",
     "MaterialData",
+    "PolygonMesh",
     "QuadratureData",
     "SolverData",
     "TimeDependentData",

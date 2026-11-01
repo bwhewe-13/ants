@@ -88,9 +88,147 @@ def artificial_scatter_source(q_star, M_as, psi, scale=1.0):
 
 def edge_to_center_angular(psi_x, psi_y):
     """Cell-centered angular flux estimate from x/y edge angular fluxes
-    (shapes (I+1, J, N, G) and (I, J+1, N, G))."""
+    (shapes (I+1, J, N, G) and (I, J+1, N, G)). Polygon meshes already
+    carry the cell centers in psi_y (shape (cells, 1, N, G))."""
     px, py = np.asarray(psi_x), np.asarray(psi_y)
+    if py.shape[1] == px.shape[1]:
+        return py
     return 0.25 * (px[:-1] + px[1:] + py[:, :-1] + py[:, 1:])
+
+
+########################################################################
+# Polygon Mesh Sweeps
+########################################################################
+def polygon_sweep_setup(mesh, angle_x, angle_y, bc_sides):
+    """Sweep ordering and reflection mapping for a polygon mesh.
+
+    Parameters
+    ----------
+    mesh : PolygonMesh
+        Polygon mesh.
+    angle_x, angle_y : ndarray, shape (N**2,)
+        Direction cosines.
+    bc_sides : list of int
+        Boundary condition of each side (0 = vacuum, 1 = reflected).
+
+    Returns
+    -------
+    sweep_order : ndarray of int32, shape (N**2, cells)
+        Cells in upwind order for each angle.
+    reflect_map : ndarray of int32, shape (sides, N**2)
+        Reflected angle for each outgoing angle on reflected sides,
+        -1 otherwise.
+    """
+    angle_x = np.asarray(angle_x)
+    angle_y = np.asarray(angle_y)
+    sweep_order = np.zeros((angle_x.size, mesh.cells), dtype=np.int32)
+    for nn in range(angle_x.size):
+        sweep_order[nn] = _upwind_order(mesh, angle_x[nn], angle_y[nn])
+    reflect_map = _reflected_angles(mesh, angle_x, angle_y, bc_sides)
+    return sweep_order, reflect_map
+
+
+def polygon_opposite_faces(mesh, tol=1e-6):
+    """Opposite faces of centrally symmetric polygon cells.
+
+    A cell is paired when every face has a parallel face of equal length
+    on the other side, such as rectangles and regular hexagons.
+
+    Parameters
+    ----------
+    mesh : PolygonMesh
+        Polygon mesh.
+    tol : float, optional
+        Relative tolerance for parallel faces of equal length.
+
+    Returns
+    -------
+    cell_opposite : ndarray of int32, shape (cells, max_faces)
+        Position of the opposite face in ``mesh.cell_faces``, -1 for cells
+        that are not paired.
+    cell_width : ndarray, shape (cells, max_faces)
+        Distance between each face and its opposite face [cm].
+    """
+    cell_opposite = -np.ones(mesh.cell_faces.shape, dtype=np.int32)
+    cell_width = np.zeros(mesh.cell_faces.shape)
+    for cc in range(mesh.cells):
+        faces = mesh.cell_faces[cc][mesh.cell_faces[cc] >= 0]
+        if faces.size % 2 == 1:
+            continue
+        sign = np.where(mesh.face_cells[faces, 0] == cc, 1.0, -1.0)
+        normal = sign[:, None] * mesh.face_normal[faces]
+        opposite = np.roll(np.arange(faces.size), -faces.size // 2)
+        length = mesh.face_length[faces]
+        scale = np.max(length)
+        if np.all(np.fabs(normal + normal[opposite]) < tol) and np.all(
+            np.fabs(length - length[opposite]) < tol * scale
+        ):
+            width = mesh.face_center[faces] - mesh.face_center[faces[opposite]]
+            cell_opposite[cc, : faces.size] = opposite
+            cell_width[cc, : faces.size] = np.fabs(np.sum(width * normal, axis=1))
+    return cell_opposite, cell_width
+
+
+def _upwind_order(mesh, angle_x, angle_y):
+    # Topological sort of the cells, one wavefront at a time
+    interior = np.argwhere(mesh.face_cells[:, 1] >= 0).flatten()
+    owner = mesh.face_cells[interior, 0]
+    neighbor = mesh.face_cells[interior, 1]
+    dot = (
+        angle_x * mesh.face_normal[interior, 0]
+        + angle_y * mesh.face_normal[interior, 1]
+    )
+    upwind = np.where(dot > 0.0, owner, neighbor)[dot != 0.0]
+    downwind = np.where(dot > 0.0, neighbor, owner)[dot != 0.0]
+
+    # Downwind cells grouped by upwind cell
+    sort = np.argsort(upwind, kind="stable")
+    downwind_sort = downwind[sort]
+    start = np.searchsorted(upwind[sort], np.arange(mesh.cells))
+    length = np.bincount(upwind, minlength=mesh.cells)
+
+    count = np.bincount(downwind, minlength=mesh.cells)
+    swept = np.zeros((mesh.cells,), dtype=bool)
+    order = []
+    front = np.argwhere(count == 0).flatten()
+    while front.size > 0:
+        order.append(front)
+        swept[front] = True
+        lengths = length[front]
+        offset = np.repeat(start[front] - np.cumsum(lengths) + lengths, lengths)
+        released = downwind_sort[offset + np.arange(np.sum(lengths))]
+        np.add.at(count, released, -1)
+        front = np.unique(released[count[released] == 0])
+    if not np.all(swept):
+        raise ValueError(
+            f"Polygon mesh has a cyclic dependency for angle "
+            f"({angle_x:.4f}, {angle_y:.4f})"
+        )
+    return np.concatenate(order)
+
+
+def _reflected_angles(mesh, angle_x, angle_y, bc_sides):
+    reflect_map = -np.ones((mesh.sides, angle_x.size), dtype=np.int32)
+    directions = np.stack((angle_x, angle_y), axis=1)
+    for side, normal in enumerate(mesh.side_normal):
+        if bc_sides[side] != 1:
+            continue
+        for nn in range(angle_x.size):
+            dot = np.dot(directions[nn], normal)
+            if dot <= 0.0:
+                continue
+            reflected = directions[nn] - 2 * dot * normal
+            match = np.argwhere(
+                np.all(np.fabs(directions - reflected) < 1e-8, axis=1)
+            ).flatten()
+            if len(match) == 0:
+                raise ValueError(
+                    f"Quadrature has no reflected angle on side {side} with "
+                    f"normal {np.round(normal, 4)}; sides at multiples of 60 "
+                    f"degrees need the number of angles to be a multiple of 6"
+                )
+            reflect_map[side, nn] = match[0]
+    return reflect_map
 
 
 ########################################################################
