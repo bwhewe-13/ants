@@ -26,14 +26,14 @@ cdef double[:,:] multi_group(double[:,:]& flux_guess, \
         double[:,:]& xs_total, double[:,:,:]& xs_scatter, \
         double[:,:,:]& external, double[:,:,:]& boundary_x, \
         int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
-        double[:]& angle_w, params info)
+        double[:]& angle_w, params info, int[:,:] q_index=*)
 
 
 cdef double[:,:] source_iteration(double[:,:]& flux_guess, \
         double[:,:]& xs_total, double[:,:,:]& xs_scatter, \
         double[:,:,:]& external, double[:,:,:]& boundary_x, \
         int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
-        double[:]& angle_w, params info)
+        double[:]& angle_w, params info, int[:,:] q_index=*)
 
 
 cdef double[:,:] variable_source_iteration(double[:,:]& flux_guess, \
@@ -41,14 +41,14 @@ cdef double[:,:] variable_source_iteration(double[:,:]& flux_guess, \
         double[:,:,:]& xs_scatter_u, double[:,:,:]& external, \
         double[:,:,:]& boundary_x, int[:]& medium_map, double[:]& delta_x, \
         double[:]& angle_x, double[:]& angle_w, double[:]& edges_g, \
-        int[:]& edges_gidx_c, params info)
+        int[:]& edges_gidx_c, params info, int[:,:] q_index=*)
 
 
 cdef double[:,:] dynamic_mode_decomp(double[:,:]& flux_guess, \
         double[:,:]& xs_total, double[:,:,:]& xs_scatter, \
         double[:,:,:]& external, double[:,:,:]& boundary_x, \
         int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
-        double[:]& angle_w, params info)
+        double[:]& angle_w, params info, int[:,:] q_index=*)
 
 
 cdef double[:,:,:] _known_source_angular(double[:,:]& xs_total, \
@@ -68,7 +68,7 @@ cdef double[:,:,:] multi_group_moments(double[:,:,:]& flux_guess, \
         double[:,:,:]& external, double[:,:,:]& boundary_x, \
         int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
         double[:]& angle_w, double[:,:]& P_source, double[:,:]& P_weights, \
-        params info)
+        params info, int[:,:] q_index=*)
 
 
 cdef double[:,:,:] variable_source_iteration_moments(double[:,:,:]& flux_guess, \
@@ -77,7 +77,7 @@ cdef double[:,:,:] variable_source_iteration_moments(double[:,:,:]& flux_guess, 
         double[:,:,:]& boundary_x, int[:]& medium_map, double[:]& delta_x, \
         double[:]& angle_x, double[:]& angle_w, double[:]& edges_g, \
         int[:]& edges_gidx_c, double[:,:]& P_source, double[:,:]& P_weights, \
-        params info)
+        params info, int[:,:] q_index=*)
 
 
 cdef double[:,:,:] _known_source_moments(double[:,:]& xs_total, \

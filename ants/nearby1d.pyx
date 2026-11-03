@@ -28,6 +28,7 @@ from tqdm.auto import tqdm
 from ants import critical1d, fixed1d
 from ants.utils.interp1d import Interpolation
 from ants.utils.pytools import average_array
+from ants.utils.sources import dense_source
 
 from ants cimport cytools_1d as tools
 from ants cimport parameters
@@ -46,6 +47,10 @@ def fixed_source(materials, sources, geometry, quadrature, solver, knots_x, **kw
     scalar_residual = kwargs.get("scalar_residual", False)
     save_residual = kwargs.get("save_residual", True)
     run_nearby = kwargs.get("return_residual", False)
+
+    # The residual is dense, so compact sources are expanded
+    sources = replace(sources, external=dense_source(sources.external), \
+                      boundary_x=dense_source(sources.boundary_x))
 
     # Convert ProblemParameters to type params
     params = create_params(materials, quadrature, geometry, solver)

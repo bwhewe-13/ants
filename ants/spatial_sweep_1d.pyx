@@ -63,25 +63,27 @@ from ants.parameters cimport params
 
 cdef void discrete_ordinates(double[:]& flux, double[:]& flux_old, \
         double[:]& xs_total, double[:]& xs_scatter, double[:]& off_scatter, \
-        double[:,:]& external, double[:,:]& boundary_x, int[:]& medium_map, \
-        double[:]& delta_x, double[:]& angle_x, double[:]& angle_w, \
+        double[:,:]& external, int[:]& q_col, double[:,:]& boundary_x, \
+        int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
+        double[:]& angle_w, \
         params info):
     # One-dimensional slab
     if info.geometry == 1:
         slab_ordinates(flux, flux_old, xs_total, xs_scatter, off_scatter, \
-                       external, boundary_x, medium_map, delta_x, angle_x, \
-                       angle_w, info)
+                       external, q_col, boundary_x, medium_map, delta_x, \
+                       angle_x, angle_w, info)
     # One-dimensional sphere
     elif info.geometry == 2:
         sphere_ordinates(flux, flux_old, xs_total, xs_scatter, off_scatter, \
-                         external, boundary_x, medium_map, delta_x, \
+                         external, q_col, boundary_x, medium_map, delta_x, \
                          angle_x, angle_w, info)
 
 
 cdef void slab_ordinates(double[:]& flux, double[:]& flux_old, \
         double[:]& xs_total, double[:]& xs_scatter, double[:]& off_scatter, \
-        double[:,:]& external, double[:,:]& boundary_x, int[:]& medium_map, \
-        double[:]& delta_x, double[:]& angle_x, double[:]& angle_w, \
+        double[:,:]& external, int[:]& q_col, double[:,:]& boundary_x, \
+        int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
+        double[:]& angle_w, \
         params info):
 
     # Initialize iteration indices
@@ -109,7 +111,7 @@ cdef void slab_ordinates(double[:]& flux, double[:]& flux_old, \
         thread_flux[:, :] = 0.0
 
         for nn in prange(info.angles, nogil=True, schedule="static", num_threads=info.num_threads):
-            qq = 0 if external.shape[1] == 1 else nn
+            qq = q_col[nn]
             bc = 0 if boundary_x.shape[1] == 1 else nn
             tid = threadid()
             edge_out[nn] = slab_sweep(thread_flux[tid, :], flux_old, xs_total, \
@@ -258,8 +260,8 @@ cdef double slab_backward(double[:]& flux, double[:]& flux_old, double[:]& xs_to
 
 cdef void sphere_ordinates(double[:]& flux, double[:]& flux_old, double[:]& xs_total, \
         double[:]& xs_scatter, double[:]& off_scatter, double[:,:]& external, \
-        double[:,:]& boundary_x, int[:]& medium_map, double[:]& delta_x, \
-        double[:]& angle_x, double[:]& angle_w, params info):
+        int[:]& q_col, double[:,:]& boundary_x, int[:]& medium_map, \
+        double[:]& delta_x, double[:]& angle_x, double[:]& angle_w, params info):
 
     cdef int nn, qq, bc
     cdef double ang_minus = -1.0, ang_plus, tau
@@ -276,13 +278,14 @@ cdef void sphere_ordinates(double[:]& flux, double[:]& flux_old, double[:]& xs_t
         flux[:] = 0.0
 
         initialize_half_angle(flux_old, half_angle, xs_total, xs_scatter, off_scatter, \
-                        external[:,0], medium_map, delta_x, boundary_x[1,0], info)
+                        external[:, q_col[0]], medium_map, delta_x, \
+                        boundary_x[1,0], info)
 
         ang_minus = -1.0
         alpha_m   = 0.0
 
         for nn in range(info.angles):
-            qq = 0 if external.shape[1] == 1 else nn
+            qq = q_col[nn]
             bc = 0 if boundary_x.shape[1] == 1 else nn
 
             ang_plus = ang_minus + 2.0 * angle_w[nn]
@@ -595,19 +598,20 @@ cdef void _known_sphere(double[:,:]& flux, double[:]& xs_total, \
 
 cdef void discrete_ordinates_aniso(double[:,:]& flux, double[:,:]& flux_old, \
         double[:]& xs_total, double[:,:]& xs_scatter, double[:,:]& off_scatter, \
-        double[:,:]& external, double[:,:]& boundary_x, int[:]& medium_map, \
-        double[:]& delta_x, double[:]& angle_x, double[:]& angle_w, \
+        double[:,:]& external, int[:]& q_col, double[:,:]& boundary_x, \
+        int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
+        double[:]& angle_w, \
         double[:,:]& P_source, double[:,:]& P_weights, params info):
     # One-dimensional slab
     if info.geometry == 1:
         slab_ordinates_aniso(flux, flux_old, xs_total, xs_scatter, \
-                off_scatter, external, boundary_x, medium_map, delta_x, \
-                angle_x, angle_w, P_source, P_weights, info)
+                off_scatter, external, q_col, boundary_x, medium_map, \
+                delta_x, angle_x, angle_w, P_source, P_weights, info)
     # One-dimensional sphere
     elif info.geometry == 2:
         sphere_ordinates_aniso(flux, flux_old, xs_total, xs_scatter, \
-                off_scatter, external, boundary_x, medium_map, delta_x, \
-                angle_x, angle_w, P_source, P_weights, info)
+                off_scatter, external, q_col, boundary_x, medium_map, \
+                delta_x, angle_x, angle_w, P_source, P_weights, info)
 
 
 cdef void _angle_source(double[:]& source, double[:,:]& flux_old, \
@@ -638,8 +642,9 @@ cdef void _project_moments(double[:,:]& flux, double[:]& psi, \
 
 cdef void slab_ordinates_aniso(double[:,:]& flux, double[:,:]& flux_old, \
         double[:]& xs_total, double[:,:]& xs_scatter, double[:,:]& off_scatter, \
-        double[:,:]& external, double[:,:]& boundary_x, int[:]& medium_map, \
-        double[:]& delta_x, double[:]& angle_x, double[:]& angle_w, \
+        double[:,:]& external, int[:]& q_col, double[:,:]& boundary_x, \
+        int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
+        double[:]& angle_w, \
         double[:,:]& P_source, double[:,:]& P_weights, params info):
 
     # Initialize iteration indices
@@ -669,7 +674,7 @@ cdef void slab_ordinates_aniso(double[:,:]& flux, double[:,:]& flux_old, \
         thread_flux[:,:,:] = 0.0
 
         for nn in prange(info.angles, nogil=True, schedule="static", num_threads=info.num_threads):
-            qq = 0 if external.shape[1] == 1 else nn
+            qq = q_col[nn]
             bc = 0 if boundary_x.shape[1] == 1 else nn
             tid = threadid()
             _angle_source(thread_source[tid, :], flux_old, xs_scatter, \
@@ -699,8 +704,9 @@ cdef void slab_ordinates_aniso(double[:,:]& flux, double[:,:]& flux_old, \
 
 cdef void sphere_ordinates_aniso(double[:,:]& flux, double[:,:]& flux_old, \
         double[:]& xs_total, double[:,:]& xs_scatter, double[:,:]& off_scatter, \
-        double[:,:]& external, double[:,:]& boundary_x, int[:]& medium_map, \
-        double[:]& delta_x, double[:]& angle_x, double[:]& angle_w, \
+        double[:,:]& external, int[:]& q_col, double[:,:]& boundary_x, \
+        int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
+        double[:]& angle_w, \
         double[:,:]& P_source, double[:,:]& P_weights, params info):
 
     cdef int nn, ll, qq, bc
@@ -729,7 +735,7 @@ cdef void sphere_ordinates_aniso(double[:,:]& flux, double[:,:]& flux_old, \
         flux[:,:] = 0.0
 
         _angle_source(source, flux_old, xs_scatter, off_scatter, \
-                      external[:,0], medium_map, P_start, info)
+                      external[:, q_col[0]], medium_map, P_start, info)
         initialize_half_angle(zero, half_angle, xs_total, zero_xs, zero, \
                         source, medium_map, delta_x, boundary_x[1,0], info)
 
@@ -737,7 +743,7 @@ cdef void sphere_ordinates_aniso(double[:,:]& flux, double[:,:]& flux_old, \
         alpha_m   = 0.0
 
         for nn in range(info.angles):
-            qq = 0 if external.shape[1] == 1 else nn
+            qq = q_col[nn]
             bc = 0 if boundary_x.shape[1] == 1 else nn
 
             ang_plus = ang_minus + 2.0 * angle_w[nn]

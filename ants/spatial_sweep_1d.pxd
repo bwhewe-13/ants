@@ -24,9 +24,9 @@ from ants.parameters cimport params
 
 cdef void discrete_ordinates(double[:]& flux, double[:]& flux_old, \
         double[:]& xs_total, double[:]& xs_scatter, double[:]& off_scatter, \
-        double[:,:]& external, double[:,:]& boundary_x, int[:]& medium_map, \
-        double[:]& delta_x, double[:]& angle_x, double[:]& angle_w, \
-        params info)
+        double[:,:]& external, int[:]& q_col, double[:,:]& boundary_x, \
+        int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
+        double[:]& angle_w, params info)
 
 
 cdef void _known_sweep(double[:,:]& flux, double[:]& xs_total, \
@@ -37,6 +37,7 @@ cdef void _known_sweep(double[:,:]& flux, double[:]& xs_total, \
 
 cdef void discrete_ordinates_aniso(double[:,:]& flux, double[:,:]& flux_old, \
         double[:]& xs_total, double[:,:]& xs_scatter, double[:,:]& off_scatter, \
-        double[:,:]& external, double[:,:]& boundary_x, int[:]& medium_map, \
-        double[:]& delta_x, double[:]& angle_x, double[:]& angle_w, \
-        double[:,:]& P_source, double[:,:]& P_weights, params info)
+        double[:,:]& external, int[:]& q_col, double[:,:]& boundary_x, \
+        int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
+        double[:]& angle_w, double[:,:]& P_source, double[:,:]& P_weights, \
+        params info)

@@ -66,7 +66,9 @@ cdef void _off_scatter_jacobi(double[:,:]& flux_old, int[:]& medium_map, \
 
 cdef void _source_total(double[:,:,:]& source, double[:,:]& flux, \
         double[:,:,:]& xs_matrix, int[:]& medium_map, \
-        double[:,:,:]& external, params info)
+        double[:,:,:]& external, params info, int[:,:] q_index=*)
+
+cdef int[:,:] _source_columns(int columns, int[:,:] q_index, params info)
 
 cdef void _angular_to_scalar(double[:,:,:]& angular_flux, \
         double[:,:]& scalar_flux, double[:]& angle_w, params info)
@@ -99,9 +101,6 @@ cdef void _time_source_star_tr_bdf2(double[:,:,:]& flux_1, double[:,:,:]& flux_2
 
 cdef void _time_right_side(double[:,:,:]& q_star, double[:,:]& flux, \
         double[:,:,:]& xs_scatter, int[:]& medium_map, params info)
-
-cdef double[:,:,:] _expand_boundary_x(double[:,:,:]& half_bc, \
-        double[:]& angle_x, params info)
 
 ################################################################################
 # Criticality functions
@@ -201,7 +200,8 @@ cdef void _off_scatter_jacobi_moments(double[:,:,:]& flux_old, \
 
 cdef void _source_total_aniso(double[:,:,:]& source, double[:,:,:]& flux, \
         double[:,:,:,:]& xs_matrix, int[:]& medium_map, \
-        double[:,:,:]& external, double[:,:]& P_source, params info)
+        double[:,:,:]& external, double[:,:]& P_source, params info, \
+        int[:,:] q_index=*)
 
 cdef void _angular_to_moments(double[:,:,:]& angular_flux, \
         double[:,:,:]& flux, double[:,:]& P_weights, params info)

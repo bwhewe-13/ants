@@ -79,3 +79,6 @@ cdef void _total_velocity(double[:,:]& xs_total, double[:]& velocity,
                            double constant, params info)
 
 cdef double[:,:,:] _fission_matrix(object fission, object chi)
+
+cdef int[:,:] _source_columns(int columns, int[:,:] q_index, int angles, \
+        int groups)

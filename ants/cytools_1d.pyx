@@ -25,6 +25,7 @@ from libc.math cimport pow, sqrt
 
 from ants.cytools_shared cimport _fission_matrix as _shared_fission_matrix
 from ants.cytools_shared cimport _normalize_flux as _shared_normalize_flux
+from ants.cytools_shared cimport _source_columns as _shared_source_columns
 from ants.cytools_shared cimport _total_velocity as _shared_total_velocity
 from ants.cytools_shared cimport _update_keffective as _shared_update_keffective
 from ants.cytools_shared cimport angle_convergence as _shared_angle_convergence
@@ -160,11 +161,13 @@ cdef void _off_scatter_jacobi(double[:,:]& flux_old, int[:]& medium_map, \
 
 cdef void _source_total(double[:,:,:]& source, double[:,:]& flux, \
         double[:,:,:]& xs_matrix, int[:]& medium_map, \
-        double[:,:,:]& external, params info):
+        double[:,:,:]& external, params info, int[:,:] q_index=None):
     # Create (sigma_s + sigma_f) * phi + external function
     # Initialize iterables
-    cdef int ii, nn, ig, og, nn_q, og_q, mat
+    cdef int ii, nn, ig, og, og_q, mat
     cdef double one_group
+    # External source column of each angle and group
+    cdef int[:,:] q_cols = _source_columns(external.shape[1], q_index, info)
     # Zero out previous values
     source[:,:,:] = 0.0
     for ii in range(info.cells_x):
@@ -177,9 +180,13 @@ cdef void _source_total(double[:,:,:]& source, double[:,:]& flux, \
                 one_group += flux[ii,ig] * xs_matrix[mat,og,ig]
 
             for nn in range(info.angles):
-                nn_q = 0 if external.shape[1] == 1 else nn
                 source[ii,nn,og] += one_group
-                source[ii,nn,og] += external[ii,nn_q,og_q]
+                source[ii,nn,og] += external[ii,q_cols[nn,og],og_q]
+
+
+cdef int[:,:] _source_columns(int columns, int[:,:] q_index, params info):
+    # External source column for each (angle, group), see cytools_shared
+    return _shared_source_columns(columns, q_index, info.angles, info.groups)
 
 
 cdef void _angular_to_scalar(double[:,:,:]& angular_flux, \
@@ -674,45 +681,6 @@ cdef void _vhybrid_source_total(double[:,:]& flux_u, double[:,:]& flux_c, \
 
 
 ################################################################################
-# Time-Dependent Boundary Expansion
-################################################################################
-
-cdef double[:,:,:] _expand_boundary_x(double[:,:,:]& half_bc,
-        double[:]& angle_x, params info):
-    # Expand a half-angle (or broadcast) boundary array into a full-angle
-    # boundary array with shape (2, angles, groups).
-    #
-    # half_bc may have shape (2, angles//2, groups) -- per-incoming-angle, or
-    # (2, 1, groups) / (2, 1, 1) -- broadcast (same value for all angles).
-    # The angle and group dimensions are each independently broadcast when
-    # their size is 1.
-    #
-    # half_bc angle layout:
-    #   half_bc[0, ii, gg] = left  boundary source for the ii-th incoming
-    #                         angle (angle_x > 0), in traversal order
-    #   half_bc[1, ii, gg] = right boundary source for the ii-th incoming
-    #                         angle (angle_x < 0), in traversal order
-    full_bc = array_3d(2, info.angles, info.groups)
-    cdef int nn, gg, ii_pos, ii_neg
-    cdef bint bc_angle = (half_bc.shape[1] > 1)
-    cdef bint bc_group = (half_bc.shape[2] > 1)
-    ii_pos = 0
-    ii_neg = 0
-    for nn in range(info.angles):
-        if angle_x[nn] > 0.0:
-            for gg in range(info.groups):
-                full_bc[0, nn, gg] = half_bc[0, ii_pos if bc_angle else 0, gg if bc_group else 0]
-            if bc_angle:
-                ii_pos += 1
-        elif angle_x[nn] < 0.0:
-            for gg in range(info.groups):
-                full_bc[1, nn, gg] = half_bc[1, ii_neg if bc_angle else 0, gg if bc_group else 0]
-            if bc_angle:
-                ii_neg += 1
-    return full_bc
-
-
-################################################################################
 # Anisotropic Scattering (Legendre moments)
 ################################################################################
 # Flux moments are (cells_x, groups, moments) with phi_l = sum_n w_n P_l psi_n.
@@ -785,13 +753,15 @@ cdef void _off_scatter_jacobi_moments(double[:,:,:]& flux_old, \
 
 cdef void _source_total_aniso(double[:,:,:]& source, double[:,:,:]& flux, \
         double[:,:,:,:]& xs_matrix, int[:]& medium_map, \
-        double[:,:,:]& external, double[:,:]& P_source, params info):
+        double[:,:,:]& external, double[:,:]& P_source, params info, \
+        int[:,:] q_index=None):
     # Create sum_l (2l + 1) P_l (sigma_s + sigma_f)_l * phi_l + external
-    cdef int ii, nn, og, nn_q, og_q, mat
+    cdef int ii, nn, og, og_q, mat
     if info.moments == 1:
         _source_total(source, flux[:,:,0], xs_matrix[:,:,:,0], medium_map, \
-                      external, info)
+                      external, info, q_index)
         return
+    cdef int[:,:] q_cols = _source_columns(external.shape[1], q_index, info)
     group_moments = array_1d(info.moments)
     source[:,:,:] = 0.0
     for ii in range(info.cells_x):
@@ -800,9 +770,8 @@ cdef void _source_total_aniso(double[:,:,:]& source, double[:,:,:]& flux, \
             og_q = 0 if external.shape[2] == 1 else og
             _group_moments(group_moments, flux, xs_matrix, mat, ii, og, info)
             for nn in range(info.angles):
-                nn_q = 0 if external.shape[1] == 1 else nn
                 source[ii,nn,og] = _legendre_sum(group_moments, P_source, nn, info) \
-                                    + external[ii,nn_q,og_q]
+                                    + external[ii,q_cols[nn,og],og_q]
 
 
 cdef void _angular_to_moments(double[:,:,:]& angular_flux, \

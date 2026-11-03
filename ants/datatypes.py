@@ -181,20 +181,171 @@ class MaterialData:
 
 
 @dataclass
+class CompactSource:
+    """Source stored as unique spatial slabs and a lookup table.
+
+    A dense source repeats the same spatial profile (or zeros) for many
+    angles, groups, and time steps. A compact source stores each distinct
+    spatial profile once and an integer ``index`` that gives the profile
+    for every (angle, group) pair.
+
+    Attributes
+    ----------
+    values : numpy.ndarray
+        Unique spatial slabs on the last axis, shape ``(*spatial, S)``. The
+        spatial shape is ``(I,)`` / ``(I, J)`` for external sources and
+        ``(2,)`` / ``(2, J)`` / ``(2, I)`` for 1D / 2D x / 2D y boundaries.
+    index : numpy.ndarray
+        Integer slab for each (angle, group), shape ``(N, G)`` in 1D and
+        ``(N**2, G)`` in 2D, with a leading ``T`` axis when the slabs change
+        with time. An entry of -1 is a zero source. Dimensions of size 1 are
+        broadcast. Boundary indices cover all angles (not only the
+        incoming half), and the sweeps only read the incoming angles.
+    scale : numpy.ndarray, optional
+        Amplitude for each time step, shape ``(T,)``, multiplying the slab
+        values at that step.
+    """
+
+    values: np.ndarray
+    index: np.ndarray
+    scale: Optional[np.ndarray] = None
+
+    def __post_init__(self):
+        self.values = np.asarray(self.values, dtype=np.float64)
+        self.index = np.asarray(self.index, dtype=np.int32)
+        if self.scale is not None:
+            self.scale = np.asarray(self.scale, dtype=np.float64).ravel()
+        if self.index.ndim not in (2, 3):
+            raise ValueError("index must have shape ([T,] angles, groups)")
+        if (self.index.size > 0) and (self.index.max() >= self.values.shape[-1]):
+            raise ValueError("index refers to a slab outside of values")
+        if (
+            self.index.ndim == 3
+            and self.scale is not None
+            and self.index.shape[0] not in (1, self.scale.size)
+        ):
+            raise ValueError("index and scale have a different number of steps")
+
+    @property
+    def steps(self):
+        """Number of time steps (1 for a source constant in time)."""
+        steps = self.index.shape[0] if self.index.ndim == 3 else 1
+        if self.scale is not None:
+            steps = max(steps, self.scale.size)
+        return steps
+
+    @property
+    def nbytes(self):
+        """Memory of the stored arrays in bytes."""
+        scale = 0 if self.scale is None else self.scale.nbytes
+        return self.values.nbytes + self.index.nbytes + scale
+
+    def step(self, step):
+        """Return the ``(values, index)`` pair for one time step.
+
+        The values include the time ``scale`` and a trailing zero slab,
+        which the -1 entries of the index point to.
+        """
+        index = self.index
+        if index.ndim == 3:
+            index = index[0 if index.shape[0] == 1 else step]
+        values = self.values
+        if self.scale is not None:
+            values = values * self.scale[0 if self.scale.size == 1 else step]
+        zero = np.zeros(values.shape[:-1] + (1,))
+        values = np.concatenate((values, zero), axis=-1)
+        index = np.where(index < 0, values.shape[-1] - 1, index).astype(np.int32)
+        return values, index
+
+    def to_dense(self):
+        """Return the dense source array.
+
+        The shape is ``(*spatial, N, G)``, with a leading ``T`` axis if the
+        source changes with time.
+        """
+        if (self.index.ndim == 2) and (self.scale is None):
+            values, index = self.step(0)
+            return np.take(values, index, axis=-1)
+        return np.stack([np.take(*self.step(tt), axis=-1) for tt in range(self.steps)])
+
+    @classmethod
+    def from_dense(cls, source, time=False):
+        """Create a compact source from a dense source array.
+
+        Parameters
+        ----------
+        source : numpy.ndarray
+            Dense source with the angle and group dimensions last, shape
+            ``(*spatial, N, G)``, or ``(T, *spatial, N, G)`` if ``time``.
+        time : bool, optional
+            If True, the first axis of ``source`` is the time step.
+
+        Returns
+        -------
+        CompactSource
+            Source storing each unique nonzero spatial slab once.
+        """
+        source = np.asarray(source, dtype=np.float64)
+        if time:
+            return cls.from_steps(source[tt] for tt in range(source.shape[0]))
+        return cls.from_steps([source])._steady()
+
+    @classmethod
+    def from_steps(cls, steps):
+        """Create a compact source from dense arrays of each time step.
+
+        Parameters
+        ----------
+        steps : iterable of numpy.ndarray
+            Dense source of each time step, all with shape
+            ``(*spatial, N, G)``. Only one step is in memory at a time.
+
+        Returns
+        -------
+        CompactSource
+            Source with an index of shape ``(T, N, G)``.
+        """
+        slabs = {}
+        indices = []
+        for dense in steps:
+            dense = np.asarray(dense, dtype=np.float64)
+            shape = dense.shape
+            columns = dense.reshape(shape[:-2] + (-1,))
+            index = np.full(shape[-2] * shape[-1], -1, dtype=np.int32)
+            for cc in range(columns.shape[-1]):
+                column = np.ascontiguousarray(columns[..., cc])
+                if not column.any():
+                    continue
+                index[cc] = slabs.setdefault(column.tobytes(), (len(slabs), column))[0]
+            indices.append(index.reshape(shape[-2:]))
+        if len(slabs) == 0:
+            values = np.zeros(shape[:-2] + (0,))
+        else:
+            values = np.stack([column for _, column in slabs.values()], axis=-1)
+        return cls(values, np.stack(indices))
+
+    def _steady(self):
+        # Drop the time axis of a single step source
+        if self.index.ndim == 3 and self.index.shape[0] == 1:
+            self.index = self.index[0]
+        return self
+
+
+@dataclass
 class SourceData:
     """Bundle of fixed source arrays.
 
     Attributes
     ----------
-    external : numpy.ndarray
+    external : numpy.ndarray or CompactSource
         External source. Full shape ``(I, N, G)`` in 1D and
         ``(I, J, N**2, G)`` in 2D, with a leading ``T`` (time) axis for
         time-dependent problems. Dimensions of size 1 are broadcast.
-    boundary_x : numpy.ndarray
+    boundary_x : numpy.ndarray or CompactSource
         Boundary source in x direction. Full shape ``(2, N, G)`` in 1D and
         ``(2, J, N**2, G)`` in 2D, with a leading ``T`` axis for
         time-dependent problems. The leading 2 is the [x(0), x(X)] sides.
-    boundary_y : numpy.ndarray, optional
+    boundary_y : numpy.ndarray or CompactSource, optional
         Boundary source in y direction for 2D problems. Full shape
         ``(2, I, N**2, G)``, with a leading ``T`` axis for time-dependent
         problems.

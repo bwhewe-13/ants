@@ -259,3 +259,21 @@ cdef double[:,:,:] _fission_matrix(object fission, object chi):
     else:
         xs_fission = fission
         return xs_fission
+
+
+################################################################################
+# External Source functions
+################################################################################
+
+cdef int[:,:] _source_columns(int columns, int[:,:] q_index, int angles, \
+        int groups):
+    # Column of the external source angle axis for each (angle, group).
+    if q_index is not None:
+        return q_index
+    cdef int nn, gg
+    dd2 = cvarray((angles, groups), itemsize=sizeof(int), format="i")
+    cdef int[:,:] cols = dd2
+    for nn in range(angles):
+        for gg in range(groups):
+            cols[nn, gg] = 0 if columns == 1 else nn
+    return cols
