@@ -419,6 +419,107 @@ def test_multigroup_1d_speedup():
     )
 
 
+def _coupled_scatter(n_groups, moments):
+    """Within-group, down and up scatter, with decaying higher moments."""
+    scatter = np.zeros((1, n_groups, n_groups))
+    for g in range(n_groups):
+        scatter[0, g, g] = 0.4
+        if g + 1 < n_groups:
+            scatter[0, g + 1, g] = 0.2
+        if g > 0:
+            scatter[0, g - 1, g] = 0.05
+    if moments > 1:
+        scatter = np.stack([scatter * 0.5**ll for ll in range(moments)], axis=-1)
+    return scatter
+
+
+def _coupled_problem_1d(n_groups, moments, bc_x, geometry):
+    """1D fixed-source problem with group coupling and a group 0 source."""
+    n_cells = 40
+    mat_data = MaterialData(
+        total=np.ones((1, n_groups)),
+        scatter=_coupled_scatter(n_groups, moments),
+        fission=np.zeros((1, n_groups, n_groups)),
+    )
+    external = np.zeros((n_cells, 1, n_groups))
+    external[: n_cells // 2, 0, 0] = 1.0
+    sources = SourceData(external=external, boundary_x=np.zeros((2, 1, n_groups)))
+    geo = GeometryData(
+        medium_map=np.zeros(n_cells, dtype=np.int32),
+        delta_x=np.repeat(1.0 / n_cells, n_cells),
+        bc_x=bc_x,
+        geometry=geometry,
+    )
+    quadrature = ants.angular_x(8, bc_x=bc_x)
+    return mat_data, sources, geo, quadrature
+
+
+def _coupled_problem_2d(n_groups, moments, bc_x):
+    """2D fixed-source problem with group coupling and a group 0 source."""
+    n_cells = 12
+    mat_data = MaterialData(
+        total=np.ones((1, n_groups)),
+        scatter=_coupled_scatter(n_groups, moments),
+        fission=np.zeros((1, n_groups, n_groups)),
+    )
+    external = np.zeros((n_cells, n_cells, 1, n_groups))
+    external[: n_cells // 2, : n_cells // 2, 0, 0] = 1.0
+    sources = SourceData(
+        external=external,
+        boundary_x=np.zeros((2, 1, 1, 1)),
+        boundary_y=np.zeros((2, 1, 1, 1)),
+    )
+    geo = GeometryData(
+        medium_map=np.zeros((n_cells, n_cells), dtype=np.int32),
+        delta_x=np.repeat(1.0 / n_cells, n_cells),
+        delta_y=np.repeat(1.0 / n_cells, n_cells),
+        bc_x=bc_x,
+        bc_y=[0, 0],
+        geometry=3,
+    )
+    quadrature = ants.angular_xy(4, bc_x=bc_x)
+    return mat_data, sources, geo, quadrature
+
+
+# Slab (vacuum and reflected), sphere, and square sweeps, each isotropic
+# and anisotropic.  Eight groups on three threads makes every thread
+# reuse its sweep work arrays across several groups.
+GROUP_CASES = [
+    ("slab", 1, [0, 0]),
+    ("slab", 1, [1, 0]),
+    ("sphere", 2, [0, 0]),
+    ("square", 3, [0, 0]),
+    ("square", 3, [1, 0]),
+]
+
+
+@pytest.mark.smoke
+@pytest.mark.parametrize("parallel", [ParallelType.GROUP, ParallelType.BOTH])
+@pytest.mark.parametrize("moments", [1, 2])
+@pytest.mark.parametrize("name, geometry, bc_x", GROUP_CASES)
+def test_group_parallel_sweeps(name, geometry, bc_x, moments, parallel):
+    """Nogil group-parallel sweeps match the serial Gauss-Seidel solve."""
+    n_groups = 8
+    if geometry == 3:
+        problem = _coupled_problem_2d(n_groups, moments, bc_x)
+        fixed_source = fixed_source_2d
+    else:
+        problem = _coupled_problem_1d(n_groups, moments, bc_x, geometry)
+        fixed_source = fixed_source_1d
+
+    kwargs = dict(tol_energy=1e-10, max_iter_energy=500, max_iter_angular=500)
+    solver_1 = SolverData(num_threads=1, **kwargs)
+    solver_n = SolverData(num_threads=3, parallel=parallel, **kwargs)
+
+    flux_1 = fixed_source(*problem, solver_1)
+    flux_n = fixed_source(*problem, solver_n)
+
+    assert np.allclose(flux_1, flux_n, atol=1e-8), (
+        f"{name} {parallel.name} flux differs from serial (bc_x={bc_x}, "
+        f"moments={moments}, max_diff={np.abs(flux_1 - flux_n).max():.2e})"
+    )
+
+
 ########################################################################
 # Energy grid - requires ENERGY_GRID_NPZ secret
 ########################################################################

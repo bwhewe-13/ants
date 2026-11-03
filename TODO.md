@@ -8,7 +8,7 @@
 - [x] Add 3D interpolation capabilities.
 - [x] Convert interp1d and interp2d files to Cython.
 - [x] Add parallelism improvements (OpenMP tuning and/or distributed strategy).
-- [ ] Remove the GIL from group parallelism (`ParallelType.GROUP`/`BOTH`).
+- [x] Remove the GIL from group parallelism (`ParallelType.GROUP`/`BOTH`).
     - The group `prange` in `jacobi_iteration` (`multi_group_1d.pyx`) wraps each
       sweep in `with gil:`, so the groups run one at a time (~0.9x speedup).
     - Same pattern in `jacobi_iteration_aniso` and `multi_group_2d.pyx`.
