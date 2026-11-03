@@ -69,7 +69,8 @@ cdef double group_convergence(double[:,:]& arr1, double[:,:]& arr2, params info)
     return _shared_group_convergence(_arr1, _arr2, info)
 
 
-cdef double angle_convergence(double[:]& arr1, double[:]& arr2, params info):
+cdef double angle_convergence(double[:]& arr1, double[:]& arr2, \
+        params info) noexcept nogil:
     cdef double[:] _arr1 = arr1
     cdef double[:] _arr2 = arr2
     return _shared_angle_convergence(_arr1, _arr2, info)

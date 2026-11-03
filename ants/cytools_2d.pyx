@@ -87,7 +87,8 @@ cdef double group_convergence(double[:,:,:]& arr1, double[:,:,:]& arr2, \
     return _shared_group_convergence(_arr1, _arr2, info)
 
 
-cdef double angle_convergence(double[:,:]& arr1, double[:,:]& arr2, params info):
+cdef double angle_convergence(double[:,:]& arr1, double[:,:]& arr2, \
+        params info) noexcept nogil:
     cdef double[:,:] _arr1 = arr1
     cdef double[:,:] _arr2 = arr2
     return _shared_angle_convergence(_arr1, _arr2, info)
@@ -269,7 +270,8 @@ cdef void _angular_edge_to_scalar(double[:,:,:,:]& psi_x, double[:,:,:,:]& psi_y
 
 
 cdef void initialize_known_y(double[:]& known_y, double[:,:]& boundary_y, \
-        double[:,:,:]& reflected_y, double[:]& angle_y, int angle, params info):
+        double[:,:,:]& reflected_y, double[:]& angle_y, int angle, \
+        params info) noexcept nogil:
     # Initialize location
     cdef int loc
     # Zero out flux
@@ -286,7 +288,8 @@ cdef void initialize_known_y(double[:]& known_y, double[:,:]& boundary_y, \
 
 
 cdef void initialize_known_x(double[:]& known_x, double[:,:]& boundary_x, \
-        double[:,:,:]& reflected_x, double[:]& angle_x, int angle, params info):
+        double[:,:,:]& reflected_x, double[:]& angle_x, int angle, \
+        params info) noexcept nogil:
     # Initialize location
     cdef int loc
     # Zero out flux
@@ -304,11 +307,12 @@ cdef void initialize_known_x(double[:]& known_x, double[:,:]& boundary_x, \
 
 cdef void update_reflector(double[:]& known_x, double[:,:,:]& reflected_x, \
         double[:]& angle_x, double[:]& known_y, double[:,:,:]& reflected_y, \
-        double[:]& angle_y, int angle, params info):
+        double[:]& angle_y, int angle, params info) noexcept nogil:
     # Initialize iterables
     cdef int opp_idx
     # Return nothing for 4 vacuum boundaries
-    if (info.bc_x == [0, 0]) and (info.bc_y == [0, 0]):
+    if (info.bc_x[0] == 0) and (info.bc_x[1] == 0) \
+            and (info.bc_y[0] == 0) and (info.bc_y[1] == 0):
         return
     # Update reflected_x
     if (angle_x[angle] > 0.0) and (info.bc_x[1] == 1):
@@ -327,7 +331,7 @@ cdef void update_reflector(double[:]& known_x, double[:,:,:]& reflected_x, \
 
 
 cdef int _reflected_index(double[:]& angle_opp, double[:]& angle_sim, \
-        int angle, params info):
+        int angle, params info) noexcept nogil:
     # Initialize iterable
     cdef int nn
     for nn in range(info.angles * info.angles):

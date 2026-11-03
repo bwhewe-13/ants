@@ -47,7 +47,8 @@ cdef float[:,:,:,:,:] farray_5d(int dim1, int dim2, int dim3, int dim4, \
 cdef double group_convergence(double[:,:,:]& arr1, double[:,:,:]& arr2, \
         params info)
 
-cdef double angle_convergence(double[:,:]& arr1, double[:,:]& arr2, params info)
+cdef double angle_convergence(double[:,:]& arr1, double[:,:]& arr2, \
+        params info) noexcept nogil
 
 ################################################################################
 # Multigroup functions
@@ -87,14 +88,16 @@ cdef void _angular_edge_to_scalar(double[:,:,:,:]& psi_x, double[:,:,:,:]& psi_y
         double[:,:,:]& scalar_flux, double[:]& angle_w, params info)
 
 cdef void initialize_known_y(double[:]& known_y, double[:,:]& boundary_y, \
-        double[:,:,:]& reflected_y, double[:]& angle_y, int angle, params info)
+        double[:,:,:]& reflected_y, double[:]& angle_y, int angle, \
+        params info) noexcept nogil
 
 cdef void initialize_known_x(double[:]& known_x, double[:,:]& boundary_x, \
-        double[:,:,:]& reflected_x, double[:]& angle_x, int angle, params info)
+        double[:,:,:]& reflected_x, double[:]& angle_x, int angle, \
+        params info) noexcept nogil
 
 cdef void update_reflector(double[:]& known_x, double[:,:,:]& reflected_x, \
         double[:]& angle_x, double[:]& known_y, double[:,:,:]& reflected_y, \
-        double[:]& angle_y, int angle, params info)
+        double[:]& angle_y, int angle, params info) noexcept nogil
 
 ################################################################################
 # Time Dependent functions

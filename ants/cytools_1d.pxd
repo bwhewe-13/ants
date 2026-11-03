@@ -40,7 +40,8 @@ cdef double[:,:,:,:] array_4d(int dim1, int dim2, int dim3, int dim4)
 ################################################################################
 cdef double group_convergence(double[:,:]& arr1, double[:,:]& arr2, params info)
 
-cdef double angle_convergence(double[:]& arr1, double[:]& arr2, params info)
+cdef double angle_convergence(double[:]& arr1, double[:]& arr2, \
+        params info) noexcept nogil
 
 ################################################################################
 # Material Interface functions

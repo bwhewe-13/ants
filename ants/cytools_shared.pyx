@@ -124,7 +124,8 @@ cdef double group_convergence(scalar_flux_nd arr1, scalar_flux_nd arr2,
     return sqrt(change)
 
 
-cdef double angle_convergence(spatial_nd arr1, spatial_nd arr2, params info):
+cdef double angle_convergence(spatial_nd arr1, spatial_nd arr2,
+                              params info) noexcept nogil:
     """L2 relative convergence of a spatial array over the ordinate iteration.
 
     Dispatches at compile time to the 1D (cells_x,) or 2D (cells_x, cells_y)

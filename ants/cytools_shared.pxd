@@ -66,7 +66,8 @@ ctypedef fused medium_map_nd:
 cdef double group_convergence(scalar_flux_nd arr1, scalar_flux_nd arr2,
                                params info)
 
-cdef double angle_convergence(spatial_nd arr1, spatial_nd arr2, params info)
+cdef double angle_convergence(spatial_nd arr1, spatial_nd arr2,
+                              params info) noexcept nogil
 
 cdef void _normalize_flux(scalar_flux_nd flux, params info)
 
