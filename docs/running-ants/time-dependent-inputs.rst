@@ -121,6 +121,26 @@ Helper functions such as ``ants.boundary1d.time_dependence_decay_02()`` and
 ``ants.boundary2d.time_dependence_decay_03()`` generate these arrays from a
 base boundary condition and a time axis.
 
+A dense time-dependent source stores every angle and group of every step. A
+``CompactSource`` (see :doc:`standard-inputs`) stores each spatial profile once,
+with an index of shape ``(T, N, G)`` when the profiles change between steps and
+an optional amplitude ``scale`` of shape ``(T,)``. The solvers expand one step at
+a time, so a decaying one-group boundary source costs a few values per step
+instead of ``2 x N x G``::
+
+    from ants.datatypes import CompactSource
+
+    # Left boundary in group 2, decaying exponentially in time
+    values = np.array([[1.0], [0.0]])       # (2, S) for [x(0), x(X)]
+    index = np.full((1, groups), -1)        # (1, G), same for all angles
+    index[0, 2] = 0
+    scale = np.exp(-edges_t[1:] / 1e-6)     # (T,)
+    boundary_x = CompactSource(values, index, scale=scale)
+
+An existing dense array is converted with ``CompactSource.from_dense(array,
+time=True)``, or ``CompactSource.from_steps(...)`` from one step at a time.
+Compact boundary indices cover all angles; only the incoming angles are used.
+
 
 Available Time-Dependent Solvers
 ---------------------------------

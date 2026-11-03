@@ -243,6 +243,37 @@ helpers that expand a steady source over the time grid:
 See :doc:`time-dependent-inputs` for time-stepping details and the initial-flux shapes.
 
 
+**Compact Sources:**
+
+Broadcasting handles a dimension where the source is the same everywhere, but not
+one where it is mostly zero. A source in one energy group of an 87-group problem
+stores 86 groups of zeros. ``ants.datatypes.CompactSource`` stores each distinct
+spatial profile once (``values``, shape ``(*spatial, S)``) and an integer
+``index`` of shape ``(N, G)`` (``(N**2, G)`` in 2D) giving the profile of each
+angle and group, with ``-1`` for a zero source. The spatial shape is ``(I,)`` or
+``(I, J)`` for external sources and ``(2,)``, ``(2, J)``, or ``(2, I)`` for
+boundary sources. Index dimensions of size 1 are broadcast. Any of
+``external``, ``boundary_x``, and ``boundary_y`` can be a ``CompactSource``.
+
+.. code-block:: python
+
+    from ants.datatypes import CompactSource
+
+    # Isotropic source in cells 10-20 of group 0, zero in the other groups
+    values = np.zeros((cells_x, 1))
+    values[10:20, 0] = 1.0
+    index = np.full((1, groups), -1)
+    index[0, 0] = 0
+    external = CompactSource(values, index)
+
+    # Or from an existing dense array
+    boundary_x = CompactSource.from_dense(ants.boundary1d.deuterium_tritium(0, edges_g))
+
+The steady-state sweeps read a compact external source through the index, so it is
+never expanded. Compact boundary sources are expanded to the (surface sized) dense
+array, and the nearby problems use dense sources.
+
+
 **One-Dimensional Boundary Source**
 
 .. container:: clickable-tikz
