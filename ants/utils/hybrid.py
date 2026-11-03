@@ -124,6 +124,15 @@ def _xs_matrix_coarsen(matrix, edges_g, edges_gidx):
     Returns:
         coarse (float [materials x groups' x groups']): Coarsened array
     """
+    # Anisotropic scattering: coarsen each Legendre moment
+    if np.ndim(matrix) == 4:
+        return np.stack(
+            [
+                _xs_matrix_coarsen(matrix[..., ll], edges_g, edges_gidx)
+                for ll in range(matrix.shape[3])
+            ],
+            axis=-1,
+        )
     materials = matrix.shape[0]
     groups_coarse = edges_gidx.shape[0] - 1
     # Create coarsened array

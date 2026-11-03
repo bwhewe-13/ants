@@ -2,12 +2,20 @@
 
 ## Planned Updates for 0.3.0
 - [x] Implement artificial scattering for ray effect correction (2D).
-- [ ] Add anisotropic scattering support.
+- [x] Add anisotropic scattering support.
 - [x] Add chi vector support.
 - [ ] Add 3D transport sweep capabilities.
 - [x] Add 3D interpolation capabilities.
 - [x] Convert interp1d and interp2d files to Cython.
 - [x] Add parallelism improvements (OpenMP tuning and/or distributed strategy).
+- [ ] Remove the GIL from group parallelism (`ParallelType.GROUP`/`BOTH`).
+    - The group `prange` in `jacobi_iteration` (`multi_group_1d.pyx`) wraps each
+      sweep in `with gil:`, so the groups run one at a time (~0.9x speedup).
+    - Same pattern in `jacobi_iteration_aniso` and `multi_group_2d.pyx`.
+    - The sweeps need the GIL because they allocate numpy work arrays
+      (`tools.array_*`) and contain their own angle `prange`.
+    - Fix: preallocate per-group buffers before the loop and add a `nogil`
+      sweep entry point; then `test_multigroup_1d_speedup` should pass.
 - [x] Complete spatial MMS verification for remaining unverified methods.
 - [ ] Limit the memory footprint (boundary sources, time-dependent problems, etc.)
 - [x] Update nearby1d and nearby2d function calls.

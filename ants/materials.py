@@ -418,7 +418,7 @@ def _load_library(library):
     return library if isinstance(library, Library) else Library(library)
 
 
-def create_material(composition, library, temperature=None):
+def create_material(composition, library, temperature=None, legendre=0):
     """Create cross sections for one material from number densities.
 
     Parameters
@@ -431,6 +431,8 @@ def create_material(composition, library, temperature=None):
         HDF5 cross section library (or path to it).
     temperature : float, optional
         Temperature (K); the nearest library temperature is used.
+    legendre : int, optional
+        Legendre order of the scattering (0 for isotropic P0 scattering).
 
     Returns
     -------
@@ -438,7 +440,9 @@ def create_material(composition, library, temperature=None):
         Cross sections of shape ``(1, groups[, groups])``.
     """
     library = _load_library(library)
-    return library.materials([parse_composition(composition)], temperature)
+    return library.materials(
+        [parse_composition(composition)], temperature, legendre=legendre
+    )
 
 
 def combine_materials(materials):

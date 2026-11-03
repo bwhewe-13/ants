@@ -110,6 +110,8 @@ cdef struct params:
     # Time term 1 / (v * dt) in the total cross section, left out of
     # the step characteristic weight
     double xs_time
+    # Number of Legendre scattering moments (1 = isotropic)
+    int moments
 
 
 cdef params _to_params(object pydic)

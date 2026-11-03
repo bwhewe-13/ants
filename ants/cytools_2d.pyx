@@ -20,11 +20,14 @@
 # distutils: language = c++
 # distutils: extra_compile_args = -O3 -march=native -ffast-math
 
+from libc.math cimport sqrt
+
 from cython.parallel import prange
 
 from cython.view cimport array as cvarray
 
-from ants.cytools_1d cimport _edge_center
+from ants.cytools_1d cimport _edge_center, _legendre_sum
+from ants.cytools_1d cimport _xs_matrix_aniso as _shared_xs_matrix_aniso
 from ants.cytools_polygon cimport _expand_boundary_polygon, _time_source_star_cn_polygon
 from ants.cytools_shared cimport _fission_matrix as _shared_fission_matrix
 from ants.cytools_shared cimport _normalize_flux as _shared_normalize_flux
@@ -1301,3 +1304,382 @@ cdef double[:,:,:,:] _expand_boundary_y(double[:,:,:,:]& half_bc,
             if bc_angle:
                 ii_neg += 1
     return full_bc
+
+
+################################################################################
+# Anisotropic Scattering (spherical harmonic moments)
+################################################################################
+# Flux moments are (cells_x, cells_y, groups, moments) with
+# phi_k = sum_n w_n Y_k(Omega_n) psi_n. Scatter moments are (materials, groups,
+# groups, moments), where each harmonic k uses the Legendre moment of its
+# degree l, without (2l + 1), which is in P_source[k, n] = (2l + 1) Y_k(Omega_n).
+# For a single moment the isotropic function is called so the results are
+# unchanged.
+
+cdef void _xs_matrix_aniso(double[:,:,:,:]& mat1, double[:,:,:,:]& mat2, \
+        double[:,:,:]& mat3, params info):
+    # Fission is isotropic, so it only adds to the k = 0 moment
+    _shared_xs_matrix_aniso(mat1, mat2, mat3, info)
+
+
+cdef void _group_moments(double[:]& group_moments, double[:,:,:,:]& flux, \
+        double[:,:,:,:]& xs_matrix, int mat, int ii, int jj, int group, \
+        params info) noexcept nogil:
+    # Scatter moments into one group: sum over groups of sigma_l * phi_k
+    cdef int kk, ig
+    for kk in range(info.moments):
+        group_moments[kk] = 0.0
+        for ig in range(info.groups):
+            group_moments[kk] += flux[ii,jj,ig,kk] * xs_matrix[mat,group,ig,kk]
+
+
+cdef void _off_scatter_moments(double[:,:,:,:]& flux, double[:,:,:,:]& flux_old, \
+        int[:,:]& medium_map, double[:,:,:,:]& xs_matrix, \
+        double[:,:,:]& off_scatter, params info, int group):
+    # Gauss-Seidel off-group scatter moments (cells_x x cells_y x moments)
+    cdef int ii, jj, mat, og, kk
+    off_scatter[:,:,:] = 0.0
+    for ii in range(info.cells_x):
+        for jj in range(info.cells_y):
+            mat = medium_map[ii,jj]
+            for kk in range(info.moments):
+                for og in range(0, group):
+                    off_scatter[ii,jj,kk] += xs_matrix[mat,group,og,kk] \
+                                             * flux[ii,jj,og,kk]
+                for og in range(group + 1, info.groups):
+                    off_scatter[ii,jj,kk] += xs_matrix[mat,group,og,kk] \
+                                             * flux_old[ii,jj,og,kk]
+
+
+cdef void _off_scatter_jacobi_moments(double[:,:,:,:]& flux_old, \
+        int[:,:]& medium_map, double[:,:,:,:]& xs_matrix, \
+        double[:,:,:,:]& off_scatter_all, params info, int group) noexcept nogil:
+    # Jacobi off-group scatter moments, see _off_scatter_jacobi
+    cdef int ii, jj, mat, og, kk
+    for ii in range(info.cells_x):
+        for jj in range(info.cells_y):
+            mat = medium_map[ii,jj]
+            for kk in range(info.moments):
+                off_scatter_all[group,ii,jj,kk] = 0.0
+                for og in range(info.groups):
+                    if og != group:
+                        off_scatter_all[group,ii,jj,kk] += \
+                                xs_matrix[mat,group,og,kk] * flux_old[ii,jj,og,kk]
+
+
+cdef void _source_total_aniso(double[:,:,:,:]& source, double[:,:,:,:]& flux, \
+        double[:,:,:,:]& xs_matrix, int[:,:]& medium_map, \
+        double[:,:,:,:]& external, double[:,:]& P_source, params info):
+    # Create sum_k (2l + 1) Y_k (sigma_s + sigma_f)_l * phi_k + external
+    cdef int ii, jj, nn, og, nn_q, og_q, mat
+    if info.moments == 1:
+        _source_total(source, flux[:,:,:,0], xs_matrix[:,:,:,0], medium_map, \
+                      external, info)
+        return
+    group_moments = array_1d(info.moments)
+    source[:,:,:,:] = 0.0
+    for ii in range(info.cells_x):
+        for jj in range(info.cells_y):
+            mat = medium_map[ii,jj]
+            for og in range(info.groups):
+                og_q = 0 if external.shape[3] == 1 else og
+                _group_moments(group_moments, flux, xs_matrix, mat, ii, jj, og, info)
+                for nn in range(info.angles * info.angles):
+                    nn_q = 0 if external.shape[2] == 1 else nn
+                    source[ii,jj,nn,og] = _legendre_sum(group_moments, P_source, \
+                                            nn, info) + external[ii,jj,nn_q,og_q]
+
+
+cdef void _angular_to_moments(double[:,:,:,:]& angular_flux, \
+        double[:,:,:,:]& flux, double[:,:]& P_weights, params info):
+    # phi_k = sum_n w_n Y_k(Omega_n) psi_n
+    cdef int ii, jj, nn, gg, kk
+    if info.moments == 1:
+        _angular_to_scalar(angular_flux, flux[:,:,:,0], P_weights[0], info)
+        return
+    flux[:,:,:,:] = 0.0
+    for ii in range(info.cells_x):
+        for jj in range(info.cells_y):
+            for nn in range(info.angles * info.angles):
+                for gg in range(info.groups):
+                    for kk in range(info.moments):
+                        flux[ii,jj,gg,kk] += angular_flux[ii,jj,nn,gg] \
+                                             * P_weights[kk,nn]
+
+
+cdef void _angular_edge_to_moments(double[:,:,:,:]& psi_x, \
+        double[:,:,:,:]& psi_y, double[:,:,:,:]& flux, double[:,:]& xs_total, \
+        int[:,:]& medium_map, double[:]& delta_x, double[:]& delta_y, \
+        double[:]& angle_x, double[:]& angle_y, double[:,:]& P_weights, \
+        params info):
+    # Cell center moments from angular flux at cell edges
+    cdef int ii, jj, nn, gg, kk, mat
+    cdef double psi
+    if info.moments == 1:
+        _angular_edge_to_scalar(psi_x, psi_y, flux[:,:,:,0], xs_total, \
+                medium_map, delta_x, delta_y, angle_x, angle_y, P_weights[0], info)
+        return
+    # Polygon meshes have cell centers in psi_y
+    if info.geometry == 4:
+        _angular_to_moments(psi_y, flux, P_weights, info)
+        return
+    flux[:,:,:,:] = 0.0
+    for ii in range(info.cells_x):
+        for jj in range(info.cells_y):
+            mat = medium_map[ii,jj]
+            for nn in range(info.angles * info.angles):
+                for gg in range(info.groups):
+                    psi = _edge_center_xy(psi_x, psi_y, xs_total[mat,gg], \
+                            delta_x, delta_y, angle_x, angle_y, ii, jj, nn, gg, info)
+                    for kk in range(info.moments):
+                        flux[ii,jj,gg,kk] += psi * P_weights[kk,nn]
+
+
+cdef void _time_source_star_cn_aniso(double[:,:,:,:]& psi_x, \
+        double[:,:,:,:]& psi_y, double[:,:,:,:]& phi, double[:,:]& xs_total, \
+        double[:,:,:,:]& xs_scatter, double[:]& velocity, \
+        double[:,:,:,:]& q_star, double[:,:,:,:]& external_prev, \
+        double[:,:,:,:]& external, int[:,:]& medium_map, double[:]& delta_x, \
+        double[:]& delta_y, PolygonSweep mesh, double[:]& angle_x, \
+        double[:]& angle_y, double[:,:]& P_source, double constant, params info):
+    # Anisotropic scattering of the previous time step, see _time_source_star_cn
+    cdef int ii, jj, mat, nn, og, nn_q, og_q
+    cdef double psi, dpsi_x, dpsi_y
+    if info.moments == 1:
+        _time_source_star_cn(psi_x, psi_y, phi[:,:,:,0], xs_total, \
+                xs_scatter[:,:,:,0], velocity, q_star, external_prev, external, \
+                medium_map, delta_x, delta_y, mesh, angle_x, angle_y, constant, \
+                info)
+        return
+    group_moments = array_1d(info.moments)
+    q_star[:,:,:,:] = 0.0
+    for ii in range(info.cells_x):
+        for jj in range(info.cells_y):
+            mat = medium_map[ii,jj]
+            for og in range(info.groups):
+                og_q = 0 if external.shape[3] == 1 else og
+                _group_moments(group_moments, phi, xs_scatter, mat, ii, jj, og, info)
+                for nn in range(info.angles * info.angles):
+                    nn_q = 0 if external.shape[2] == 1 else nn
+                    # Calculate angular flux center
+                    psi = _edge_center_xy(psi_x, psi_y, xs_total[mat,og], \
+                            delta_x, delta_y, angle_x, angle_y, ii, jj, nn, og, info)
+                    # Calculate cell flux derivative
+                    dpsi_x = (psi_x[ii+1,jj,nn,og] - psi_x[ii,jj,nn,og]) / delta_x[ii]
+                    dpsi_y = (psi_y[ii,jj+1,nn,og] - psi_y[ii,jj,nn,og]) / delta_y[jj]
+                    q_star[ii,jj,nn,og] += _legendre_sum(group_moments, P_source, \
+                                                         nn, info)
+                    q_star[ii,jj,nn,og] += external[ii,jj,nn_q,og_q] \
+                            + external_prev[ii,jj,nn_q,og_q] \
+                            - angle_x[nn] * dpsi_x - angle_y[nn] * dpsi_y + psi \
+                            * (constant / (velocity[og] * info.dt) - xs_total[mat,og])
+
+
+cdef void _time_right_side_aniso(double[:,:,:,:]& q_star, \
+        double[:,:,:,:]& flux, double[:,:,:,:]& xs_scatter, \
+        int[:,:]& medium_map, double[:,:]& P_source, params info):
+    # Add the anisotropic (sigma_s + sigma_f) * phi source to q_star
+    cdef int ii, jj, nn, og, mat
+    if info.moments == 1:
+        _time_right_side(q_star, flux[:,:,:,0], xs_scatter[:,:,:,0], \
+                         medium_map, info)
+        return
+    group_moments = array_1d(info.moments)
+    for ii in range(info.cells_x):
+        for jj in range(info.cells_y):
+            mat = medium_map[ii,jj]
+            for og in range(info.groups):
+                _group_moments(group_moments, flux, xs_scatter, mat, ii, jj, og, info)
+                for nn in range(info.angles * info.angles):
+                    q_star[ii,jj,nn,og] += _legendre_sum(group_moments, P_source, \
+                                                         nn, info)
+
+
+cdef void _normalize_moments(double[:,:,:,:]& flux, params info):
+    # Normalize all moments by the L2 norm of the scalar flux
+    cdef int ii, jj, gg, kk
+    cdef double norm = 0.0
+    for ii in range(info.cells_x):
+        for jj in range(info.cells_y):
+            for gg in range(info.groups):
+                norm += flux[ii,jj,gg,0] * flux[ii,jj,gg,0]
+    norm = sqrt(norm)
+    for ii in range(info.cells_x):
+        for jj in range(info.cells_y):
+            for gg in range(info.groups):
+                for kk in range(info.moments):
+                    flux[ii,jj,gg,kk] /= norm
+
+
+cdef void _source_total_critical_aniso(double[:,:,:,:]& source, \
+        double[:,:,:,:]& flux, double[:,:,:,:]& xs_scatter, \
+        double[:,:,:]& xs_fission, int[:,:]& medium_map, double keff, \
+        double[:,:]& P_source, params info):
+    # Create sum_k (2l + 1) Y_k sigma_s,l phi_k + sigma_f * phi / keff
+    cdef int ii, jj, nn, ig, og, mat
+    cdef double fission
+    group_moments = array_1d(info.moments)
+    source[:,:,:,:] = 0.0
+    for ii in range(info.cells_x):
+        for jj in range(info.cells_y):
+            mat = medium_map[ii,jj]
+            for og in range(info.groups):
+                _group_moments(group_moments, flux, xs_scatter, mat, ii, jj, og, info)
+                fission = 0.0
+                for ig in range(info.groups):
+                    fission += flux[ii,jj,ig,0] * xs_fission[mat,og,ig] / keff
+                for nn in range(info.angles * info.angles):
+                    source[ii,jj,nn,og] = _legendre_sum(group_moments, P_source, \
+                                                        nn, info) + fission
+
+
+cdef void _hybrid_source_collided_aniso(double[:,:,:,:]& flux_u, \
+        double[:,:,:,:]& xs_scatter, double[:,:,:,:]& source_c, \
+        int[:,:]& medium_map, int[:]& coarse_idx, double[:,:]& P_source_c, \
+        params info_u, params info_c):
+    # Collided source on the collided ordinates (I x J x N'^2 x G')
+    cdef int ii, jj, mat, nn, og
+    if info_u.moments == 1:
+        _hybrid_source_collided(flux_u[:,:,:,0], xs_scatter[:,:,:,0], source_c, \
+                                medium_map, coarse_idx, info_u)
+        return
+    group_moments = array_1d(info_u.moments)
+    source_c[:,:,:,:] = 0.0
+    for ii in range(info_u.cells_x):
+        for jj in range(info_u.cells_y):
+            mat = medium_map[ii,jj]
+            for og in range(info_u.groups):
+                _group_moments(group_moments, flux_u, xs_scatter, mat, ii, jj, \
+                               og, info_u)
+                for nn in range(info_c.angles * info_c.angles):
+                    source_c[ii,jj,nn,coarse_idx[og]] += _legendre_sum( \
+                                            group_moments, P_source_c, nn, info_u)
+
+
+cdef void _hybrid_source_total_aniso(double[:,:,:,:]& flux_u, \
+        double[:,:,:,:]& flux_c, double[:,:,:,:]& xs_matrix, \
+        double[:,:,:,:]& source, int[:,:]& medium_map, int[:]& coarse_idx, \
+        double[:]& factor_u, double[:,:]& P_source_u, params info_u, \
+        params info_c):
+    # Add the collided moments to the uncollided and update the source
+    cdef int ii, jj, mat, nn, og, kk
+    if info_u.moments == 1:
+        _hybrid_source_total(flux_u[:,:,:,0], flux_c[:,:,:,0], \
+                    xs_matrix[:,:,:,0], source, medium_map, coarse_idx, \
+                    factor_u, info_u, info_c)
+        return
+    group_moments = array_1d(info_u.moments)
+    for ii in range(info_u.cells_x):
+        for jj in range(info_u.cells_y):
+            mat = medium_map[ii,jj]
+            for og in range(info_u.groups):
+                for kk in range(info_u.moments):
+                    flux_u[ii,jj,og,kk] = flux_u[ii,jj,og,kk] \
+                            + flux_c[ii,jj,coarse_idx[og],kk] * factor_u[og]
+            for og in range(info_u.groups):
+                _group_moments(group_moments, flux_u, xs_matrix, mat, ii, jj, \
+                               og, info_u)
+                for nn in range(info_u.angles * info_u.angles):
+                    source[ii,jj,nn,og] += _legendre_sum(group_moments, \
+                                                         P_source_u, nn, info_u)
+
+
+cdef void _vhybrid_source_c_aniso(double[:,:,:,:]& flux_u, \
+        double[:,:,:,:]& xs_scatter, double[:,:,:,:]& source_c, \
+        int[:,:]& medium_map, int[:]& edges_gidx_c, double[:,:]& P_source_c, \
+        params info_u, params info_c):
+    # Collided source on the collided ordinates (I x J x N'^2 x G')
+    cdef int ii, jj, mat, nn, gg, og
+    if info_u.moments == 1:
+        _vhybrid_source_c(flux_u[:,:,:,0], xs_scatter[:,:,:,0], source_c, \
+                          medium_map, edges_gidx_c, info_u, info_c)
+        return
+    group_moments = array_1d(info_u.moments)
+    source_c[:,:,:,:] = 0.0
+    for ii in range(info_u.cells_x):
+        for jj in range(info_u.cells_y):
+            mat = medium_map[ii,jj]
+            for gg in range(info_c.groups):
+                for og in range(edges_gidx_c[gg], edges_gidx_c[gg+1]):
+                    _group_moments(group_moments, flux_u, xs_scatter, mat, ii, \
+                                   jj, og, info_u)
+                    for nn in range(info_c.angles * info_c.angles):
+                        source_c[ii,jj,nn,gg] += _legendre_sum(group_moments, \
+                                                    P_source_c, nn, info_u)
+
+
+cdef void _coarsen_moments(double[:,:,:,:]& flux_u, double[:,:,:,:]& flux_c, \
+        int[:]& edges_gidx_c, params info_c):
+    # Sum the fine group moments in each coarse group
+    cdef int ii, jj, og, ig, kk
+    flux_c[:,:,:,:] = 0.0
+    for ii in range(info_c.cells_x):
+        for jj in range(info_c.cells_y):
+            for og in range(info_c.groups):
+                for ig in range(edges_gidx_c[og], edges_gidx_c[og+1]):
+                    for kk in range(info_c.moments):
+                        flux_c[ii,jj,og,kk] += flux_u[ii,jj,ig,kk]
+
+
+cdef void _variable_off_scatter_aniso(double[:,:,:,:]& flux, \
+        double[:,:,:,:]& flux_old, int[:,:]& medium_map, \
+        double[:,:,:,:]& xs_matrix, double[:,:,:]& off_scatter, int group, \
+        double[:]& edges_g, int[:]& edges_gidx_c, int out_idx1, int out_idx2, \
+        params info):
+    # Collapsed off-group scatter moments, see _variable_off_scatter
+    cdef int gg, in_idx1, in_idx2, ii, jj, mat, og, ig, kk
+    cdef double prod_tmp, delta_coarse
+    off_scatter[:,:,:] = 0.0
+    for gg in range(info.groups):
+        if gg == group:
+            continue
+        in_idx1 = edges_gidx_c[gg]
+        in_idx2 = edges_gidx_c[gg + 1]
+        delta_coarse = 1.0 / (edges_g[in_idx2] - edges_g[in_idx1])
+        for ii in range(info.cells_x):
+            for jj in range(info.cells_y):
+                mat = medium_map[ii,jj]
+                for kk in range(info.moments):
+                    prod_tmp = 0.0
+                    for og in range(out_idx1, out_idx2):
+                        for ig in range(in_idx1, in_idx2):
+                            prod_tmp += xs_matrix[mat,og,ig,kk] * delta_coarse \
+                                        * (edges_g[ig+1] - edges_g[ig])
+                    if gg < group:
+                        off_scatter[ii,jj,kk] += prod_tmp * flux[ii,jj,gg,kk]
+                    else:
+                        off_scatter[ii,jj,kk] += prod_tmp * flux_old[ii,jj,gg,kk]
+
+
+cdef void _vhybrid_source_total_aniso(double[:,:,:,:]& flux_u, \
+        double[:,:,:,:]& flux_c, double[:,:,:,:]& xs_matrix_u, \
+        double[:,:,:,:]& source, int[:,:]& medium_map, double[:]& edges_g, \
+        int[:]& edges_gidx_c, double[:,:]& P_source_u, params info_u, \
+        params info_c):
+    # Add the collided moments to the uncollided and update the source
+    cdef int ii, jj, mat, nn, ig, og, kk, idx1, idx2
+    cdef double delta_coarse
+    if info_u.moments == 1:
+        _vhybrid_source_total(flux_u[:,:,:,0], flux_c[:,:,:,0], \
+                xs_matrix_u[:,:,:,0], source, medium_map, edges_g, \
+                edges_gidx_c, info_u, info_c)
+        return
+    group_moments = array_1d(info_u.moments)
+    for ii in range(info_u.cells_x):
+        for jj in range(info_u.cells_y):
+            mat = medium_map[ii,jj]
+            for og in range(info_c.groups):
+                idx1 = edges_gidx_c[og]
+                idx2 = edges_gidx_c[og+1]
+                delta_coarse = 1.0 / (edges_g[idx2] - edges_g[idx1])
+                for ig in range(idx1, idx2):
+                    for kk in range(info_u.moments):
+                        flux_u[ii,jj,ig,kk] = flux_u[ii,jj,ig,kk] \
+                                + flux_c[ii,jj,og,kk] * delta_coarse \
+                                * (edges_g[ig+1] - edges_g[ig])
+            for og in range(info_u.groups):
+                _group_moments(group_moments, flux_u, xs_matrix_u, mat, ii, jj, \
+                               og, info_u)
+                for nn in range(info_u.angles * info_u.angles):
+                    source[ii,jj,nn,og] += _legendre_sum(group_moments, \
+                                                         P_source_u, nn, info_u)

@@ -21,6 +21,13 @@ from tests import problems2d as prob
 CELLS = 20
 ANGLES = 2  # NN = ANGLES * ANGLES = 4 total angular directions
 
+# The infinite direction is a few very thick cells, so keff converges long
+# before the flux shape along it and the power iterations stop at
+# max_iter_keff. These tests only check keff.
+ignore_power_warning = pytest.mark.filterwarnings(
+    "ignore:Power iterations stopped:RuntimeWarning"
+)
+
 
 def _mms_problem():
     """manufactured_ss_01: 1x1 square, sigma_t=1, no scatter, uniform external source.
@@ -193,6 +200,7 @@ def test_fixed_source_precomputed_angular_flux():
     assert np.abs(residual).max() < 1e-3
 
 
+@ignore_power_warning
 @pytest.mark.nearby2d
 @pytest.mark.slab2d
 def test_k_criticality():

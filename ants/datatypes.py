@@ -162,7 +162,11 @@ class MaterialData:
     total : numpy.ndarray
         Total macroscopic cross section, shape ``(materials, groups)``.
     scatter : numpy.ndarray
-        Scattering cross section, shape ``(materials, groups, groups)``.
+        Scattering cross section indexed ``[material, out, in]``, shape
+        ``(materials, groups, groups)``. For anisotropic scattering, the
+        Legendre moments are on a last axis, shape
+        ``(materials, groups, groups, L + 1)``, without the ``(2l + 1)``
+        factor.
     fission : numpy.ndarray
         Fission cross section, shape ``(materials, groups)`` if ``chi`` is
         ``None``, else
@@ -530,6 +534,10 @@ class ProblemParameters:
         Energy-group convergence tolerance.
     tol_keff : float
         k-eigenvalue convergence tolerance.
+    moments : int
+        Number of scattering moments; 1 is isotropic. This is the number of
+        Legendre moments (L + 1) in 1D and of spherical harmonic moments,
+        (L + 1)(L + 2) / 2, in 2D.
     """
 
     cells_x: int
@@ -559,6 +567,7 @@ class ProblemParameters:
     tol_angular: float
     tol_energy: float
     tol_keff: float
+    moments: int = 1
 
 
 def create_params(materials, quadrature, geometry, solver, time=None):
@@ -590,6 +599,10 @@ def create_params(materials, quadrature, geometry, solver, time=None):
         if quadrature.angle_y is None
         else int(np.sqrt(quadrature.angle_x.size))
     )
+
+    moments = _scatter_moments(materials.scatter, quadrature)
+    if (geometry.geometry == Geometry.POLYGON2D) and (moments > 1):
+        raise ValueError("Polygon meshes only support isotropic scattering")
 
     if geometry.mesh is not None:
         cells_x = geometry.mesh.cells
@@ -626,4 +639,14 @@ def create_params(materials, quadrature, geometry, solver, time=None):
         tol_angular=solver.tol_angular,
         tol_energy=solver.tol_energy,
         tol_keff=solver.tol_keff,
+        moments=moments,
     )
+
+
+def _scatter_moments(scatter, quadrature):
+    # Legendre moments in 1D, spherical harmonic moments in 2D
+    if scatter.ndim != 4:
+        return 1
+    if quadrature.angle_y is None:
+        return scatter.shape[3]
+    return scatter.shape[3] * (scatter.shape[3] + 1) // 2

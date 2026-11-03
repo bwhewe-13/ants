@@ -20,6 +20,20 @@ where :math:`M` is the number of materials and :math:`G` is the number of energy
 Energy groups are ordered from fastest to slowest (group 0 is the highest energy), and the
 scattering and fission matrices are indexed ``[material, group out, group in]``.
 
+For anisotropic scattering, the scattering matrix has the
+Legendre moments :math:`\ell = 0, \ldots, L` on a last axis, shape
+:math:`(M \times G \times G \times (L + 1))`, indexed
+``[material, group out, group in, moment]``. The moments do not include the
+:math:`(2\ell + 1)` factor (see :ref:`anisotropic scattering <sec-nte-anisotropic>`).
+All one- and two-dimensional solvers select anisotropic scattering from the shape
+of the scattering matrix. Two-dimensional problems use the same Legendre moments,
+which are expanded into spherical harmonics internally.
+
+.. code-block:: python
+
+    # One group P2 scattering
+    scatter = np.array([[[[0.733333, 0.2, 0.075]]]])
+
 
 Energy Grids
 ~~~~~~~~~~~~
@@ -58,6 +72,9 @@ can be copied directly from MCNP or PARTISN input decks, and the common material
     # Named materials and compositions
     mat_data = ants.materials(172, ["uranium-%20%", "stainless-steel-440",
                                     {"H-1": 0.0668, "O-16": 0.0334}], library=library)
+
+    # P3 anisotropic scattering, shape (materials, groups, groups, 4)
+    fuel = ants.create_material("m1 94239.80c 3.7047E-02", library, legendre=3)
 
 .. autofunction:: ants.materials
 

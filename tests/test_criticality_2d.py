@@ -22,7 +22,15 @@ from tests import criticality_benchmarks as benchmarks
 
 PATH = "data/weight_matrix_2d/"
 
+# The infinite direction is a few very thick cells, so keff converges long
+# before the flux shape along it and the power iterations stop at
+# max_iter_keff. These tests only check keff.
+ignore_power_warning = pytest.mark.filterwarnings(
+    "ignore:Power iterations stopped:RuntimeWarning"
+)
 
+
+@ignore_power_warning
 @pytest.mark.slab2d
 @pytest.mark.power_iteration
 @pytest.mark.parametrize(("bc_x"), [[0, 0], [0, 1], [1, 0]])
@@ -48,6 +56,7 @@ def test_pua_1_0_infinite_y(bc_x):
     assert abs(keff - 1) < 2e-3, "k-effective: " + str(keff)
 
 
+@ignore_power_warning
 @pytest.mark.slab2d
 @pytest.mark.power_iteration
 @pytest.mark.parametrize(("bc_y"), [[0, 0], [0, 1], [1, 0]])
@@ -73,6 +82,7 @@ def test_pua_1_0_infinite_x(bc_y):
     assert abs(keff - 1) < 2e-3, "k-effective: " + str(keff)
 
 
+@ignore_power_warning
 @pytest.mark.smoke
 @pytest.mark.slab2d
 @pytest.mark.power_iteration
@@ -100,6 +110,7 @@ def test_pu_2_0_infinite_y(bc_x):
     assert abs(keff - 1) < 5e-3, "k-effective: " + str(keff)
 
 
+@ignore_power_warning
 @pytest.mark.smoke
 @pytest.mark.slab2d
 @pytest.mark.power_iteration

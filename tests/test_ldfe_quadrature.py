@@ -10,11 +10,21 @@
 #
 ########################################################################
 
+import os
+
 import numpy as np
 import pytest
 
 import ants
 from tests.test_angular_ordering import _check_axis_ordering
+
+LDFE_PATH = os.path.join(
+    os.path.dirname(ants.__file__), "sources", "quadrature", "ldfe_sa.npz"
+)
+
+pytestmark = pytest.mark.skipif(
+    not os.path.isfile(LDFE_PATH), reason="Local LDFE-SA quadrature is not available"
+)
 
 # LDFE-SA levels 1, 2, 3 correspond to these per-dimension angle counts.
 LDFE_ANGLES = [4, 8, 16]

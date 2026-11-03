@@ -69,6 +69,7 @@ markers = [
     "nearby1d: One-dimensional nearby problems",
     "nearby2d: Two-dimensional nearby problems",
     "polygon2d: Two-dimensional polygon (triangle, hexagon) mesh problems",
+    "anisotropic: Anisotropic (Legendre P_N) scattering",
 ]
 
 [tool.black]

@@ -228,6 +228,43 @@ def test_infinite_medium_criticality():
     assert np.isclose(keff, 0.5 / 0.4, atol=1e-6)
 
 
+def _infinite_moments(scatter):
+    mesh = _infinite_meshes()["hex_domain"]
+    mat_data = MaterialData(
+        total=np.array([[1.0]]), scatter=scatter, fission=np.array([[[0.0]]])
+    )
+    sources = SourceData(
+        external=np.ones((mesh.cells, 1, 1, 1)),
+        boundary_x=np.zeros((1, 1, 1, 1)),
+        boundary_y=np.zeros((1, 1, 1, 1)),
+    )
+    geometry = GeometryData(
+        medium_map=np.zeros((mesh.cells, 1), dtype=np.int32),
+        geometry=Geometry.POLYGON2D,
+        space_disc=SpatialDiscretization.STEP,
+        mesh=mesh,
+        bc_sides=[1] * mesh.sides,
+    )
+    quadrature = ants.angular_xy(6)
+    solver = SolverData(max_iter_angular=500)
+    return fixed2d.fixed_source(mat_data, sources, geometry, quadrature, solver)
+
+
+@pytest.mark.polygon2d
+@pytest.mark.anisotropic
+def test_infinite_medium_single_moment():
+    # Legendre moment layout with only P0 runs the isotropic polygon sweep
+    flux = _infinite_moments(np.array([[[[0.6]]]]))
+    assert np.allclose(flux, 1.0 / 0.4, atol=1e-8)
+
+
+@pytest.mark.polygon2d
+@pytest.mark.anisotropic
+def test_anisotropic_not_supported():
+    with pytest.raises(ValueError, match="isotropic"):
+        _infinite_moments(np.array([[[[0.6, 0.2]]]]))
+
+
 ORDERS = [
     # Step differencing is first order
     (SpatialDiscretization.STEP, "banded", 0.8),

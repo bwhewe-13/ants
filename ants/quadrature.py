@@ -20,9 +20,10 @@
 
 import itertools
 from importlib.resources import files
+from math import factorial
 
 import numpy as np
-from scipy.special import erf
+from scipy.special import erf, lpmv
 
 from ants.datatypes import QuadratureData
 
@@ -82,6 +83,192 @@ def angular_x(angles, bc_x=[0, 0], datatype=True):
 # Called from cython
 def _angular_x(angles, bc_x):
     return angular_x(angles, bc_x, False)
+
+
+def legendre_polynomials(n_moments, angle_x):
+    """Evaluate the Legendre polynomials P_0 to P_L at each ordinate.
+
+    Uses the three-term recurrence relation.
+
+    Parameters
+    ----------
+    n_moments : int
+        Number of Legendre moments (L + 1).
+    angle_x : ndarray, shape (angles,)
+        Direction cosines on [-1, 1].
+
+    Returns
+    -------
+    P : ndarray, shape (n_moments, angles)
+        ``P[l, n] = P_l(mu_n)``.
+    """
+    angle_x = np.asarray(angle_x, dtype=float)
+    P = np.zeros((n_moments, angle_x.shape[0]))
+    P[0] = 1.0
+    if n_moments == 1:
+        return P
+    P[1] = angle_x
+    for ll in range(2, n_moments):
+        P[ll] = ((2 * ll - 1) * angle_x * P[ll - 1] - (ll - 1) * P[ll - 2]) / ll
+    return P
+
+
+def legendre_data(quadrature, n_moments):
+    """Legendre arrays used by the anisotropic scattering source.
+
+    Fills ``quadrature.P`` and ``quadrature.P_weights`` when they are
+    missing or do not match ``n_moments``.
+
+    Parameters
+    ----------
+    quadrature : QuadratureData
+        One-dimensional angular quadrature.
+    n_moments : int
+        Number of Legendre moments (L + 1).
+
+    Returns
+    -------
+    P_source : ndarray, shape (n_moments, angles)
+        ``(2l + 1) * P_l(mu_n)``, which expands flux moments into the
+        angular scattering source.
+    P_weights : ndarray, shape (n_moments, angles)
+        ``w_n * P_l(mu_n)``, which projects angular flux onto moments.
+    """
+    angle_x = np.asarray(quadrature.angle_x, dtype=float)
+    expected = (n_moments, angle_x.shape[0])
+    if (quadrature.P is None) or (np.shape(quadrature.P) != expected):
+        quadrature.P = legendre_polynomials(n_moments, angle_x)
+        quadrature.P_weights = None
+    if (quadrature.P_weights is None) or (np.shape(quadrature.P_weights) != expected):
+        quadrature.P_weights = np.asarray(quadrature.angle_w)[None, :] * quadrature.P
+    P_source = (2 * np.arange(n_moments) + 1)[:, None] * quadrature.P
+    return P_source, np.ascontiguousarray(quadrature.P_weights, dtype=float)
+
+
+# Called from cython
+def _legendre_data(angle_x, angle_w, n_moments):
+    P = legendre_polynomials(n_moments, angle_x)
+    P_source = (2 * np.arange(n_moments) + 1)[:, None] * P
+    return P_source, np.asarray(angle_w)[None, :] * P
+
+
+def harmonic_degrees(n_legendre):
+    """Legendre degree of each spherical harmonic moment in two dimensions.
+
+    The 2D quadrature keeps only the upper hemisphere (``angle_z > 0``),
+    so only the harmonics even in ``angle_z`` (``l + m`` even) are kept.
+    Degree ``l`` has ``l + 1`` of them, ordered ``m = -l, -l + 2, ..., l``.
+
+    Parameters
+    ----------
+    n_legendre : int
+        Number of Legendre moments (L + 1).
+
+    Returns
+    -------
+    ell : ndarray of int, shape ((L + 1) * (L + 2) / 2,)
+        Degree ``l`` of each harmonic moment.
+    """
+    return np.repeat(np.arange(n_legendre), np.arange(1, n_legendre + 1))
+
+
+def spherical_harmonics(n_legendre, angle_x, angle_y):
+    """Evaluate the real spherical harmonics even in ``angle_z`` at each ordinate.
+
+    The polar axis is z, with ``angle_z = sqrt(1 - angle_x**2 - angle_y**2)``
+    and the azimuthal angle measured from x. The harmonics are normalized
+    so that summing over ``m`` gives the addition theorem,
+    ``sum_m Y_lm(a) Y_lm(b) = P_l(a . b)``, for the full set of ``m``.
+    The associated Legendre functions from ``scipy.special.lpmv`` include
+    the Condon-Shortley phase ``(-1)**m``, which cancels in the addition
+    theorem. The order ``m`` is written ``k`` in the documentation, where
+    ``m`` indexes the ordinates.
+
+    Parameters
+    ----------
+    n_legendre : int
+        Number of Legendre moments (L + 1).
+    angle_x : ndarray, shape (angles,)
+        x-direction cosines.
+    angle_y : ndarray, shape (angles,)
+        y-direction cosines.
+
+    Returns
+    -------
+    Y : ndarray, shape ((L + 1) * (L + 2) / 2, angles)
+        Harmonic moments ordered by :func:`harmonic_degrees`.
+    """
+    angle_x = np.asarray(angle_x, dtype=float)
+    angle_y = np.asarray(angle_y, dtype=float)
+    angle_z = np.sqrt(np.clip(1.0 - angle_x**2 - angle_y**2, 0.0, None))
+    phi = np.arctan2(angle_y, angle_x)
+    Y = np.zeros((n_legendre * (n_legendre + 1) // 2, angle_x.size))
+    kk = 0
+    for ll in range(n_legendre):
+        for mm in range(-ll, ll + 1, 2):
+            am = abs(mm)
+            norm = (2.0 - (am == 0)) * factorial(ll - am) / factorial(ll + am)
+            Y[kk] = np.sqrt(norm) * lpmv(am, ll, angle_z)
+            Y[kk] *= np.cos(am * phi) if mm >= 0 else np.sin(am * phi)
+            kk += 1
+    return Y
+
+
+def harmonic_data(quadrature, n_legendre):
+    """Spherical harmonic arrays used by the 2D anisotropic scattering source.
+
+    Fills ``quadrature.P`` and ``quadrature.P_weights`` when they are
+    missing or do not match ``n_legendre``.
+
+    Parameters
+    ----------
+    quadrature : QuadratureData
+        Two-dimensional angular quadrature.
+    n_legendre : int
+        Number of Legendre moments (L + 1).
+
+    Returns
+    -------
+    P_source : ndarray, shape ((L + 1) * (L + 2) / 2, angles**2)
+        ``(2l + 1) * Y_lm(Omega_n)``, which expands flux moments into the
+        angular scattering source.
+    P_weights : ndarray, shape ((L + 1) * (L + 2) / 2, angles**2)
+        ``w_n * Y_lm(Omega_n)``, which projects angular flux onto moments.
+    """
+    angle_x = np.asarray(quadrature.angle_x, dtype=float)
+    expected = (n_legendre * (n_legendre + 1) // 2, angle_x.shape[0])
+    if (quadrature.P is None) or (np.shape(quadrature.P) != expected):
+        quadrature.P = spherical_harmonics(n_legendre, angle_x, quadrature.angle_y)
+        quadrature.P_weights = None
+    if (quadrature.P_weights is None) or (np.shape(quadrature.P_weights) != expected):
+        quadrature.P_weights = np.asarray(quadrature.angle_w)[None, :] * quadrature.P
+    P_source = (2 * harmonic_degrees(n_legendre) + 1)[:, None] * quadrature.P
+    return P_source, np.ascontiguousarray(quadrature.P_weights, dtype=float)
+
+
+# Called from cython
+def _harmonic_data(angle_x, angle_y, angle_w, n_legendre):
+    Y = spherical_harmonics(n_legendre, angle_x, angle_y)
+    P_source = (2 * harmonic_degrees(n_legendre) + 1)[:, None] * Y
+    return P_source, np.asarray(angle_w)[None, :] * Y
+
+
+# Called from cython
+def _harmonic_order(n_moments):
+    # Number of Legendre moments (L + 1) from (L + 1)(L + 2) / 2 harmonics
+    return int(round((np.sqrt(8 * n_moments + 1) - 1) / 2))
+
+
+# Called from cython
+def _scatter_harmonics(scatter):
+    # Scatter moments (materials, groups, groups, harmonics) where each
+    # harmonic uses the Legendre moment of its degree. Isotropic scattering
+    # is a single moment (no copy).
+    scatter = np.asarray(scatter)
+    if scatter.ndim == 3:
+        return scatter[..., None]
+    ell = harmonic_degrees(scatter.shape[3])
+    return np.ascontiguousarray(scatter[..., ell])
 
 
 def angular_xy(angles, bc_x=[0, 0], bc_y=[0, 0], datatype=True, method="product"):

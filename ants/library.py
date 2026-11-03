@@ -34,8 +34,10 @@ Legendre moments). Cross sections are microscopic, in barns.
 
 Group 0 is the highest energy group. Nuclide names follow ``"Pu-239"``,
 ``"H-1"``, ``"Am-242m"``. Scattering is transposed here to the ANTS
-``[out, in]`` convention and only the P0 moment is used. The fission
-matrix is ``chi[in, out] * nu[in] * xs_fission[in]``.
+``[out, in]`` convention. Only the P0 moment is used unless a Legendre
+order is requested with ``legendre``, which keeps the moments on a last
+axis, ``[out, in, l]``. The fission matrix is
+``chi[in, out] * nu[in] * xs_fission[in]``.
 
 h5py is an optional dependency (``pip install ants[library]``).
 """
@@ -138,7 +140,7 @@ class Library:
         idx = np.nanargmin([abs(tt - temperature) for tt, _ in options])
         return options[idx][1]
 
-    def microscopic(self, nuclide, temperature=None):
+    def microscopic(self, nuclide, temperature=None, legendre=0):
         """Load the microscopic cross sections of a single nuclide.
 
         Parameters
@@ -147,20 +149,35 @@ class Library:
             Nuclide name in the library, e.g. ``"U-235"``.
         temperature : float, optional
             Temperature (K); the nearest available temperature is used.
+        legendre : int, optional
+            Legendre order L of the scattering. 0 (default) returns the P0
+            scatter matrix; L > 0 returns moments 0 to L on a last axis.
 
         Returns
         -------
         total : ndarray, shape (groups,)
             Total cross section (barns).
-        scatter : ndarray, shape (groups, groups)
-            P0 scatter cross section, indexed ``[out, in]`` (barns).
+        scatter : ndarray, shape (groups, groups) or (groups, groups, L + 1)
+            Scatter cross section, indexed ``[out, in]`` or
+            ``[out, in, l]`` (barns).
         fission : ndarray, shape (groups, groups)
             Fission matrix chi * nu * sigma_f, indexed ``[out, in]`` (barns).
         """
         key = self._nuclide_key(nuclide, temperature)
         if key not in self._cache:
             self._cache[key] = self._read_nuclide(key)
-        return self._cache[key]
+        total, scatter, fission = self._cache[key]
+        if legendre == 0:
+            return total, scatter[..., 0], fission
+        if legendre + 1 > scatter.shape[2]:
+            # Nuclides without scattering data have no moments to check
+            if np.any(scatter):
+                raise ValueError(
+                    f"Nuclide {key!r} has {scatter.shape[2]} Legendre moments, "
+                    f"order {legendre} needs {legendre + 1}"
+                )
+            scatter = np.zeros((self.groups, self.groups, legendre + 1))
+        return total, scatter[..., : legendre + 1], fission
 
     def _read_nuclide(self, key):
         h5py = _import_h5py()
@@ -169,13 +186,13 @@ class Library:
             data = f[key]
             total = np.asarray(data["xs_total"][:], dtype=float)
 
-            # Stored as [in, out, legendre]
-            scatter = np.zeros((groups, groups))
+            # Stored as [in, out, legendre], kept as [out, in, legendre]
+            scatter = np.zeros((groups, groups, 1))
             if "xs_scatter" in data:
                 xs_scatter = np.asarray(data["xs_scatter"][:], dtype=float)
-                if xs_scatter.ndim == 3:
-                    xs_scatter = xs_scatter[..., 0]
-                scatter = xs_scatter.T.copy()
+                if xs_scatter.ndim == 2:
+                    xs_scatter = xs_scatter[..., None]
+                scatter = np.ascontiguousarray(xs_scatter.transpose(1, 0, 2))
 
             fission = np.zeros((groups, groups))
             if ("xs_fission" in data) and ("nu" in data):
@@ -191,7 +208,7 @@ class Library:
 
         return total, scatter, fission
 
-    def macroscopic(self, composition, temperature=None):
+    def macroscopic(self, composition, temperature=None, legendre=0):
         """Build macroscopic cross sections from number densities.
 
         Parameters
@@ -201,25 +218,30 @@ class Library:
             (atoms/barn-cm).
         temperature : float, optional
             Temperature (K); the nearest available temperature is used.
+        legendre : int, optional
+            Legendre order L of the scattering (0 for P0 only).
 
         Returns
         -------
         xs_total : ndarray, shape (groups,)
-        xs_scatter : ndarray, shape (groups, groups)
+        xs_scatter : ndarray, shape (groups, groups[, L + 1])
         xs_fission : ndarray, shape (groups, groups)
             Macroscopic cross sections (1/cm), indexed ``[out, in]``.
         """
         xs_total = np.zeros((self.groups,))
-        xs_scatter = np.zeros((self.groups, self.groups))
+        if legendre == 0:
+            xs_scatter = np.zeros((self.groups, self.groups))
+        else:
+            xs_scatter = np.zeros((self.groups, self.groups, legendre + 1))
         xs_fission = np.zeros((self.groups, self.groups))
         for nuclide, density in composition.items():
-            total, scatter, fission = self.microscopic(nuclide, temperature)
+            total, scatter, fission = self.microscopic(nuclide, temperature, legendre)
             xs_total += density * total
             xs_scatter += density * scatter
             xs_fission += density * fission
         return xs_total, xs_scatter, xs_fission
 
-    def materials(self, compositions, temperature=None, groups=None):
+    def materials(self, compositions, temperature=None, groups=None, legendre=0):
         """Build ``MaterialData`` for several materials.
 
         Parameters
@@ -233,6 +255,10 @@ class Library:
             Collapse to fewer energy groups. The collapse uses energy bin
             width weighting, not flux weighting; for a different energy
             structure build a library at that structure instead.
+        legendre : int, optional
+            Legendre order L of the scattering. 0 (default) gives P0
+            scattering, shape ``(materials, groups, groups)``; L > 0 gives
+            shape ``(materials, groups, groups, L + 1)``.
 
         Returns
         -------
@@ -244,7 +270,9 @@ class Library:
         xs_scatter = []
         xs_fission = []
         for composition in compositions:
-            total, scatter, fission = self.macroscopic(composition, temperature)
+            total, scatter, fission = self.macroscopic(
+                composition, temperature, legendre
+            )
             xs_total.append(total)
             xs_scatter.append(scatter)
             xs_fission.append(fission)
