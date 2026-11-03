@@ -22,7 +22,7 @@
 from libc.math cimport isinf, isnan
 
 import numpy as np
-from cython.parallel import prange
+from cython.parallel import prange, threadid
 
 from ants cimport cytools_1d as tools
 from ants.parameters cimport params
@@ -30,6 +30,8 @@ from ants.spatial_sweep_1d cimport (
     _known_sweep,
     discrete_ordinates,
     discrete_ordinates_aniso,
+    discrete_ordinates_aniso_nogil,
+    discrete_ordinates_nogil,
 )
 
 from ants.utils.pytools import dmd_1d, warn_not_converged
@@ -44,11 +46,6 @@ cdef double[:,:] multi_group(double[:,:]& flux_guess, \
     # external source (I x S x 1), and None for a dense external source
     # Source Iteration
     if info.mg_solver == 1:
-        # Activated when parallel_type == GROUP (2) or BOTH (3).
-        if info.parallel_type >= 2 and info.groups > 1:
-            return jacobi_iteration(flux_guess, xs_total, xs_scatter, external, \
-                        boundary_x, medium_map, delta_x, angle_x, angle_w, \
-                        info, q_index)
         return source_iteration(flux_guess, xs_total, xs_scatter, external, \
                     boundary_x, medium_map, delta_x, angle_x, angle_w, info, \
                     q_index)
@@ -64,6 +61,12 @@ cdef double[:,:] source_iteration(double[:,:]& flux_guess, \
         double[:,:,:]& external, double[:,:,:]& boundary_x, \
         int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
         double[:]& angle_w, params info, int[:,:] q_index=None):
+
+    # Jacobi iteration over groups when parallel_type == GROUP (2) or BOTH (3)
+    if info.parallel_type >= 2 and info.groups > 1:
+        return jacobi_iteration(flux_guess, xs_total, xs_scatter, external, \
+                    boundary_x, medium_map, delta_x, angle_x, angle_w, info, \
+                    q_index)
 
     # Initialize components
     cdef int gg, qq, bc
@@ -121,7 +124,7 @@ cdef double[:,:] jacobi_iteration(double[:,:]& flux_guess, double[:,:]& xs_total
         double[:]& angle_w, params info, int[:,:] q_index=None):
 
     # Initialize components
-    cdef int gg, qq, bc
+    cdef int gg, qq, bc, tid
     cdef int[:,:] q_cols = tools._source_columns(external.shape[1], \
                                                  q_index, info)
     cdef params info_1t
@@ -140,6 +143,14 @@ cdef double[:,:] jacobi_iteration(double[:,:]& flux_guess, double[:,:]& xs_total
     info_1t = info
     if info.parallel_type == 2:
         info_1t.num_threads = 1
+
+    # Sweep work arrays for each thread of the group prange, so the groups
+    # are swept without the GIL (see spatial_sweep_1d)
+    cdef double[:,:,:] thread_flux = tools.array_3d(info.num_threads, \
+                                        info_1t.num_threads, info.cells_x + 1)
+    cdef double[:,:] edge_out = tools.array_2d(info.num_threads, info.angles)
+    cdef double[:,:] reflector = tools.array_2d(info.num_threads, info.angles)
+    cdef double[:,:] half_angle = tools.array_2d(info.num_threads, info.cells_x)
 
     # Set convergence limits
     cdef bint converged = False
@@ -160,11 +171,12 @@ cdef double[:,:] jacobi_iteration(double[:,:]& flux_guess, double[:,:]& xs_total
         for gg in prange(info.groups, nogil=True, num_threads=info.num_threads):
             qq = 0 if external.shape[2] == 1 else gg
             bc = 0 if boundary_x.shape[2] == 1 else gg
-            with gil:
-                discrete_ordinates(flux[:,gg], flux_old_snap[gg], xs_total[:,gg], \
-                        xs_scatter[:,gg,gg], off_scatter_all[gg], external[:,:,qq], \
-                        q_cols[:,gg], boundary_x[:,:,bc], medium_map, delta_x, \
-                        angle_x, angle_w, info_1t)
+            tid = threadid()
+            discrete_ordinates_nogil(flux[:,gg], flux_old_snap[gg], xs_total[:,gg], \
+                    xs_scatter[:,gg,gg], off_scatter_all[gg], external[:,:,qq], \
+                    q_cols[:,gg], boundary_x[:,:,bc], medium_map, delta_x, \
+                    angle_x, angle_w, info_1t, thread_flux[tid], edge_out[tid], \
+                    reflector[tid], half_angle[tid])
 
         change = tools.group_convergence(flux, flux_old, info)
         if isnan(change) or isinf(change):
@@ -501,7 +513,7 @@ cdef double[:,:,:] jacobi_iteration_aniso(double[:,:,:]& flux_guess, \
         params info, int[:,:] q_index=None):
 
     # Initialize components
-    cdef int gg, qq, bc
+    cdef int gg, qq, bc, tid
     cdef int[:,:] q_cols = tools._source_columns(external.shape[1], \
                                                  q_index, info)
     cdef params info_1t
@@ -519,6 +531,22 @@ cdef double[:,:,:] jacobi_iteration_aniso(double[:,:,:]& flux_guess, \
     info_1t.flux_at_edges = 0
     if info.parallel_type == 2:
         info_1t.num_threads = 1
+
+    # Sweep work arrays for each thread of the group prange, see
+    # jacobi_iteration. The zeros are read-only and shared.
+    cdef int threads = info.num_threads
+    cdef double[:,:,:] thread_psi = tools.array_3d(threads, \
+                                        info_1t.num_threads, info.cells_x)
+    cdef double[:,:,:] thread_source = tools.array_3d(threads, \
+                                        info_1t.num_threads, info.cells_x)
+    cdef double[:,:,:,:] thread_flux = tools.array_4d(threads, \
+                            info_1t.num_threads, info.cells_x, info.moments)
+    cdef double[:,:] edge_out = tools.array_2d(threads, info.angles)
+    cdef double[:,:] reflector = tools.array_2d(threads, info.angles)
+    cdef double[:,:] half_angle = tools.array_2d(threads, info.cells_x)
+    cdef double[:,:] P_start = tools.array_2d(threads, info.moments)
+    cdef double[:] zero = tools.array_1d(info.cells_x)
+    cdef double[:] zero_xs = tools.array_1d(info.materials)
 
     # Set convergence limits
     cdef bint converged = False
@@ -540,12 +568,14 @@ cdef double[:,:,:] jacobi_iteration_aniso(double[:,:,:]& flux_guess, \
         for gg in prange(info.groups, nogil=True, num_threads=info.num_threads):
             qq = 0 if external.shape[2] == 1 else gg
             bc = 0 if boundary_x.shape[2] == 1 else gg
-            with gil:
-                discrete_ordinates_aniso(flux[:,gg,:], flux_old_snap[gg], \
-                        xs_total[:,gg], xs_scatter[:,gg,gg,:], off_scatter_all[gg], \
-                        external[:,:,qq], q_cols[:,gg], boundary_x[:,:,bc], \
-                        medium_map, delta_x, angle_x, angle_w, P_source, \
-                        P_weights, info_1t)
+            tid = threadid()
+            discrete_ordinates_aniso_nogil(flux[:,gg,:], flux_old_snap[gg], \
+                    xs_total[:,gg], xs_scatter[:,gg,gg,:], off_scatter_all[gg], \
+                    external[:,:,qq], q_cols[:,gg], boundary_x[:,:,bc], \
+                    medium_map, delta_x, angle_x, angle_w, P_source, \
+                    P_weights, info_1t, thread_psi[tid], thread_source[tid], \
+                    thread_flux[tid], edge_out[tid], reflector[tid], \
+                    half_angle[tid], P_start[tid], zero, zero_xs)
 
         change = tools.group_convergence(flux[:,:,0], flux_old[:,:,0], info)
         if isnan(change) or isinf(change):
