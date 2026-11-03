@@ -294,10 +294,10 @@ cdef double[:,:,:] variable_source_iteration(double[:,:,:]& flux_guess, \
                                         idx1, idx2, info)
 
             # Use discrete ordinates for the angular dimension
-            discrete_ordinates(flux[:,:,gg], flux_old[:,:,gg].copy(), xs_total_c, xs_scatter_c, \
-                    off_scatter, external[:,:,:,qq], boundary_x[:,:,bcx], \
-                    boundary_y[:,:,bcy], medium_map, delta_x, delta_y, angle_x, \
-                    angle_y, angle_w, info)
+            discrete_ordinates(flux[:,:,gg], flux_old[:,:,gg].copy(), xs_total_c, \
+                    xs_scatter_c, off_scatter, external[:,:,:,qq], \
+                    boundary_x[:,:,:,bcx], boundary_y[:,:,:,bcy], medium_map, \
+                    delta_x, delta_y, angle_x, angle_y, angle_w, info)
 
         # Check for convergence
         change = tools.group_convergence(flux, flux_old, info)
