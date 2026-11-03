@@ -51,10 +51,10 @@ cdef double[:,:] dynamic_mode_decomp(double[:,:]& flux_guess, \
         double[:]& angle_w, params info, int[:,:] q_index=*)
 
 
-cdef double[:,:,:] _known_source_angular(double[:,:]& xs_total, \
-        double[:,:,:]& source, double[:,:,:]& boundary_x, \
-        int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
-        double[:]& angle_w, params info)
+cdef void _known_source_angular(double[:,:,:]& angular_flux, \
+        double[:,:]& xs_total, double[:,:,:]& source, \
+        double[:,:,:]& boundary_x, int[:]& medium_map, double[:]& delta_x, \
+        double[:]& angle_x, double[:]& angle_w, params info)
 
 
 cdef double[:,:] _known_source_scalar(double[:,:]& xs_total, \

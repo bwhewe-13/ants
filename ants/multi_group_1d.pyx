@@ -334,17 +334,19 @@ cdef double[:,:] dynamic_mode_decomp(double[:,:]& flux_guess, \
     return flux_dmd[:,:]
 
 
-cdef double[:,:,:] _known_source_angular(double[:,:]& xs_total, \
-        double[:,:,:]& source, double[:,:,:]& boundary_x, \
-        int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
-        double[:]& angle_w, params info):
+cdef void _known_source_angular(double[:,:,:]& angular_flux, \
+        double[:,:]& xs_total, double[:,:,:]& source, \
+        double[:,:,:]& boundary_x, int[:]& medium_map, double[:]& delta_x, \
+        double[:]& angle_x, double[:]& angle_w, params info):
     # source = flux * xs_scatter + external source
+    # angular_flux (cells_x + flux_at_edges, angles, groups) is overwritten
+    # and must not share memory with source
 
     # Initialize components
     cdef int gg, qq, bc
 
-    # Initialize angular flux
-    angular_flux = tools.array_3d(info.cells_x + info.flux_at_edges, info.angles, info.groups)
+    # The sweeps add to the angular flux
+    angular_flux[:,:,:] = 0.0
 
     # Set zero matrix placeholder for scattering
     zero = tools.array_1d(info.cells_x + info.flux_at_edges)
@@ -360,8 +362,6 @@ cdef double[:,:,:] _known_source_angular(double[:,:]& xs_total, \
         _known_sweep(angular_flux[:,:,gg], xs_total[:,gg], zero, \
                      source[:,:,qq], boundary_x[:,:,bc], medium_map, \
                      delta_x, angle_x, angle_w, info)
-
-    return angular_flux[:,:,:]
 
 
 cdef double[:,:] _known_source_scalar(double[:,:]& xs_total, \
@@ -758,7 +758,9 @@ cdef double[:,:,:] _known_source_moments(double[:,:]& xs_total, \
         flux[:,:,0] = _known_source_scalar(xs_total, source, boundary_x, \
                         medium_map, delta_x, angle_x, angle_w, info)
         return flux[:,:,:]
-    angular_flux = _known_source_angular(xs_total, source, boundary_x, \
+    angular_flux = tools.array_3d(info.cells_x + info.flux_at_edges, info.angles, \
+                            info.groups)
+    _known_source_angular(angular_flux, xs_total, source, boundary_x, \
                         medium_map, delta_x, angle_x, angle_w, info)
     tools._angular_to_moments(angular_flux, flux, P_weights, info)
     return flux[:,:,:]

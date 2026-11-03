@@ -208,7 +208,7 @@ cdef double[:,:] backward_euler(int[:] groups_c, int[:] angles_c, \
                     P_source_c, P_weights_c, info_u, info_c)
 
         # Solve for angular flux of time step
-        flux_last[:,:,:] = mg._known_source_angular(xs_total_vu, q_star, \
+        mg._known_source_angular(flux_last, xs_total_vu, q_star, \
                                     bc_full, medium_map, \
                                     delta_x, angle_xu, angle_wu, info_u)
 
@@ -295,7 +295,7 @@ cdef double[:,:] crank_nicolson(int[:] groups_c, int[:] angles_c, \
                     P_source_c, P_weights_c, info_u, info_c)
 
         # Solve for angular flux of time step
-        flux_last[:,:,:] = mg._known_source_angular(xs_total_vu, q_star, \
+        mg._known_source_angular(flux_last, xs_total_vu, q_star, \
                                     bc_full, medium_map, \
                                     delta_x, angle_xu, angle_wu, info_edge)
 
@@ -316,6 +316,7 @@ cdef double[:,:] bdf2(int[:] groups_c, int[:] angles_c, double[:,:,:]& flux_last
 
     # Initialize time step
     cdef int step
+    cdef double[:,:,:] flux_swap
     cdef double coef = 1.0
 
     # Create sigma_t + 1 / (v * dt) - For BDF1 Step - Uncollided
@@ -397,10 +398,14 @@ cdef double[:,:] bdf2(int[:] groups_c, int[:] angles_c, double[:,:,:]& flux_last
                     P_source_c, P_weights_c, info_u, info_c)
 
         # Solve for angular flux of time step
-        flux_last_2[:,:,:] = flux_last_1[:,:,:]
-        flux_last_1[:,:,:] = mg._known_source_angular(xs_total_vu, q_star, \
+        # flux_last_2 is not needed after q_star, so it is overwritten
+        # with the new step and swapped with flux_last_1 (no copy)
+        mg._known_source_angular(flux_last_2, xs_total_vu, q_star, \
                                     bc_full, medium_map, \
                                     delta_x, angle_xu, angle_wu, info_u)
+        flux_swap = flux_last_1
+        flux_last_1 = flux_last_2
+        flux_last_2 = flux_swap
 
         # Step 5: Compute scalar flux output, optionally stream to file
         tools._angular_to_scalar(flux_last_1, flux_out, angle_wu, info_u)
@@ -510,7 +515,7 @@ cdef double[:,:] tr_bdf2(int[:] groups_c, int[:] angles_c, \
                     P_source_c, P_weights_c, info_u, info_c)
 
         # Solve for angular flux of time step
-        flux_last_gamma = mg._known_source_angular(xs_total_vu_cn, q_star, \
+        mg._known_source_angular(flux_last_gamma, xs_total_vu_cn, q_star, \
                                         bc_full, medium_map, \
                                         delta_x, angle_xu, angle_wu, info_u)
 
@@ -529,7 +534,7 @@ cdef double[:,:] tr_bdf2(int[:] groups_c, int[:] angles_c, \
                     P_source_c, P_weights_c, info_u, info_c)
 
         # Solve for angular flux of time step
-        flux_last_ell[:,:,:] = mg._known_source_angular(xs_total_vu_bdf2, \
+        mg._known_source_angular(flux_last_ell, xs_total_vu_bdf2, \
                                     q_star, bca_full, medium_map, \
                                     delta_x, angle_xu, angle_wu, info_edge)
 

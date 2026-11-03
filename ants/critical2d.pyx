@@ -162,7 +162,9 @@ def known_flux(double[:,:,:] flux, keff,  materials, geometry, quadrature, param
         return np.asarray(scalar_flux)
 
     # Solve for angular flux
-    angular_flux = mg._known_source_angular(xs_total, source, boundary_x, \
+    angular_flux = tools.array_4d(info.cells_x, info.cells_y, \
+                            info.angles * info.angles, info.groups)
+    mg._known_source_angular(angular_flux, xs_total, source, boundary_x, \
                                 boundary_y, medium_map, delta_x, delta_y, \
                                 angle_x, angle_y, angle_w, info)
 
@@ -420,7 +422,9 @@ def known_flux_moments(double[:,:,:,:] flux, keff, materials, geometry, \
         return np.asarray(scalar_flux)
 
     # Solve for angular flux
-    angular_flux = mg._known_source_angular(xs_total, source, boundary_x, \
+    angular_flux = tools.array_4d(info.cells_x, info.cells_y, \
+                            info.angles * info.angles, info.groups)
+    mg._known_source_angular(angular_flux, xs_total, source, boundary_x, \
                                 boundary_y, medium_map, delta_x, delta_y, \
                                 angle_x, angle_y, angle_w, info)
 

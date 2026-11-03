@@ -112,7 +112,9 @@ def known_flux(double[:,:] flux, double[:,:] xs_total, double[:,:,:] xs_matrix, 
         return np.asarray(scalar_flux)
 
     # Solve for angular flux
-    angular_flux = mg._known_source_angular(xs_total, source, boundary_x, \
+    angular_flux = tools.array_3d(info.cells_x + info.flux_at_edges, info.angles, \
+                            info.groups)
+    mg._known_source_angular(angular_flux, xs_total, source, boundary_x, \
                             medium_map, delta_x, angle_x, angle_w, info)
 
     # Return angular flux (either edges or centers)
@@ -199,7 +201,9 @@ def known_flux_moments(double[:,:,:] flux, double[:,:] xs_total, \
         return np.asarray(scalar_flux)
 
     # Solve for angular flux
-    angular_flux = mg._known_source_angular(xs_total, source, boundary_x, \
+    angular_flux = tools.array_3d(info.cells_x + info.flux_at_edges, info.angles, \
+                            info.groups)
+    mg._known_source_angular(angular_flux, xs_total, source, boundary_x, \
                             medium_map, delta_x, angle_x, angle_w, info)
 
     # Return angular flux (either edges or centers)

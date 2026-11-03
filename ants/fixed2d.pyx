@@ -174,7 +174,9 @@ def source_iteration_as(double[:,:,:] flux_guess, double[:,:] xs_total, \
         # Recover the angular flux from the converged scalar flux
         tools._source_total(source, flux, xs_matrix, medium_map, \
                             ext_combined, info)
-        psi = mg._known_source_angular(xs_total_as_view, source, boundary_x, \
+        psi = tools.array_4d(info.cells_x, info.cells_y, \
+                                info.angles * info.angles, info.groups)
+        mg._known_source_angular(psi, xs_total_as_view, source, boundary_x, \
                             boundary_y, medium_map, delta_x, delta_y, \
                             angle_x, angle_y, angle_w, info)
 
@@ -214,7 +216,9 @@ def known_flux(double[:,:,:] flux, double[:,:] xs_total, double[:,:,:] xs_matrix
 
     # Solve for angular flux at cell centers
     if (info.angular == True) and (info.flux_at_edges == 0):
-        angular_flux = mg._known_source_angular(xs_total, source, boundary_x, \
+        angular_flux = tools.array_4d(info.cells_x, info.cells_y, \
+                                info.angles * info.angles, info.groups)
+        mg._known_source_angular(angular_flux, xs_total, source, boundary_x, \
                                 boundary_y, medium_map, delta_x, delta_y, \
                                 angle_x, angle_y, angle_w, info)
         return np.asarray(angular_flux)
@@ -395,7 +399,9 @@ def source_iteration_as_aniso(double[:,:,:,:] flux_guess, double[:,:] xs_total, 
         # Recover the angular flux from the converged flux moments
         tools._source_total_aniso(source, flux, xs_matrix, medium_map, \
                                   ext_combined, P_source, info)
-        psi = mg._known_source_angular(xs_total_as_view, source, boundary_x, \
+        psi = tools.array_4d(info.cells_x, info.cells_y, \
+                                info.angles * info.angles, info.groups)
+        mg._known_source_angular(psi, xs_total_as_view, source, boundary_x, \
                             boundary_y, medium_map, delta_x, delta_y, \
                             angle_x, angle_y, angle_w, info)
 
@@ -436,7 +442,9 @@ def known_flux_moments(double[:,:,:,:] flux, double[:,:] xs_total, \
 
     # Solve for angular flux at cell centers
     if (info.angular == True) and (info.flux_at_edges == 0):
-        angular_flux = mg._known_source_angular(xs_total, source, boundary_x, \
+        angular_flux = tools.array_4d(info.cells_x, info.cells_y, \
+                                info.angles * info.angles, info.groups)
+        mg._known_source_angular(angular_flux, xs_total, source, boundary_x, \
                                 boundary_y, medium_map, delta_x, delta_y, \
                                 angle_x, angle_y, angle_w, info)
         return np.asarray(angular_flux)

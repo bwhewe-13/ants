@@ -176,7 +176,7 @@ cdef double[:,:] backward_euler(double[:,:,:]& flux_last, \
                                      medium_map, P_source, info)
 
         # Solve for angular flux of previous time step
-        flux_last[:,:,:] = mg._known_source_angular(xs_total_v, q_star, \
+        mg._known_source_angular(flux_last, xs_total_v, q_star, \
                                     bc_full, medium_map, \
                                     delta_x, angle_x, angle_w, info)
 
@@ -228,7 +228,7 @@ cdef double[:,:] crank_nicolson(double[:,:,:]& flux_last, \
         tools._time_right_side_aniso(q_star, scalar_flux, xs_scatter, \
                                      medium_map, P_source, info)
         # Solve for angular flux of previous time step
-        flux_last[:,:,:] = mg._known_source_angular(xs_total_v, q_star, \
+        mg._known_source_angular(flux_last, xs_total_v, q_star, \
                                         bc_full, medium_map, \
                                         delta_x, angle_x, angle_w, info_edge)
 
@@ -245,6 +245,7 @@ cdef double[:,:] bdf2(double[:,:,:]& flux_last_1, double[:,:]& xs_total, \
 
     # Initialize time step
     cdef int step
+    cdef double[:,:,:] flux_swap
 
     # Combine total cross section and time coefficient (BDF1 time step)
     xs_total_v = tools.array_2d(info.materials, info.groups)
@@ -291,10 +292,14 @@ cdef double[:,:] bdf2(double[:,:,:]& flux_last_1, double[:,:]& xs_total, \
                                      medium_map, P_source, info)
 
         # Solve for angular flux of previous time step
-        flux_last_2[:,:,:] = flux_last_1[:,:,:]
-        flux_last_1[:,:,:] = mg._known_source_angular(xs_total_v, q_star, \
+        # flux_last_2 is not needed after q_star, so it is overwritten
+        # with the new step and swapped with flux_last_1 (no copy)
+        mg._known_source_angular(flux_last_2, xs_total_v, q_star, \
                                         bc_full, medium_map, \
                                         delta_x, angle_x, angle_w, info)
+        flux_swap = flux_last_1
+        flux_last_1 = flux_last_2
+        flux_last_2 = flux_swap
 
         # Create sigma_t + 3 / (2 * v * dt) (For BDF2 time steps)
         if step == 0:
@@ -376,7 +381,7 @@ cdef double[:,:] tr_bdf2(double[:,:,:]& flux_last_ell, double[:,:]& xs_total, \
                                      medium_map, P_source, info)
 
         # Solve for angular flux of previous time step
-        flux_last_gamma = mg._known_source_angular(xs_total_v_cn, q_star, \
+        mg._known_source_angular(flux_last_gamma, xs_total_v_cn, q_star, \
                                         bc_full, medium_map, \
                                         delta_x, angle_x, angle_w, info)
         ################################################################
@@ -410,7 +415,7 @@ cdef double[:,:] tr_bdf2(double[:,:,:]& flux_last_ell, double[:,:]& xs_total, \
                                      medium_map, P_source, info)
 
         # Solve for angular flux of previous time step
-        flux_last_ell[:,:,:] = mg._known_source_angular(xs_total_v_bdf2, \
+        mg._known_source_angular(flux_last_ell, xs_total_v_bdf2, \
                                     q_star, bca_full, medium_map, \
                                     delta_x, angle_x, angle_w, info_edge)
 
