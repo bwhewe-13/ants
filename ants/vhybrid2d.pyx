@@ -35,6 +35,7 @@ from ants.parameters cimport params
 from ants.datatypes import TemporalDiscretization, create_params
 from ants.quadrature import _harmonic_data, _harmonic_order, _scatter_harmonics
 from ants.timed2d import _harmonic_arrays
+from ants.utils.sources import TimeSource
 
 # Uncollided is fine grid (N^2 x G)
 # Collided is coarse grid (N'^2 x G')
@@ -48,9 +49,6 @@ def time_dependent(materials_u, groups_c, sources, geometry, quadrature_u, \
     cdef double[:,:,:,:] xs_scatter_u = _scatter_harmonics(materials_u.scatter)
     cdef double[:,:,:] xs_fission_u = tools._fission_matrix(materials_u.fission, materials_u.chi)
     cdef double[:] velocity_u = materials_u.velocity
-    cdef double[:,:,:,:,:] external_u = sources.external
-    cdef double[:,:,:,:,:] boundary_xu = sources.boundary_x
-    cdef double[:,:,:,:,:] boundary_yu = sources.boundary_y
     cdef int[:,:] medium_map = geometry.medium_map
     cdef double[:] delta_x = geometry.delta_x
     cdef double[:] delta_y = geometry.delta_y
@@ -61,6 +59,13 @@ def time_dependent(materials_u, groups_c, sources, geometry, quadrature_u, \
     # Convert uncollided dictionary to type params
     params_u = create_params(materials_u, quadrature_u, geometry, solver, time_data)
     info_u = parameters._to_params(params_u)
+
+    # Sources of each time step, the boundaries are expanded to all angles
+    external_u = TimeSource(sources.external)
+    boundary_xu = TimeSource(sources.boundary_x, quadrature_u.angle_x, \
+            (2, info_u.cells_y, info_u.angles**2, info_u.groups), "boundary_x")
+    boundary_yu = TimeSource(sources.boundary_y, quadrature_u.angle_y, \
+            (2, info_u.cells_x, info_u.angles**2, info_u.groups), "boundary_y")
 
     cdef double[:,:,:,:] initial_flux_x
     cdef double[:,:,:,:] initial_flux_y
@@ -87,11 +92,6 @@ def time_dependent(materials_u, groups_c, sources, geometry, quadrature_u, \
                                  info_u.moments)
     tools._xs_matrix_aniso(xs_matrix_u, xs_scatter_u, xs_fission_u, info_u)
 
-    half_angles = info_u.angles * info_u.angles // 2
-    assert boundary_xu.shape[3] in (1, half_angles), \
-        f"boundary_x angle dim must be 1 (broadcast) or {half_angles} (half-angle), got {boundary_xu.shape[3]}"
-    assert boundary_yu.shape[3] in (1, half_angles), \
-        f"boundary_y angle dim must be 1 (broadcast) or {half_angles} (half-angle), got {boundary_yu.shape[3]}"
     # Optionally create a memmap file to stream per-step output
     flux_file = None
     if time_data.save_to_file is not None:
@@ -102,18 +102,18 @@ def time_dependent(materials_u, groups_c, sources, geometry, quadrature_u, \
 
     if params_u.time_disc == TemporalDiscretization.BDF1:
         # Run Backward Euler
-        parameters._check_bdf_timed2d(info_u, initial_flux.shape[0], external_u.shape[0], \
-                    boundary_xu.shape[0], boundary_yu.shape[0], xs_total_u.shape[0])
+        parameters._check_bdf_timed2d(info_u, initial_flux.shape[0], external_u.steps, \
+                    boundary_xu.steps, boundary_yu.steps, xs_total_u.shape[0])
         flux_final = backward_euler(groups_c, angles_c, initial_flux.copy(), xs_total_u,
-                        xs_matrix_u, velocity_u, external_u, boundary_xu.copy(), \
-                        boundary_yu.copy(), medium_map, delta_x, delta_y, angle_xu, \
+                        xs_matrix_u, velocity_u, external_u, boundary_xu, \
+                        boundary_yu, medium_map, delta_x, delta_y, angle_xu, \
                         angle_yu, angle_wu, edges_g, P_source_u, P_weights_u, \
                         flux_file, info_u, info_c)
     elif params_u.time_disc == TemporalDiscretization.CN:
         # Run Crank Nicolson method
         parameters._check_cn_timed2d(info_u, initial_flux_x.shape[0], \
-                    initial_flux_y.shape[1], external_u.shape[0], boundary_xu.shape[0], \
-                    boundary_yu.shape[0], xs_total_u.shape[0])
+                    initial_flux_y.shape[1], external_u.steps, boundary_xu.steps, \
+                    boundary_yu.steps, xs_total_u.shape[0])
 
         # Create params with edges for CN method
         info_edge = parameters._to_params(params_u)
@@ -121,25 +121,25 @@ def time_dependent(materials_u, groups_c, sources, geometry, quadrature_u, \
 
         flux_final = crank_nicolson(groups_c, angles_c, initial_flux_x.copy(), \
                         initial_flux_y.copy(), xs_total_u, xs_matrix_u, velocity_u, \
-                        external_u, boundary_xu.copy(), boundary_yu.copy(), \
+                        external_u, boundary_xu, boundary_yu, \
                         medium_map, delta_x, delta_y, angle_xu, angle_yu, angle_wu, \
                         edges_g, P_source_u, P_weights_u, flux_file, info_u, \
                         info_c, info_edge)
     elif params_u.time_disc == TemporalDiscretization.BDF2:
         # Run BDF2 method
-        parameters._check_bdf_timed2d(info_u, initial_flux.shape[0], external_u.shape[0], \
-                    boundary_xu.shape[0], boundary_yu.shape[0], xs_total_u.shape[0])
+        parameters._check_bdf_timed2d(info_u, initial_flux.shape[0], external_u.steps, \
+                    boundary_xu.steps, boundary_yu.steps, xs_total_u.shape[0])
         flux_final = bdf2(groups_c, angles_c, initial_flux.copy(), xs_total_u, \
-                    xs_matrix_u, velocity_u, external_u, boundary_xu.copy(), \
-                    boundary_yu.copy(), medium_map, delta_x, delta_y, angle_xu, \
+                    xs_matrix_u, velocity_u, external_u, boundary_xu, \
+                    boundary_yu, medium_map, delta_x, delta_y, angle_xu, \
                     angle_yu, angle_wu, edges_g, P_source_u, P_weights_u, \
                     flux_file, info_u, info_c)
 
     elif params_u.time_disc == TemporalDiscretization.TR_BDF2:
         # Run TR-BDF2 method
         parameters._check_tr_bdf_timed2d(info_u, initial_flux_x.shape[0], \
-                    initial_flux_y.shape[1], external_u.shape[0], boundary_xu.shape[0], \
-                    boundary_yu.shape[0], xs_total_u.shape[0])
+                    initial_flux_y.shape[1], external_u.steps, boundary_xu.steps, \
+                    boundary_yu.steps, xs_total_u.shape[0])
 
         # Create params with edges for CN method
         info_edge = parameters._to_params(params_u)
@@ -147,7 +147,7 @@ def time_dependent(materials_u, groups_c, sources, geometry, quadrature_u, \
 
         flux_final = tr_bdf2(groups_c, angles_c, initial_flux_x.copy(), \
                         initial_flux_y.copy(), xs_total_u, xs_matrix_u, velocity_u, \
-                        external_u, boundary_xu.copy(), boundary_yu.copy(), \
+                        external_u, boundary_xu, boundary_yu, \
                         medium_map, delta_x, delta_y, angle_xu, angle_yu, angle_wu, \
                         edges_g, P_source_u, P_weights_u, flux_file, info_u, \
                         info_c, info_edge)
@@ -157,14 +157,14 @@ def time_dependent(materials_u, groups_c, sources, geometry, quadrature_u, \
 
 cdef double[:,:,:] backward_euler(int[:] groups_c, int[:] angles_c, \
         double[:,:,:,:]& flux_last, double[:,:]& xs_total_u, double[:,:,:,:]& xs_scatter_u, \
-        double[:]& velocity_u, double[:,:,:,:,:]& external_u, double[:,:,:,:,:]& boundary_xu, \
-        double[:,:,:,:,:]& boundary_yu, int[:,:]& medium_map, double[:]& delta_x, \
+        double[:]& velocity_u, object external_u, object boundary_xu, \
+        object boundary_yu, int[:,:]& medium_map, double[:]& delta_x, \
         double[:]& delta_y, double[:]& angle_xu, double[:]& angle_yu, double[:]& angle_wu,
         double[:]& edges_g, double[:,:]& P_source_u, double[:,:]& P_weights_u, \
         object flux_file, params info_u, params info_c):
 
-    # Initialize time step, external and boundary indices
-    cdef int step, qq, bcx, bcy
+    # Initialize time step
+    cdef int step
 
     # Create sigma_t + 1 / (v * dt) - Uncollided
     xs_total_vu = tools.array_2d(info_u.materials, info_u.groups)
@@ -185,11 +185,6 @@ cdef double[:,:,:] backward_euler(int[:] groups_c, int[:] angles_c, \
 
     # Iterate over time steps
     for step in tqdm(range(info_u.steps), desc="vBDF1*   ", ascii=True):
-
-        # Determine dimensions of external and boundary sources
-        qq = 0 if external_u.shape[0] == 1 else step
-        bcx = 0 if boundary_xu.shape[0] == 1 else step
-        bcy = 0 if boundary_yu.shape[0] == 1 else step
 
         ########################################################################
         # Variable Hybrid Method
@@ -223,12 +218,12 @@ cdef double[:,:,:] backward_euler(int[:] groups_c, int[:] angles_c, \
             _vhybrid_velocity(star_coef_c, velocity_u, edges_gidx_c, 1.0, info_c)
 
         ########################################################################
-        # Expand half-angle boundaries to full-angle
-        bcx_full = tools._expand_boundary_x(boundary_xu[bcx], angle_xu, info_u)
-        bcy_full = tools._expand_boundary_y(boundary_yu[bcy], angle_yu, info_u)
+        # Boundary sources of the time step for all angles
+        bcx_full = boundary_xu(step)
+        bcy_full = boundary_yu(step)
 
         # Update q_star as external + 1/(v*dt) * psi
-        tools._time_source_star_bdf1(flux_last, q_star, external_u[qq], \
+        tools._time_source_star_bdf1(flux_last, q_star, external_u(step), \
                                      velocity_u, info_u)
 
         # Run hybrid method
@@ -254,8 +249,8 @@ cdef double[:,:,:] backward_euler(int[:] groups_c, int[:] angles_c, \
 
 cdef double[:,:,:] crank_nicolson(int[:] groups_c, int[:] angles_c, \
         double[:,:,:,:]& flux_last_x, double[:,:,:,:]& flux_last_y, double[:,:]& xs_total_u, \
-        double[:,:,:,:]& xs_scatter_u, double[:]& velocity_u, double[:,:,:,:,:]& external_u, \
-        double[:,:,:,:,:]& boundary_xu, double[:,:,:,:,:]& boundary_yu, \
+        double[:,:,:,:]& xs_scatter_u, double[:]& velocity_u, object external_u, \
+        object boundary_xu, object boundary_yu, \
         int[:,:]& medium_map, double[:]& delta_x, double[:]& delta_y, double[:]& angle_xu, \
         double[:]& angle_yu, double[:]& angle_wu, double[:]& edges_g, \
         double[:,:]& P_source_u, double[:,:]& P_weights_u, object flux_file, \
@@ -263,8 +258,8 @@ cdef double[:,:,:] crank_nicolson(int[:] groups_c, int[:] angles_c, \
     # flux_last_x = (cells_x + 1, cells_y, angles**2, groups) - x edges
     # flux_last_y = (cells_x, cells_y + 1, angles**2, groups) - y edges
 
-    # Initialize time step, external and boundary indices
-    cdef int step, qq, qqa, bcx, bcy
+    # Initialize time step
+    cdef int step
 
     # Create sigma_t + 2 / (v * dt) - Uncollided
     xs_total_vu = tools.array_2d(info_u.materials, info_u.groups)
@@ -286,12 +281,6 @@ cdef double[:,:,:] crank_nicolson(int[:] groups_c, int[:] angles_c, \
 
     # Iterate over time steps
     for step in tqdm(range(info_u.steps), desc="vCN*     ", ascii=True):
-
-        # Determine dimensions of external and boundary sources
-        qqa = 0 if external_u.shape[0] == 1 else step # Previous time step
-        qq = 0 if external_u.shape[0] == 1 else step + 1
-        bcx = 0 if boundary_xu.shape[0] == 1 else step
-        bcy = 0 if boundary_yu.shape[0] == 1 else step
 
         ########################################################################
         # Variable Hybrid Method
@@ -325,14 +314,14 @@ cdef double[:,:,:] crank_nicolson(int[:] groups_c, int[:] angles_c, \
             _vhybrid_velocity(star_coef_c, velocity_u, edges_gidx_c, 2.0, info_c)
 
         ########################################################################
-        # Expand half-angle boundaries to full-angle
-        bcx_full = tools._expand_boundary_x(boundary_xu[bcx], angle_xu, info_u)
-        bcy_full = tools._expand_boundary_y(boundary_yu[bcy], angle_yu, info_u)
+        # Boundary sources of the time step for all angles
+        bcx_full = boundary_xu(step)
+        bcy_full = boundary_yu(step)
 
         # Update q_star
         tools._time_source_star_cn_aniso(flux_last_x, flux_last_y, flux_u, \
                         xs_total_u, xs_scatter_u, velocity_u, q_star, \
-                        external_u[qqa], external_u[qq], medium_map, \
+                        external_u(step), external_u(step + 1), medium_map, \
                         delta_x, delta_y, angle_xu, angle_yu, P_source_u, \
                         2.0, info_u)
 
@@ -361,14 +350,14 @@ cdef double[:,:,:] crank_nicolson(int[:] groups_c, int[:] angles_c, \
 
 cdef double[:,:,:] bdf2(int[:]& groups_c, int[:]& angles_c, double[:,:,:,:]& flux_last_1, \
         double[:,:]& xs_total_u, double[:,:,:,:]& xs_scatter_u, double[:]& velocity_u, \
-        double[:,:,:,:,:]& external_u, double[:,:,:,:,:]& boundary_xu, \
-        double[:,:,:,:,:]& boundary_yu, int[:,:]& medium_map, double[:]& delta_x, \
+        object external_u, object boundary_xu, \
+        object boundary_yu, int[:,:]& medium_map, double[:]& delta_x, \
         double[:]& delta_y, double[:]& angle_xu, double[:]& angle_yu, double[:]& angle_wu, \
         double[:]& edges_g, double[:,:]& P_source_u, double[:,:]& P_weights_u, \
         object flux_file, params info_u, params info_c):
 
-    # Initialize time step, external and boundary indices
-    cdef int step, qq, bcx, bcy
+    # Initialize time step
+    cdef int step
     cdef double coef = 1.0
 
     # Create sigma_t + 1 / (v * dt) - Uncollided
@@ -394,11 +383,6 @@ cdef double[:,:,:] bdf2(int[:]& groups_c, int[:]& angles_c, double[:,:,:,:]& flu
 
     # Iterate over time steps
     for step in tqdm(range(info_u.steps), desc="vBDF2*   ", ascii=True):
-
-        # Determine dimensions of external and boundary sources
-        qq = 0 if external_u.shape[0] == 1 else step
-        bcx = 0 if boundary_xu.shape[0] == 1 else step
-        bcy = 0 if boundary_yu.shape[0] == 1 else step
 
         ########################################################################
         # Variable Hybrid Method
@@ -437,19 +421,19 @@ cdef double[:,:,:] bdf2(int[:]& groups_c, int[:]& angles_c, double[:,:,:,:]& flu
             _vhybrid_velocity(star_coef_c, velocity_u, edges_gidx_c, 1.5, info_c)
 
         ########################################################################
-        # Expand half-angle boundaries to full-angle
-        bcx_full = tools._expand_boundary_x(boundary_xu[bcx], angle_xu, info_u)
-        bcy_full = tools._expand_boundary_y(boundary_yu[bcy], angle_yu, info_u)
+        # Boundary sources of the time step for all angles
+        bcx_full = boundary_xu(step)
+        bcy_full = boundary_yu(step)
 
         # Update q_star
         if step == 0:
             # Run BDF1 on first step
-            tools._time_source_star_bdf1(flux_last_1, q_star, external_u[qq], \
+            tools._time_source_star_bdf1(flux_last_1, q_star, external_u(step), \
                                          velocity_u, info_u)
         else:
             # Run BDF2 on all other steps
             tools._time_source_star_bdf2(flux_last_1, flux_last_2, q_star, \
-                                         external_u[qq], velocity_u, info_u)
+                                         external_u(step), velocity_u, info_u)
 
         # Run hybrid method
         hybrid_method(flux_u, flux_c, xs_total_u, xs_total_vu, xs_scatter_u, \
@@ -479,14 +463,14 @@ cdef double[:,:,:] bdf2(int[:]& groups_c, int[:]& angles_c, double[:,:,:,:]& flu
 
 cdef double[:,:,:] tr_bdf2(int[:] groups_c, int[:] angles_c, double[:,:,:,:]& flux_ell_x, \
         double[:,:,:,:]& flux_ell_y, double[:,:]& xs_total_u, double[:,:,:,:]& xs_scatter_u, \
-        double[:]& velocity_u, double[:,:,:,:,:]& external_u, double[:,:,:,:,:]& boundary_xu, \
-        double[:,:,:,:,:]& boundary_yu, int[:,:]& medium_map, double[:]& delta_x, \
+        double[:]& velocity_u, object external_u, object boundary_xu, \
+        object boundary_yu, int[:,:]& medium_map, double[:]& delta_x, \
         double[:]& delta_y, double[:]& angle_xu, double[:]& angle_yu, double[:]& angle_wu, \
         double[:]& edges_g, double[:,:]& P_source_u, double[:,:]& P_weights_u, \
         object flux_file, params info_u, params info_c, params info_edge):
 
-    # Initialize time step, external and boundary indices
-    cdef int step, qq, qqa, qqb, bcx, bcxa, bcy, bcya
+    # Initialize time step
+    cdef int step
 
     # Initialize gamma
     cdef double gamma = 0.5
@@ -517,16 +501,7 @@ cdef double[:,:,:] tr_bdf2(int[:] groups_c, int[:] angles_c, double[:,:,:,:]& fl
     # Iterate over time steps
     for step in tqdm(range(info_u.steps), desc="vTR-BDF2*", ascii=True):
 
-        # Determine dimensions of external and boundary sources
-        qq = 0 if external_u.shape[0] == 1 else step * 2 # Ell Step
-        qqa = 0 if external_u.shape[0] == 1 else step * 2 + 1 # Gamma Step
-        qqb = 0 if external_u.shape[0] == 1 else step * 2 + 2 # Ell + 1 Step
 
-        bcx = 0 if boundary_xu.shape[0] == 1 else step * 2 # Ell Step
-        bcxa = 0 if boundary_xu.shape[0] == 1 else step * 2 + 1 # Gamma Step
-
-        bcy = 0 if boundary_yu.shape[0] == 1 else step * 2 # Ell Step
-        bcya = 0 if boundary_yu.shape[0] == 1 else step * 2 + 1 # Gamma Step
 
         ########################################################################
         # Variable Hybrid Method
@@ -563,18 +538,18 @@ cdef double[:,:,:] tr_bdf2(int[:] groups_c, int[:] angles_c, double[:,:,:,:]& fl
             _vhybrid_velocity(star_coef_bdf2_c, velocity_u, edges_gidx_c, coef, info_c)
 
         ########################################################################
-        # Expand half-angle boundaries to full-angle (Ell and Gamma steps)
-        bcx_full = tools._expand_boundary_x(boundary_xu[bcx], angle_xu, info_u)
-        bcy_full = tools._expand_boundary_y(boundary_yu[bcy], angle_yu, info_u)
-        bcxa_full = tools._expand_boundary_x(boundary_xu[bcxa], angle_xu, info_u)
-        bcya_full = tools._expand_boundary_y(boundary_yu[bcya], angle_yu, info_u)
+        # Boundary sources of the time step for all angles (Ell and Gamma steps)
+        bcx_full = boundary_xu(step * 2)
+        bcy_full = boundary_yu(step * 2)
+        bcxa_full = boundary_xu(step * 2 + 1)
+        bcya_full = boundary_yu(step * 2 + 1)
 
         ################################################################
         # Crank Nicolson
         ################################################################
         # Update q_star for CN step
         tools._time_source_star_cn_aniso(flux_ell_x, flux_ell_y, flux_u, xs_total_u, \
-                xs_scatter_u, velocity_u, flux_last_gamma, external_u[qq], external_u[qqa], \
+                xs_scatter_u, velocity_u, flux_last_gamma, external_u(step * 2), external_u(step * 2 + 1), \
                 medium_map, delta_x, delta_y, angle_xu, angle_yu, P_source_u, \
                 2.0 / gamma, info_u)
 
@@ -595,7 +570,7 @@ cdef double[:,:,:] tr_bdf2(int[:] groups_c, int[:] angles_c, double[:,:,:,:]& fl
         # BDF2
         ################################################################
         tools._time_source_star_tr_bdf2_mem(flux_ell_x, flux_ell_y, flux_last_gamma, \
-                            external_u[qqb], velocity_u, gamma, info_u)
+                            external_u(step * 2 + 2), velocity_u, gamma, info_u)
 
         hybrid_method(flux_u, flux_c, xs_total_u, xs_total_vu_bdf2, xs_scatter_u, \
                 flux_last_gamma, source_c, bcxa_full, bcya_full, boundary_c, \

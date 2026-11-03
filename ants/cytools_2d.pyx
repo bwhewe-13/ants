@@ -23,12 +23,14 @@
 from libc.math cimport sqrt
 
 from cython.parallel import prange
+
 from cython.view cimport array as cvarray
 
 from ants.cytools_1d cimport _legendre_sum
 from ants.cytools_1d cimport _xs_matrix_aniso as _shared_xs_matrix_aniso
 from ants.cytools_shared cimport _fission_matrix as _shared_fission_matrix
 from ants.cytools_shared cimport _normalize_flux as _shared_normalize_flux
+from ants.cytools_shared cimport _source_columns as _shared_source_columns
 from ants.cytools_shared cimport _total_velocity as _shared_total_velocity
 from ants.cytools_shared cimport _update_keffective as _shared_update_keffective
 from ants.cytools_shared cimport angle_convergence as _shared_angle_convergence
@@ -150,11 +152,13 @@ cdef void _off_scatter_jacobi(double[:,:,:]& flux_old, int[:,:]& medium_map, \
 
 cdef void _source_total(double[:,:,:,:]& source, double[:,:,:]& flux, \
         double[:,:,:]& xs_matrix, int[:,:]& medium_map, \
-        double[:,:,:,:]& external, params info):
+        double[:,:,:,:]& external, params info, int[:,:] q_index=None):
     # Create (sigma_s + sigma_f) * phi + external function
     # Initialize iterables
-    cdef int ii, jj, nn, ig, og, mat, nn_q, og_q
+    cdef int ii, jj, nn, ig, og, mat, og_q
     cdef double one_group
+    # External source column of each angle and group
+    cdef int[:,:] q_cols = _source_columns(external.shape[2], q_index, info)
 
     # Zero out previous values
     source[:,:,:,:] = 0.0
@@ -171,9 +175,14 @@ cdef void _source_total(double[:,:,:,:]& source, double[:,:,:]& flux, \
                     one_group += flux[ii,jj,ig] * xs_matrix[mat,og,ig]
 
                 for nn in range(info.angles * info.angles):
-                    nn_q = 0 if external.shape[2] == 1 else nn
                     source[ii,jj,nn,og] += one_group
-                    source[ii,jj,nn,og] += external[ii,jj,nn_q,og_q]
+                    source[ii,jj,nn,og] += external[ii,jj,q_cols[nn,og],og_q]
+
+
+cdef int[:,:] _source_columns(int columns, int[:,:] q_index, params info):
+    # External source column for each (angle, group), see cytools_shared
+    return _shared_source_columns(columns, q_index, info.angles * info.angles, \
+                                  info.groups)
 
 
 cdef void _source_total_single(double[:,:,:,:]& source, \
@@ -1178,84 +1187,6 @@ cdef void _vhybrid_source_total(double[:,:,:]& flux_u, double[:,:,:]& flux_c, \
 
 
 ################################################################################
-# Time-Dependent Boundary Expansion
-################################################################################
-
-cdef double[:,:,:,:] _expand_boundary_x(double[:,:,:,:]& half_bc,
-        double[:]& angle_x, params info):
-    # Expand a half-angle (or broadcast) x-boundary array into a full-angle
-    # x-boundary array with shape (2, cells_y, angles**2, groups).
-    #
-    # half_bc may have shape (2, cells_y, angles**2//2, groups) -- per-incoming-
-    # angle, or any dimension may be 1 for broadcasting.
-    #
-    # half_bc angle layout:
-    #   half_bc[0, jj, ii, gg] = left  boundary for y-cell jj, ii-th incoming
-    #                             angle (angle_x > 0), in traversal order
-    #   half_bc[1, jj, ii, gg] = right boundary for y-cell jj, ii-th incoming
-    #                             angle (angle_x < 0), in traversal order
-    cdef int N2 = info.angles * info.angles
-    full_bc = array_4d(2, info.cells_y, N2, info.groups)
-    cdef int nn, jj, gg, ii_pos, ii_neg
-    cdef bint bc_y     = (half_bc.shape[1] > 1)
-    cdef bint bc_angle = (half_bc.shape[2] > 1)
-    cdef bint bc_group = (half_bc.shape[3] > 1)
-    ii_pos = 0
-    ii_neg = 0
-    for nn in range(N2):
-        if angle_x[nn] > 0.0:
-            for jj in range(info.cells_y):
-                for gg in range(info.groups):
-                    full_bc[0, jj, nn, gg] = half_bc[0, jj if bc_y else 0, ii_pos if bc_angle else 0, gg if bc_group else 0]
-            if bc_angle:
-                ii_pos += 1
-        elif angle_x[nn] < 0.0:
-            for jj in range(info.cells_y):
-                for gg in range(info.groups):
-                    full_bc[1, jj, nn, gg] = half_bc[1, jj if bc_y else 0, ii_neg if bc_angle else 0, gg if bc_group else 0]
-            if bc_angle:
-                ii_neg += 1
-    return full_bc
-
-
-cdef double[:,:,:,:] _expand_boundary_y(double[:,:,:,:]& half_bc,
-        double[:]& angle_y, params info):
-    # Expand a half-angle (or broadcast) y-boundary array into a full-angle
-    # y-boundary array with shape (2, cells_x, angles**2, groups).
-    #
-    # half_bc may have shape (2, cells_x, angles**2//2, groups) -- per-incoming-
-    # angle, or any dimension may be 1 for broadcasting.
-    #
-    # half_bc angle layout:
-    #   half_bc[0, ii, jj, gg] = bottom boundary for x-cell ii, jj-th incoming
-    #                             angle (angle_y > 0), in traversal order
-    #   half_bc[1, ii, jj, gg] = top    boundary for x-cell ii, jj-th incoming
-    #                             angle (angle_y < 0), in traversal order
-    cdef int N2 = info.angles * info.angles
-    full_bc = array_4d(2, info.cells_x, N2, info.groups)
-    cdef int nn, ii, gg, ii_pos, ii_neg
-    cdef bint bc_x     = (half_bc.shape[1] > 1)
-    cdef bint bc_angle = (half_bc.shape[2] > 1)
-    cdef bint bc_group = (half_bc.shape[3] > 1)
-    ii_pos = 0
-    ii_neg = 0
-    for nn in range(N2):
-        if angle_y[nn] > 0.0:
-            for ii in range(info.cells_x):
-                for gg in range(info.groups):
-                    full_bc[0, ii, nn, gg] = half_bc[0, ii if bc_x else 0, ii_pos if bc_angle else 0, gg if bc_group else 0]
-            if bc_angle:
-                ii_pos += 1
-        elif angle_y[nn] < 0.0:
-            for ii in range(info.cells_x):
-                for gg in range(info.groups):
-                    full_bc[1, ii, nn, gg] = half_bc[1, ii if bc_x else 0, ii_neg if bc_angle else 0, gg if bc_group else 0]
-            if bc_angle:
-                ii_neg += 1
-    return full_bc
-
-
-################################################################################
 # Anisotropic Scattering (spherical harmonic moments)
 ################################################################################
 # Flux moments are (cells_x, cells_y, groups, moments) with
@@ -1318,13 +1249,15 @@ cdef void _off_scatter_jacobi_moments(double[:,:,:,:]& flux_old, \
 
 cdef void _source_total_aniso(double[:,:,:,:]& source, double[:,:,:,:]& flux, \
         double[:,:,:,:]& xs_matrix, int[:,:]& medium_map, \
-        double[:,:,:,:]& external, double[:,:]& P_source, params info):
+        double[:,:,:,:]& external, double[:,:]& P_source, params info, \
+        int[:,:] q_index=None):
     # Create sum_k (2l + 1) Y_k (sigma_s + sigma_f)_l * phi_k + external
-    cdef int ii, jj, nn, og, nn_q, og_q, mat
+    cdef int ii, jj, nn, og, og_q, mat
     if info.moments == 1:
         _source_total(source, flux[:,:,:,0], xs_matrix[:,:,:,0], medium_map, \
-                      external, info)
+                      external, info, q_index)
         return
+    cdef int[:,:] q_cols = _source_columns(external.shape[2], q_index, info)
     group_moments = array_1d(info.moments)
     source[:,:,:,:] = 0.0
     for ii in range(info.cells_x):
@@ -1334,9 +1267,8 @@ cdef void _source_total_aniso(double[:,:,:,:]& source, double[:,:,:,:]& flux, \
                 og_q = 0 if external.shape[3] == 1 else og
                 _group_moments(group_moments, flux, xs_matrix, mat, ii, jj, og, info)
                 for nn in range(info.angles * info.angles):
-                    nn_q = 0 if external.shape[2] == 1 else nn
                     source[ii,jj,nn,og] = _legendre_sum(group_moments, P_source, \
-                                            nn, info) + external[ii,jj,nn_q,og_q]
+                                nn, info) + external[ii,jj,q_cols[nn,og],og_q]
 
 
 cdef void _angular_to_moments(double[:,:,:,:]& angular_flux, \

@@ -31,6 +31,7 @@ from ants.datatypes import SourceData, create_params
 from ants.quadrature import _scatter_harmonics, harmonic_data
 from ants.utils.interp2d import Interpolation
 from ants.utils.pytools import average_array
+from ants.utils.sources import dense_source
 
 from ants cimport cytools_2d as tools
 from ants cimport multi_group_2d as mg
@@ -80,6 +81,11 @@ def fixed_source(materials, sources, geometry, quadrature, solver, **kwargs):
     save_residual = kwargs.get("save_residual", True)
     return_nearby = kwargs.get("return_nearby", False)
     numerical_flux = kwargs.get("numerical_flux", None)
+
+    # The residual is dense, so compact sources are expanded
+    sources = replace(sources, external=dense_source(sources.external), \
+                      boundary_x=dense_source(sources.boundary_x), \
+                      boundary_y=dense_source(sources.boundary_y))
 
     # Unpack Python DataTypes to Cython memoryviews
     cdef double[:,:] xs_total = materials.total

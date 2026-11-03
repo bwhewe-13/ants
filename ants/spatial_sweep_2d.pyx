@@ -44,20 +44,20 @@ from ants.parameters cimport params
 
 cdef void discrete_ordinates(double[:,:]& flux, double[:,:]& flux_old,
         double[:]& xs_total, double[:]& xs_scatter, double[:,:]& off_scatter, \
-        double[:,:,:]& external, double[:,:,:]& boundary_x, \
+        double[:,:,:]& external, int[:]& q_col, double[:,:,:]& boundary_x, \
         double[:,:,:]& boundary_y, int[:,:]& medium_map, double[:]& delta_x, \
         double[:]& delta_y, double[:]& angle_x, double[:]& angle_y, \
         double[:]& angle_w, params info):
     # Rectangular spatial cells (SLAB2D = 3)
     if info.geometry == 3:
         square_ordinates(flux, flux_old, xs_total, xs_scatter, off_scatter, \
-                         external, boundary_x, boundary_y, medium_map, \
+                         external, q_col, boundary_x, boundary_y, medium_map, \
                          delta_x, delta_y, angle_x, angle_y, angle_w, info)
 
 
 cdef void square_ordinates(double[:,:]& flux, double[:,:]& flux_old, \
         double[:]& xs_total, double[:]& xs_scatter, double[:,:]& off_scatter, \
-        double[:,:,:]& external, double[:,:,:]& boundary_x, \
+        double[:,:,:]& external, int[:]& q_col, double[:,:,:]& boundary_x, \
         double[:,:,:]& boundary_y, int[:,:]& medium_map, double[:]& delta_x, \
         double[:]& delta_y, double[:]& angle_x, double[:]& angle_y, \
         double[:]& angle_w, params info):
@@ -105,7 +105,7 @@ cdef void square_ordinates(double[:,:]& flux, double[:,:]& flux_old, \
         #   - known_x_work[nn, :] and known_y_work[nn, :] belong to nn.
         #   - reflected_x/y are not written here.
         for nn in prange(N2, nogil=True, schedule="static", num_threads=info.num_threads):
-            qq = 0 if external.shape[2] == 1 else nn
+            qq = q_col[nn]
             tid = threadid()
             square_sweep_private(thread_flux[tid, :, :], flux_old, xs_total, \
                     xs_scatter, off_scatter, external[:, :, qq], known_x_work[nn, :], \
@@ -664,7 +664,7 @@ cdef double interface_backward_x(double[:]& flux_edge_x, double[:]& flux_edge_y,
 cdef void discrete_ordinates_aniso(double[:,:,:]& flux, \
         double[:,:,:]& flux_old, double[:]& xs_total, \
         double[:,:]& xs_scatter, double[:,:,:]& off_scatter, \
-        double[:,:,:]& external, double[:,:,:]& boundary_x, \
+        double[:,:,:]& external, int[:]& q_col, double[:,:,:]& boundary_x, \
         double[:,:,:]& boundary_y, int[:,:]& medium_map, double[:]& delta_x, \
         double[:]& delta_y, double[:]& angle_x, double[:]& angle_y, \
         double[:]& angle_w, double[:,:]& P_source, double[:,:]& P_weights, \
@@ -672,7 +672,7 @@ cdef void discrete_ordinates_aniso(double[:,:,:]& flux, \
     # Rectangular spatial cells (SLAB2D = 3)
     if info.geometry == 3:
         square_ordinates_aniso(flux, flux_old, xs_total, xs_scatter, \
-                off_scatter, external, boundary_x, boundary_y, medium_map, \
+                off_scatter, external, q_col, boundary_x, boundary_y, medium_map, \
                 delta_x, delta_y, angle_x, angle_y, angle_w, P_source, \
                 P_weights, info)
 
@@ -708,7 +708,7 @@ cdef void _project_moments(double[:,:,:]& flux, double[:,:]& psi, \
 cdef void square_ordinates_aniso(double[:,:,:]& flux, \
         double[:,:,:]& flux_old, double[:]& xs_total, \
         double[:,:]& xs_scatter, double[:,:,:]& off_scatter, \
-        double[:,:,:]& external, double[:,:,:]& boundary_x, \
+        double[:,:,:]& external, int[:]& q_col, double[:,:,:]& boundary_x, \
         double[:,:,:]& boundary_y, int[:,:]& medium_map, double[:]& delta_x, \
         double[:]& delta_y, double[:]& angle_x, double[:]& angle_y, \
         double[:]& angle_w, double[:,:]& P_source, double[:,:]& P_weights, \
@@ -753,7 +753,7 @@ cdef void square_ordinates_aniso(double[:,:,:]& flux, \
 
         # Parallel angular sweep, see square_ordinates
         for nn in prange(N2, nogil=True, schedule="static", num_threads=info.num_threads):
-            qq = 0 if external.shape[2] == 1 else nn
+            qq = q_col[nn]
             tid = threadid()
             _angle_source(thread_source[tid, :, :], flux_old, xs_scatter, \
                     off_scatter, external[:, :, qq], medium_map, P_source[:, nn], info)
