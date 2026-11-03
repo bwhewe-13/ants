@@ -54,3 +54,27 @@ cdef void discrete_ordinates_aniso(double[:,:,:]& flux, \
         double[:]& delta_y, double[:]& angle_x, double[:]& angle_y, \
         double[:]& angle_w, double[:,:]& P_source, double[:,:]& P_weights, \
         params info)
+
+
+cdef void discrete_ordinates_nogil(double[:,:]& flux, double[:,:]& flux_old,
+        double[:]& xs_total, double[:]& xs_scatter, double[:,:]& off_scatter, \
+        double[:,:,:]& external, int[:]& q_col, double[:,:,:]& boundary_x, \
+        double[:,:,:]& boundary_y, int[:,:]& medium_map, double[:]& delta_x, \
+        double[:]& delta_y, double[:]& angle_x, double[:]& angle_y, \
+        double[:]& angle_w, params info, double[:,:,:]& thread_flux, \
+        double[:,:,:]& reflected_y, double[:,:,:]& reflected_x, \
+        double[:,:]& known_y_work, double[:,:]& known_x_work) noexcept nogil
+
+
+cdef void discrete_ordinates_aniso_nogil(double[:,:,:]& flux, \
+        double[:,:,:]& flux_old, double[:]& xs_total, \
+        double[:,:]& xs_scatter, double[:,:,:]& off_scatter, \
+        double[:,:,:]& external, int[:]& q_col, double[:,:,:]& boundary_x, \
+        double[:,:,:]& boundary_y, int[:,:]& medium_map, double[:]& delta_x, \
+        double[:]& delta_y, double[:]& angle_x, double[:]& angle_y, \
+        double[:]& angle_w, double[:,:]& P_source, double[:,:]& P_weights, \
+        params info, double[:,:,:]& thread_psi, double[:,:,:]& thread_source, \
+        double[:,:,:,:]& thread_flux, double[:,:]& zero_2d, \
+        double[:]& zero_xs, double[:,:,:]& reflected_y, \
+        double[:,:,:]& reflected_x, double[:,:]& known_y_work, \
+        double[:,:]& known_x_work) noexcept nogil

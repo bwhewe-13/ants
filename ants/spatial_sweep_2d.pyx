@@ -37,9 +37,8 @@ from ants.parameters cimport params
 #
 # The square_forward_x / square_backward_x helpers update edge_y[:] in
 # place for a single column jj.  Inside prange each thread works on a
-# distinct angle nn and allocates its own local known_x / known_y on
-# entry to square_sweep, so there is no sharing of those arrays between
-# threads.
+# distinct angle nn with its own row of known_x_work / known_y_work, so
+# there is no sharing of those arrays between threads.
 ########################################################################
 
 cdef void discrete_ordinates(double[:,:]& flux, double[:,:]& flux_old,
@@ -48,11 +47,35 @@ cdef void discrete_ordinates(double[:,:]& flux, double[:,:]& flux_old,
         double[:,:,:]& boundary_y, int[:,:]& medium_map, double[:]& delta_x, \
         double[:]& delta_y, double[:]& angle_x, double[:]& angle_y, \
         double[:]& angle_w, params info):
+    # Allocate the work arrays for a single sweep
+    cdef int N2 = info.angles * info.angles
+    thread_flux = tools.array_3d(info.num_threads, info.cells_x, info.cells_y)
+    reflected_y = tools.array_3d(2, info.cells_x, N2)
+    reflected_x = tools.array_3d(2, info.cells_y, N2)
+    known_y_work = tools.array_2d(N2, info.cells_x)
+    known_x_work = tools.array_2d(N2, info.cells_y)
+    discrete_ordinates_nogil(flux, flux_old, xs_total, xs_scatter, \
+                off_scatter, external, q_col, boundary_x, boundary_y, \
+                medium_map, delta_x, delta_y, angle_x, angle_y, angle_w, \
+                info, thread_flux, reflected_y, reflected_x, known_y_work, \
+                known_x_work)
+
+
+cdef void discrete_ordinates_nogil(double[:,:]& flux, double[:,:]& flux_old,
+        double[:]& xs_total, double[:]& xs_scatter, double[:,:]& off_scatter, \
+        double[:,:,:]& external, int[:]& q_col, double[:,:,:]& boundary_x, \
+        double[:,:,:]& boundary_y, int[:,:]& medium_map, double[:]& delta_x, \
+        double[:]& delta_y, double[:]& angle_x, double[:]& angle_y, \
+        double[:]& angle_w, params info, double[:,:,:]& thread_flux, \
+        double[:,:,:]& reflected_y, double[:,:,:]& reflected_x, \
+        double[:,:]& known_y_work, double[:,:]& known_x_work) noexcept nogil:
     # Rectangular spatial cells (SLAB2D = 3)
     if info.geometry == 3:
         square_ordinates(flux, flux_old, xs_total, xs_scatter, off_scatter, \
                          external, q_col, boundary_x, boundary_y, medium_map, \
-                         delta_x, delta_y, angle_x, angle_y, angle_w, info)
+                         delta_x, delta_y, angle_x, angle_y, angle_w, info, \
+                         thread_flux, reflected_y, reflected_x, known_y_work, \
+                         known_x_work)
 
 
 cdef void square_ordinates(double[:,:]& flux, double[:,:]& flux_old, \
@@ -60,26 +83,26 @@ cdef void square_ordinates(double[:,:]& flux, double[:,:]& flux_old, \
         double[:,:,:]& external, int[:]& q_col, double[:,:,:]& boundary_x, \
         double[:,:,:]& boundary_y, int[:,:]& medium_map, double[:]& delta_x, \
         double[:]& delta_y, double[:]& angle_x, double[:]& angle_y, \
-        double[:]& angle_w, params info):
+        double[:]& angle_w, params info, double[:,:,:]& thread_flux, \
+        double[:,:,:]& reflected_y, double[:,:,:]& reflected_x, \
+        double[:,:]& known_y_work, double[:,:]& known_x_work) noexcept nogil:
 
     cdef int nn, ii, jj, qq, bcx, bcy, tid
     cdef int N2 = info.angles * info.angles
 
-    # Per-thread scalar-flux buffer: each thread accumulates contributions
-    # from all its assigned angles.  Using num_threads slices instead of N2
-    # keeps the hot buffer ~N2/num_threads times smaller, avoiding the cache
-    # thrashing that dominates runtime when N2 is large.
-    thread_flux = tools.array_3d(info.num_threads, info.cells_x, info.cells_y)
+    # Per-thread scalar-flux buffer (thread_flux): each thread accumulates
+    # contributions from all its assigned angles.  Using num_threads slices
+    # instead of N2 keeps the hot buffer ~N2/num_threads times smaller,
+    # avoiding the cache thrashing that dominates runtime when N2 is large.
+    #
+    # Per-angle known-edge work arrays (known_{x,y}_work): thread nn
+    # reads/writes only row nn, so there are no races.  After prange these
+    # hold the outgoing exit edges and are used to update the reflectors
+    # sequentially.
 
     # Reflector arrays - read-only inside prange, updated sequentially below.
-    reflected_y = tools.array_3d(2, info.cells_x, N2)
-    reflected_x = tools.array_3d(2, info.cells_y, N2)
-
-    # Per-angle known-edge work arrays.  Thread nn reads/writes only row nn,
-    # so there are no races.  After prange these hold the outgoing exit edges
-    # and are used to update the reflectors sequentially.
-    known_y_work = tools.array_2d(N2, info.cells_x)
-    known_x_work = tools.array_2d(N2, info.cells_y)
+    reflected_y[:,:,:] = 0.0
+    reflected_x[:,:,:] = 0.0
 
     cdef bint converged = False
     cdef int count = 1
@@ -104,7 +127,7 @@ cdef void square_ordinates(double[:,:]& flux, double[:,:]& flux_old, \
         #   - Thread tid accumulates into thread_flux[tid, :, :].
         #   - known_x_work[nn, :] and known_y_work[nn, :] belong to nn.
         #   - reflected_x/y are not written here.
-        for nn in prange(N2, nogil=True, schedule="static", num_threads=info.num_threads):
+        for nn in prange(N2, schedule="static", num_threads=info.num_threads):
             qq = q_col[nn]
             tid = threadid()
             square_sweep_private(thread_flux[tid, :, :], flux_old, xs_total, \
@@ -660,6 +683,13 @@ cdef double interface_backward_x(double[:]& flux_edge_x, double[:]& flux_edge_y,
 # (cells_x, cells_y, moments). Each ordinate builds its scattering source
 # and reuses the isotropic sweep with zero scattering, then adds
 # w_n Y_k(Omega_n) psi_n to the moments.
+#
+# Work arrays, see discrete_ordinates.
+#   thread_psi    (num_threads, cells_x, cells_y)           angular flux
+#   thread_source (num_threads, cells_x, cells_y)           angular source
+#   thread_flux   (num_threads, cells_x, cells_y, moments)  per-thread moments
+#   zero_2d (cells_x, cells_y), zero_xs (materials)         read-only zeros
+#   reflected_{y,x}, known_{y,x}_work                       see above
 
 cdef void discrete_ordinates_aniso(double[:,:,:]& flux, \
         double[:,:,:]& flux_old, double[:]& xs_total, \
@@ -669,12 +699,46 @@ cdef void discrete_ordinates_aniso(double[:,:,:]& flux, \
         double[:]& delta_y, double[:]& angle_x, double[:]& angle_y, \
         double[:]& angle_w, double[:,:]& P_source, double[:,:]& P_weights, \
         params info):
+    # Allocate the work arrays for a single sweep
+    cdef int N2 = info.angles * info.angles
+    thread_psi = tools.array_3d(info.num_threads, info.cells_x, info.cells_y)
+    thread_source = tools.array_3d(info.num_threads, info.cells_x, info.cells_y)
+    thread_flux = tools.array_4d(info.num_threads, info.cells_x, info.cells_y, \
+                                 info.moments)
+    zero_2d = tools.array_2d(info.cells_x, info.cells_y)
+    zero_xs = tools.array_1d(info.materials)
+    reflected_y = tools.array_3d(2, info.cells_x, N2)
+    reflected_x = tools.array_3d(2, info.cells_y, N2)
+    known_y_work = tools.array_2d(N2, info.cells_x)
+    known_x_work = tools.array_2d(N2, info.cells_y)
+    discrete_ordinates_aniso_nogil(flux, flux_old, xs_total, xs_scatter, \
+                off_scatter, external, q_col, boundary_x, boundary_y, \
+                medium_map, delta_x, delta_y, angle_x, angle_y, angle_w, \
+                P_source, P_weights, info, thread_psi, thread_source, \
+                thread_flux, zero_2d, zero_xs, reflected_y, reflected_x, \
+                known_y_work, known_x_work)
+
+
+cdef void discrete_ordinates_aniso_nogil(double[:,:,:]& flux, \
+        double[:,:,:]& flux_old, double[:]& xs_total, \
+        double[:,:]& xs_scatter, double[:,:,:]& off_scatter, \
+        double[:,:,:]& external, int[:]& q_col, double[:,:,:]& boundary_x, \
+        double[:,:,:]& boundary_y, int[:,:]& medium_map, double[:]& delta_x, \
+        double[:]& delta_y, double[:]& angle_x, double[:]& angle_y, \
+        double[:]& angle_w, double[:,:]& P_source, double[:,:]& P_weights, \
+        params info, double[:,:,:]& thread_psi, double[:,:,:]& thread_source, \
+        double[:,:,:,:]& thread_flux, double[:,:]& zero_2d, \
+        double[:]& zero_xs, double[:,:,:]& reflected_y, \
+        double[:,:,:]& reflected_x, double[:,:]& known_y_work, \
+        double[:,:]& known_x_work) noexcept nogil:
     # Rectangular spatial cells (SLAB2D = 3)
     if info.geometry == 3:
         square_ordinates_aniso(flux, flux_old, xs_total, xs_scatter, \
                 off_scatter, external, q_col, boundary_x, boundary_y, medium_map, \
                 delta_x, delta_y, angle_x, angle_y, angle_w, P_source, \
-                P_weights, info)
+                P_weights, info, thread_psi, thread_source, thread_flux, \
+                zero_2d, zero_xs, reflected_y, reflected_x, known_y_work, \
+                known_x_work)
 
 
 cdef void _angle_source(double[:,:]& source, double[:,:,:]& flux_old, \
@@ -712,26 +776,21 @@ cdef void square_ordinates_aniso(double[:,:,:]& flux, \
         double[:,:,:]& boundary_y, int[:,:]& medium_map, double[:]& delta_x, \
         double[:]& delta_y, double[:]& angle_x, double[:]& angle_y, \
         double[:]& angle_w, double[:,:]& P_source, double[:,:]& P_weights, \
-        params info):
+        params info, double[:,:,:]& thread_psi, double[:,:,:]& thread_source, \
+        double[:,:,:,:]& thread_flux, double[:,:]& zero_2d, \
+        double[:]& zero_xs, double[:,:,:]& reflected_y, \
+        double[:,:,:]& reflected_x, double[:,:]& known_y_work, \
+        double[:,:]& known_x_work) noexcept nogil:
 
     cdef int nn, ii, jj, kk, qq, bcx, bcy, tid
     cdef int N2 = info.angles * info.angles
 
-    # Per-thread angular flux, source, and moment buffers
-    thread_psi = tools.array_3d(info.num_threads, info.cells_x, info.cells_y)
-    thread_source = tools.array_3d(info.num_threads, info.cells_x, info.cells_y)
-    thread_flux = tools.array_4d(info.num_threads, info.cells_x, info.cells_y, \
-                                 info.moments)
-
-    # Zero scattering for the isotropic sweep
-    zero_2d = tools.array_2d(info.cells_x, info.cells_y)
-    zero_xs = tools.array_1d(info.materials)
+    # Angular flux starts at zero, _project_moments resets it per angle
+    thread_psi[:,:,:] = 0.0
 
     # Reflector and per-angle known-edge arrays, see square_ordinates
-    reflected_y = tools.array_3d(2, info.cells_x, N2)
-    reflected_x = tools.array_3d(2, info.cells_y, N2)
-    known_y_work = tools.array_2d(N2, info.cells_x)
-    known_x_work = tools.array_2d(N2, info.cells_y)
+    reflected_y[:,:,:] = 0.0
+    reflected_x[:,:,:] = 0.0
 
     cdef bint converged = False
     cdef int count = 1
@@ -752,7 +811,7 @@ cdef void square_ordinates_aniso(double[:,:,:]& flux, \
                                      reflected_x, angle_x, nn, info)
 
         # Parallel angular sweep, see square_ordinates
-        for nn in prange(N2, nogil=True, schedule="static", num_threads=info.num_threads):
+        for nn in prange(N2, schedule="static", num_threads=info.num_threads):
             qq = q_col[nn]
             tid = threadid()
             _angle_source(thread_source[tid, :, :], flux_old, xs_scatter, \
