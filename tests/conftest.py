@@ -22,19 +22,12 @@ def pytest_addoption(parser):
 
 
 def pytest_collection_modifyitems(config, items):
-    # One dimensional multigroup
-    if config.getoption("--mg1d"):
-        # --mg1d given in cli: do not skip multigroup tests
-        return
-    multigroup1d = pytest.mark.skip(reason="Run on --mg1d option")
-    for item in items:
-        if "multigroup1d" in item.keywords:
-            item.add_marker(multigroup1d)
-    # Two dimensional multigroup
-    if config.getoption("--mg2d"):
-        # --mg2d given in cli: do not skip multigroup tests
-        return
-    multigroup2d = pytest.mark.skip(reason="Run on --mg2d option")
-    for item in items:
-        if "multigroup2d" in item.keywords:
-            item.add_marker(multigroup2d)
+    # Skip each multigroup marker unless its own option is given, so that
+    # --mg1d and --mg2d work independently
+    for option, keyword in (("--mg1d", "multigroup1d"), ("--mg2d", "multigroup2d")):
+        if config.getoption(option):
+            continue
+        skip = pytest.mark.skip(reason=f"Run on {option} option")
+        for item in items:
+            if keyword in item.keywords:
+                item.add_marker(skip)
