@@ -80,7 +80,7 @@ def test_sphere_01_bdf1():
         timed1d.time_dependent(
             mat_data, sources, geometry, quadrature, solver, time_data
         )
-        flux = np.load(tmp_path, mmap_mode="r")
+        flux = np.load(tmp_path)
         ref_file_name = "uranium_sphere_backward_euler_flux.npy"
         reference = np.load(os.path.join(prob.PATH, ref_file_name))
         for tt in range(time_data.steps):

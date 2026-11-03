@@ -472,7 +472,7 @@ def test_slab_01_bdf1(angles_c, groups_c):
             time_data,
             hybrid_data,
         )
-        approx = np.load(tmp_path, mmap_mode="r")
+        approx = np.load(tmp_path)
 
         # Load Reference flux
         params = f"g87g{groups_c}_n8n{angles_c}_flux.npy"
