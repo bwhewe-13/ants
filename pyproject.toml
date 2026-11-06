@@ -27,6 +27,9 @@ dev = [
     "isort",
     "flake8",
     "pre-commit",
+    "nbclient",
+    "ipykernel",
+    "matplotlib",
 ]
 library = [
     "h5py",
@@ -71,6 +74,7 @@ markers = [
     "nearby1d: One-dimensional nearby problems",
     "nearby2d: Two-dimensional nearby problems",
     "anisotropic: Anisotropic (Legendre P_N) scattering",
+    "notebooks: Runs the example Jupyter notebooks",
 ]
 
 [tool.black]
