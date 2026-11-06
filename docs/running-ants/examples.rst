@@ -36,6 +36,14 @@ One-Dimensional Fixed Source
     numerical solution matches. Problems range from pure absorption to
     multi-material scattering with angle-dependent sources.
 
+``fixed_source_1d_spatial_discretization.ipynb``
+    Jupyter notebook comparing step, diamond and step characteristic
+    differencing (``GeometryData(space_disc=...)``). Measures order of accuracy
+    with a manufactured solution, then shows the positivity and accuracy
+    trade-off on a coarse-mesh Reed's problem, including the scattering
+    reaction rate.
+    Rendered version: :doc:`notebooks/fixed_source_1d_spatial_discretization`.
+
 
 One-Dimensional Criticality
 ----------------------------
@@ -77,6 +85,14 @@ One-Dimensional Time-Dependent
     Transient 87-group uranium sphere in spherical geometry with the same
     DT source and decay.
 
+``time_dependent_1d_integrators.ipynb``
+    Jupyter notebook comparing the BDF1, Crank-Nicolson, BDF2 and TR-BDF2 time
+    integrators. Covers the inputs each one expects, measures order of accuracy
+    with a manufactured solution, and runs a stiff Reed's problem transient with
+    a large time step that shows Crank-Nicolson oscillating. Tracks the
+    scattering reaction rate over time.
+    Rendered version: :doc:`notebooks/time_dependent_1d_integrators`.
+
 
 One-Dimensional Hybrid
 ------------------------
@@ -99,6 +115,13 @@ One-Dimensional Hybrid
     per-step integer arrays (``vgroups_c``, ``vangles_c``), enabling adaptive
     accuracy across time steps.
 
+``hybrid_1d_collided_angles.ipynb``
+    Jupyter notebook comparing the collision-based hybrid method with standard
+    S\ :sub:`N` on a transient Reed's problem. Shows that accuracy is set by the
+    uncollided quadrature, sweeps the number of collided angles against cost
+    and error, and plots the scattering reaction rate over time.
+    Rendered version: :doc:`notebooks/hybrid_1d_collided_angles`.
+
 
 Two-Dimensional Fixed Source
 ------------------------------
@@ -110,6 +133,15 @@ Two-Dimensional Fixed Source
     Demonstrates use of ``ants.boundary2d.manufactured_ss_*()`` functions to
     generate angle-dependent boundary conditions consistent with the chosen
     manufactured solution.
+
+``fixed_source_2d_artificial_scattering.ipynb``
+    Jupyter notebook comparing standard S\ :sub:`N` with artificial scattering
+    (as-S\ :sub:`N`) for ray effect mitigation, using a small isotropic source in
+    a pure absorber. Shows how to enable it with the ``sigma_as`` and
+    ``beta_as`` fields of ``SolverData``, compares both against a fine-quadrature
+    reference, and sweeps ``sigma_as`` to show the trade-off between removing
+    ray effects and over-smoothing.
+    Rendered version: :doc:`notebooks/fixed_source_2d_artificial_scattering`.
 
 
 Two-Dimensional Criticality
@@ -169,3 +201,17 @@ Notes on Running Examples
 * All examples produce output arrays named ``flux`` (or ``flux, keff`` for criticality).
   Commented-out ``np.save()`` calls at the end of each script can be uncommented to
   write results to disk.
+
+
+Example Notebooks
+------------------
+
+Notebooks in ``examples/`` are rendered here with their saved outputs. They are
+not run during the documentation build, so rerun a notebook and save it after
+changing it.
+
+.. toctree::
+    :maxdepth: 1
+    :glob:
+
+    notebooks/*
