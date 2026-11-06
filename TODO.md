@@ -25,8 +25,8 @@
 - [ ] Add adjoint equations (1D/2D/3D).
 - [ ] Add 2D/1D projections.
 - [ ] Add adaptive mesh refinement (AMR).
-- [ ] Add alpha-eigenvalue solve capability.
-- [ ] Add time-dependent k-eigenvalue capability.
+- [ ] Add Neutron depletion calculations.
+- [ ] Add delay neutrons.
 - [ ] Add neutron diffusion solve capability.
 - [ ] Add Coarse Mesh Finite Difference (CMFD) Acceleration.
 - [ ] Optimize the DMD implementation.
@@ -37,7 +37,6 @@
 - [ ] Add Diffusion Synthetic Acceleration.
 - [ ] Add Generalized Minimal Residual (GMRES) Acceleration.
 - [ ] Add banded triangular meshes (2D).
+- [ ] Add r-z geometry.
 - [ ] Implement discontinuous Galerkin spatial discretization (1D/2D).
 - [x] Add Step Characteristic spatial discretization support for 2D.
-- [ ] Add Neutron depletion calculations.
-- [ ] Add delay neutrons.
