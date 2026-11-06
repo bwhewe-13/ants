@@ -36,10 +36,17 @@ from ants.datatypes import (
 )
 from ants.fixed1d import fixed_source as fixed_source_1d
 from ants.fixed2d import fixed_source as fixed_source_2d
+from ants.openmp_status import openmp_enabled
 from ants.timed1d import time_dependent as timed_1d
 from tests import problems1d, problems2d
 
 N_CPUS = os.cpu_count()
+
+# Without OpenMP prange runs in serial so speedup tests cannot pass and are skipped.
+_requires_openmp = pytest.mark.skipif(
+    not openmp_enabled(),
+    reason="ANTS was built without OpenMP; sweeps run serially",
+)
 
 # Under pytest-xdist (-n auto), multiple worker processes run simultaneously
 # and compete for the same CPU cores.  Timing-based speedup tests are
@@ -206,6 +213,7 @@ def test_zero_threads_default():
 ########################################################################
 
 
+@_requires_openmp
 @pytest.mark.skipif(N_CPUS < 2, reason="Speedup test requires at least 2 CPUs")
 @pytest.mark.skipif(
     _UNDER_XDIST, reason="Speedup tests unreliable under pytest-xdist (-n auto)"
@@ -249,6 +257,7 @@ def test_slab_speedup():
     )
 
 
+@_requires_openmp
 @pytest.mark.skipif(N_CPUS < 2, reason="Speedup test requires at least 2 CPUs")
 @pytest.mark.skipif(
     _UNDER_XDIST, reason="Speedup tests unreliable under pytest-xdist (-n auto)"
@@ -373,6 +382,7 @@ def test_multigroup_1d_both_correctness():
     )
 
 
+@_requires_openmp
 @pytest.mark.skipif(N_CPUS < 2, reason="Speedup test requires at least 2 CPUs")
 @pytest.mark.skipif(
     _UNDER_XDIST, reason="Speedup tests unreliable under pytest-xdist (-n auto)"
