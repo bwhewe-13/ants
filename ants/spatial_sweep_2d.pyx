@@ -19,11 +19,10 @@
 # distutils: language = c++
 # distutils: extra_compile_args = -O3 -march=native -ffast-math
 
-from libc.math cimport tanh
-
 from cython.parallel import prange, threadid
 
 from ants cimport cytools_2d as tools
+from ants.cytools_shared cimport step_characteristic_weight
 from ants.parameters cimport params
 
 ########################################################################
@@ -285,10 +284,10 @@ cdef double square_forward_x(double[:,:]& flux, double[:,:]& flux_old, \
         if info.spatial == 3:
             # coef_x and coef_y are base coefficients (alpha==1) for spatial==3
             tau_x = xs_total[mat] / coef_x
-            W_x = 1.0 / tanh(0.5 * tau_x) - 2.0 / tau_x
+            W_x = step_characteristic_weight(tau_x)
             coef_x = 2.0 / (1.0 + W_x) * coef_x
             tau_y = xs_total[mat] / coef_y
-            W_y = 1.0 / tanh(0.5 * tau_y) - 2.0 / tau_y
+            W_y = step_characteristic_weight(tau_y)
             coef_y_eff = 2.0 / (1.0 + W_y) * coef_y
         else:
             W_x = alpha
@@ -336,10 +335,10 @@ cdef double square_backward_x(double[:,:]& flux, double[:,:]& flux_old, \
         if info.spatial == 3:
             # coef_x = -angle_x/dx > 0 (angle_x < 0 in backward); coef_y is base
             tau_x = xs_total[mat] / coef_x
-            W_x = 1.0 / tanh(0.5 * tau_x) - 2.0 / tau_x
+            W_x = step_characteristic_weight(tau_x)
             coef_x = 2.0 / (1.0 + W_x) * coef_x
             tau_y = xs_total[mat] / coef_y
-            W_y = 1.0 / tanh(0.5 * tau_y) - 2.0 / tau_y
+            W_y = step_characteristic_weight(tau_y)
             coef_y_eff = 2.0 / (1.0 + W_y) * coef_y
         else:
             W_x = alpha
@@ -595,10 +594,10 @@ cdef double interface_forward_x(double[:]& flux_edge_x, double[:]& flux_edge_y, 
 
         if info.spatial == 3:
             tau_x = xs_total[mat] / coef_x
-            W_x = 1.0 / tanh(0.5 * tau_x) - 2.0 / tau_x
+            W_x = step_characteristic_weight(tau_x)
             coef_x = 2.0 / (1.0 + W_x) * coef_x
             tau_y = xs_total[mat] / coef_y
-            W_y = 1.0 / tanh(0.5 * tau_y) - 2.0 / tau_y
+            W_y = step_characteristic_weight(tau_y)
             coef_y_eff = 2.0 / (1.0 + W_y) * coef_y
         else:
             W_x = alpha
@@ -648,10 +647,10 @@ cdef double interface_backward_x(double[:]& flux_edge_x, double[:]& flux_edge_y,
 
         if info.spatial == 3:
             tau_x = xs_total[mat] / coef_x
-            W_x = 1.0 / tanh(0.5 * tau_x) - 2.0 / tau_x
+            W_x = step_characteristic_weight(tau_x)
             coef_x = 2.0 / (1.0 + W_x) * coef_x
             tau_y = xs_total[mat] / coef_y
-            W_y = 1.0 / tanh(0.5 * tau_y) - 2.0 / tau_y
+            W_y = step_characteristic_weight(tau_y)
             coef_y_eff = 2.0 / (1.0 + W_y) * coef_y
         else:
             W_x = alpha

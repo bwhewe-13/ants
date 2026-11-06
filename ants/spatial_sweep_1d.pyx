@@ -19,11 +19,12 @@
 # distutils: language = c++
 # distutils: extra_compile_args = -O3 -march=native -ffast-math
 
-from libc.math cimport M_PI, fabs, tanh
+from libc.math cimport M_PI, fabs
 
 from cython.parallel import prange, threadid
 
 from ants cimport cytools_1d as tools
+from ants.cytools_shared cimport step_characteristic_weight
 from ants.parameters cimport params
 
 ########################################################################
@@ -205,8 +206,8 @@ cdef double slab_forward(double[:]& flux, double[:]& flux_old, \
         mat = medium_map[ii]
         if info.spatial == 3:
             tau = xs_total[mat] * delta_x[ii] / angle_x
-            alpha1 = 0.5 * (1.0 - (1.0 / tanh(0.5 * tau) - 2.0 / tau))
-            alpha2 = 0.5 * (1.0 + (1.0 / tanh(0.5 * tau) - 2.0 / tau))
+            alpha1 = 0.5 * (1.0 - step_characteristic_weight(tau))
+            alpha2 = 0.5 * (1.0 + step_characteristic_weight(tau))
         # Calculate cell edge unknown
         edge2 = (xs_scatter[mat] * flux_old[ii] + external[ii] + off_scatter[ii] \
                 + edge1 * (fabs(angle_x) / delta_x[ii] - alpha1 * xs_total[mat])) \
@@ -245,8 +246,8 @@ cdef double slab_backward(double[:]& flux, double[:]& flux_old, double[:]& xs_to
         # Step Characteristic
         if info.spatial == 3:
             tau = xs_total[mat] * delta_x[ii] / fabs(angle_x)
-            alpha1 = 0.5 * (1.0 - (1.0 / tanh(0.5 * tau) - 2.0 / tau))
-            alpha2 = 0.5 * (1.0 + (1.0 / tanh(0.5 * tau) - 2.0 / tau))
+            alpha1 = 0.5 * (1.0 - step_characteristic_weight(tau))
+            alpha2 = 0.5 * (1.0 + step_characteristic_weight(tau))
         # Calculate cell edge unknown
         edge2 = (xs_scatter[mat] * flux_old[ii] + external[ii] + off_scatter[ii] \
                 + edge1 * (fabs(angle_x) / delta_x[ii] - alpha1 * xs_total[mat])) \
