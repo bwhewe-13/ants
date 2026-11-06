@@ -159,3 +159,15 @@ def test_step_characteristic_void():
         )
     assert np.isfinite(flux[3]).all(), "Step characteristic flux is not finite"
     assert np.allclose(flux[3], flux[2], atol=1e-2 * flux[2].max())
+
+
+@pytest.mark.slab2d
+@pytest.mark.parametrize("shape", [(2, 1, 8, 1), (2, 11, 1, 1)])
+def test_boundary_wrong_shape(shape):
+    # 10 x 10 cells with 4**2 angles and 1 group
+    mat_data, sources, geometry, quadrature, solver, _, _ = (
+        problems2d.manufactured_ss_01(10, 4)
+    )
+    sources.boundary_x = np.zeros(shape)
+    with pytest.raises(ValueError, match="boundary_x has shape"):
+        fixed_source(mat_data, sources, geometry, quadrature, solver)

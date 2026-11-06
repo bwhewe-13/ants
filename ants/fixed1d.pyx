@@ -27,7 +27,7 @@ from ants cimport parameters
 
 from ants.datatypes import MultigroupSolver, create_params
 from ants.quadrature import legendre_data
-from ants.utils.sources import steady_boundary, steady_external
+from ants.utils.sources import check_steady_boundary, steady_boundary, steady_external
 
 
 def fixed_source(materials, sources, geometry, quadrature, solver):
@@ -57,7 +57,8 @@ def fixed_source(materials, sources, geometry, quadrature, solver):
                     (info.cells_x,), info.angles, info.groups)
     external = external_np
     q_index = q_index_np
-    boundary_x = steady_boundary(sources.boundary_x)
+    boundary_x = steady_boundary(sources.boundary_x, (), info.angles, \
+                    info.groups, "boundary_x")
 
     # Add fission matrix to scattering
     xs_matrix = tools.array_3d(info.materials, info.groups, info.groups)
@@ -99,6 +100,7 @@ def known_flux(double[:,:] flux, double[:,:] xs_total, double[:,:,:] xs_matrix, 
 
     # Covert dictionary to type params
     info = parameters._to_params(params)
+    check_steady_boundary(boundary_x, (), info.angles, info.groups, "boundary_x")
 
     # Create (sigma_s + sigma_f) * phi + external function
     source = tools.array_3d(info.cells_x, info.angles, info.groups)
@@ -144,7 +146,8 @@ def fixed_source_aniso(materials, sources, geometry, quadrature, solver):
                     (info.cells_x,), info.angles, info.groups)
     external = external_np
     q_index = q_index_np
-    boundary_x = steady_boundary(sources.boundary_x)
+    boundary_x = steady_boundary(sources.boundary_x, (), info.angles, \
+                    info.groups, "boundary_x")
 
     # Legendre polynomials for the scattering source and flux moments
     P_source_np, P_weights_np = legendre_data(quadrature, info.moments)
@@ -188,6 +191,7 @@ def known_flux_moments(double[:,:,:] flux, double[:,:] xs_total, \
 
     # Covert dictionary to type params
     info = parameters._to_params(params)
+    check_steady_boundary(boundary_x, (), info.angles, info.groups, "boundary_x")
 
     # Create sum_l (2l + 1) P_l (sigma_s + sigma_f)_l * phi_l + external
     source = tools.array_3d(info.cells_x, info.angles, info.groups)

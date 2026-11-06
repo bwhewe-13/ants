@@ -175,6 +175,16 @@ def test_step_characteristic_reeds(edges):
     assert np.isfinite(flux).all(), "Step characteristic flux is not finite"
 
 
+@pytest.mark.slab1d
+@pytest.mark.parametrize("shape", [(2, 2, 1), (2, 4, 3), (1, 1, 1), (2, 1)])
+def test_boundary_wrong_shape(shape):
+    # Reed's problem has 4 angles and 1 group
+    mat_data, sources, geo, quadrature, solver = problems1d.reeds([0, 0])
+    sources.boundary_x = np.zeros(shape)
+    with pytest.raises(ValueError, match="boundary_x has shape"):
+        fixed_source(mat_data, sources, geo, quadrature, solver)
+
+
 @pytest.mark.sphere1d
 @pytest.mark.source_iteration
 @pytest.mark.multigroup1d

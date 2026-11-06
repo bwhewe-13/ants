@@ -85,13 +85,28 @@ def steady_external(external, spatial, angles, groups):
     return values[..., None], _broadcast_index(index, angles, groups)
 
 
-def steady_boundary(boundary):
+def check_steady_boundary(boundary, spatial, angles, groups, name):
+    """Check a dense boundary is ``(2, *spatial, angles, groups)``.
+
+    Dimensions after the first can have size 1. The sweeps do not check
+    bounds, so other sizes would be read out of bounds.
+    """
+    shape = np.shape(boundary)
+    full = (2, *spatial, angles, groups)
+    broadcast = all(size in (1, n) for size, n in zip(shape[1:], full[1:]))
+    if (len(shape) != len(full)) or (shape[0] != 2) or not broadcast:
+        raise ValueError(f"{name} has shape {shape}, expected {full}")
+
+
+def steady_boundary(boundary, spatial, angles, groups, name):
     """Dense boundary source for the steady-state solvers.
 
     Parameters
     ----------
     boundary : numpy.ndarray or CompactSource
         Dense boundary source or a compact source.
+    spatial, angles, groups, name
+        Expected shape and name, see :func:`check_steady_boundary`.
 
     Returns
     -------
@@ -99,13 +114,15 @@ def steady_boundary(boundary):
         Dense boundary source. Angle and group dimensions that do not change
         are kept with size 1.
     """
-    if not isinstance(boundary, CompactSource):
-        return boundary
-    if boundary.steps > 1:
-        raise ValueError(
-            "Steady-state problems need a compact source without a time dependence"
-        )
-    return _gather(*boundary.step(0))
+    if isinstance(boundary, CompactSource):
+        if boundary.steps > 1:
+            raise ValueError(
+                "Steady-state problems need a compact source without a time "
+                "dependence"
+            )
+        boundary = _gather(*boundary.step(0))
+    check_steady_boundary(boundary, spatial, angles, groups, name)
+    return boundary
 
 
 def dense_source(source):

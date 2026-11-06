@@ -27,7 +27,12 @@ from ants cimport parameters
 
 from ants.datatypes import MultigroupSolver, create_params
 from ants.quadrature import _scatter_harmonics, artificial_scatter_matrix, harmonic_data
-from ants.utils.sources import dense_source, steady_boundary, steady_external
+from ants.utils.sources import (
+    check_steady_boundary,
+    dense_source,
+    steady_boundary,
+    steady_external,
+)
 
 
 def fixed_source(materials, sources, geometry, quadrature, solver):
@@ -65,8 +70,10 @@ def fixed_source(materials, sources, geometry, quadrature, solver):
                 info.groups)
     external = external_np
     q_index = q_index_np
-    boundary_x = steady_boundary(sources.boundary_x)
-    boundary_y = steady_boundary(sources.boundary_y)
+    boundary_x = steady_boundary(sources.boundary_x, (info.cells_y,), \
+                    info.angles * info.angles, info.groups, "boundary_x")
+    boundary_y = steady_boundary(sources.boundary_y, (info.cells_x,), \
+                    info.angles * info.angles, info.groups, "boundary_y")
 
     # Add fission matrix to scattering
     xs_matrix = tools.array_3d(info.materials, info.groups, info.groups)
@@ -207,6 +214,10 @@ def known_flux(double[:,:,:] flux, double[:,:] xs_total, double[:,:,:] xs_matrix
 
     # Covert dictionary to type params
     info = parameters._to_params(params)
+    check_steady_boundary(boundary_x, (info.cells_y,), info.angles * info.angles, \
+                          info.groups, "boundary_x")
+    check_steady_boundary(boundary_y, (info.cells_x,), info.angles * info.angles, \
+                          info.groups, "boundary_y")
 
     # Create (sigma_s + sigma_f) * phi + external function
     source = tools.array_4d(info.cells_x, info.cells_y, \
@@ -308,8 +319,10 @@ def fixed_source_aniso(materials, sources, geometry, quadrature, solver):
                 info.groups)
     external = external_np
     q_index = q_index_np
-    boundary_x = steady_boundary(sources.boundary_x)
-    boundary_y = steady_boundary(sources.boundary_y)
+    boundary_x = steady_boundary(sources.boundary_x, (info.cells_y,), \
+                    info.angles * info.angles, info.groups, "boundary_x")
+    boundary_y = steady_boundary(sources.boundary_y, (info.cells_x,), \
+                    info.angles * info.angles, info.groups, "boundary_y")
 
     # Spherical harmonics for the scattering source and flux moments
     P_source_np, P_weights_np = harmonic_data(quadrature, materials.scatter.shape[3])
@@ -433,6 +446,10 @@ def known_flux_moments(double[:,:,:,:] flux, double[:,:] xs_total, \
 
     # Covert dictionary to type params
     info = parameters._to_params(params)
+    check_steady_boundary(boundary_x, (info.cells_y,), info.angles * info.angles, \
+                          info.groups, "boundary_x")
+    check_steady_boundary(boundary_y, (info.cells_x,), info.angles * info.angles, \
+                          info.groups, "boundary_y")
 
     # Create sum_k (2l + 1) Y_k (sigma_s + sigma_f)_l * phi_k + external
     source = tools.array_4d(info.cells_x, info.cells_y, \
