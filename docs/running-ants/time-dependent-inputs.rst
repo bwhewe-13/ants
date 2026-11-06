@@ -59,7 +59,8 @@ Four time integration schemes are available via the ``TemporalDiscretization`` e
 Initial Flux
 ------------
 
-The shape of the initial flux in ``SourceData`` depends on the time integrator.
+The initial angular flux in ``SourceData`` is at the cell centers for BDF1 and
+BDF2, and at the cell edges for CN and TR-BDF2.
 
 **BDF1 and BDF2** — cell-centered initial flux:
 
@@ -77,13 +78,15 @@ The shape of the initial flux in ``SourceData`` depends on the time integrator.
         ...
     )
 
-**CN and TR-BDF2** — edge-based initial angular flux (at cell faces):
+**CN and TR-BDF2** — edge-based initial flux. In 1D this is still
+``initial_flux``, with one more row than there are cells. In 2D the x and y
+faces are passed separately as ``initial_flux_x`` and ``initial_flux_y``:
 
 .. code-block:: python
 
-    # 1D: initial_flux_x shape (I+1, N, G)
+    # 1D: initial_flux shape (I+1, N, G)
     sources = SourceData(
-        initial_flux_x=np.zeros((cells_x + 1, angles, groups)),
+        initial_flux=np.zeros((cells_x + 1, angles, groups)),
         ...
     )
 
@@ -98,35 +101,59 @@ The shape of the initial flux in ``SourceData`` depends on the time integrator.
 Time-Dependent Sources
 -----------------------
 
-External sources that vary in time include a leading time dimension:
+Sources that vary in time have a leading time axis of size ``T``:
 
-* **1D**: shape ``(T, I, N, G)``
-* **2D**: shape ``(T, I, J, N², G)``
+* **1D external**: shape ``(T, I, N, G)``
+* **2D external**: shape ``(T, I, J, N², G)``
+* **1D boundary**: shape ``(T, 2, N/2, G)``
+* **2D boundary x**: shape ``(T, 2, J, N²/2, G)``
+* **2D boundary y**: shape ``(T, 2, I, N²/2, G)``
 
-where ``T`` is the number of time steps. Time-independent sources are broadcast
-automatically from shapes ``(1, I, ...)`` or ``(I, ...)``
+Boundary sources only hold the incoming angles of each side. Angle and group
+dimensions of size 1 are broadcast (see :doc:`standard-inputs`).
 
-For a steady source repeated across all steps, use::
+``T`` is 1 for a source that is constant in time. Otherwise it depends on the
+time integrator, with ``edges_t = np.linspace(0, t_final, steps + 1)``:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 16 22 22 40
+
+   * - Integrator
+     - External ``T``
+     - Boundary ``T``
+     - Times
+   * - ``BDF1``, ``BDF2``
+     - ``steps``
+     - ``steps``
+     - ``edges_t[1:]`` for both
+   * - ``CN``
+     - ``steps + 1``
+     - ``steps``
+     - External at ``edges_t``, boundary at ``edges_t[1:]``
+   * - ``TR_BDF2``
+     - ``2 * steps + 1``
+     - ``2 * steps``
+     - External at ``ants.gamma_time_steps(edges_t)``, boundary at
+       ``ants.gamma_time_steps(edges_t)[1:]``
+
+The time axis is always required, so a steady source of shape ``(I, N, G)``
+must be reshaped to ``(1, I, N, G)``. For a steady source repeated across all
+steps, use::
 
     from ants.external1d import time_dependence_constant
     external = time_dependence_constant(external_ss)  # adds T=1 leading dimension
 
-Time-dependent boundary sources similarly include a leading time dimension:
-
-* **1D boundary**: shape ``(T, 2, N, G)``
-* **2D boundary x**: shape ``(T, 2, J, N², G)``
-* **2D boundary y**: shape ``(T, 2, I, N², G)``
-
 Helper functions such as ``ants.boundary1d.time_dependence_decay_02()`` and
-``ants.boundary2d.time_dependence_decay_03()`` generate these arrays from a
-base boundary condition and a time axis.
+``ants.boundary2d.time_dependence_decay_03()`` generate time-dependent boundary
+arrays from a base boundary condition and a time axis.
 
 A dense time-dependent source stores every angle and group of every step. A
 ``CompactSource`` (see :doc:`standard-inputs`) stores each spatial profile once,
 with an index of shape ``(T, N, G)`` when the profiles change between steps and
 an optional amplitude ``scale`` of shape ``(T,)``. The solvers expand one step at
 a time, so a decaying one-group boundary source costs a few values per step
-instead of ``2 x N x G``::
+instead of ``N x G``::
 
     from ants.datatypes import CompactSource
 

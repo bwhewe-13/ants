@@ -210,7 +210,7 @@ in the table below. Figures showing the locations of the boundary sources are al
    * - 1 / ``boundary_x``
      - Time-Dependent
      - ``(1, 2, 1, 1)``
-     - ``(T, 2, N, G)``
+     - ``(T, 2, N/2, G)``
    * - 2 / ``boundary_x``
      - Fixed/Critical
      - ``(2, 1, 1, 1)``
@@ -218,7 +218,7 @@ in the table below. Figures showing the locations of the boundary sources are al
    * - 2 / ``boundary_x``
      - Time-Dependent
      - ``(1, 2, 1, 1, 1)``
-     - ``(T, 2, J, N**2, G)``
+     - ``(T, 2, J, N**2/2, G)``
    * - 2 / ``boundary_y``
      - Fixed/Critical
      - ``(2, 1, 1, 1)``
@@ -226,8 +226,11 @@ in the table below. Figures showing the locations of the boundary sources are al
    * - 2 / ``boundary_y``
      - Time-Dependent
      - ``(1, 2, 1, 1, 1)``
-     - ``(T, 2, I, N**2, G)``
+     - ``(T, 2, I, N**2/2, G)``
 
+
+Time-dependent boundary sources only hold the incoming angles. The size of ``T`` is
+given in :doc:`time-dependent-inputs`.
 
 The time axis of a time-dependent source rarely needs to be built by hand. ANTS provides
 helpers that expand a steady source over the time grid:

@@ -344,21 +344,23 @@ class SourceData:
     boundary_x : numpy.ndarray or CompactSource
         Boundary source in x direction. Full shape ``(2, N, G)`` in 1D and
         ``(2, J, N**2, G)`` in 2D, with a leading ``T`` axis for
-        time-dependent problems. The leading 2 is the [x(0), x(X)] sides.
+        time-dependent problems, which take only the incoming angles
+        (``N/2`` or ``N**2/2``). The leading 2 is the [x(0), x(X)] sides.
     boundary_y : numpy.ndarray or CompactSource, optional
         Boundary source in y direction for 2D problems. Full shape
-        ``(2, I, N**2, G)``, with a leading ``T`` axis for time-dependent
-        problems.
+        ``(2, I, N**2, G)``, with a leading ``T`` axis and ``N**2/2``
+        angles for time-dependent problems.
     initial_flux : numpy.ndarray, optional
-        Cell-centered initial angular flux for time-dependent problems
-        (BDF1/BDF2). Shape ``(I, N, G)`` in 1D and ``(I, J, N**2, G)`` in 2D.
+        Initial angular flux for time-dependent problems. At the cell
+        centers for BDF1/BDF2, shape ``(I, N, G)`` in 1D and
+        ``(I, J, N**2, G)`` in 2D. In 1D, CN/TR-BDF2 also use this field,
+        at the cell edges with shape ``(I + 1, N, G)``.
     initial_flux_x : numpy.ndarray, optional
-        Edge-based initial angular flux at x faces for time-dependent
-        problems (CN/TR-BDF2). Shape ``(I + 1, N, G)`` in 1D and
-        ``(I + 1, J, N**2, G)`` in 2D.
+        Initial angular flux at the x faces for 2D CN/TR-BDF2 problems.
+        Shape ``(I + 1, J, N**2, G)``.
     initial_flux_y : numpy.ndarray, optional
-        Edge-based initial angular flux at y faces for 2D time-dependent
-        problems (CN/TR-BDF2). Shape ``(I, J + 1, N**2, G)``.
+        Initial angular flux at the y faces for 2D CN/TR-BDF2 problems.
+        Shape ``(I, J + 1, N**2, G)``.
     """
 
     external: np.ndarray
