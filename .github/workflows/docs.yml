@@ -30,10 +30,11 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Install LaTeX dependencies
+      # nbsphinx needs pandoc, which is not pip-installable
+      - name: Install LaTeX and pandoc
         run: |
           sudo apt-get update
-          sudo apt-get install -y texlive-latex-base texlive-latex-extra texlive-pictures texlive-fonts-recommended ghostscript
+          sudo apt-get install -y texlive-latex-base texlive-latex-extra texlive-pictures texlive-fonts-recommended ghostscript pandoc
 
       - name: Install dependencies
         run: |

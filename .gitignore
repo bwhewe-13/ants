@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.ipynb
+!examples/*.ipynb
 .ipynb_checkpoints/
 
 # Cython extensions and local binary outputs
@@ -35,6 +36,7 @@ pip-wheel-metadata/
 
 # Sphinx documentation
 docs/_build/
+docs/running-ants/notebooks/
 
 # IDE/editor settings
 .idea/

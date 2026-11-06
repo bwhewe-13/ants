@@ -36,6 +36,8 @@ docs = [
     "sphinxcontrib-bibtex",
     "sphinxcontrib-tikz",
     "pydata-sphinx-theme",
+    "nbsphinx",
+    "ipython",
 ]
 
 [tool.setuptools.packages]
