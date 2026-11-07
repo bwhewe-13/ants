@@ -347,3 +347,16 @@ def test_as_sn_angular_flux_consistent():
     assert np.all(np.isfinite(angular_flux))
     collapsed = np.sum(angular_flux * quadrature.angle_w[None, None, :, None], axis=2)
     np.testing.assert_allclose(collapsed, scalar_flux, rtol=1e-5, atol=1e-10)
+
+
+@pytest.mark.smoke
+@pytest.mark.parametrize("shape", [(3, 4, 16, 2), (3, 4, 2, 32, 1)])
+def test_in_scatter_source(shape):
+    # The BLAS in-scatter source matches the sum over ordinates
+    from ants.utils.pytools import artificial_in_scatter
+
+    rng = np.random.default_rng(5)
+    M_as = rng.random((shape[-2], shape[-2]))
+    psi = rng.random(shape)
+    reference = np.einsum("qp,...pg->...qg", M_as, psi)
+    assert np.allclose(artificial_in_scatter(M_as, psi), reference)

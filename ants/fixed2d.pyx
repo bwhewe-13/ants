@@ -32,6 +32,7 @@ from ants.quadrature import (
     artificial_scatter_matrix,
     harmonic_data,
 )
+from ants.utils.pytools import artificial_scatter_iteration
 from ants.utils.sources import (
     check_steady_boundary,
     dense_source,
@@ -151,13 +152,8 @@ def source_iteration_as(double[:,:,:] flux_guess, double[:,:] xs_total, \
     Returns (scalar_flux, xs_total_as, external_combined) so callers can
     reproduce the converged transport balance in known-source sweeps.
     """
-    cdef int as_iter
-    cdef double as_change
-    cdef double[:,:,:] flux = flux_guess.copy()
-    cdef double[:,:,:] flux_old = flux_guess.copy()
-    cdef double[:,:,:,:] ext_combined
-    cdef double[:,:,:,:] psi
-    cdef double[:,:] xs_total_as_view
+    cdef double[:,:] xs_total_as
+    cdef double[:,:,:,:] source
     cdef int N_angles = info.angles * info.angles
 
     # Compute artificial scatter matrix M_as[q,p] once. Rows sum to
@@ -168,45 +164,34 @@ def source_iteration_as(double[:,:,:] flux_guess, double[:,:] xs_total, \
 
     # Add artificial out-scattering to the total cross section (Eq. 17 LHS)
     xs_total_as = np.asarray(xs_total) + info.sigma_as
-    xs_total_as_view = xs_total_as
-
-    # Artificial in-scatter source (I x J x N^2 x G), lagged one iteration
-    art_source = np.zeros((info.cells_x, info.cells_y, N_angles, info.groups))
-    external_combined = np.asarray(external) + art_source
 
     # Buffer for the known-source sweep: (sigma_s + sigma_f) phi + external
     source = tools.array_4d(info.cells_x, info.cells_y, N_angles, info.groups)
 
-    # Iterate on the artificial scatter source
-    for as_iter in range(info.max_iter_angular):
-        ext_combined = external_combined
+    def solve(flux, combined):
+        # Standard multigroup problem with the combined source
+        return np.asarray(mg.source_iteration(flux, xs_total_as, xs_matrix, \
+                    combined, boundary_x, boundary_y, medium_map, delta_x, \
+                    delta_y, angle_x, angle_y, angle_w, info))
 
-        # Solve standard multigroup problem with combined source
-        flux_old[:,:,:] = flux[:,:,:]
-        flux = mg.source_iteration(flux, xs_total_as_view, xs_matrix, \
-                            ext_combined, boundary_x, boundary_y, medium_map, \
-                            delta_x, delta_y, angle_x, angle_y, angle_w, info)
-
+    def angular(flux, combined):
         # Recover the angular flux from the converged scalar flux
-        tools._source_total(source, flux, xs_matrix, medium_map, \
-                            ext_combined, info)
-        psi = tools.array_4d(info.cells_x, info.cells_y, \
-                                info.angles * info.angles, info.groups)
-        mg._known_source_angular(psi, xs_total_as_view, source, boundary_x, \
-                            boundary_y, medium_map, delta_x, delta_y, \
-                            angle_x, angle_y, angle_w, info)
+        psi = tools.array_4d(info.cells_x, info.cells_y, N_angles, info.groups)
+        tools._source_total(source, flux, xs_matrix, medium_map, combined, info)
+        mg._known_source_angular(psi, xs_total_as, source, boundary_x, \
+                    boundary_y, medium_map, delta_x, delta_y, angle_x, \
+                    angle_y, angle_w, info)
+        return np.asarray(psi)
 
-        # Update artificial in-scatter source:
-        # art_source[i,j,q,g] = sum_p M_as[q,p] psi[i,j,p,g]
-        art_source = np.einsum("qp,ijpg->ijqg", M_as, np.asarray(psi))
-        external_combined = np.asarray(external) + art_source
+    def change(flux, flux_old):
+        # Difference in scalar flux
+        return tools.group_convergence(flux, flux_old, info)
 
-        # Check convergence: difference in scalar flux
-        as_change = tools.group_convergence(flux, flux_old, info)
-        if as_change < info.tol_angular:
-            break
-
-    return np.asarray(flux), xs_total_as, external_combined
+    # The in-scatter source M_as . psi is lagged one iteration
+    flux, external_combined = artificial_scatter_iteration( \
+                np.asarray(flux_guess), external, M_as, solve, angular, change, \
+                info.max_iter_angular, info.tol_energy)
+    return flux, np.asarray(xs_total_as), external_combined
 
 
 def known_flux(double[:,:,:] flux, double[:,:] xs_total, double[:,:,:] xs_matrix, \
@@ -387,60 +372,48 @@ def source_iteration_as_aniso(double[:,:,:,:] flux_guess, double[:,:] xs_total, 
         double[:] angle_x, double[:] angle_y, double[:] angle_w, \
         double[:,:] P_source, double[:,:] P_weights, parameters.params info):
     # Artificial scattering (as-SN) with flux moments, see source_iteration_as
-    cdef int as_iter
-    cdef double as_change
-    cdef double[:,:,:,:] flux = flux_guess.copy()
-    cdef double[:,:,:,:] flux_old = flux_guess.copy()
-    cdef double[:,:,:,:] ext_combined
-    cdef double[:,:,:,:] psi
-    cdef double[:,:] xs_total_as_view
+    cdef double[:,:] xs_total_as
+    cdef double[:,:,:,:] source
     cdef int N_angles = info.angles * info.angles
 
-    # Artificial scatter matrix M_as[q,p] with rows summing to sigma_as
+    # Compute artificial scatter matrix M_as[q,p] once. Rows sum to
+    # sigma_as (particle conservation), balancing the sigma_as psi_q
+    # out-scattering term added to the total cross section below.
     M_as = artificial_scatter_matrix(np.asarray(angle_x), np.asarray(angle_y), \
                 np.asarray(angle_w), info.sigma_as, info.beta_as)
 
-    # Add artificial out-scattering to the total cross section
+    # Add artificial out-scattering to the total cross section (Eq. 17 LHS)
     xs_total_as = np.asarray(xs_total) + info.sigma_as
-    xs_total_as_view = xs_total_as
 
-    # Artificial in-scatter source (I x J x N^2 x G), lagged one iteration
-    art_source = np.zeros((info.cells_x, info.cells_y, N_angles, info.groups))
-    external_combined = np.asarray(external) + art_source
-
-    # Buffer for the known-source sweep
+    # Buffer for the known-source sweep: (sigma_s + sigma_f) phi + external
     source = tools.array_4d(info.cells_x, info.cells_y, N_angles, info.groups)
 
-    # Iterate on the artificial scatter source
-    for as_iter in range(info.max_iter_angular):
-        ext_combined = external_combined
+    def solve(flux, combined):
+        # Standard multigroup problem with the combined source
+        return np.asarray(mg.multi_group_moments(flux, xs_total_as, xs_matrix, \
+                    combined, boundary_x, boundary_y, medium_map, delta_x, \
+                    delta_y, angle_x, angle_y, angle_w, P_source, P_weights, \
+                    info))
 
-        # Solve standard multigroup problem with combined source
-        flux_old[:,:,:,:] = flux[:,:,:,:]
-        flux = mg.multi_group_moments(flux, xs_total_as_view, xs_matrix, \
-                            ext_combined, boundary_x, boundary_y, medium_map, \
-                            delta_x, delta_y, angle_x, angle_y, angle_w, \
-                            P_source, P_weights, info)
-
+    def angular(flux, combined):
         # Recover the angular flux from the converged flux moments
+        psi = tools.array_4d(info.cells_x, info.cells_y, N_angles, info.groups)
         tools._source_total_aniso(source, flux, xs_matrix, medium_map, \
-                                  ext_combined, P_source, info)
-        psi = tools.array_4d(info.cells_x, info.cells_y, \
-                                info.angles * info.angles, info.groups)
-        mg._known_source_angular(psi, xs_total_as_view, source, boundary_x, \
-                            boundary_y, medium_map, delta_x, delta_y, \
-                            angle_x, angle_y, angle_w, info)
+                                  combined, P_source, info)
+        mg._known_source_angular(psi, xs_total_as, source, boundary_x, \
+                    boundary_y, medium_map, delta_x, delta_y, angle_x, \
+                    angle_y, angle_w, info)
+        return np.asarray(psi)
 
-        # Update artificial in-scatter source
-        art_source = np.einsum("qp,ijpg->ijqg", M_as, np.asarray(psi))
-        external_combined = np.asarray(external) + art_source
+    def change(flux, flux_old):
+        # Difference in scalar flux
+        return tools.group_convergence(flux[...,0], flux_old[...,0], info)
 
-        # Check convergence: difference in scalar flux
-        as_change = tools.group_convergence(flux[:,:,:,0], flux_old[:,:,:,0], info)
-        if as_change < info.tol_angular:
-            break
-
-    return np.asarray(flux), xs_total_as, external_combined
+    # The in-scatter source M_as . psi is lagged one iteration
+    flux, external_combined = artificial_scatter_iteration( \
+                np.asarray(flux_guess), external, M_as, solve, angular, change, \
+                info.max_iter_angular, info.tol_energy)
+    return flux, np.asarray(xs_total_as), external_combined
 
 
 def known_flux_moments(double[:,:,:,:] flux, double[:,:] xs_total, \

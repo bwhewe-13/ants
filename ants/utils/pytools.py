@@ -83,7 +83,74 @@ def artificial_scatter_source(q_star, M_as, psi, scale=1.0):
     physical operator applied once implicitly and once explicitly);
     sigma_as must be added to the stage's total cross section with the
     same factor."""
-    np.asarray(q_star)[:] += scale * np.einsum("qp,ijpg->ijqg", M_as, np.asarray(psi))
+    np.asarray(q_star)[:] += scale * artificial_in_scatter(M_as, psi)
+
+
+def artificial_in_scatter(M_as, psi):
+    """Artificial in-scatter source sum_p M_as[q,p] * psi[..., p, g] for an
+    angular flux of shape (*spatial, N, G)."""
+    # tensordot calls BLAS, which is much faster than einsum here
+    source = np.tensordot(np.asarray(psi), M_as, axes=([-2], [1]))
+    return np.moveaxis(source, -1, -2)
+
+
+def artificial_scatter_iteration(
+    flux, external, M_as, solve, angular, change, max_iter, tol
+):
+    """Outer iterations of the steady-state as-SN source (Frank et al. 2020).
+
+    The sigma_as out-scattering is in the total cross section used by
+    ``solve`` and ``angular``, and the in-scatter source M_as . psi is
+    lagged one iteration.
+
+    Parameters
+    ----------
+    flux : numpy.ndarray
+        Initial scalar flux or flux moments.
+    external : numpy.ndarray
+        Dense external source, shape (*spatial, N, G) or with angle and
+        group dimensions of size 1.
+    M_as : numpy.ndarray, shape (N, N)
+        Artificial scattering matrix from ``artificial_scatter_matrix``.
+    solve : callable
+        ``solve(flux, external)`` returns the converged multigroup flux for
+        the combined source.
+    angular : callable
+        ``angular(flux, external)`` returns the angular flux (*spatial, N,
+        G) from one sweep of the converged flux.
+    change : callable
+        ``change(flux, flux_old)`` returns the change in the scalar flux.
+    max_iter : int
+        Iteration limit, ``max_iter_angular``.
+    tol : float
+        Tolerance on the change, ``tol_energy``. Each multigroup solve is
+        only converged to tol_energy, so the outer iterations use the same
+        tolerance.
+
+    Returns
+    -------
+    flux : numpy.ndarray
+        Converged flux.
+    combined : numpy.ndarray
+        External plus artificial in-scatter source, which reproduces the
+        converged transport balance in known-source sweeps.
+    """
+    external = np.asarray(external)
+    combined = external
+    difference = 1.0
+    for _ in range(max_iter):
+        flux_old = flux
+        flux = solve(flux_old.copy(), combined)
+        psi = angular(flux, combined)
+        combined = external + artificial_in_scatter(M_as, psi)
+        difference = change(flux, flux_old)
+        if difference < tol:
+            break
+    # The lagged source converges slowly when sigma_as is most of the
+    # effective total cross section, such as in voids
+    if difference >= tol:
+        warn_not_converged("Artificial scattering", "max_iter_angular")
+    return flux, combined
 
 
 def edge_to_center_angular(psi_x, psi_y):

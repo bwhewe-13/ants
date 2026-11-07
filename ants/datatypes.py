@@ -505,7 +505,9 @@ class SolverData:
     dmd_rank : int
         Number of DMD rank-1 updates before extrapolation.
     sigma_as : float
-        Artificial scattering strength (0 disables).
+        Artificial scattering strength (0 disables). The artificial
+        in-scatter source is updated up to ``max_iter_angular`` times, until
+        the scalar flux changes by less than ``tol_energy``.
     beta_as : float
         Artificial scattering kernel width parameter.
     max_iter_angular : int
