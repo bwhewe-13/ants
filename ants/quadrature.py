@@ -640,6 +640,10 @@ def angular_xyz(
     """
     if method == "ldfe":
         angle_x, angle_y, angle_z, angle_w = _ldfe_quadrature(angles)
+    elif angles % 2 == 1:
+        # Odd sets have ordinates with a zero cosine, which the octant
+        # ordering repeats
+        raise ValueError("Need an even number of angles, got " + repr(angles))
     else:
         angle_x, angle_y, angle_z, angle_w = _product_quadrature(angles)
     angle_w = angle_w / np.sum(angle_w)
@@ -656,3 +660,38 @@ def angular_xyz(
 # Called from cython
 def _angular_xyz(angles, bc_x, bc_y, bc_z):
     return angular_xyz(angles, bc_x, bc_y, bc_z, False)
+
+
+# Called from cython
+def _check_reflection(quadrature, geometry, ordered):
+    # Each ordinate entering through a reflecting face takes the edge flux
+    # of its reflection, found by matching the cosines exactly. The sweeps
+    # that find the angular flux in one pass also need the reflection to be
+    # swept first, which angular_xy and angular_xyz do for the bc given.
+    cosines = [quadrature.angle_x, quadrature.angle_y]
+    bcs = [geometry.bc_x, geometry.bc_y]
+    if quadrature.angle_z is not None:
+        cosines.append(quadrature.angle_z)
+        bcs.append(geometry.bc_z)
+    cosines = np.stack(cosines, axis=1)
+    for axis, bc in enumerate(bcs):
+        name = "bc_" + "xyz"[axis]
+        if 1 not in list(bc):
+            continue
+        reflected = cosines.copy()
+        reflected[:, axis] *= -1
+        for nn in range(cosines.shape[0]):
+            match = np.flatnonzero(np.all(cosines == reflected[nn], axis=1))
+            if match.size == 0:
+                raise ValueError(
+                    f"Ordinate {nn} has no reflection in the quadrature for {name}"
+                )
+            # Ordinates going into the domain at the reflecting face
+            incoming = (
+                cosines[nn, axis] > 0.0 if bc[0] == 1 else cosines[nn, axis] < 0.0
+            )
+            if ordered and incoming and (match[0] > nn):
+                raise ValueError(
+                    f"Quadrature is not ordered for {name}={list(bc)}, use the "
+                    "same boundary conditions for the quadrature and geometry"
+                )

@@ -26,7 +26,12 @@ from ants cimport multi_group_2d as mg
 from ants cimport parameters
 
 from ants.datatypes import MultigroupSolver, create_params
-from ants.quadrature import _scatter_harmonics, artificial_scatter_matrix, harmonic_data
+from ants.quadrature import (
+    _check_reflection,
+    _scatter_harmonics,
+    artificial_scatter_matrix,
+    harmonic_data,
+)
 from ants.utils.sources import (
     check_steady_boundary,
     dense_source,
@@ -59,6 +64,10 @@ def fixed_source(materials, sources, geometry, quadrature, solver):
     params = create_params(materials, quadrature, geometry, solver)
     info = parameters._to_params(params)
     parameters._check_fixed2d_source_iteration(info, xs_total.shape[0])
+    # The angular flux, cell edges, and artificial scattering sweep each
+    # ordinate once
+    _check_reflection(quadrature, geometry, (info.angular == True) \
+                      or (info.flux_at_edges == 1) or (info.sigma_as > 0.0))
 
     # Compact external sources are read through the slab index. The
     # artificial in-scatter source is dense, so as-SN uses a dense source.
@@ -308,6 +317,10 @@ def fixed_source_aniso(materials, sources, geometry, quadrature, solver):
     params = create_params(materials, quadrature, geometry, solver)
     info = parameters._to_params(params)
     parameters._check_fixed2d_source_iteration(info, xs_total.shape[0])
+    # The angular flux, cell edges, and artificial scattering sweep each
+    # ordinate once
+    _check_reflection(quadrature, geometry, (info.angular == True) \
+                      or (info.flux_at_edges == 1) or (info.sigma_as > 0.0))
 
     # Compact external sources are read through the slab index. The
     # artificial in-scatter source is dense, so as-SN uses a dense source.

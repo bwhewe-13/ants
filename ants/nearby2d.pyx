@@ -28,7 +28,7 @@ from tqdm.auto import tqdm
 
 from ants import critical2d, fixed2d
 from ants.datatypes import SourceData, create_params
-from ants.quadrature import _scatter_harmonics, harmonic_data
+from ants.quadrature import _check_reflection, _scatter_harmonics, harmonic_data
 from ants.utils.interp2d import Interpolation
 from ants.utils.pytools import average_array
 from ants.utils.sources import dense_source
@@ -102,6 +102,8 @@ def fixed_source(materials, sources, geometry, quadrature, solver, **kwargs):
     # Convert ProblemParameters to type params
     params = create_params(materials, quadrature, geometry, solver)
     info = parameters._to_params(params)
+    # The angular flux is found with one sweep of each ordinate
+    _check_reflection(quadrature, geometry, True)
     parameters._check_nearby2d_fixed_source(info, xs_total.shape[0])
     block = False if (info.materials == 1) else kwargs.get("block", True)
 
@@ -267,6 +269,8 @@ def k_criticality(materials, geometry, quadrature, solver, **kwargs):
     # Convert ProblemParameters to type params
     params = create_params(materials, quadrature, geometry, solver)
     info = parameters._to_params(params)
+    # The angular flux is found with one sweep of each ordinate
+    _check_reflection(quadrature, geometry, True)
     parameters._check_nearby2d_criticality(info)
     block = False if (info.materials == 1) else kwargs.get("block", True)
 

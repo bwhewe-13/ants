@@ -30,7 +30,7 @@ from ants cimport parameters
 from ants.parameters cimport params
 
 from ants.datatypes import TemporalDiscretization, create_params
-from ants.quadrature import _scatter_harmonics
+from ants.quadrature import _check_reflection, _scatter_harmonics
 from ants.timed2d import _harmonic_arrays
 from ants.utils.pytools import (
     artificial_scatter_setup,
@@ -71,6 +71,8 @@ def time_dependent(materials_u, materials_c, sources, geometry, quadrature_u, \
     # Convert uncollided dictionary to type params
     params_u = create_params(materials_u, quadrature_u, geometry, solver, time_data)
     info_u = parameters._to_params(params_u)
+    # The angular flux is found with one sweep of each ordinate
+    _check_reflection(quadrature_u, geometry, True)
 
     # Sources of each time step, the boundaries are expanded to all angles
     external_u = TimeSource(sources.external)
@@ -91,6 +93,8 @@ def time_dependent(materials_u, materials_c, sources, geometry, quadrature_u, \
     # Convert collided dictionary to type params
     params_c = create_params(materials_c, quadrature_c, geometry, solver, time_data)
     info_c = parameters._to_params(params_c)
+    # The collided flux is iterated, so only the reflections are needed
+    _check_reflection(quadrature_c, geometry, False)
     parameters._check_timed2d(info_c, 0, 0, xs_total_c.shape[0])
     assert info_u.moments == info_c.moments, \
         "Uncollided and collided scattering need the same moments"
@@ -510,6 +514,8 @@ def restart_bdf2(double[:,:,:,:] flux_1, double[:,:,:,:] flux_2, \
     # Convert uncollided dictionary to type params
     params_u = create_params(materials_u, quadrature_u, geometry, solver, time_data)
     info_u = parameters._to_params(params_u)
+    # The angular flux is found with one sweep of each ordinate
+    _check_reflection(quadrature_u, geometry, True)
 
     # Sources of each time step, the boundaries are expanded to all angles
     external_u = TimeSource(sources.external)
@@ -523,6 +529,8 @@ def restart_bdf2(double[:,:,:,:] flux_1, double[:,:,:,:] flux_2, \
     # Convert collided dictionary to type params
     params_c = create_params(materials_c, quadrature_c, geometry, solver, time_data)
     info_c = parameters._to_params(params_c)
+    # The collided flux is iterated, so only the reflections are needed
+    _check_reflection(quadrature_c, geometry, False)
     parameters._check_timed2d(info_c, 0, 0, xs_total_c.shape[0])
     assert info_u.moments == info_c.moments, \
         "Uncollided and collided scattering need the same moments"

@@ -33,7 +33,12 @@ from ants.cytools_1d cimport _vhybrid_velocity, int_array_1d
 from ants.parameters cimport params
 
 from ants.datatypes import TemporalDiscretization, create_params
-from ants.quadrature import _harmonic_data, _harmonic_order, _scatter_harmonics
+from ants.quadrature import (
+    _check_reflection,
+    _harmonic_data,
+    _harmonic_order,
+    _scatter_harmonics,
+)
 from ants.timed2d import _harmonic_arrays
 from ants.utils.sources import TimeSource
 
@@ -59,6 +64,8 @@ def time_dependent(materials_u, groups_c, sources, geometry, quadrature_u, \
     # Convert uncollided dictionary to type params
     params_u = create_params(materials_u, quadrature_u, geometry, solver, time_data)
     info_u = parameters._to_params(params_u)
+    # The angular flux is found with one sweep of each ordinate
+    _check_reflection(quadrature_u, geometry, True)
 
     # Sources of each time step, the boundaries are expanded to all angles
     external_u = TimeSource(sources.external)

@@ -30,7 +30,7 @@ from ants cimport parameters
 from ants.parameters cimport params
 
 from ants.datatypes import TemporalDiscretization, create_params
-from ants.quadrature import _scatter_harmonics, harmonic_data
+from ants.quadrature import _check_reflection, _scatter_harmonics, harmonic_data
 from ants.utils.pytools import (
     artificial_scatter_setup,
     artificial_scatter_source,
@@ -67,6 +67,8 @@ def time_dependent(materials, sources, geometry, quadrature, solver, time_data):
     # Covert dictionary to type params
     params = create_params(materials, quadrature, geometry, solver, time_data)
     info = parameters._to_params(params)
+    # The angular flux is found with one sweep of each ordinate
+    _check_reflection(quadrature, geometry, True)
 
     # Sources of each time step, the boundaries are expanded to all angles
     external = TimeSource(sources.external)
@@ -411,6 +413,8 @@ def restart_bdf2(double[:,:,:,:] flux_1, double[:,:,:,:] flux_2, materials, \
     # Covert dictionary to type params
     params = create_params(materials, quadrature, geometry, solver, time_data)
     info = parameters._to_params(params)
+    # The angular flux is found with one sweep of each ordinate
+    _check_reflection(quadrature, geometry, True)
 
     # Sources of each time step, the boundaries are expanded to all angles
     external = TimeSource(sources.external)
@@ -544,6 +548,8 @@ def angular_bdf2(int[:] time_steps, scalar_flux, double[:,:,:,:] initial_flux, \
     # Covert dictionary to type params
     params = create_params(materials, quadrature, geometry, solver, time_data)
     info = parameters._to_params(params)
+    # The angular flux is found with one sweep of each ordinate
+    _check_reflection(quadrature, geometry, True)
 
     # Sources of each time step, the boundaries are expanded to all angles
     external = TimeSource(sources.external)

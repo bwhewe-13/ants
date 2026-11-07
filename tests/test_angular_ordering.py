@@ -16,10 +16,13 @@
 #
 ########################################################################
 
+from types import SimpleNamespace
+
 import numpy as np
 import pytest
 
 import ants
+from ants.quadrature import _check_reflection
 
 # ====================================================================
 # Helper
@@ -208,3 +211,57 @@ def test_angular_xyz_multi_axis_reflective_ordering(bc_x, bc_y, bc_z):
         _check_axis_ordering(q.angle_y, [q.angle_x, q.angle_z], bc_y)
     if bc_z != [0, 0]:
         _check_axis_ordering(q.angle_z, [q.angle_x, q.angle_y], bc_z)
+
+
+@pytest.mark.parametrize("angles", [3, 5])
+def test_angular_xyz_odd_angles(angles):
+    # Odd sets have ordinates with a zero cosine
+    with pytest.raises(ValueError, match="even number"):
+        ants.angular_xyz(angles)
+
+
+# ====================================================================
+# Reflection checks used by the solvers
+# ====================================================================
+
+
+@pytest.mark.parametrize(
+    "bc_x,bc_y,bc_z",
+    [
+        ([1, 0], [0, 0], [0, 0]),
+        ([0, 1], [1, 0], [0, 0]),
+        ([1, 0], [1, 0], [1, 0]),
+        ([0, 0], [0, 1], [1, 0]),
+        ([0, 1], [0, 1], [0, 1]),
+    ],
+)
+def test_check_reflection_ordered(bc_x, bc_y, bc_z):
+    geometry = SimpleNamespace(bc_x=bc_x, bc_y=bc_y, bc_z=bc_z)
+    _check_reflection(ants.angular_xyz(4, bc_x, bc_y, bc_z), geometry, True)
+    _check_reflection(ants.angular_xy(4, bc_x, bc_y), geometry, True)
+    # The source iteration does not need the order
+    _check_reflection(ants.angular_xyz(4), geometry, False)
+    _check_reflection(ants.angular_xy(4), geometry, False)
+
+
+@pytest.mark.parametrize("dimension", [2, 3])
+def test_check_reflection_not_ordered(dimension):
+    geometry = SimpleNamespace(bc_x=[0, 0], bc_y=[1, 0], bc_z=[0, 0])
+    quadrature = ants.angular_xy(4) if dimension == 2 else ants.angular_xyz(4)
+    with pytest.raises(ValueError, match="not ordered for bc_y"):
+        _check_reflection(quadrature, geometry, True)
+
+
+def test_check_reflection_missing():
+    # The reflection of every ordinate is needed with a reflecting face
+    q = ants.angular_xyz(2)
+    q = ants.QuadratureData(
+        angle_x=q.angle_x[1:],
+        angle_y=q.angle_y[1:],
+        angle_z=q.angle_z[1:],
+        angle_w=q.angle_w[1:],
+    )
+    _check_reflection(q, SimpleNamespace(bc_x=[0, 0], bc_y=[0, 0], bc_z=[0, 0]), True)
+    geometry = SimpleNamespace(bc_x=[0, 0], bc_y=[0, 0], bc_z=[0, 1])
+    with pytest.raises(ValueError, match="no reflection"):
+        _check_reflection(q, geometry, False)

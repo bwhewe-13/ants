@@ -29,7 +29,7 @@ from ants cimport parameters
 from ants.parameters cimport params
 
 from ants.datatypes import create_params
-from ants.quadrature import _scatter_harmonics, harmonic_data
+from ants.quadrature import _check_reflection, _scatter_harmonics, harmonic_data
 from ants.utils.pytools import check_keffective, warn_not_converged
 
 logger = logging.getLogger(__name__)
@@ -144,6 +144,8 @@ def known_flux(double[:,:,:] flux, keff,  materials, geometry, quadrature, param
 
     # Covert dictionary to type params
     info = parameters._to_params(params)
+    # The angular flux is found with one sweep of each ordinate
+    _check_reflection(quadrature, geometry, True)
 
     # Create (sigma_s + sigma_f) * phi + external function
     source = tools.array_4d(info.cells_x, info.cells_y, 1, info.groups)
@@ -399,6 +401,8 @@ def known_flux_moments(double[:,:,:,:] flux, keff, materials, geometry, \
 
     # Covert dictionary to type params
     info = parameters._to_params(params)
+    # The angular flux is found with one sweep of each ordinate
+    _check_reflection(quadrature, geometry, True)
 
     # Spherical harmonics for the scattering source
     P_source_np, _ = harmonic_data(quadrature, materials.scatter.shape[3])
