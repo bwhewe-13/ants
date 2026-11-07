@@ -117,12 +117,21 @@ material occupies each spatial cell:
 
 * **1D problems**: ``medium_map`` is shape :math:`(I,)` with integer values in [0, M-1]
 * **2D problems**: ``medium_map`` is shape :math:`(I \times J,)` with integer values in [0, M-1]
+* **3D problems**: ``medium_map`` is shape :math:`(I \times J \times K,)` with integer values in [0, M-1]
 
 For structured spatial layouts, use these utility functions:
 
 .. autofunction:: ants.spatial1d
 
 .. autofunction:: ants.spatial2d
+
+.. autofunction:: ants.spatial3d
+
+Three-dimensional maps that are axial stacks of two-dimensional layouts (an
+assembly with top and bottom reflectors, for example) can be built from the
+2D maps directly:
+
+.. autofunction:: ants.extrude3d
 
 
 Spatial Data

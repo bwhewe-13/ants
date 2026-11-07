@@ -13,6 +13,7 @@
 ################################################################################
 
 import os
+import re
 from importlib.resources import files
 
 import numpy as np
@@ -28,6 +29,10 @@ _LEGACY_GRIDS = {87: None, 361: "shem_cea_epm_361", 618: "lanl_618"}
 
 # Decimal places used when rounding coordinates for edge-matching
 _COORD_PRECISION = 12
+
+# One "start - stop" region, where either number can be negative
+_NUMBER = r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?"
+_REGION = re.compile(rf"\s*({_NUMBER})\s*-\s*({_NUMBER})\s*")
 
 
 def energy_grid(grid, groups_fine, groups_coarse=None, optimize=True):
@@ -200,14 +205,24 @@ def spatial1d(layers, edges_x):
     medium_map = np.ones((len(edges_x) - 1), dtype=np.int32) * -1
     # Iterate over all layers
     for layer in layers:
-        for region in layer[2].split(","):
-            start, stop = region.split("-")
-            idx1 = np.argmin(np.fabs(float(start) - edges_x))
-            idx2 = np.argmin(np.fabs(float(stop) - edges_x))
+        for start, stop in _parse_regions(layer[2]):
+            idx1 = np.argmin(np.fabs(start - edges_x))
+            idx2 = np.argmin(np.fabs(stop - edges_x))
             medium_map[idx1:idx2] = layer[0]
     # Verify all cells are filled
     assert np.all(medium_map != -1)
     return medium_map
+
+
+def _parse_regions(regions):
+    # Comma-separated "start - stop" pairs to a list of (start, stop)
+    pairs = []
+    for region in regions.split(","):
+        match = _REGION.fullmatch(region)
+        if match is None:
+            raise ValueError(f'{region!r} is not a "start - stop" region')
+        pairs.append((float(match[1]), float(match[2])))
+    return pairs
 
 
 def _find_edge_index(edges, value, axis_name):
@@ -253,55 +268,171 @@ def spatial2d(medium_map, value, coordinates, edges_x, edges_y):
     return medium_map
 
 
-def weight_spatial2d(weight_matrix, xs_total, xs_scatter, xs_fission):
-    """Convert weight matrices to medium maps and create appropriate
-    cross sections. materials are the original materials used while
-    materials* are the reweighted values.
+def spatial3d(medium_map, value, coordinates, edges_x, edges_y, edges_z):
+    """Populate a 3D medium_map with rectangular boxes.
 
-    Arguments:
-        weight_matrix (float [cells_x, cells_y, materials]): weight matrix
-            needed for estimating the percentage of each material in each
-            spatial cell
-        xs_total (float [materials, groups]): list of total cross sections,
-            must be ordered correctly
-        xs_scatter (float [materials, groups, groups]): list of scatter
-            cross sections, must be ordered correctly
-        xs_fission (float [materials, groups, groups]): list of fission
-            cross sections, must be ordered correctly
-    Returns:
-        medium_map (int [cells_x, cells_y]): identifier of material layout
-        new_xs_total (float [materials*, groups]): list of total cross
-            sections, where the materials* index corresponds to a specific
-            location on the medium_map
-        new_xs_scatter (float [materials*, groups, groups]): list of
-            scatter cross sections, where the materials* index corresponds
-            to a specific location on the medium_map
-        new_xs_fission (float [materials*, groups, groups]): list of
-            fission cross sections, where the materials* index corresponds
-            to a specific location on the medium_map
+    Parameters
+    ----------
+    medium_map : ndarray of int32, shape (cells_x, cells_y, cells_z)
+        Medium map to fill.
+    value : int
+        Material index to place in each box.
+    coordinates : list of [(float, float, float), float, float, float]
+        Each box is ``[(x1, y1, z1), dx, dy, dz]``, the starting corner
+        and the lengths in x, y, and z in cm. Every face must lie on a
+        cell edge.
+    edges_x : ndarray, shape (cells_x + 1,)
+        Spatial cell edge locations in x in cm.
+    edges_y : ndarray, shape (cells_y + 1,)
+        Spatial cell edge locations in y in cm.
+    edges_z : ndarray, shape (cells_z + 1,)
+        Spatial cell edge locations in z in cm.
+
+    Returns
+    -------
+    medium_map : ndarray of int32, shape (cells_x, cells_y, cells_z)
+        Medium map with ``value`` placed in each box.
     """
-    # Convert cross sections to weight map
-    new_xs_total = []
-    new_xs_scatter = []
-    new_xs_fission = []
-    cells_x, cells_y = weight_matrix.shape[:2]
-    medium_map = np.zeros((cells_x, cells_y), dtype=np.int32)
-    # Get the unique number of material weights
-    weights = np.unique(weight_matrix.reshape(-1, weight_matrix.shape[2]), axis=0)
-    # Iterate over all weights
-    for mat, weight in enumerate(weights):
-        new_xs_total.append(np.sum(xs_total * weight[:, None], axis=0))
-        new_xs_scatter.append(np.sum(xs_scatter * weight[:, None, None], axis=0))
-        new_xs_fission.append(np.sum(xs_fission * weight[:, None, None], axis=0))
-        # Identify location on map
-        medium_map[np.where(np.all(weight_matrix == weight, axis=2))] = mat
-    # Return adjusted cross sections and arrays
-    return (
-        medium_map,
-        np.array(new_xs_total),
-        np.array(new_xs_scatter),
-        np.array(new_xs_fission),
+    for [(x1, y1, z1), span_x, span_y, span_z] in coordinates:
+        # Get starting locations
+        idx_x1 = _find_edge_index(edges_x, x1, "edges_x")
+        idx_y1 = _find_edge_index(edges_y, y1, "edges_y")
+        idx_z1 = _find_edge_index(edges_z, z1, "edges_z")
+        # Get ending locations
+        idx_x2 = _find_edge_index(edges_x, x1 + span_x, "edges_x")
+        idx_y2 = _find_edge_index(edges_y, y1 + span_y, "edges_y")
+        idx_z2 = _find_edge_index(edges_z, z1 + span_z, "edges_z")
+        # Populate with value
+        medium_map[idx_x1:idx_x2, idx_y1:idx_y2, idx_z1:idx_z2] = value
+    return medium_map
+
+
+def extrude3d(layers, edges_z):
+    """Create a 3D medium map by stacking 2D medium maps along z.
+
+    Parameters
+    ----------
+    layers : list of [ndarray, str]
+        Each entry is ``[medium_map, regions]`` where ``medium_map`` is a
+        2D map of shape ``(cells_x, cells_y)`` and ``regions`` is a
+        comma-separated list of ``"start - stop"`` pairs along z in cm.
+        Example: ``[fuel_map, "0 - 21.42"]``.
+    edges_z : ndarray, shape (cells_z + 1,)
+        Spatial cell edge locations in z in cm.
+
+    Returns
+    -------
+    medium_map : ndarray of int32, shape (cells_x, cells_y, cells_z)
+        Material index for each spatial cell.
+    """
+    cells_x, cells_y = np.shape(layers[0][0])
+    medium_map = np.full((cells_x, cells_y, len(edges_z) - 1), -1, dtype=np.int32)
+    for layer, regions in layers:
+        for start, stop in _parse_regions(regions):
+            idx_z1 = _find_edge_index(edges_z, start, "edges_z")
+            idx_z2 = _find_edge_index(edges_z, stop, "edges_z")
+            medium_map[..., idx_z1:idx_z2] = np.asarray(layer)[..., None]
+    # Verify all cells are filled
+    if np.any(medium_map == -1):
+        raise ValueError("layers do not cover every cell along edges_z")
+    return medium_map
+
+
+def weight_spatial2d(
+    weight_matrix, xs_total, xs_scatter, xs_fission, chi=None, decimals=None
+):
+    """Convert a 2D weight matrix to a medium map and mixed cross sections.
+
+    Each unique set of material weights becomes a new material, where the
+    cross sections are the volume weighted sums of the original materials.
+
+    Parameters
+    ----------
+    weight_matrix : ndarray of float, shape (cells_x, cells_y, materials)
+        Fraction of each material in each spatial cell.
+    xs_total : ndarray, shape (materials, groups)
+        Total cross sections.
+    xs_scatter : ndarray, shape (materials, groups, groups[, L + 1])
+        Scatter cross sections, with or without Legendre moments.
+    xs_fission : ndarray, shape (materials, groups, groups)
+        Fission cross sections, or shape ``(materials, groups)`` when
+        ``chi`` is given.
+    chi : ndarray, shape (materials, groups), optional
+        Fission spectrum. It is weighted by the neutrons produced in each
+        material (``xs_fission`` summed over groups), which is exact when
+        only one material in the mixture is fissile.
+    decimals : int, optional
+        Round the weights to this many decimal places before finding the
+        unique mixtures. This limits the number of new materials.
+
+    Returns
+    -------
+    medium_map : ndarray of int32, shape (cells_x, cells_y)
+        Index of the mixed material in each spatial cell.
+    xs_total : ndarray, shape (materials*, groups)
+        Mixed total cross sections.
+    xs_scatter : ndarray, shape (materials*, groups, groups[, L + 1])
+        Mixed scatter cross sections.
+    xs_fission : ndarray
+        Mixed fission cross sections, with the same trailing shape as the
+        input.
+    chi : ndarray, shape (materials*, groups)
+        Mixed fission spectrum, only returned when ``chi`` is given.
+    """
+    if np.ndim(weight_matrix) != 3:
+        raise ValueError("weight_matrix must have shape (cells_x, cells_y, materials)")
+    return _weight_spatial(
+        weight_matrix, xs_total, xs_scatter, xs_fission, chi, decimals
     )
+
+
+def weight_spatial3d(
+    weight_matrix, xs_total, xs_scatter, xs_fission, chi=None, decimals=None
+):
+    """Convert a 3D weight matrix to a medium map and mixed cross sections.
+
+    Same as :func:`weight_spatial2d`, but ``weight_matrix`` has shape
+    ``(cells_x, cells_y, cells_z, materials)`` and the returned
+    ``medium_map`` has shape ``(cells_x, cells_y, cells_z)``.
+    """
+    if np.ndim(weight_matrix) != 4:
+        raise ValueError(
+            "weight_matrix must have shape (cells_x, cells_y, cells_z, materials)"
+        )
+    return _weight_spatial(
+        weight_matrix, xs_total, xs_scatter, xs_fission, chi, decimals
+    )
+
+
+def _weight_spatial(weight_matrix, xs_total, xs_scatter, xs_fission, chi, decimals):
+    weight_matrix = np.asarray(weight_matrix, dtype=float)
+    weights = weight_matrix.reshape(-1, weight_matrix.shape[-1])
+    if decimals is not None:
+        weights = np.round(weights, decimals)
+    # Get the unique material weights and their location on the map
+    weights, location = np.unique(weights, axis=0, return_inverse=True)
+    medium_map = location.reshape(weight_matrix.shape[:-1]).astype(np.int32)
+    if decimals is not None:
+        if np.any(np.sum(weights, axis=1) == 0.0):
+            raise ValueError(
+                f"Rounding to {decimals} decimals leaves cells with no material"
+            )
+        weights /= np.sum(weights, axis=1)[:, None]
+    # Sum the weighted cross sections over the original materials
+    new_xs_total = np.tensordot(weights, xs_total, axes=1)
+    new_xs_scatter = np.tensordot(weights, xs_scatter, axes=1)
+    new_xs_fission = np.tensordot(weights, xs_fission, axes=1)
+    if chi is None:
+        return medium_map, new_xs_total, new_xs_scatter, new_xs_fission
+    if np.ndim(xs_fission) != 2:
+        raise ValueError("xs_fission must have shape (materials, groups) with chi")
+    # Weight the fission spectrum by the neutrons produced in each material
+    production = weights * np.sum(xs_fission, axis=1)
+    fissile = np.sum(production, axis=1) > 0.0
+    production[~fissile] = weights[~fissile]
+    production /= np.sum(production, axis=1)[:, None]
+    new_chi = production @ np.asarray(chi)
+    return medium_map, new_xs_total, new_xs_scatter, new_xs_fission, new_chi
 
 
 def weight_matrix2d(edges_x, edges_y, materials, N_particles=100_000, **kwargs):

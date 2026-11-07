@@ -68,11 +68,14 @@ _MAIN_EXPORTS = (
     "_energy_grid",
     "energy_grid",
     "energy_velocity",
+    "extrude3d",
     "gamma_time_steps",
     "spatial1d",
     "spatial2d",
+    "spatial3d",
     "weight_matrix2d",
     "weight_spatial2d",
+    "weight_spatial3d",
 )
 
 _MATERIAL_EXPORTS = (
