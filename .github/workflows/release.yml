@@ -22,8 +22,8 @@ jobs:
           - os: windows-latest
           # Homebrew's libomp is built for the runner's macOS version, so
           # the wheels can't target an older one
-          - os: macos-14
-            macos-target: "14.0"
+          - os: macos-15
+            macos-target: "15.0"
           - os: macos-15-intel
             macos-target: "15.0"
 
