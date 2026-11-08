@@ -188,6 +188,19 @@ Two-Dimensional Hybrid
     the angular and energy resolution to vary adaptively across time steps.
 
 
+Three-Dimensional Fixed Source
+--------------------------------
+
+``fixed_source_3d_kobayashi.py``
+    Kobayashi dog leg benchmark (Problem 3) with 50% scattering, built with
+    ``ants.benchmarks.kobayashi``. Plots the S\ :sub:`8` flux against the
+    Monte Carlo reference along the three lines of the benchmark, which
+    shows the ray effects far down the duct. Artificial scattering can be
+    turned on with ``sigma_as``. The same problem is an example in the
+    `MC/DC <https://github.com/CEMeNT-PSAAP/MCDC>`_ repository
+    (``examples/kobayashi-dogleg``).
+
+
 Notes on Running Examples
 --------------------------
 

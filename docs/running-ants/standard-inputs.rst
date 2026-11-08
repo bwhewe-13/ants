@@ -111,6 +111,34 @@ publications using these benchmarks should cite the Handbook.
 .. autofunction:: ants.run_suite
 
 
+Kobayashi Benchmarks
+~~~~~~~~~~~~~~~~~~~~
+
+The three-dimensional Kobayashi benchmarks are one-group source problems with a void
+cube (Problem 1), a straight void duct (Problem 2), or a dog leg void duct (Problem 3)
+in a shield. Case i is a pure absorber with exact reference fluxes, and case ii has
+50% scattering with Monte Carlo reference fluxes. The problems and reference values
+are from K. Kobayashi, N. Sugimura, and Y. Nagaya, *3-D Radiation Transport Benchmark
+Problems and Results for Simple Geometries with Void Regions*, NEA/NSC/DOC(2000)4
+(OECD-NEA, 2000).
+
+.. code-block:: python
+
+    from ants.benchmarks import kobayashi
+    from ants.fixed3d import fixed_source
+
+    inputs = kobayashi.build_problem(3, scattering=True, cell_width=2.0, angles=8)
+    flux = fixed_source(*inputs)
+    points, reference, uncertainty = kobayashi.reference("3C", scattering=True)
+    approx = kobayashi.flux_at(flux[..., 0], points, inputs[2])
+
+.. autofunction:: ants.benchmarks.kobayashi.build_problem
+
+.. autofunction:: ants.benchmarks.kobayashi.reference
+
+.. autofunction:: ants.benchmarks.kobayashi.flux_at
+
+
 Material Locations
 -------------------
 
