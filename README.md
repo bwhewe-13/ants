@@ -10,11 +10,11 @@
 [![Docs](https://img.shields.io/github/actions/workflow/status/bwhewe-13/ants/docs.yml?label=Docs)](https://bwhewe-13.github.io/ants/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-A Neutron Transport Solution (ANTS) calculates the neutron flux for both criticality and fixed source problems of one dimensional slabs and spheres and two dimensional slabs using the discrete ordinates method and written in Cython.
+A Neutron Transport Solution (ANTS) calculates the neutron flux for both criticality and fixed source problems of one dimensional slabs and spheres and two dimensional slabs, and fixed source problems of three dimensional slabs, using the discrete ordinates method and written in Cython.
 
 There are a number of different acceleration methods used including a collision-based hybrid method, machine learning models to predict matrix-vector multiplication, dynamic mode decomposition, and synthetic diffusion acceleration (DSA).
 
-There are also verification procedures to ensure both the code and solutions are correct. For code verification, manufactured solutions are used for one- and two-dimenisonal slab problems to ensure proper discretization. Solution verification uses the method of nearby problems, which uses one spatial grid.
+There are also verification procedures to ensure both the code and solutions are correct. For code verification, manufactured solutions are used for one-, two-, and three-dimensional slab problems to ensure proper discretization. Solution verification uses the method of nearby problems, which uses one spatial grid.
 
 📖 **Documentation:** The full ANTS documentation is hosted online at [bwhewe-13.github.io/ants](https://bwhewe-13.github.io/ants/).
 
@@ -114,12 +114,22 @@ make -C docs html
 
 &nbsp;
 
+## Three Dimensional Features
+| Spatial Discretization    | Temporal Discretization    | Multigroup Solve          | K-Eigenvalue Solve      |
+|---------------------------|----------------------------|---------------------------|-------------------------|
+| &#9745; Step Method       | &#9744; Backward Euler     | &#9745; Source Iteration  | &#9744; Power Iteration |
+| &#9745; Diamond Difference    | &#9744; BDF2           | &#9744; DSA               | &#9744; DMD             |
+| &#9745; Step Characteristic   | &#9744; Crank-Nicolson | &#9745; DMD               | &#9744; Davidson Method |
+| &#9744; Discontinuous Galerkin| &#9744; TR - BDF2      | &#9744; GMRES             |                         |
+
+&nbsp;
+
 ## Code and Solution Verification
-- &#9744; Spatial Method of Manufactured Solutions (1D/2D)
-    - &#9745; &#9745; Step Method
-    - &#9745; &#9745; Diamond Difference
-    - &#9745; &#9744; Step Characteristics
-    - &#9744; &#9744; Discontinuous Galerkin
+- &#9744; Spatial Method of Manufactured Solutions (1D/2D/3D)
+    - &#9745; &#9745; &#9745; Step Method
+    - &#9745; &#9745; &#9745; Diamond Difference
+    - &#9745; &#9745; &#9745; Step Characteristics
+    - &#9744; &#9744; &#9744; Discontinuous Galerkin
 - &#9745; Temporal Method of Manufactured Solutions
     - &#9745; &#9745; Backward Euler
     - &#9745; &#9745; BDF2
@@ -127,6 +137,9 @@ make -C docs html
     - &#9745; &#9745; TR - BDF2
 - &#9745; &#9745; Criticality Benchmarks \
     (Analytical Benchmark Test Set for Criticality Code Verification, Sood et al)
+- &#9745; ICSBEP Fast Metal Benchmarks (1D)
+- &#9745; Kobayashi Benchmarks (3D) \
+    (3-D Radiation Transport Benchmark Problems and Results for Simple Geometries with Void Regions, Kobayashi et al)
 - &#9745; &#9745; Method of Nearby Problems (MNP)
 
 &nbsp;

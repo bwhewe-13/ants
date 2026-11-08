@@ -4,7 +4,7 @@
 - [x] Implement artificial scattering for ray effect correction (2D).
 - [x] Add anisotropic scattering support.
 - [x] Add chi vector support.
-- [ ] Add 3D transport sweep capabilities.
+- [x] Add 3D transport sweep capabilities.
 - [x] Add 3D interpolation capabilities.
 - [x] Convert interp1d and interp2d files to Cython.
 - [x] Add parallelism improvements (OpenMP tuning and/or distributed strategy).
@@ -17,11 +17,13 @@
     - Fix: preallocate per-group buffers before the loop and add a `nogil`
       sweep entry point; then `test_multigroup_1d_speedup` should pass.
 - [x] Complete spatial MMS verification for remaining unverified methods.
-- [ ] Limit the memory footprint (boundary sources, time-dependent problems, etc.)
+- [x] Limit the memory footprint (boundary sources, time-dependent problems, etc.)
 - [x] Update nearby1d and nearby2d function calls.
 
 
 ## Updates for 0.4.0
+- [ ] Add 3D criticality, time-dependent, hybrid, and nearby problems.
+- [ ] Limit the memory footprint of the 3D solvers.
 - [ ] Add adjoint equations (1D/2D/3D).
 - [ ] Add 2D/1D projections.
 - [ ] Add adaptive mesh refinement (AMR).
