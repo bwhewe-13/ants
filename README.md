@@ -3,7 +3,7 @@
   <img alt="ants" src="https://raw.githubusercontent.com/bwhewe-13/ants/main/docs/_static/logo.svg" width="202">
 </picture>
 
-[![Python Versions](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue)](https://pypi.org/project/ants/)
+[![Python Versions](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue)](https://pypi.org/project/ants-sn/)
 [![Style](https://img.shields.io/github/actions/workflow/status/bwhewe-13/ants/ci.yml?label=Style)](https://github.com/bwhewe-13/ants/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/github/actions/workflow/status/bwhewe-13/ants/tests.yml?label=Tests)](https://github.com/bwhewe-13/ants/actions/workflows/tests.yml)
 [![Coverage](https://codecov.io/gh/bwhewe-13/ants/graph/badge.svg)](https://codecov.io/gh/bwhewe-13/ants)
@@ -24,10 +24,17 @@ There are also verification procedures to ensure both the code and solutions are
 
 ### Requirements
 - Python 3.11+
-- A C/C++ compiler
-- OpenMP runtime support (Linux typically available by default)
+- For source builds, a C/C++ compiler and OpenMP (included on Linux, `brew install libomp`
+  on macOS)
 
-### Install for use
+### Install from PyPI
+```bash
+python -m pip install ants-sn
+```
+The package is imported as `ants`. Wheels are built for Linux, macOS, and Windows, so
+no compiler is needed.
+
+### Install from source
 ```bash
 python -m pip install --upgrade pip
 python -m pip install .
@@ -43,7 +50,7 @@ python -m pip install -e ".[dev]"
 Cross sections are built from HDF5 multigroup libraries of microscopic cross sections
 (layout in `ants/library.py`), which requires the `library` extra:
 ```bash
-python -m pip install ".[library]"
+python -m pip install "ants-sn[library]"
 ```
 The standard NJOY and Serpent energy group structures (`ants.list_structures()`) and
 ICSBEP benchmark specifications (`ants.list_benchmarks()`) are included with ANTS.

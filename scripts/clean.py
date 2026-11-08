@@ -10,7 +10,7 @@ import shutil
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 FOLDERS = ("ants", "ants/utils")
 PATTERNS = ("*.c", "*.cpp", "*.pyd", "*.so")
-TREES = ("build", "ants.egg-info")
+TREES = ("build", "ants.egg-info", "ants_sn.egg-info")
 
 for folder in FOLDERS:
     for pattern in PATTERNS:

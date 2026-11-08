@@ -60,7 +60,7 @@ Cross Section Libraries
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 Macroscopic cross sections are built from number densities (atoms/barn-cm) and a
-HDF5 multigroup library (requires ``pip install ants[library]``). Compositions
+HDF5 multigroup library (requires ``pip install ants-sn[library]``). Compositions
 can be copied directly from MCNP or PARTISN input decks, and the common materials
 (enriched uranium, uranium hydride, enriched plutonium, ...) are available by name.
 

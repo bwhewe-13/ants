@@ -1,22 +1,43 @@
 [build-system]
-requires = ["setuptools", "cython", "numpy", "tqdm"]
+requires = ["setuptools>=77", "cython", "numpy", "tqdm"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "ants"
+name = "ants-sn"
 authors = [
     {name = "Ben Whewell", email = "ben.whewell@pm.me"}
 ]
-description = "ANTS (A Neutron Transport Solution)"
+description = "Discrete ordinates (S_N) neutron transport in Cython"
 version = "0.3.0"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.11"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Cython",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Scientific/Engineering :: Physics",
+]
 dependencies = [
     "cython",
     "numpy",
     "scipy",
     "tqdm",
 ]
+
+[project.urls]
+Documentation = "https://bwhewe-13.github.io/ants/"
+Source = "https://github.com/bwhewe-13/ants"
+Changelog = "https://github.com/bwhewe-13/ants/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 dev = [
@@ -43,8 +64,23 @@ docs = [
     "ipython",
 ]
 
-[tool.setuptools.packages]
-find = {}
+# ants/sources holds local data that is not distributed
+[tool.setuptools.packages.find]
+include = ["ants*"]
+exclude = ["ants.sources*"]
+
+[tool.cibuildwheel]
+build = ["cp311-*", "cp312-*", "cp313-*", "cp314-*"]
+skip = ["*-musllinux_*", "*-manylinux_i686", "*-win32"]
+test-requires = ["pytest"]
+# Run the smoke tests from a copy so the source tree is not imported
+test-command = [
+    "python {project}/scripts/copy_tests.py {project}",
+    "pytest tests -m smoke -p no:cacheprovider",
+]
+
+[tool.cibuildwheel.macos]
+before-all = "brew install libomp"
 
 [tool.pytest.ini_options]
 python_files = ["test_*"]
