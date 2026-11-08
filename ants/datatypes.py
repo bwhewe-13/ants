@@ -525,7 +525,9 @@ class SolverData:
         in-scatter source is updated up to ``max_iter_angular`` times, until
         the scalar flux changes by less than ``tol_energy``.
     beta_as : float
-        Artificial scattering kernel width parameter.
+        Artificial scattering kernel width parameter. The kernel width is
+        ``beta_as / N_q``, where ``N_q`` is the number of ordinates on the
+        full sphere (``2 N**2`` for ``angular_xy(N)`` and ``angular_xyz(N)``).
     max_iter_angular : int
         Maximum angular (within-group) iterations.
     max_iter_energy : int
@@ -605,7 +607,9 @@ class ProblemParameters:
     sigma_as : float
         Artificial scattering strength (0 disables).
     beta_as : float
-        Artificial scattering kernel width parameter.
+        Artificial scattering kernel width parameter. The kernel width is
+        ``beta_as / N_q``, where ``N_q`` is the number of ordinates on the
+        full sphere (``2 N**2`` for ``angular_xy(N)`` and ``angular_xyz(N)``).
     max_iter_angular : int
         Maximum angular (within-group) iterations.
     max_iter_energy : int

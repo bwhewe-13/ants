@@ -361,16 +361,23 @@ def artificial_scatter_matrix(angle_x, angle_y, angle_w, sigma_as, beta, angle_z
 
     The kernel is s_eps(mu) = (2 / (sqrt(pi) * eps * Erf(2/eps)))
                                 * exp(-(1 - mu)**2 / eps**2)
-    with eps = beta / N_q, where N_q is the number of ordinates, and
-    mu = Omega_q . Omega_p the full three-dimensional dot product between
-    ordinates on the unit sphere.
+    with eps = beta / N_q, where N_q is the number of ordinates on the full
+    sphere, and mu = Omega_q . Omega_p the three-dimensional dot product
+    between ordinates.
+
+    Without ``angle_z`` (2D), the ordinates are the upper hemisphere of a
+    set with ``N_q = 2 * N``. The flux of a 2D problem is the same for an
+    ordinate and its reflection through the x-y plane, so the kernel of each
+    pair is the sum for the ordinate and its reflection. A 2D problem then
+    has the same artificial scattering as a 3D problem that does not change
+    in z.
 
     Parameters
     ----------
     angle_x : ndarray, shape (N,)
-        x-direction cosines for 2D.
+        x-direction cosines.
     angle_y : ndarray, shape (N,)
-        y-direction cosines for 2D.
+        y-direction cosines.
     angle_w : ndarray, shape (N,)
         Normalized quadrature weights (sum to 1).
     sigma_as : float
@@ -378,9 +385,9 @@ def artificial_scatter_matrix(angle_x, angle_y, angle_w, sigma_as, beta, angle_z
     beta : float
         Kernel width parameter. Typical values: 4.5 (explicit), 4.0 (implicit).
     angle_z : ndarray, shape (N,), optional
-        z-direction cosines. If None (the 2D case, where ``angular_xy``
-        keeps only the upper hemisphere), reconstructed as
-        ``sqrt(1 - angle_x**2 - angle_y**2)``.
+        z-direction cosines of a set on the full sphere (3D). If None (the
+        2D case, where ``angular_xy`` keeps only the upper hemisphere), the
+        positive cosine ``sqrt(1 - angle_x**2 - angle_y**2)`` is used.
 
     Returns
     -------
@@ -388,18 +395,13 @@ def artificial_scatter_matrix(angle_x, angle_y, angle_w, sigma_as, beta, angle_z
         Normalized artificial scattering matrix.
     """
     N = len(angle_x)
-    eps = beta / N if N > 0 else 1.0
+    full_sphere = angle_z is not None
+    N_q = N if full_sphere else 2 * N
+    eps = beta / N_q if N_q > 0 else 1.0
 
     # Reconstruct the (positive-hemisphere) polar cosine when not supplied
-    if angle_z is None:
+    if not full_sphere:
         angle_z = np.sqrt(np.clip(1.0 - angle_x**2 - angle_y**2, 0.0, None))
-
-    # Compute pairwise dot products Omega_q . Omega_p on the unit sphere
-    dots = (
-        np.outer(angle_x, angle_x)
-        + np.outer(angle_y, angle_y)
-        + np.outer(angle_z, angle_z)
-    )  # (N, N)
 
     # Kernel Eq. (6) from Frank et al.
     if eps > 1e-15:
@@ -407,7 +409,14 @@ def artificial_scatter_matrix(angle_x, angle_y, angle_w, sigma_as, beta, angle_z
     else:
         erf_val = 1.0
     prefactor = 2.0 / (np.sqrt(np.pi) * eps * erf_val)
-    S = prefactor * np.exp(-((1.0 - dots) ** 2) / eps**2)  # (N, N)
+
+    # Compute pairwise dot products Omega_q . Omega_p on the unit sphere
+    dot_xy = np.outer(angle_x, angle_x) + np.outer(angle_y, angle_y)
+    dot_z = np.outer(angle_z, angle_z)
+    S = prefactor * np.exp(-((1.0 - (dot_xy + dot_z)) ** 2) / eps**2)  # (N, N)
+    if not full_sphere:
+        # Add the reflection of Omega_p through the x-y plane
+        S += prefactor * np.exp(-((1.0 - (dot_xy - dot_z)) ** 2) / eps**2)
 
     # Weight by quadrature weights: M_as[n,m]
     WS = S * angle_w[np.newaxis, :]  # (N, N)

@@ -73,22 +73,58 @@ def test_kernel_formula_values():
     angle_x, angle_y, angle_w = _quadrature_xy(4)
     sigma_as = 3.0
     beta = 4.5
-    eps = beta / len(angle_x)
+    # The 2D set is the upper half of the ordinates on the sphere
+    eps = beta / (2 * len(angle_x))
 
     M_as = artificial_scatter_matrix(angle_x, angle_y, angle_w, sigma_as, beta)
 
+    # Each ordinate and its reflection through the x-y plane
     angle_z = np.sqrt(1.0 - angle_x**2 - angle_y**2)
-    dots = (
-        np.outer(angle_x, angle_x)
-        + np.outer(angle_y, angle_y)
-        + np.outer(angle_z, angle_z)
-    )
-    S = _kernel_value(dots, eps)
+    dot_xy = np.outer(angle_x, angle_x) + np.outer(angle_y, angle_y)
+    dot_z = np.outer(angle_z, angle_z)
+    S = _kernel_value(dot_xy + dot_z, eps) + _kernel_value(dot_xy - dot_z, eps)
     WS = S * angle_w[np.newaxis, :]
     c_n = WS.sum(axis=1, keepdims=True)
     M_expected = sigma_as * WS / c_n
 
     np.testing.assert_allclose(M_as, M_expected, rtol=1e-12)
+
+
+@pytest.mark.smoke
+@pytest.mark.math
+@pytest.mark.parametrize("angles", [4, 8])
+def test_kernel_matches_3d(angles):
+    """The 2D matrix is the 3D matrix of the same product set, summed over
+    each ordinate and its reflection through the x-y plane."""
+    quad_2d = ants.angular_xy(angles)
+    quad_3d = ants.angular_xyz(angles)
+    M_2d = artificial_scatter_matrix(
+        quad_2d.angle_x, quad_2d.angle_y, quad_2d.angle_w, 2.0, 4.5
+    )
+    M_3d = artificial_scatter_matrix(
+        quad_3d.angle_x,
+        quad_3d.angle_y,
+        quad_3d.angle_w,
+        2.0,
+        4.5,
+        angle_z=quad_3d.angle_z,
+    )
+    # 3D ordinates with the same (x, y) cosines above and below the x-y plane
+    ordinates = {
+        (round(x, 10), round(y, 10), z > 0): nn
+        for nn, (x, y, z) in enumerate(
+            zip(quad_3d.angle_x, quad_3d.angle_y, quad_3d.angle_z)
+        )
+    }
+    pairs = [
+        (round(x, 10), round(y, 10)) for x, y in zip(quad_2d.angle_x, quad_2d.angle_y)
+    ]
+    upper = [ordinates[pair + (True,)] for pair in pairs]
+    lower = [ordinates[pair + (False,)] for pair in pairs]
+    folded = M_3d[np.ix_(upper, upper)] + M_3d[np.ix_(upper, lower)]
+    # The 2D angle_z is sqrt(1 - x**2 - y**2) instead of the rounded 3D
+    # cosine, which the narrow kernel magnifies
+    np.testing.assert_allclose(M_2d, folded, rtol=0.0, atol=1e-9)
 
 
 @pytest.mark.math
