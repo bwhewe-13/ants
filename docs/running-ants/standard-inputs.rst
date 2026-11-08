@@ -25,9 +25,11 @@ Legendre moments :math:`\ell = 0, \ldots, L` on a last axis, shape
 :math:`(M \times G \times G \times (L + 1))`, indexed
 ``[material, group out, group in, moment]``. The moments do not include the
 :math:`(2\ell + 1)` factor (see :ref:`anisotropic scattering <sec-nte-anisotropic>`).
-All one- and two-dimensional solvers select anisotropic scattering from the shape
-of the scattering matrix. Two-dimensional problems use the same Legendre moments,
-which are expanded into spherical harmonics internally.
+All one- and two-dimensional solvers, and the three-dimensional fixed source solver,
+select anisotropic scattering from the shape of the scattering matrix. Two- and
+three-dimensional problems use the same Legendre moments, which are expanded into
+spherical harmonics internally: the :math:`(L + 1)(L + 2) / 2` harmonics even in
+:math:`\mu_z` in 2D, and all :math:`(L + 1)^2` harmonics in 3D.
 
 .. code-block:: python
 
@@ -141,17 +143,29 @@ Spatial discretization requires cell widths in each direction:
 
 * **1D problems**: ``delta_x`` — array of cell widths, shape :math:`(I,)`
 * **2D problems**: ``delta_x`` and ``delta_y`` — shapes :math:`(I,)` and :math:`(J,)` respectively
+* **3D problems**: ``delta_x``, ``delta_y``, and ``delta_z`` — shapes :math:`(I,)`,
+  :math:`(J,)`, and :math:`(K,)` respectively
 
 
 Angular Data
 ------------
 
 Angular quadrature data (discrete directions and weights) is generated automatically
-and returned as a ``QuadratureData`` object:
+and returned as a ``QuadratureData`` object. With reflecting boundaries, pass the
+same ``bc_x``, ``bc_y``, and ``bc_z`` to the quadrature as to ``GeometryData``. The
+angular flux, the flux at cell edges, and artificial scattering sweep each ordinate
+once, so the reflection of an ordinate has to be swept before it. ``fixed2d`` and
+``fixed3d`` raise an error if the quadrature is not ordered for the boundaries.
 
 .. autofunction:: ants.angular_x
 
 .. autofunction:: ants.angular_xy
+
+Three-dimensional problems use the full sphere, so ``angular_xyz(N)`` has
+:math:`2 N^2` ordinates for the product set. In 3D, ``N`` in the source shapes below
+is this total number of ordinates.
+
+.. autofunction:: ants.angular_xyz
 
 
 External Source Data
@@ -190,13 +204,17 @@ are the authoritative reference for source array shapes.
      - Time-Dependent
      - ``(1, I, J, 1, 1)``
      - ``(T, I, J, N**2, G)``
+   * - 3
+     - Fixed
+     - ``(I, J, K, 1, 1)``
+     - ``(I, J, K, N, G)``
 
 
 Boundary Source Data
 --------------------
 
-Like the external source, the boundary source terms ``boundary_x`` and ``boundary_y``,
-are passed inside the ``SourceData`` object. The boundary source requires at least 2 values
+Like the external source, the boundary source terms ``boundary_x``, ``boundary_y``, and
+``boundary_z`` (3D) are passed inside the ``SourceData`` object. The boundary source requires at least 2 values
 for each boundary term (e.g. [x(0), x(X)]). The boundary sources are able to be space-
 (for 2D), angle-, energy-, and time-dependent. The minimum broadcasting shapes are shown
 in the table below. Figures showing the locations of the boundary sources are also included.
@@ -236,6 +254,18 @@ in the table below. Figures showing the locations of the boundary sources are al
      - Time-Dependent
      - ``(1, 2, 1, 1, 1)``
      - ``(T, 2, I, N**2/2, G)``
+   * - 3 / ``boundary_x``
+     - Fixed
+     - ``(2, 1, 1, 1, 1)``
+     - ``(2, J, K, N, G)``
+   * - 3 / ``boundary_y``
+     - Fixed
+     - ``(2, 1, 1, 1, 1)``
+     - ``(2, I, K, N, G)``
+   * - 3 / ``boundary_z``
+     - Fixed
+     - ``(2, 1, 1, 1, 1)``
+     - ``(2, I, J, N, G)``
 
 
 Time-dependent boundary sources only hold the incoming angles. The size of ``T`` is

@@ -72,11 +72,14 @@ class Geometry(IntEnum):
         One-dimensional spherical geometry.
     SLAB2D : int
         Two-dimensional slab (Cartesian) geometry.
+    SLAB3D : int
+        Three-dimensional slab (Cartesian) geometry.
     """
 
     SLAB1D = 1
     SPHERE1D = 2
     SLAB2D = 3
+    SLAB3D = 4
 
 
 class BoundaryCondition(IntEnum):
@@ -361,6 +364,11 @@ class SourceData:
     initial_flux_y : numpy.ndarray, optional
         Initial angular flux at the y faces for 2D CN/TR-BDF2 problems.
         Shape ``(I, J + 1, N**2, G)``.
+    boundary_z : numpy.ndarray or CompactSource, optional
+        Boundary source in z direction for 3D problems. Full shape
+        ``(2, I, J, N, G)``, where ``N`` is the number of ordinates. In
+        3D, ``external`` is ``(I, J, K, N, G)``, ``boundary_x`` is
+        ``(2, J, K, N, G)`` and ``boundary_y`` is ``(2, I, K, N, G)``.
     """
 
     external: np.ndarray
@@ -369,6 +377,7 @@ class SourceData:
     initial_flux: Optional[np.ndarray] = None
     initial_flux_x: Optional[np.ndarray] = None
     initial_flux_y: Optional[np.ndarray] = None
+    boundary_z: Optional[np.ndarray] = None
 
 
 @dataclass
@@ -420,6 +429,11 @@ class GeometryData:
         Geometry type.
     space_disc : SpatialDiscretization
         Spatial discretization type.
+    delta_z : numpy.ndarray, optional
+        Cell widths in z for 3D problems, shape ``(cells_z,)``.
+    bc_z : list[int], optional
+        Bottom/top boundary conditions in z (3D only) as
+        ``BoundaryCondition`` values.
     """
 
     medium_map: np.ndarray
@@ -429,6 +443,8 @@ class GeometryData:
     bc_y: Optional[List[int]] = field(default_factory=_default_vacuum_bc)
     geometry: Geometry = Geometry.SLAB1D
     space_disc: SpatialDiscretization = SpatialDiscretization.DIAMOND
+    delta_z: Optional[np.ndarray] = None
+    bc_z: Optional[List[int]] = field(default_factory=_default_vacuum_bc)
 
 
 @dataclass
@@ -605,7 +621,12 @@ class ProblemParameters:
     moments : int
         Number of scattering moments; 1 is isotropic. This is the number of
         Legendre moments (L + 1) in 1D and of spherical harmonic moments,
-        (L + 1)(L + 2) / 2, in 2D.
+        (L + 1)(L + 2) / 2 in 2D and (L + 1)**2 in 3D.
+    cells_z : int
+        Number of spatial cells in the z direction (3D only).
+    bc_z : list[int]
+        Bottom/top boundary conditions in z (3D only) as
+        ``BoundaryCondition`` values.
     """
 
     cells_x: int
@@ -636,6 +657,8 @@ class ProblemParameters:
     tol_energy: float
     tol_keff: float
     moments: int = 1
+    cells_z: int = 1
+    bc_z: List[int] = field(default_factory=_default_vacuum_bc)
 
 
 def create_params(materials, quadrature, geometry, solver, time=None):
@@ -662,11 +685,12 @@ def create_params(materials, quadrature, geometry, solver, time=None):
     """
 
     time_data = time if time is not None else TimeDependentData()
-    angles = (
-        quadrature.angle_x.size
-        if quadrature.angle_y is None
-        else int(np.sqrt(quadrature.angle_x.size))
-    )
+    # Number of ordinates in 1D and 3D, and the angles in each direction in
+    # 2D (with angles**2 ordinates)
+    if (quadrature.angle_y is None) or (quadrature.angle_z is not None):
+        angles = quadrature.angle_x.size
+    else:
+        angles = int(np.sqrt(quadrature.angle_x.size))
 
     return ProblemParameters(
         cells_x=geometry.delta_x.size,
@@ -697,13 +721,17 @@ def create_params(materials, quadrature, geometry, solver, time=None):
         tol_energy=solver.tol_energy,
         tol_keff=solver.tol_keff,
         moments=_scatter_moments(materials.scatter, quadrature),
+        cells_z=geometry.delta_z.size if geometry.delta_z is not None else 1,
+        bc_z=geometry.bc_z,
     )
 
 
 def _scatter_moments(scatter, quadrature):
-    # Legendre moments in 1D, spherical harmonic moments in 2D
+    # Legendre moments in 1D, spherical harmonic moments in 2D and 3D
     if scatter.ndim != 4:
         return 1
     if quadrature.angle_y is None:
         return scatter.shape[3]
+    if quadrature.angle_z is not None:
+        return scatter.shape[3] ** 2
     return scatter.shape[3] * (scatter.shape[3] + 1) // 2

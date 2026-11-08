@@ -30,6 +30,9 @@ cdef struct params:
     # :param cells_y: Number of spatial cells in y direction (J)
     # :type cells_y: int
 
+    # :param cells_z: Number of spatial cells in z direction (K)
+    # :type cells_z: int
+
     # :param angles: Number of angles (N) (must be even)
     # :type angles: int
 
@@ -56,6 +59,7 @@ cdef struct params:
     # Collect Spatial cells, angles, energy groups
     int cells_x
     int cells_y
+    int cells_z
     int angles
     int groups
     int materials
@@ -69,6 +73,7 @@ cdef struct params:
     # Boundary parameters
     int[2] bc_x
     int[2] bc_y
+    int[2] bc_z
 
     # Time dependent parameters
     int steps
@@ -161,3 +166,8 @@ cdef int _check_tr_bdf_timed2d(params info, int psi_x_shape, int psi_y_shape, \
 cdef int _check_critical2d_power_iteration(params info) except -1
 
 cdef int _check_critical2d_nearby_power(params info) except -1
+
+########################################################################
+# Three-dimensional functions
+########################################################################
+cdef int _check_fixed3d_source_iteration(params info, int xs_shape) except -1

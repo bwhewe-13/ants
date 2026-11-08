@@ -85,6 +85,19 @@ def steady_external(external, spatial, angles, groups):
     return values[..., None], _broadcast_index(index, angles, groups)
 
 
+def check_steady_external(external, spatial, angles, groups):
+    """Check a dense external source is ``(*spatial, angles, groups)``.
+
+    The angle and group dimensions can have size 1. The sweeps do not check
+    bounds, so other sizes would be read out of bounds.
+    """
+    shape = np.shape(external)
+    full = (*spatial, angles, groups)
+    broadcast = all(size in (1, n) for size, n in zip(shape[-2:], full[-2:]))
+    if (len(shape) != len(full)) or (shape[:-2] != full[:-2]) or not broadcast:
+        raise ValueError(f"external has shape {shape}, expected {full}")
+
+
 def check_steady_boundary(boundary, spatial, angles, groups, name):
     """Check a dense boundary is ``(2, *spatial, angles, groups)``.
 

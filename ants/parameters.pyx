@@ -26,6 +26,7 @@ cdef params _to_params(object pydic):
     # Collect Spatial cells, angles, energy groups
     info.cells_x = pydic.cells_x
     info.cells_y = pydic.cells_y
+    info.cells_z = pydic.cells_z
     info.angles = pydic.angles
     info.groups = pydic.groups
     info.materials = pydic.materials
@@ -39,6 +40,7 @@ cdef params _to_params(object pydic):
     # Boundary parameters
     info.bc_x = pydic.bc_x
     info.bc_y = pydic.bc_y
+    info.bc_z = pydic.bc_z
 
     # Time dependent parameters
     info.steps = pydic.steps
@@ -264,4 +266,26 @@ cdef int _check_critical2d_power_iteration(params info) except -1:
 cdef int _check_critical2d_nearby_power(params info) except -1:
     assert info.angles % 2 == 0, "Need an even number of angles"
     assert info.flux_at_edges == 0, "Cannot currently use cell edges"
+    return 0
+
+
+########################################################################
+# Three-dimensional functions
+########################################################################
+
+cdef int _check_fixed3d_source_iteration(params info, int xs_shape) except -1:
+    # The quadrature itself is checked in fixed3d
+    assert info.materials == xs_shape, "Incorrect number of materials"
+    assert info.geometry == 4, "Need a SLAB3D geometry"
+    # The angular flux, cell edges, and the angular flux for artificial
+    # scattering are found in one sweep, which can only reflect on one side
+    # of each axis
+    if (info.angular == True) or (info.flux_at_edges == 1) \
+            or (info.sigma_as > 0.0):
+        assert not ((info.bc_x[0] == 1) and (info.bc_x[1] == 1)), \
+                "Angular flux cannot reflect on both x boundaries"
+        assert not ((info.bc_y[0] == 1) and (info.bc_y[1] == 1)), \
+                "Angular flux cannot reflect on both y boundaries"
+        assert not ((info.bc_z[0] == 1) and (info.bc_z[1] == 1)), \
+                "Angular flux cannot reflect on both z boundaries"
     return 0

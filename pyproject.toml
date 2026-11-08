@@ -68,6 +68,7 @@ markers = [
     "multigroup1d: Higher number of energy groups (G = 87, 618) - longer times",
     "multigroup2d: Higher number of energy groups (G = 87, 618) - longer times",
     "slab2d: Two-dimensional slab problems",
+    "slab3d: Three-dimensional slab problems",
     "cylinder2d: Two-dimensional cylinder (circular) problems",
     "dimensions: Check the different dimensions of external and boundary sources",
     "math: test math functions - interpolation, error estimation, etc.",

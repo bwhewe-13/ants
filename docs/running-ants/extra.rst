@@ -114,6 +114,18 @@ Describes the spatial grid, material layout, and geometry type. See
         geometry=3,             # 3 = 2D slab
     )
 
+    # 3D
+    geometry = GeometryData(
+        medium_map=medium_map,  # shape (I, J, K), integer material indices
+        delta_x=delta_x,        # shape (I,)
+        delta_y=delta_y,        # shape (J,)
+        delta_z=delta_z,        # shape (K,)
+        bc_x=bc_x,
+        bc_y=bc_y,
+        bc_z=bc_z,
+        geometry=4,             # 4 = 3D slab
+    )
+
 
 SolverData
 -----------

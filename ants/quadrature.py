@@ -152,31 +152,39 @@ def _legendre_data(angle_x, angle_w, n_moments):
     return P_source, np.asarray(angle_w)[None, :] * P
 
 
-def harmonic_degrees(n_legendre):
-    """Legendre degree of each spherical harmonic moment in two dimensions.
+def harmonic_degrees(n_legendre, full_sphere=False):
+    """Legendre degree of each spherical harmonic moment.
 
     The 2D quadrature keeps only the upper hemisphere (``angle_z > 0``),
     so only the harmonics even in ``angle_z`` (``l + m`` even) are kept.
     Degree ``l`` has ``l + 1`` of them, ordered ``m = -l, -l + 2, ..., l``.
+    The 3D quadrature covers the full sphere and keeps all ``2l + 1``
+    harmonics of degree ``l``, ordered ``m = -l, -l + 1, ..., l``.
 
     Parameters
     ----------
     n_legendre : int
         Number of Legendre moments (L + 1).
+    full_sphere : bool, optional
+        If True, return the degrees of the full set of harmonics (3D).
 
     Returns
     -------
-    ell : ndarray of int, shape ((L + 1) * (L + 2) / 2,)
+    ell : ndarray of int, shape ((L + 1) * (L + 2) / 2,) or ((L + 1)**2,)
         Degree ``l`` of each harmonic moment.
     """
+    if full_sphere:
+        return np.repeat(np.arange(n_legendre), 2 * np.arange(n_legendre) + 1)
     return np.repeat(np.arange(n_legendre), np.arange(1, n_legendre + 1))
 
 
-def spherical_harmonics(n_legendre, angle_x, angle_y):
-    """Evaluate the real spherical harmonics even in ``angle_z`` at each ordinate.
+def spherical_harmonics(n_legendre, angle_x, angle_y, angle_z=None):
+    """Evaluate the real spherical harmonics at each ordinate.
 
-    The polar axis is z, with ``angle_z = sqrt(1 - angle_x**2 - angle_y**2)``
-    and the azimuthal angle measured from x. The harmonics are normalized
+    The polar axis is z and the azimuthal angle is measured from x. Without
+    ``angle_z`` (2D), ``angle_z = sqrt(1 - angle_x**2 - angle_y**2)`` and
+    only the harmonics even in ``angle_z`` are returned. With ``angle_z``
+    (3D), all of the harmonics are returned. The harmonics are normalized
     so that summing over ``m`` gives the addition theorem,
     ``sum_m Y_lm(a) Y_lm(b) = P_l(a . b)``, for the full set of ``m``.
     The associated Legendre functions from ``scipy.special.lpmv`` include
@@ -192,20 +200,27 @@ def spherical_harmonics(n_legendre, angle_x, angle_y):
         x-direction cosines.
     angle_y : ndarray, shape (angles,)
         y-direction cosines.
+    angle_z : ndarray, shape (angles,), optional
+        z-direction cosines for the full sphere (3D).
 
     Returns
     -------
-    Y : ndarray, shape ((L + 1) * (L + 2) / 2, angles)
+    Y : ndarray, shape ((L + 1) * (L + 2) / 2, angles) or ((L + 1)**2, angles)
         Harmonic moments ordered by :func:`harmonic_degrees`.
     """
     angle_x = np.asarray(angle_x, dtype=float)
     angle_y = np.asarray(angle_y, dtype=float)
-    angle_z = np.sqrt(np.clip(1.0 - angle_x**2 - angle_y**2, 0.0, None))
+    full_sphere = angle_z is not None
+    if full_sphere:
+        angle_z = np.asarray(angle_z, dtype=float)
+    else:
+        angle_z = np.sqrt(np.clip(1.0 - angle_x**2 - angle_y**2, 0.0, None))
     phi = np.arctan2(angle_y, angle_x)
-    Y = np.zeros((n_legendre * (n_legendre + 1) // 2, angle_x.size))
+    step = 1 if full_sphere else 2
+    Y = np.zeros((harmonic_degrees(n_legendre, full_sphere).size, angle_x.size))
     kk = 0
     for ll in range(n_legendre):
-        for mm in range(-ll, ll + 1, 2):
+        for mm in range(-ll, ll + 1, step):
             am = abs(mm)
             norm = (2.0 - (am == 0)) * factorial(ll - am) / factorial(ll + am)
             Y[kk] = np.sqrt(norm) * lpmv(am, ll, angle_z)
@@ -215,34 +230,40 @@ def spherical_harmonics(n_legendre, angle_x, angle_y):
 
 
 def harmonic_data(quadrature, n_legendre):
-    """Spherical harmonic arrays used by the 2D anisotropic scattering source.
+    """Spherical harmonic arrays used by the 2D and 3D anisotropic scattering source.
 
     Fills ``quadrature.P`` and ``quadrature.P_weights`` when they are
-    missing or do not match ``n_legendre``.
+    missing or do not match ``n_legendre``. A quadrature with ``angle_z``
+    (3D) uses the full set of harmonics.
 
     Parameters
     ----------
     quadrature : QuadratureData
-        Two-dimensional angular quadrature.
+        Two- or three-dimensional angular quadrature.
     n_legendre : int
         Number of Legendre moments (L + 1).
 
     Returns
     -------
-    P_source : ndarray, shape ((L + 1) * (L + 2) / 2, angles**2)
+    P_source : ndarray, shape (harmonics, ordinates)
         ``(2l + 1) * Y_lm(Omega_n)``, which expands flux moments into the
-        angular scattering source.
-    P_weights : ndarray, shape ((L + 1) * (L + 2) / 2, angles**2)
+        angular scattering source. There are ``(L + 1) * (L + 2) / 2``
+        harmonics in 2D and ``(L + 1)**2`` in 3D.
+    P_weights : ndarray, shape (harmonics, ordinates)
         ``w_n * Y_lm(Omega_n)``, which projects angular flux onto moments.
     """
     angle_x = np.asarray(quadrature.angle_x, dtype=float)
-    expected = (n_legendre * (n_legendre + 1) // 2, angle_x.shape[0])
+    full_sphere = quadrature.angle_z is not None
+    ell = harmonic_degrees(n_legendre, full_sphere)
+    expected = (ell.size, angle_x.shape[0])
     if (quadrature.P is None) or (np.shape(quadrature.P) != expected):
-        quadrature.P = spherical_harmonics(n_legendre, angle_x, quadrature.angle_y)
+        quadrature.P = spherical_harmonics(
+            n_legendre, angle_x, quadrature.angle_y, quadrature.angle_z
+        )
         quadrature.P_weights = None
     if (quadrature.P_weights is None) or (np.shape(quadrature.P_weights) != expected):
         quadrature.P_weights = np.asarray(quadrature.angle_w)[None, :] * quadrature.P
-    P_source = (2 * harmonic_degrees(n_legendre) + 1)[:, None] * quadrature.P
+    P_source = (2 * ell + 1)[:, None] * quadrature.P
     return P_source, np.ascontiguousarray(quadrature.P_weights, dtype=float)
 
 
@@ -260,14 +281,14 @@ def _harmonic_order(n_moments):
 
 
 # Called from cython
-def _scatter_harmonics(scatter):
+def _scatter_harmonics(scatter, full_sphere=False):
     # Scatter moments (materials, groups, groups, harmonics) where each
     # harmonic uses the Legendre moment of its degree. Isotropic scattering
     # is a single moment (no copy).
     scatter = np.asarray(scatter)
     if scatter.ndim == 3:
         return scatter[..., None]
-    ell = harmonic_degrees(scatter.shape[3])
+    ell = harmonic_degrees(scatter.shape[3], full_sphere)
     return np.ascontiguousarray(scatter[..., ell])
 
 

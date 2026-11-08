@@ -1,8 +1,10 @@
 Getting Started
 ===============================================
 
-The ANTS package solves the discrete ordinates neutron transport equation in both
-one-dimensional (slab and sphere) and two-dimensional (rectangular) geometry.
+The ANTS package solves the discrete ordinates neutron transport equation in
+one-dimensional (slab and sphere), two-dimensional (rectangular), and
+three-dimensional (rectangular) geometry. Three-dimensional problems are currently
+limited to fixed source problems.
 
 **Problem Types Supported:**
 
@@ -61,7 +63,9 @@ Throughout the documentation, the following notation is used for problem dimensi
 
 * :math:`I` : Number of spatial cells in the x direction
 * :math:`J` : Number of spatial cells in the y direction
-* :math:`N` : Number of discrete angles (1D) or :math:`N^2` total angles (2D)
+* :math:`K` : Number of spatial cells in the z direction (3D)
+* :math:`N` : Number of discrete angles (1D), :math:`N^2` total angles (2D), or the
+  total number of ordinates (3D, :math:`2 N^2` for ``angular_xyz(N)``)
 * :math:`G` : Number of energy groups
 * :math:`T` : Total elapsed time
 * :math:`M` : Number of different materials

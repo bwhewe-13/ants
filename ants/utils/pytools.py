@@ -211,7 +211,7 @@ def spatial_error(approx, reference, ndims=1):
     Arguments:
         approx (array double): approximate flux
         reference (array double): Reference flux
-        ndims (int): Number of spatial dimensions for flux (1 or 2)
+        ndims (int): Number of spatial dimensions for flux (1, 2, or 3)
     Returns:
         L2 error normalized for the number of spatial cells
     """
@@ -220,6 +220,8 @@ def spatial_error(approx, reference, ndims=1):
         normalized = (approx.shape[0]) ** (-0.5)
     elif ndims == 2:
         normalized = (approx.shape[0] * approx.shape[1]) ** (-0.5)
+    elif ndims == 3:
+        normalized = (approx.shape[0] * approx.shape[1] * approx.shape[2]) ** (-0.5)
     return normalized * np.linalg.norm(approx - reference)
 
 
