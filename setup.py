@@ -71,4 +71,14 @@ ext_utils = Extension(
     include_dirs=[np.get_include()],
 )
 
-setup(ext_modules=cythonize([ext, ext_utils], language_level="3"))
+ext_modules = cythonize([ext, ext_utils], language_level="3")
+
+if os.environ.get("CIBUILDWHEEL") == "1":
+    # The .pyx files ask for -march=native, which would tie the wheels to
+    # the CPU of the build machine
+    for module in ext_modules:
+        module.extra_compile_args = [
+            arg for arg in module.extra_compile_args if arg != "-march=native"
+        ]
+
+setup(ext_modules=ext_modules)
