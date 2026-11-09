@@ -132,6 +132,7 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "**.ipynb_checkpoints"]
 # a list of builtin themes.
 #
 html_theme = "pydata_sphinx_theme"
+html_title = f"ANTS {release}"
 html_theme_options = {
     "logo": {
         "image_light": "_static/logo.svg",

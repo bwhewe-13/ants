@@ -16,10 +16,12 @@ limited to fixed source problems.
 
 * **Hybrid methods**: Collision-based decomposition for time-dependent problems
 * **DMD (Dynamic Mode Decomposition)**: Reduced-order acceleration for multigroup problems
+* **Artificial scattering (as-SN)**: Ray effect mitigation in two and three dimensions
+* **OpenMP**: Parallel sweeps over angles, energy groups, or both
 
 **Discretizations:**
 
-* **Spatial**: Step characteristic method or diamond difference
+* **Spatial**: Step method, diamond difference, or step characteristic
 * **Angular**: Discrete ordinates (product quadrature sets)
 * **Energy**: Multigroup formulation
 * **Time**: BDF1 (backward Euler), BDF2, Crank-Nicolson (CN), and TR-BDF2
@@ -28,6 +30,28 @@ limited to fixed source problems.
 Installation
 ------------
 
+ANTS is on PyPI as ``ants-sn`` and is imported as ``ants``:
+
+.. code-block:: bash
+
+   python -m pip install ants-sn
+
+Wheels are built for CPython 3.11 to 3.14 on Linux, macOS 15 or newer, and
+Windows, so no compiler is needed. Cross sections from HDF5 libraries need the
+``library`` extra:
+
+.. code-block:: bash
+
+   python -m pip install "ants-sn[library]"
+
+To build from source, which needs a C++ compiler and OpenMP (``brew install
+libomp`` on macOS), clone the repository and install it in editable mode:
+
+.. code-block:: bash
+
+   git clone https://github.com/bwhewe-13/ants.git
+   cd ants
+   python -m pip install -e ".[dev]"
 
 
 Required Input Data
