@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.1 (2026-11-08)
+
+### Added
+- ANTS is on PyPI as `ants-sn` (`pip install ants-sn`). Wheels are built for
+  CPython 3.11-3.14 on Linux (x86_64 and aarch64), macOS 15 or newer (arm64
+  and x86_64), and Windows (x86_64), so no compiler is needed. The package is
+  still imported as `ants`.
+
+### Changed
+- The distribution is named `ants-sn` (was `ants`). Run `pip uninstall ants`
+  before installing `ants-sn` over an earlier source install.
+- The wheels are built without `-march=native` so they run on any CPU. Source
+  builds still use it and can be a little faster.
+
 ## 0.3.0 (2026-11-08)
 
 ### Added
