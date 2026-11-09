@@ -167,9 +167,9 @@ class MaterialData:
         ``(materials, groups, groups, L + 1)``, without the ``(2l + 1)``
         factor.
     fission : numpy.ndarray
-        Fission cross section, shape ``(materials, groups)`` if ``chi`` is
-        ``None``, else
-        ``(materials, groups, groups)``.
+        Fission matrix, shape ``(materials, groups, groups)``, if ``chi``
+        is ``None``. With ``chi``, the fission cross section (including nu),
+        shape ``(materials, groups)``.
     chi : numpy.ndarray, optional
         Fission spectrum, shape ``(materials, groups)``.
     velocity : numpy.ndarray, optional
@@ -454,11 +454,13 @@ class HybridData:
     Attributes
     ----------
     fine_idx : numpy.ndarray
-        Fine-group indices, shape ``(groups_fine,)``.
+        Edges of the coarse groups as fine-group indices, shape
+        ``(groups_coarse + 1,)``.
     coarse_idx : numpy.ndarray
         Coarse-group index for each fine group, shape ``(groups_fine,)``.
     factor : numpy.ndarray
-        Coarse-to-fine scaling factor, shape ``(groups_fine,)``.
+        Width of each fine group divided by the width of its coarse group,
+        shape ``(groups_fine,)``.
     """
 
     fine_idx: np.ndarray
