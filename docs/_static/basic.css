@@ -1,16 +1,16 @@
+/* Theme colors keep the boxes and borders readable in dark mode */
 dl.py {
-    background-color: #f8f8f8;
+    background-color: var(--pst-color-surface);
     padding: 0.5em;
-    border: 1px solid #ccc;
+    border: 1px solid var(--pst-color-border);
     border-radius: 2px;
 }
 
 
 table, th, td {
-    border: 1px solid black;
+    border: 1px solid var(--pst-color-border);
     border-collapse: collapse;
     padding-top: 5px;
-    /* padding-bottom: 12px; */
 }
 
 
