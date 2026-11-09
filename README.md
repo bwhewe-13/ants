@@ -3,20 +3,36 @@
   <img alt="ants" src="https://raw.githubusercontent.com/bwhewe-13/ants/main/docs/_static/logo.svg" width="202">
 </picture>
 
-[![Python Versions](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue)](https://pypi.org/project/ants-sn/)
+[![PyPI](https://img.shields.io/pypi/v/ants-sn)](https://pypi.org/project/ants-sn/)
+[![Python Versions](https://img.shields.io/pypi/pyversions/ants-sn)](https://pypi.org/project/ants-sn/)
 [![Style](https://img.shields.io/github/actions/workflow/status/bwhewe-13/ants/ci.yml?label=Style)](https://github.com/bwhewe-13/ants/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/github/actions/workflow/status/bwhewe-13/ants/tests.yml?label=Tests)](https://github.com/bwhewe-13/ants/actions/workflows/tests.yml)
 [![Coverage](https://codecov.io/gh/bwhewe-13/ants/graph/badge.svg)](https://codecov.io/gh/bwhewe-13/ants)
-[![Docs](https://img.shields.io/github/actions/workflow/status/bwhewe-13/ants/docs.yml?label=Docs)](https://bwhewe-13.github.io/ants/)
+[![Docs](https://img.shields.io/github/actions/workflow/status/bwhewe-13/ants/docs.yml?label=Docs)](https://www.ben-whewell.com/ants/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![DOI](https://zenodo.org/badge/465198427.svg)](https://doi.org/10.5281/zenodo.24066032)
 
-A Neutron Transport Solution (ANTS) calculates the neutron flux for both criticality and fixed source problems of one dimensional slabs and spheres and two dimensional slabs, and fixed source problems of three dimensional slabs, using the discrete ordinates method and written in Cython.
+A Neutron Transport Solution (ANTS) solves the neutron transport equation with the discrete ordinates (S<sub>N</sub>) method. It is written in Cython and parallelized over angles and energy groups with OpenMP. The solutions are checked with manufactured solutions, benchmark problems, and the method of nearby problems.
 
-There are a number of different acceleration methods used including a collision-based hybrid method, machine learning models to predict matrix-vector multiplication, dynamic mode decomposition, and synthetic diffusion acceleration (DSA).
+📖 **Documentation:** [www.ben-whewell.com/ants](https://www.ben-whewell.com/ants/)
 
-There are also verification procedures to ensure both the code and solutions are correct. For code verification, manufactured solutions are used for one-, two-, and three-dimensional slab problems to ensure proper discretization. Solution verification uses the method of nearby problems, which uses one spatial grid.
+&nbsp;
 
-📖 **Documentation:** The full ANTS documentation is hosted online at [bwhewe-13.github.io/ants](https://bwhewe-13.github.io/ants/).
+## Features
+
+|              | 1D | 2D | 3D |
+|--------------|----|----|----|
+| Geometry     | Slab, sphere | Slab | Slab |
+| Problems     | Fixed source, criticality, time-dependent | Fixed source, criticality, time-dependent | Fixed source |
+| Spatial      | Step, diamond difference, step characteristic | Step, diamond difference, step characteristic | Step, diamond difference, step characteristic |
+| Time         | Backward Euler, Crank-Nicolson, BDF2, TR-BDF2 | Backward Euler, Crank-Nicolson, BDF2, TR-BDF2 | |
+| Scattering   | Isotropic, anisotropic | Isotropic, anisotropic | Isotropic, anisotropic |
+| Acceleration | DMD, hybrid | DMD, hybrid, as-S<sub>N</sub> | DMD, as-S<sub>N</sub> |
+| Verification | Manufactured solutions, Sood benchmarks, ICSBEP, nearby problems | Manufactured solutions, Sood benchmarks, nearby problems | Manufactured solutions, Kobayashi benchmarks |
+
+DMD is dynamic mode decomposition, hybrid is the collision-based hybrid method, and
+as-S<sub>N</sub> is artificial scattering to reduce ray effects. Planned features are in
+[TODO.md](TODO.md).
 
 &nbsp;
 
@@ -31,8 +47,8 @@ There are also verification procedures to ensure both the code and solutions are
 ```bash
 python -m pip install ants-sn
 ```
-The package is imported as `ants`. Wheels are built for Linux, macOS, and Windows, so
-no compiler is needed.
+The package is imported as `ants`. Wheels are built for Linux, macOS 15 or newer, and
+Windows, so no compiler is needed.
 
 ### Install from source
 ```bash
@@ -44,6 +60,7 @@ python -m pip install .
 ```bash
 python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
+pre-commit install
 ```
 
 ### Cross section libraries
@@ -55,14 +72,42 @@ python -m pip install "ants-sn[library]"
 The standard NJOY and Serpent energy group structures (`ants.list_structures()`) and
 ICSBEP benchmark specifications (`ants.list_benchmarks()`) are included with ANTS.
 
-### Enable pre-commit hooks
-```bash
-pre-commit install
-```
-
 ## Running ANTS
 
-Run one of the provided examples from the repository root:
+A one group fixed source problem in a 10 cm slab with vacuum boundaries:
+
+```python
+import numpy as np
+
+import ants
+from ants.datatypes import GeometryData, MaterialData, SolverData, SourceData
+from ants.fixed1d import fixed_source
+
+cells_x = 100
+edges_x = np.linspace(0.0, 10.0, cells_x + 1)
+
+materials = MaterialData(
+    total=np.array([[1.0]]),
+    scatter=np.array([[[0.5]]]),
+    fission=np.zeros((1, 1, 1)),
+)
+sources = SourceData(
+    external=np.ones((cells_x, 1, 1)),
+    boundary_x=np.zeros((2, 1, 1)),
+)
+geometry = GeometryData(
+    medium_map=np.zeros(cells_x, dtype=np.int32),
+    delta_x=np.diff(edges_x),
+)
+quadrature = ants.angular_x(8)
+
+flux = fixed_source(materials, sources, geometry, quadrature, SolverData())
+print(flux.shape)  # (cells_x, groups)
+```
+
+The [`examples/`](examples) folder of the repository has more problems, including
+criticality, time-dependent, hybrid, and 2D and 3D problems. Run them from the
+repository root:
 
 ```bash
 python examples/fixed_source_1d_reeds.py
@@ -75,6 +120,10 @@ python examples/icsbep_suite.py path/to/library.h5
 ### Run tests
 ```bash
 pytest tests
+```
+or, in parallel with `make`:
+```bash
+make test
 ```
 
 ### Run smoke tests (quick check)
@@ -93,60 +142,18 @@ pre-commit run --all-files
 ```
 
 ### Documentation
-The full documentation is hosted online at [bwhewe-13.github.io/ants](https://bwhewe-13.github.io/ants/). To build it locally:
+Building the [documentation](https://www.ben-whewell.com/ants/) locally needs [pandoc](https://pandoc.org/) and a LaTeX install with TikZ:
 ```bash
-python -m pip install sphinx sphinxcontrib-bibtex sphinxcontrib-tikz
-make -C docs html
+python -m pip install -e ".[docs]"
+make docs
 ```
 
 &nbsp;
 
-## One Dimensional Features
-| Spatial Discretization    | Temporal Discretization    | Multigroup Solve          | K-Eigenvalue Solve      |
-|---------------------------|----------------------------|---------------------------|-------------------------|
-| &#9745; Step Method       | &#9745; Backward Euler     | &#9745; Source Iteration  | &#9745; Power Iteration |
-| &#9745; Diamond Difference    | &#9745; BDF2           | &#9744; DSA               | &#9744; DJINN           |
-| &#9745; Step Characteristic   | &#9745; Crank-Nicolson | &#9745; DMD               | &#9745; DMD             |
-| &#9744; Discontinuous Galerkin| &#9745; TR - BDF2      | &#9744; GMRES             | &#9744; Davidson Method |
+## Citing ANTS
+If you use ANTS in your work, please cite it with the DOI
+[10.5281/zenodo.24066032](https://doi.org/10.5281/zenodo.24066032), which always points
+to the latest version. Each release also has its own DOI on Zenodo. The **Cite this
+repository** button on GitHub gives the citation in APA and BibTeX.
 
-&nbsp;
-
-## Two Dimensional Features
-| Spatial Discretization    | Temporal Discretization    | Multigroup Solve          | K-Eigenvalue Solve      |
-|---------------------------|----------------------------|---------------------------|-------------------------|
-| &#9745; Step Method       | &#9745; Backward Euler     | &#9745; Source Iteration  | &#9745; Power Iteration |
-| &#9745; Diamond Difference    | &#9745; BDF2           | &#9744; DSA               | &#9745; DMD             |
-| &#9745; Step Characteristic   | &#9745; Crank-Nicolson | &#9745; DMD               | &#9744; Davidson Method |
-| &#9744; Discontinuous Galerkin| &#9745; TR - BDF2      | &#9744; GMRES             |                         |
-
-&nbsp;
-
-## Three Dimensional Features
-| Spatial Discretization    | Temporal Discretization    | Multigroup Solve          | K-Eigenvalue Solve      |
-|---------------------------|----------------------------|---------------------------|-------------------------|
-| &#9745; Step Method       | &#9744; Backward Euler     | &#9745; Source Iteration  | &#9744; Power Iteration |
-| &#9745; Diamond Difference    | &#9744; BDF2           | &#9744; DSA               | &#9744; DMD             |
-| &#9745; Step Characteristic   | &#9744; Crank-Nicolson | &#9745; DMD               | &#9744; Davidson Method |
-| &#9744; Discontinuous Galerkin| &#9744; TR - BDF2      | &#9744; GMRES             |                         |
-
-&nbsp;
-
-## Code and Solution Verification
-- &#9744; Spatial Method of Manufactured Solutions (1D/2D/3D)
-    - &#9745; &#9745; &#9745; Step Method
-    - &#9745; &#9745; &#9745; Diamond Difference
-    - &#9745; &#9745; &#9745; Step Characteristics
-    - &#9744; &#9744; &#9744; Discontinuous Galerkin
-- &#9745; Temporal Method of Manufactured Solutions
-    - &#9745; &#9745; Backward Euler
-    - &#9745; &#9745; BDF2
-    - &#9745; &#9745; Crank-Nicolson
-    - &#9745; &#9745; TR - BDF2
-- &#9745; &#9745; Criticality Benchmarks \
-    (Analytical Benchmark Test Set for Criticality Code Verification, Sood et al)
-- &#9745; ICSBEP Fast Metal Benchmarks (1D)
-- &#9745; Kobayashi Benchmarks (3D) \
-    (3-D Radiation Transport Benchmark Problems and Results for Simple Geometries with Void Regions, Kobayashi et al)
-- &#9745; &#9745; Method of Nearby Problems (MNP)
-
-&nbsp;
+The changes in each version are in the [changelog](CHANGELOG.md).

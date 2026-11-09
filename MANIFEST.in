@@ -1,4 +1,4 @@
-include CHANGELOG.md
+include CHANGELOG.md CITATION.cff
 recursive-include ants *.pyx *.pxd
 prune ants/sources
 global-exclude *.c *.cpp *.so *.pyd *.dylib *.py[cod] __pycache__

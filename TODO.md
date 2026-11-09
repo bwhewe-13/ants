@@ -38,6 +38,7 @@
 - [ ] Add geometry support (gmsh, shapely, PyVista).
 - [ ] Add Diffusion Synthetic Acceleration.
 - [ ] Add Generalized Minimal Residual (GMRES) Acceleration.
+- [ ] Add the Davidson method for the k-eigenvalue problem.
 - [ ] Add banded triangular meshes (2D).
 - [ ] Add r-z geometry.
 - [ ] Implement discontinuous Galerkin spatial discretization (1D/2D).

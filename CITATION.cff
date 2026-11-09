@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "If you use ANTS, please cite it as below."
+type: software
+title: "ANTS: A Neutron Transport Solution"
+abstract: >-
+  ANTS solves the neutron transport equation with the discrete ordinates
+  (S_N) method for fixed source, criticality, and time-dependent problems in
+  one and two dimensions, and fixed source problems in three dimensions. It
+  is written in Cython and parallelized with OpenMP.
+authors:
+  - family-names: Whewell
+    given-names: Ben
+doi: 10.5281/zenodo.24066032
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.24066032
+    description: All versions of ANTS
+repository-code: "https://github.com/bwhewe-13/ants"
+url: "https://bwhewe-13.github.io/ants/"
+license: MIT
+keywords:
+  - neutron transport
+  - discrete ordinates
+  - radiation transport
+  - nuclear engineering
+  - Cython
