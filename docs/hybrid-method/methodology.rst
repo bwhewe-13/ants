@@ -81,9 +81,9 @@ continuous and multigroup discrete ordinates transport equations found in
 :doc:`../neutron-transport/index`. Numerical results for one-dimensional test
 problems, initially presented in :cite:`whewell2023`, are given in
 :doc:`one-dimensional` and compare the hybrid method to more traditional
-approaches. Two-dimensional results and conclusions, which demonstrate the
+approaches. Two-dimensional results :cite:`whewell2025`, which demonstrate the
 abilities of the hybrid method in more computationally expensive examples, are
-presented in later sections.
+given in :doc:`two-dimensional`.
 
 
 .. _sec-hy-formulation:
