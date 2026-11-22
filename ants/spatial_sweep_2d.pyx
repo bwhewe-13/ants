@@ -19,12 +19,11 @@
 # distutils: language = c++
 # distutils: extra_compile_args = -O3 -march=native -ffast-math
 
-from libc.math cimport tanh
-
 from cython.parallel import prange, threadid
 
 from ants cimport cytools_2d as tools
 from ants.cytools_polygon cimport PolygonSweep
+from ants.cytools_shared cimport step_characteristic_weight
 from ants.parameters cimport params
 from ants.spatial_sweep_polygon cimport (
     _known_polygon,
@@ -43,54 +42,78 @@ from ants.spatial_sweep_polygon cimport (
 #
 # The square_forward_x / square_backward_x helpers update edge_y[:] in
 # place for a single column jj.  Inside prange each thread works on a
-# distinct angle nn and allocates its own local known_x / known_y on
-# entry to square_sweep, so there is no sharing of those arrays between
-# threads.
+# distinct angle nn with its own row of known_x_work / known_y_work, so
+# there is no sharing of those arrays between threads.
 ########################################################################
 
 cdef void discrete_ordinates(double[:,:]& flux, double[:,:]& flux_old,
         double[:]& xs_total, double[:]& xs_scatter, double[:,:]& off_scatter, \
-        double[:,:,:]& external, double[:,:,:]& boundary_x, \
+        double[:,:,:]& external, int[:]& q_col, double[:,:,:]& boundary_x, \
         double[:,:,:]& boundary_y, int[:,:]& medium_map, double[:]& delta_x, \
         double[:]& delta_y, PolygonSweep mesh, double[:]& angle_x, \
         double[:]& angle_y, double[:]& angle_w, params info):
+    # Polygon spatial cells (POLYGON2D = 5)
+    if info.geometry == 5:
+        polygon_ordinates(flux, flux_old, xs_total, xs_scatter, off_scatter, \
+                          external, q_col, boundary_x, medium_map, mesh, \
+                          angle_x, angle_y, angle_w, info)
+        return
+    # Allocate the work arrays for a single sweep
+    cdef int N2 = info.angles * info.angles
+    thread_flux = tools.array_3d(info.num_threads, info.cells_x, info.cells_y)
+    reflected_y = tools.array_3d(2, info.cells_x, N2)
+    reflected_x = tools.array_3d(2, info.cells_y, N2)
+    known_y_work = tools.array_2d(N2, info.cells_x)
+    known_x_work = tools.array_2d(N2, info.cells_y)
+    discrete_ordinates_nogil(flux, flux_old, xs_total, xs_scatter, \
+                off_scatter, external, q_col, boundary_x, boundary_y, \
+                medium_map, delta_x, delta_y, angle_x, angle_y, angle_w, \
+                info, thread_flux, reflected_y, reflected_x, known_y_work, \
+                known_x_work)
+
+
+cdef void discrete_ordinates_nogil(double[:,:]& flux, double[:,:]& flux_old,
+        double[:]& xs_total, double[:]& xs_scatter, double[:,:]& off_scatter, \
+        double[:,:,:]& external, int[:]& q_col, double[:,:,:]& boundary_x, \
+        double[:,:,:]& boundary_y, int[:,:]& medium_map, double[:]& delta_x, \
+        double[:]& delta_y, double[:]& angle_x, double[:]& angle_y, \
+        double[:]& angle_w, params info, double[:,:,:]& thread_flux, \
+        double[:,:,:]& reflected_y, double[:,:,:]& reflected_x, \
+        double[:,:]& known_y_work, double[:,:]& known_x_work) noexcept nogil:
     # Rectangular spatial cells (SLAB2D = 3)
     if info.geometry == 3:
         square_ordinates(flux, flux_old, xs_total, xs_scatter, off_scatter, \
-                         external, boundary_x, boundary_y, medium_map, \
-                         delta_x, delta_y, angle_x, angle_y, angle_w, info)
-    # Polygon spatial cells (POLYGON2D = 4)
-    elif info.geometry == 4:
-        polygon_ordinates(flux, flux_old, xs_total, xs_scatter, off_scatter, \
-                          external, boundary_x, medium_map, mesh, angle_x, \
-                          angle_y, angle_w, info)
+                         external, q_col, boundary_x, boundary_y, medium_map, \
+                         delta_x, delta_y, angle_x, angle_y, angle_w, info, \
+                         thread_flux, reflected_y, reflected_x, known_y_work, \
+                         known_x_work)
 
 
 cdef void square_ordinates(double[:,:]& flux, double[:,:]& flux_old, \
         double[:]& xs_total, double[:]& xs_scatter, double[:,:]& off_scatter, \
-        double[:,:,:]& external, double[:,:,:]& boundary_x, \
+        double[:,:,:]& external, int[:]& q_col, double[:,:,:]& boundary_x, \
         double[:,:,:]& boundary_y, int[:,:]& medium_map, double[:]& delta_x, \
         double[:]& delta_y, double[:]& angle_x, double[:]& angle_y, \
-        double[:]& angle_w, params info):
+        double[:]& angle_w, params info, double[:,:,:]& thread_flux, \
+        double[:,:,:]& reflected_y, double[:,:,:]& reflected_x, \
+        double[:,:]& known_y_work, double[:,:]& known_x_work) noexcept nogil:
 
     cdef int nn, ii, jj, qq, bcx, bcy, tid
     cdef int N2 = info.angles * info.angles
 
-    # Per-thread scalar-flux buffer: each thread accumulates contributions
-    # from all its assigned angles.  Using num_threads slices instead of N2
-    # keeps the hot buffer ~N2/num_threads times smaller, avoiding the cache
-    # thrashing that dominates runtime when N2 is large.
-    thread_flux = tools.array_3d(info.num_threads, info.cells_x, info.cells_y)
+    # Per-thread scalar-flux buffer (thread_flux): each thread accumulates
+    # contributions from all its assigned angles.  Using num_threads slices
+    # instead of N2 keeps the hot buffer ~N2/num_threads times smaller,
+    # avoiding the cache thrashing that dominates runtime when N2 is large.
+    #
+    # Per-angle known-edge work arrays (known_{x,y}_work): thread nn
+    # reads/writes only row nn, so there are no races.  After prange these
+    # hold the outgoing exit edges and are used to update the reflectors
+    # sequentially.
 
     # Reflector arrays - read-only inside prange, updated sequentially below.
-    reflected_y = tools.array_3d(2, info.cells_x, N2)
-    reflected_x = tools.array_3d(2, info.cells_y, N2)
-
-    # Per-angle known-edge work arrays.  Thread nn reads/writes only row nn,
-    # so there are no races.  After prange these hold the outgoing exit edges
-    # and are used to update the reflectors sequentially.
-    known_y_work = tools.array_2d(N2, info.cells_x)
-    known_x_work = tools.array_2d(N2, info.cells_y)
+    reflected_y[:,:,:] = 0.0
+    reflected_x[:,:,:] = 0.0
 
     cdef bint converged = False
     cdef int count = 1
@@ -115,8 +138,8 @@ cdef void square_ordinates(double[:,:]& flux, double[:,:]& flux_old, \
         #   - Thread tid accumulates into thread_flux[tid, :, :].
         #   - known_x_work[nn, :] and known_y_work[nn, :] belong to nn.
         #   - reflected_x/y are not written here.
-        for nn in prange(N2, nogil=True, schedule="static", num_threads=info.num_threads):
-            qq = 0 if external.shape[2] == 1 else nn
+        for nn in prange(N2, schedule="static", num_threads=info.num_threads):
+            qq = q_col[nn]
             tid = threadid()
             square_sweep_private(thread_flux[tid, :, :], flux_old, xs_total, \
                     xs_scatter, off_scatter, external[:, :, qq], known_x_work[nn, :], \
@@ -178,13 +201,6 @@ cdef double spatial_coef(int spatial) noexcept nogil:
     elif (spatial == 2):
         return 0.0
     return 1.0
-
-
-cdef double characteristic_coef(double tau) noexcept nogil:
-    # coth(tau / 2) - 2 / tau, series for thin and void cells
-    if tau < 1e-4:
-        return tau / 6.0
-    return 1.0 / tanh(0.5 * tau) - 2.0 / tau
 
 
 cdef void square_forward_y(double[:,:]& flux, double[:,:]& flux_old, \
@@ -280,10 +296,10 @@ cdef double square_forward_x(double[:,:]& flux, double[:,:]& flux_old, \
         if info.spatial == 3:
             # coef_x and coef_y are base coefficients (alpha==1) for spatial==3
             tau_x = (xs_total[mat] - info.xs_time) / coef_x
-            W_x = characteristic_coef(tau_x)
+            W_x = step_characteristic_weight(tau_x)
             coef_x = 2.0 / (1.0 + W_x) * coef_x
             tau_y = (xs_total[mat] - info.xs_time) / coef_y
-            W_y = characteristic_coef(tau_y)
+            W_y = step_characteristic_weight(tau_y)
             coef_y_eff = 2.0 / (1.0 + W_y) * coef_y
         else:
             W_x = alpha
@@ -331,10 +347,10 @@ cdef double square_backward_x(double[:,:]& flux, double[:,:]& flux_old, \
         if info.spatial == 3:
             # coef_x = -angle_x/dx > 0 (angle_x < 0 in backward); coef_y is base
             tau_x = (xs_total[mat] - info.xs_time) / coef_x
-            W_x = characteristic_coef(tau_x)
+            W_x = step_characteristic_weight(tau_x)
             coef_x = 2.0 / (1.0 + W_x) * coef_x
             tau_y = (xs_total[mat] - info.xs_time) / coef_y
-            W_y = characteristic_coef(tau_y)
+            W_y = step_characteristic_weight(tau_y)
             coef_y_eff = 2.0 / (1.0 + W_y) * coef_y
         else:
             W_x = alpha
@@ -370,7 +386,7 @@ cdef void _known_center_sweep(double[:,:,:]& flux, double[:]& xs_total, \
         PolygonSweep mesh, double[:]& angle_x, double[:]& angle_y, \
         double[:]& angle_w, params info):
     # Polygon spatial cells
-    if info.geometry == 4:
+    if info.geometry == 5:
         _known_polygon(flux, xs_total, zero_2d, source, boundary_x, \
                        medium_map, mesh, angle_x, angle_y, angle_w, info)
         return
@@ -441,7 +457,7 @@ cdef void _known_interface_sweep(double[:,:,:]& flux_edge_x, \
         params info):
 
     # Polygon spatial cells - face fluxes in flux_edge_x, centers in flux_edge_y
-    if info.geometry == 4:
+    if info.geometry == 5:
         _known_polygon_interface(flux_edge_x, flux_edge_y, xs_total, source, \
                     boundary_x, medium_map, mesh, angle_x, angle_y, angle_w, \
                     info)
@@ -603,10 +619,10 @@ cdef double interface_forward_x(double[:]& flux_edge_x, double[:]& flux_edge_y, 
 
         if info.spatial == 3:
             tau_x = (xs_total[mat] - info.xs_time) / coef_x
-            W_x = characteristic_coef(tau_x)
+            W_x = step_characteristic_weight(tau_x)
             coef_x = 2.0 / (1.0 + W_x) * coef_x
             tau_y = (xs_total[mat] - info.xs_time) / coef_y
-            W_y = characteristic_coef(tau_y)
+            W_y = step_characteristic_weight(tau_y)
             coef_y_eff = 2.0 / (1.0 + W_y) * coef_y
         else:
             W_x = alpha
@@ -656,10 +672,10 @@ cdef double interface_backward_x(double[:]& flux_edge_x, double[:]& flux_edge_y,
 
         if info.spatial == 3:
             tau_x = (xs_total[mat] - info.xs_time) / coef_x
-            W_x = characteristic_coef(tau_x)
+            W_x = step_characteristic_weight(tau_x)
             coef_x = 2.0 / (1.0 + W_x) * coef_x
             tau_y = (xs_total[mat] - info.xs_time) / coef_y
-            W_y = characteristic_coef(tau_y)
+            W_y = step_characteristic_weight(tau_y)
             coef_y_eff = 2.0 / (1.0 + W_y) * coef_y
         else:
             W_x = alpha
@@ -691,21 +707,63 @@ cdef double interface_backward_x(double[:]& flux_edge_x, double[:]& flux_edge_y,
 # (cells_x, cells_y, moments). Each ordinate builds its scattering source
 # and reuses the isotropic sweep with zero scattering, then adds
 # w_n Y_k(Omega_n) psi_n to the moments.
+#
+# Work arrays, see discrete_ordinates.
+#   thread_psi    (num_threads, cells_x, cells_y)           angular flux
+#   thread_source (num_threads, cells_x, cells_y)           angular source
+#   thread_flux   (num_threads, cells_x, cells_y, moments)  per-thread moments
+#   zero_2d (cells_x, cells_y), zero_xs (materials)         read-only zeros
+#   reflected_{y,x}, known_{y,x}_work                       see above
 
 cdef void discrete_ordinates_aniso(double[:,:,:]& flux, \
         double[:,:,:]& flux_old, double[:]& xs_total, \
         double[:,:]& xs_scatter, double[:,:,:]& off_scatter, \
-        double[:,:,:]& external, double[:,:,:]& boundary_x, \
+        double[:,:,:]& external, int[:]& q_col, double[:,:,:]& boundary_x, \
         double[:,:,:]& boundary_y, int[:,:]& medium_map, double[:]& delta_x, \
         double[:]& delta_y, PolygonSweep mesh, double[:]& angle_x, \
         double[:]& angle_y, double[:]& angle_w, double[:,:]& P_source, \
         double[:,:]& P_weights, params info):
-    # Rectangular spatial cells (SLAB2D = 3), polygon meshes are isotropic only
+    # Polygon meshes only have isotropic scattering, see create_params
+    # Allocate the work arrays for a single sweep
+    cdef int N2 = info.angles * info.angles
+    thread_psi = tools.array_3d(info.num_threads, info.cells_x, info.cells_y)
+    thread_source = tools.array_3d(info.num_threads, info.cells_x, info.cells_y)
+    thread_flux = tools.array_4d(info.num_threads, info.cells_x, info.cells_y, \
+                                 info.moments)
+    zero_2d = tools.array_2d(info.cells_x, info.cells_y)
+    zero_xs = tools.array_1d(info.materials)
+    reflected_y = tools.array_3d(2, info.cells_x, N2)
+    reflected_x = tools.array_3d(2, info.cells_y, N2)
+    known_y_work = tools.array_2d(N2, info.cells_x)
+    known_x_work = tools.array_2d(N2, info.cells_y)
+    discrete_ordinates_aniso_nogil(flux, flux_old, xs_total, xs_scatter, \
+                off_scatter, external, q_col, boundary_x, boundary_y, \
+                medium_map, delta_x, delta_y, angle_x, angle_y, angle_w, \
+                P_source, P_weights, info, thread_psi, thread_source, \
+                thread_flux, zero_2d, zero_xs, reflected_y, reflected_x, \
+                known_y_work, known_x_work)
+
+
+cdef void discrete_ordinates_aniso_nogil(double[:,:,:]& flux, \
+        double[:,:,:]& flux_old, double[:]& xs_total, \
+        double[:,:]& xs_scatter, double[:,:,:]& off_scatter, \
+        double[:,:,:]& external, int[:]& q_col, double[:,:,:]& boundary_x, \
+        double[:,:,:]& boundary_y, int[:,:]& medium_map, double[:]& delta_x, \
+        double[:]& delta_y, double[:]& angle_x, double[:]& angle_y, \
+        double[:]& angle_w, double[:,:]& P_source, double[:,:]& P_weights, \
+        params info, double[:,:,:]& thread_psi, double[:,:,:]& thread_source, \
+        double[:,:,:,:]& thread_flux, double[:,:]& zero_2d, \
+        double[:]& zero_xs, double[:,:,:]& reflected_y, \
+        double[:,:,:]& reflected_x, double[:,:]& known_y_work, \
+        double[:,:]& known_x_work) noexcept nogil:
+    # Rectangular spatial cells (SLAB2D = 3)
     if info.geometry == 3:
         square_ordinates_aniso(flux, flux_old, xs_total, xs_scatter, \
-                off_scatter, external, boundary_x, boundary_y, medium_map, \
+                off_scatter, external, q_col, boundary_x, boundary_y, medium_map, \
                 delta_x, delta_y, angle_x, angle_y, angle_w, P_source, \
-                P_weights, info)
+                P_weights, info, thread_psi, thread_source, thread_flux, \
+                zero_2d, zero_xs, reflected_y, reflected_x, known_y_work, \
+                known_x_work)
 
 
 cdef void _angle_source(double[:,:]& source, double[:,:,:]& flux_old, \
@@ -739,30 +797,25 @@ cdef void _project_moments(double[:,:,:]& flux, double[:,:]& psi, \
 cdef void square_ordinates_aniso(double[:,:,:]& flux, \
         double[:,:,:]& flux_old, double[:]& xs_total, \
         double[:,:]& xs_scatter, double[:,:,:]& off_scatter, \
-        double[:,:,:]& external, double[:,:,:]& boundary_x, \
+        double[:,:,:]& external, int[:]& q_col, double[:,:,:]& boundary_x, \
         double[:,:,:]& boundary_y, int[:,:]& medium_map, double[:]& delta_x, \
         double[:]& delta_y, double[:]& angle_x, double[:]& angle_y, \
         double[:]& angle_w, double[:,:]& P_source, double[:,:]& P_weights, \
-        params info):
+        params info, double[:,:,:]& thread_psi, double[:,:,:]& thread_source, \
+        double[:,:,:,:]& thread_flux, double[:,:]& zero_2d, \
+        double[:]& zero_xs, double[:,:,:]& reflected_y, \
+        double[:,:,:]& reflected_x, double[:,:]& known_y_work, \
+        double[:,:]& known_x_work) noexcept nogil:
 
     cdef int nn, ii, jj, kk, qq, bcx, bcy, tid
     cdef int N2 = info.angles * info.angles
 
-    # Per-thread angular flux, source, and moment buffers
-    thread_psi = tools.array_3d(info.num_threads, info.cells_x, info.cells_y)
-    thread_source = tools.array_3d(info.num_threads, info.cells_x, info.cells_y)
-    thread_flux = tools.array_4d(info.num_threads, info.cells_x, info.cells_y, \
-                                 info.moments)
-
-    # Zero scattering for the isotropic sweep
-    zero_2d = tools.array_2d(info.cells_x, info.cells_y)
-    zero_xs = tools.array_1d(info.materials)
+    # Angular flux starts at zero, _project_moments resets it per angle
+    thread_psi[:,:,:] = 0.0
 
     # Reflector and per-angle known-edge arrays, see square_ordinates
-    reflected_y = tools.array_3d(2, info.cells_x, N2)
-    reflected_x = tools.array_3d(2, info.cells_y, N2)
-    known_y_work = tools.array_2d(N2, info.cells_x)
-    known_x_work = tools.array_2d(N2, info.cells_y)
+    reflected_y[:,:,:] = 0.0
+    reflected_x[:,:,:] = 0.0
 
     cdef bint converged = False
     cdef int count = 1
@@ -783,8 +836,8 @@ cdef void square_ordinates_aniso(double[:,:,:]& flux, \
                                      reflected_x, angle_x, nn, info)
 
         # Parallel angular sweep, see square_ordinates
-        for nn in prange(N2, nogil=True, schedule="static", num_threads=info.num_threads):
-            qq = 0 if external.shape[2] == 1 else nn
+        for nn in prange(N2, schedule="static", num_threads=info.num_threads):
+            qq = q_col[nn]
             tid = threadid()
             _angle_source(thread_source[tid, :, :], flux_old, xs_scatter, \
                     off_scatter, external[:, :, qq], medium_map, P_source[:, nn], info)

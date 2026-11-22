@@ -21,12 +21,13 @@
 # distutils: language = c++
 # distutils: extra_compile_args = -O3 -march=native -ffast-math
 
-from libc.math cimport fabs, tanh
+from libc.math cimport fabs
 
 from cython.parallel import prange, threadid
 
 from ants cimport cytools_2d as tools
 from ants.cytools_polygon cimport PolygonSweep
+from ants.cytools_shared cimport step_characteristic_weight
 from ants.parameters cimport params
 
 ########################################################################
@@ -40,7 +41,7 @@ from ants.parameters cimport params
 
 cdef void polygon_ordinates(double[:,:]& flux, double[:,:]& flux_old, \
         double[:]& xs_total, double[:]& xs_scatter, double[:,:]& off_scatter, \
-        double[:,:,:]& external, double[:,:,:]& boundary, \
+        double[:,:,:]& external, int[:]& q_col, double[:,:,:]& boundary, \
         int[:,:]& medium_map, PolygonSweep mesh, double[:]& angle_x, \
         double[:]& angle_y, double[:]& angle_w, params info):
 
@@ -83,7 +84,7 @@ cdef void polygon_ordinates(double[:,:]& flux, double[:,:]& flux_old, \
 
         # Parallel angular sweep
         for nn in prange(N2, nogil=True, schedule="static", num_threads=info.num_threads):
-            qq = 0 if external.shape[2] == 1 else nn
+            qq = q_col[nn]
             tid = threadid()
             polygon_sweep(thread_flux[tid, :, :], flux_old, xs_total, xs_scatter, \
                     off_scatter, external[:, :, qq], thread_face[tid, :], \
@@ -210,10 +211,7 @@ cdef inline double closure_weight(double tau, int spatial) noexcept nogil:
     if spatial == 2:
         return 0.0
     elif spatial == 3:
-        # Series for thin cells, coth(tau / 2) - 2 / tau ~ tau / 6
-        if tau < 1e-4:
-            return tau / 6.0
-        return 1.0 / tanh(0.5 * tau) - 2.0 / tau
+        return step_characteristic_weight(tau)
     return 1.0
 
 

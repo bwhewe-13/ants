@@ -342,3 +342,50 @@ def test_tr_bdf2_02():
         ratio = error_x[ii] / error_x[ii + 1]
         accuracy = tools.order_accuracy(error_y[ii], error_y[ii + 1], ratio)
         assert 2 - accuracy < atol, "Accuracy: " + str(accuracy)
+
+
+@pytest.mark.smoke
+@pytest.mark.slab2d
+def test_quadrature_not_ordered():
+    # The angular flux of each step is found with one sweep of each
+    # ordinate, so the angles need to be ordered for the reflecting faces
+    import ants
+    from ants.datatypes import (
+        GeometryData,
+        MaterialData,
+        SolverData,
+        SourceData,
+        TimeDependentData,
+    )
+
+    cells = 4
+    materials = MaterialData(
+        total=np.array([[1.0]]),
+        scatter=np.array([[[0.5]]]),
+        fission=np.zeros((1, 1, 1)),
+        velocity=np.ones(1),
+    )
+    sources = SourceData(
+        external=np.ones((1, cells, cells, 1, 1)),
+        boundary_x=np.zeros((1, 2, 1, 1, 1)),
+        boundary_y=np.zeros((1, 2, 1, 1, 1)),
+        initial_flux=np.zeros((cells, cells, 16, 1)),
+    )
+    geometry = GeometryData(
+        medium_map=np.zeros((cells, cells), dtype=np.int32),
+        delta_x=np.full(cells, 0.5),
+        delta_y=np.full(cells, 0.5),
+        bc_x=[0, 0],
+        bc_y=[1, 0],
+        geometry=3,
+    )
+    time_data = TimeDependentData(steps=1, dt=0.1)
+    with pytest.raises(ValueError, match="not ordered for bc_y"):
+        timed2d.time_dependent(
+            materials, sources, geometry, ants.angular_xy(4), SolverData(), time_data
+        )
+    quadrature = ants.angular_xy(4, bc_y=[1, 0])
+    flux = timed2d.time_dependent(
+        materials, sources, geometry, quadrature, SolverData(), time_data
+    )
+    assert np.all(flux > 0.0)

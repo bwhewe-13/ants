@@ -19,11 +19,12 @@
 # distutils: language = c++
 # distutils: extra_compile_args = -O3 -march=native -ffast-math
 
-from libc.math cimport M_PI, fabs, tanh
+from libc.math cimport M_PI, fabs
 
 from cython.parallel import prange, threadid
 
 from ants cimport cytools_1d as tools
+from ants.cytools_shared cimport step_characteristic_weight
 from ants.parameters cimport params
 
 ########################################################################
@@ -63,40 +64,58 @@ from ants.parameters cimport params
 
 cdef void discrete_ordinates(double[:]& flux, double[:]& flux_old, \
         double[:]& xs_total, double[:]& xs_scatter, double[:]& off_scatter, \
-        double[:,:]& external, double[:,:]& boundary_x, int[:]& medium_map, \
-        double[:]& delta_x, double[:]& angle_x, double[:]& angle_w, \
+        double[:,:]& external, int[:]& q_col, double[:,:]& boundary_x, \
+        int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
+        double[:]& angle_w, \
         params info):
+    # Allocate the work arrays for a single sweep
+    thread_flux = tools.array_2d(info.num_threads, info.cells_x + 1)
+    edge_out = tools.array_1d(info.angles)
+    reflector = tools.array_1d(info.angles)
+    half_angle = tools.array_1d(info.cells_x)
+    discrete_ordinates_nogil(flux, flux_old, xs_total, xs_scatter, \
+                off_scatter, external, q_col, boundary_x, medium_map, \
+                delta_x, angle_x, angle_w, info, thread_flux, edge_out, \
+                reflector, half_angle)
+
+
+cdef void discrete_ordinates_nogil(double[:]& flux, double[:]& flux_old, \
+        double[:]& xs_total, double[:]& xs_scatter, double[:]& off_scatter, \
+        double[:,:]& external, int[:]& q_col, double[:,:]& boundary_x, \
+        int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
+        double[:]& angle_w, params info, double[:,:]& thread_flux, \
+        double[:]& edge_out, double[:]& reflector, \
+        double[:]& half_angle) noexcept nogil:
     # One-dimensional slab
     if info.geometry == 1:
         slab_ordinates(flux, flux_old, xs_total, xs_scatter, off_scatter, \
-                       external, boundary_x, medium_map, delta_x, angle_x, \
-                       angle_w, info)
+                       external, q_col, boundary_x, medium_map, delta_x, \
+                       angle_x, angle_w, info, thread_flux, edge_out, \
+                       reflector)
     # One-dimensional sphere
     elif info.geometry == 2:
         sphere_ordinates(flux, flux_old, xs_total, xs_scatter, off_scatter, \
-                         external, boundary_x, medium_map, delta_x, \
-                         angle_x, angle_w, info)
+                         external, q_col, boundary_x, medium_map, delta_x, \
+                         angle_x, angle_w, info, half_angle)
 
 
 cdef void slab_ordinates(double[:]& flux, double[:]& flux_old, \
         double[:]& xs_total, double[:]& xs_scatter, double[:]& off_scatter, \
-        double[:,:]& external, double[:,:]& boundary_x, int[:]& medium_map, \
-        double[:]& delta_x, double[:]& angle_x, double[:]& angle_w, \
-        params info):
+        double[:,:]& external, int[:]& q_col, double[:,:]& boundary_x, \
+        int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
+        double[:]& angle_w, params info, double[:,:]& thread_flux, \
+        double[:]& edge_out, double[:]& reflector) noexcept nogil:
 
     # Initialize iteration indices
     cdef int nn, ii, qq, bc, tid
 
-    # Per-thread flux buffer
+    # Per-thread flux buffer size
     cdef int priv_size = info.cells_x + 1 if info.flux_at_edges else info.cells_x
-    thread_flux = tools.array_2d(info.num_threads, priv_size)
 
-    # Exit edges collected during prange. used to update the reflector
-    # sequentially after the parallel block.
-    edge_out = tools.array_1d(info.angles)
-
+    # Exit edges (edge_out) are collected during prange and used to update
+    # the reflector sequentially after the parallel block.
     # Reflector: READ inside prange, WRITTEN sequentially below.
-    reflector = tools.array_1d(info.angles)
+    reflector[:] = 0.0
 
     # Convergence state
     cdef bint converged = False
@@ -108,8 +127,8 @@ cdef void slab_ordinates(double[:]& flux, double[:]& flux_old, \
         flux[:] = 0.0
         thread_flux[:, :] = 0.0
 
-        for nn in prange(info.angles, nogil=True, schedule="static", num_threads=info.num_threads):
-            qq = 0 if external.shape[1] == 1 else nn
+        for nn in prange(info.angles, schedule="static", num_threads=info.num_threads):
+            qq = q_col[nn]
             bc = 0 if boundary_x.shape[1] == 1 else nn
             tid = threadid()
             edge_out[nn] = slab_sweep(thread_flux[tid, :], flux_old, xs_total, \
@@ -166,13 +185,6 @@ cdef double spatial_coef(int spatial) noexcept nogil:
     return 0.0
 
 
-cdef double characteristic_coef(double tau) noexcept nogil:
-    # coth(tau / 2) - 2 / tau, series for thin and void cells
-    if tau < 1e-4:
-        return tau / 6.0
-    return 1.0 / tanh(0.5 * tau) - 2.0 / tau
-
-
 cdef double slab_forward(double[:]& flux, double[:]& flux_old, \
         double[:]& xs_total, double[:]& xs_scatter, double[:]& off_scatter, \
         double[:]& external, double edge1, int[:]& medium_map, \
@@ -194,8 +206,8 @@ cdef double slab_forward(double[:]& flux, double[:]& flux_old, \
         mat = medium_map[ii]
         if info.spatial == 3:
             tau = (xs_total[mat] - info.xs_time) * delta_x[ii] / angle_x
-            alpha1 = 0.5 * (1.0 - characteristic_coef(tau))
-            alpha2 = 0.5 * (1.0 + characteristic_coef(tau))
+            alpha1 = 0.5 * (1.0 - step_characteristic_weight(tau))
+            alpha2 = 0.5 * (1.0 + step_characteristic_weight(tau))
         # Calculate cell edge unknown
         edge2 = (xs_scatter[mat] * flux_old[ii] + external[ii] + off_scatter[ii] \
                 + edge1 * (fabs(angle_x) / delta_x[ii] - alpha1 * xs_total[mat])) \
@@ -234,8 +246,8 @@ cdef double slab_backward(double[:]& flux, double[:]& flux_old, double[:]& xs_to
         # Step Characteristic
         if info.spatial == 3:
             tau = (xs_total[mat] - info.xs_time) * delta_x[ii] / fabs(angle_x)
-            alpha1 = 0.5 * (1.0 - characteristic_coef(tau))
-            alpha2 = 0.5 * (1.0 + characteristic_coef(tau))
+            alpha1 = 0.5 * (1.0 - step_characteristic_weight(tau))
+            alpha2 = 0.5 * (1.0 + step_characteristic_weight(tau))
         # Calculate cell edge unknown
         edge2 = (xs_scatter[mat] * flux_old[ii] + external[ii] + off_scatter[ii] \
                 + edge1 * (fabs(angle_x) / delta_x[ii] - alpha1 * xs_total[mat])) \
@@ -265,14 +277,13 @@ cdef double slab_backward(double[:]& flux, double[:]& flux_old, double[:]& xs_to
 
 cdef void sphere_ordinates(double[:]& flux, double[:]& flux_old, double[:]& xs_total, \
         double[:]& xs_scatter, double[:]& off_scatter, double[:,:]& external, \
-        double[:,:]& boundary_x, int[:]& medium_map, double[:]& delta_x, \
-        double[:]& angle_x, double[:]& angle_w, params info):
+        int[:]& q_col, double[:,:]& boundary_x, int[:]& medium_map, \
+        double[:]& delta_x, double[:]& angle_x, double[:]& angle_w, params info, \
+        double[:]& half_angle) noexcept nogil:
 
     cdef int nn, qq, bc
     cdef double ang_minus = -1.0, ang_plus, tau
     cdef double alpha_m = 0.0, alpha_p
-
-    half_angle = tools.array_1d(info.cells_x)
 
     cdef bint converged = False
     cdef int count = 1
@@ -283,13 +294,14 @@ cdef void sphere_ordinates(double[:]& flux, double[:]& flux_old, double[:]& xs_t
         flux[:] = 0.0
 
         initialize_half_angle(flux_old, half_angle, xs_total, xs_scatter, off_scatter, \
-                        external[:,0], medium_map, delta_x, boundary_x[1,0], info)
+                        external[:, q_col[0]], medium_map, delta_x, \
+                        boundary_x[1,0], info)
 
         ang_minus = -1.0
         alpha_m   = 0.0
 
         for nn in range(info.angles):
-            qq = 0 if external.shape[1] == 1 else nn
+            qq = q_col[nn]
             bc = 0 if boundary_x.shape[1] == 1 else nn
 
             ang_plus = ang_minus + 2.0 * angle_w[nn]
@@ -310,7 +322,7 @@ cdef void sphere_ordinates(double[:]& flux, double[:]& flux_old, double[:]& xs_t
 
 
 cdef double angle_coef_corrector(double alpha_minus, double angle_x, \
-        double angle_w, int angle, params info):
+        double angle_w, int angle, params info) noexcept nogil:
     # For calculating angular differencing coefficient
     if angle != info.angles - 1:
         return alpha_minus - angle_x * angle_w
@@ -320,7 +332,7 @@ cdef double angle_coef_corrector(double alpha_minus, double angle_x, \
 cdef void initialize_half_angle(double[:]& flux, double[:]& half_angle, \
         double[:]& xs_total, double[:]& xs_scatter, double[:]& off_scatter, \
         double[:]& external, int[:]& medium_map, double[:]& delta_x, \
-        double angle_plus, params info):
+        double angle_plus, params info) noexcept nogil:
     # Initialize cell and material iteration index
     cdef int ii, mat
     # Zero out half angle
@@ -347,7 +359,7 @@ cdef void sphere_sweep(double[:]& flux, double[:]& flux_old, \
         double[:]& off_scatter, double[:]& external, double[:]& boundary_x, \
         int[:]& medium_map, double[:]& delta_x, double angle_x, \
         double angle_w, double weight, double tau, double alpha_plus, \
-        double alpha_minus, params info):
+        double alpha_minus, params info) noexcept nogil:
     if angle_x < 0.0:
         sphere_backward(flux, flux_old, half_angle, xs_total, xs_scatter, \
             off_scatter, external, boundary_x[1], medium_map, delta_x, \
@@ -362,7 +374,8 @@ cdef void sphere_forward(double[:]& flux, double[:]& flux_old, \
         double[:]& half_angle, double[:]& xs_total, double[:]& xs_scatter, \
         double[:]& off_scatter, double[:]& external, int[:]& medium_map, \
         double[:]& delta_x, double angle_x, double angle_w, double weight, \
-        double tau, double alpha_plus, double alpha_minus, params info):
+        double tau, double alpha_plus, double alpha_minus, \
+        params info) noexcept nogil:
     cdef int ii, mat
     cdef double edge1 = half_angle[0]
     cdef double area1, area2, center, volume
@@ -413,7 +426,7 @@ cdef void sphere_backward(double[:]& flux, double[:]& flux_old, \
         double[:]& off_scatter, double[:]& external, double boundary_x, \
         int[:]& medium_map, double[:]& delta_x, double angle_x, \
         double angle_w, double weight, double tau, double alpha_plus, \
-        double alpha_minus, params info):
+        double alpha_minus, params info) noexcept nogil:
     cdef int ii, mat
     cdef double edge1 = boundary_x
     cdef double area1, area2, center, volume
@@ -599,22 +612,63 @@ cdef void _known_sphere(double[:,:]& flux, double[:]& xs_total, \
 # (materials, moments) and off_scatter is the off-group (cells_x, moments).
 # Each ordinate builds its scattering source and reuses the isotropic
 # sweeps with zero scattering, then adds w_n P_l(mu_n) psi_n to the moments.
+#
+# Work arrays, see discrete_ordinates. The sphere sweep is sequential and
+# uses row 0 of thread_psi and thread_source.
+#   thread_psi    (num_threads, cells_x)           angular flux
+#   thread_source (num_threads, cells_x)           angular source
+#   thread_flux   (num_threads, cells_x, moments)  per-thread moments
+#   edge_out, reflector (angles), half_angle (cells_x)
+#   P_start       (moments)                        sphere mu = -1 source
+#   zero (cells_x), zero_xs (materials)            read-only zeros
 
 cdef void discrete_ordinates_aniso(double[:,:]& flux, double[:,:]& flux_old, \
         double[:]& xs_total, double[:,:]& xs_scatter, double[:,:]& off_scatter, \
-        double[:,:]& external, double[:,:]& boundary_x, int[:]& medium_map, \
-        double[:]& delta_x, double[:]& angle_x, double[:]& angle_w, \
+        double[:,:]& external, int[:]& q_col, double[:,:]& boundary_x, \
+        int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
+        double[:]& angle_w, \
         double[:,:]& P_source, double[:,:]& P_weights, params info):
+    # Allocate the work arrays for a single sweep
+    thread_psi = tools.array_2d(info.num_threads, info.cells_x)
+    thread_source = tools.array_2d(info.num_threads, info.cells_x)
+    thread_flux = tools.array_3d(info.num_threads, info.cells_x, info.moments)
+    edge_out = tools.array_1d(info.angles)
+    reflector = tools.array_1d(info.angles)
+    half_angle = tools.array_1d(info.cells_x)
+    P_start = tools.array_1d(info.moments)
+    zero = tools.array_1d(info.cells_x)
+    zero_xs = tools.array_1d(info.materials)
+    discrete_ordinates_aniso_nogil(flux, flux_old, xs_total, xs_scatter, \
+                off_scatter, external, q_col, boundary_x, medium_map, \
+                delta_x, angle_x, angle_w, P_source, P_weights, info, \
+                thread_psi, thread_source, thread_flux, edge_out, reflector, \
+                half_angle, P_start, zero, zero_xs)
+
+
+cdef void discrete_ordinates_aniso_nogil(double[:,:]& flux, \
+        double[:,:]& flux_old, double[:]& xs_total, double[:,:]& xs_scatter, \
+        double[:,:]& off_scatter, double[:,:]& external, int[:]& q_col, \
+        double[:,:]& boundary_x, int[:]& medium_map, double[:]& delta_x, \
+        double[:]& angle_x, double[:]& angle_w, double[:,:]& P_source, \
+        double[:,:]& P_weights, params info, double[:,:]& thread_psi, \
+        double[:,:]& thread_source, double[:,:,:]& thread_flux, \
+        double[:]& edge_out, double[:]& reflector, double[:]& half_angle, \
+        double[:]& P_start, double[:]& zero, \
+        double[:]& zero_xs) noexcept nogil:
     # One-dimensional slab
     if info.geometry == 1:
         slab_ordinates_aniso(flux, flux_old, xs_total, xs_scatter, \
-                off_scatter, external, boundary_x, medium_map, delta_x, \
-                angle_x, angle_w, P_source, P_weights, info)
+                off_scatter, external, q_col, boundary_x, medium_map, \
+                delta_x, angle_x, angle_w, P_source, P_weights, info, \
+                thread_psi, thread_source, thread_flux, edge_out, reflector, \
+                zero, zero_xs)
     # One-dimensional sphere
     elif info.geometry == 2:
         sphere_ordinates_aniso(flux, flux_old, xs_total, xs_scatter, \
-                off_scatter, external, boundary_x, medium_map, delta_x, \
-                angle_x, angle_w, P_source, P_weights, info)
+                off_scatter, external, q_col, boundary_x, medium_map, \
+                delta_x, angle_x, angle_w, P_source, P_weights, info, \
+                thread_psi[0], thread_source[0], half_angle, P_start, zero, \
+                zero_xs)
 
 
 cdef void _angle_source(double[:]& source, double[:,:]& flux_old, \
@@ -645,25 +699,21 @@ cdef void _project_moments(double[:,:]& flux, double[:]& psi, \
 
 cdef void slab_ordinates_aniso(double[:,:]& flux, double[:,:]& flux_old, \
         double[:]& xs_total, double[:,:]& xs_scatter, double[:,:]& off_scatter, \
-        double[:,:]& external, double[:,:]& boundary_x, int[:]& medium_map, \
-        double[:]& delta_x, double[:]& angle_x, double[:]& angle_w, \
-        double[:,:]& P_source, double[:,:]& P_weights, params info):
+        double[:,:]& external, int[:]& q_col, double[:,:]& boundary_x, \
+        int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
+        double[:]& angle_w, double[:,:]& P_source, double[:,:]& P_weights, \
+        params info, double[:,:]& thread_psi, double[:,:]& thread_source, \
+        double[:,:,:]& thread_flux, double[:]& edge_out, double[:]& reflector, \
+        double[:]& zero, double[:]& zero_xs) noexcept nogil:
 
     # Initialize iteration indices
     cdef int nn, ii, ll, qq, bc, tid
 
-    # Per-thread angular flux, source, and moment buffers
-    thread_psi = tools.array_2d(info.num_threads, info.cells_x)
-    thread_source = tools.array_2d(info.num_threads, info.cells_x)
-    thread_flux = tools.array_3d(info.num_threads, info.cells_x, info.moments)
-
-    # Zero scattering for the isotropic sweep
-    zero = tools.array_1d(info.cells_x)
-    zero_xs = tools.array_1d(info.materials)
+    # Angular flux starts at zero, _project_moments resets it per angle
+    thread_psi[:,:] = 0.0
 
     # Exit edges and reflector, see slab_ordinates
-    edge_out = tools.array_1d(info.angles)
-    reflector = tools.array_1d(info.angles)
+    reflector[:] = 0.0
 
     # Convergence state
     cdef bint converged = False
@@ -675,8 +725,8 @@ cdef void slab_ordinates_aniso(double[:,:]& flux, double[:,:]& flux_old, \
         flux[:,:] = 0.0
         thread_flux[:,:,:] = 0.0
 
-        for nn in prange(info.angles, nogil=True, schedule="static", num_threads=info.num_threads):
-            qq = 0 if external.shape[1] == 1 else nn
+        for nn in prange(info.angles, schedule="static", num_threads=info.num_threads):
+            qq = q_col[nn]
             bc = 0 if boundary_x.shape[1] == 1 else nn
             tid = threadid()
             _angle_source(thread_source[tid, :], flux_old, xs_scatter, \
@@ -706,24 +756,20 @@ cdef void slab_ordinates_aniso(double[:,:]& flux, double[:,:]& flux_old, \
 
 cdef void sphere_ordinates_aniso(double[:,:]& flux, double[:,:]& flux_old, \
         double[:]& xs_total, double[:,:]& xs_scatter, double[:,:]& off_scatter, \
-        double[:,:]& external, double[:,:]& boundary_x, int[:]& medium_map, \
-        double[:]& delta_x, double[:]& angle_x, double[:]& angle_w, \
-        double[:,:]& P_source, double[:,:]& P_weights, params info):
+        double[:,:]& external, int[:]& q_col, double[:,:]& boundary_x, \
+        int[:]& medium_map, double[:]& delta_x, double[:]& angle_x, \
+        double[:]& angle_w, double[:,:]& P_source, double[:,:]& P_weights, \
+        params info, double[:]& psi, double[:]& source, double[:]& half_angle, \
+        double[:]& P_start, double[:]& zero, double[:]& zero_xs) noexcept nogil:
 
     cdef int nn, ll, qq, bc
     cdef double ang_minus = -1.0, ang_plus, tau
     cdef double alpha_m = 0.0, alpha_p
 
-    half_angle = tools.array_1d(info.cells_x)
-    psi = tools.array_1d(info.cells_x)
-    source = tools.array_1d(info.cells_x)
-
-    # Zero scattering for the isotropic sweep
-    zero = tools.array_1d(info.cells_x)
-    zero_xs = tools.array_1d(info.materials)
+    # Angular flux starts at zero, _project_moments resets it per angle
+    psi[:] = 0.0
 
     # Starting direction mu = -1: (2l + 1) P_l(-1) = (2l + 1) (-1)^l
-    P_start = tools.array_1d(info.moments)
     for ll in range(info.moments):
         P_start[ll] = (2 * ll + 1) * (1.0 if ll % 2 == 0 else -1.0)
 
@@ -736,7 +782,7 @@ cdef void sphere_ordinates_aniso(double[:,:]& flux, double[:,:]& flux_old, \
         flux[:,:] = 0.0
 
         _angle_source(source, flux_old, xs_scatter, off_scatter, \
-                      external[:,0], medium_map, P_start, info)
+                      external[:, q_col[0]], medium_map, P_start, info)
         initialize_half_angle(zero, half_angle, xs_total, zero_xs, zero, \
                         source, medium_map, delta_x, boundary_x[1,0], info)
 
@@ -744,7 +790,7 @@ cdef void sphere_ordinates_aniso(double[:,:]& flux, double[:,:]& flux_old, \
         alpha_m   = 0.0
 
         for nn in range(info.angles):
-            qq = 0 if external.shape[1] == 1 else nn
+            qq = q_col[nn]
             bc = 0 if boundary_x.shape[1] == 1 else nn
 
             ang_plus = ang_minus + 2.0 * angle_w[nn]

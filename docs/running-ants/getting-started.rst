@@ -1,8 +1,10 @@
 Getting Started
 ===============================================
 
-The ANTS package solves the discrete ordinates neutron transport equation in both
-one-dimensional (slab and sphere) and two-dimensional (rectangular) geometry.
+The ANTS package solves the discrete ordinates neutron transport equation in
+one-dimensional (slab and sphere), two-dimensional (rectangular), and
+three-dimensional (rectangular) geometry. Three-dimensional problems are currently
+limited to fixed source problems.
 
 **Problem Types Supported:**
 
@@ -14,10 +16,12 @@ one-dimensional (slab and sphere) and two-dimensional (rectangular) geometry.
 
 * **Hybrid methods**: Collision-based decomposition for time-dependent problems
 * **DMD (Dynamic Mode Decomposition)**: Reduced-order acceleration for multigroup problems
+* **Artificial scattering (as-SN)**: Ray effect mitigation in two and three dimensions
+* **OpenMP**: Parallel sweeps over angles, energy groups, or both
 
 **Discretizations:**
 
-* **Spatial**: Step characteristic method or diamond difference
+* **Spatial**: Step method, diamond difference, or step characteristic
 * **Angular**: Discrete ordinates (product quadrature sets)
 * **Energy**: Multigroup formulation
 * **Time**: BDF1 (backward Euler), BDF2, Crank-Nicolson (CN), and TR-BDF2
@@ -26,6 +30,28 @@ one-dimensional (slab and sphere) and two-dimensional (rectangular) geometry.
 Installation
 ------------
 
+ANTS is on PyPI as ``ants-sn`` and is imported as ``ants``:
+
+.. code-block:: bash
+
+   python -m pip install ants-sn
+
+Wheels are built for CPython 3.11 to 3.14 on Linux, macOS 15 or newer, and
+Windows, so no compiler is needed. Cross sections from HDF5 libraries need the
+``library`` extra:
+
+.. code-block:: bash
+
+   python -m pip install "ants-sn[library]"
+
+To build from source, which needs a C++ compiler and OpenMP (``brew install
+libomp`` on macOS), clone the repository and install it in editable mode:
+
+.. code-block:: bash
+
+   git clone https://github.com/bwhewe-13/ants.git
+   cd ants
+   python -m pip install -e ".[dev]"
 
 
 Required Input Data
@@ -61,7 +87,9 @@ Throughout the documentation, the following notation is used for problem dimensi
 
 * :math:`I` : Number of spatial cells in the x direction
 * :math:`J` : Number of spatial cells in the y direction
-* :math:`N` : Number of discrete angles (1D) or :math:`N^2` total angles (2D)
+* :math:`K` : Number of spatial cells in the z direction (3D)
+* :math:`N` : Number of discrete angles (1D), :math:`N^2` total angles (2D), or the
+  total number of ordinates (3D, :math:`2 N^2` for ``angular_xyz(N)``)
 * :math:`G` : Number of energy groups
 * :math:`T` : Total elapsed time
 * :math:`M` : Number of different materials

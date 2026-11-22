@@ -27,7 +27,19 @@ from ants cimport parameters
 from ants.cytools_polygon cimport PolygonSweep
 
 from ants.datatypes import Geometry, MultigroupSolver, create_params
-from ants.quadrature import _scatter_harmonics, artificial_scatter_matrix, harmonic_data
+from ants.quadrature import (
+    _check_reflection,
+    _scatter_harmonics,
+    artificial_scatter_matrix,
+    harmonic_data,
+)
+from ants.utils.pytools import artificial_scatter_iteration
+from ants.utils.sources import (
+    check_steady_boundary,
+    dense_source,
+    steady_boundary,
+    steady_external,
+)
 
 
 def fixed_source(materials, sources, geometry, quadrature, solver):
@@ -39,9 +51,10 @@ def fixed_source(materials, sources, geometry, quadrature, solver):
     cdef double[:,:] xs_total = materials.total
     cdef double[:,:,:] xs_scatter = materials.scatter
     cdef double[:,:,:] xs_fission = tools._fission_matrix(materials.fission, materials.chi)
-    cdef double[:,:,:,:] external = sources.external
-    cdef double[:,:,:,:] boundary_x = sources.boundary_x
-    cdef double[:,:,:,:] boundary_y = sources.boundary_y
+    cdef double[:,:,:,:] external
+    cdef double[:,:,:,:] boundary_x
+    cdef double[:,:,:,:] boundary_y
+    cdef int[:,:] q_index
     cdef int[:,:] medium_map = geometry.medium_map
     cdef double[:] delta_x = geometry.delta_x
     cdef double[:] delta_y = geometry.delta_y
@@ -58,6 +71,33 @@ def fixed_source(materials, sources, geometry, quadrature, solver):
     cdef PolygonSweep mesh = None
     if geometry.geometry == Geometry.POLYGON2D:
         mesh = PolygonSweep(geometry, angle_x, angle_y)
+
+    # The angular flux, cell edges, and artificial scattering sweep each
+    # ordinate once
+    _check_reflection(quadrature, geometry, (info.angular == True) \
+                      or (info.flux_at_edges == 1) or (info.sigma_as > 0.0))
+
+    # Compact external sources are read through the slab index. The
+    # artificial in-scatter source is dense, so as-SN uses a dense source.
+    if info.sigma_as > 0.0:
+        external_np, q_index_np = dense_source(sources.external), None
+    else:
+        external_np, q_index_np = steady_external(sources.external, \
+                (info.cells_x, info.cells_y), info.angles * info.angles, \
+                info.groups)
+    external = external_np
+    q_index = q_index_np
+    if geometry.geometry == Geometry.POLYGON2D:
+        # Polygon meshes keep every boundary face in boundary_x
+        boundary_x = steady_boundary(sources.boundary_x, \
+                    (geometry.mesh.boundary_faces.size,), \
+                    info.angles * info.angles, info.groups, "boundary_x", 1)
+        boundary_y = np.asarray(sources.boundary_y, dtype=np.float64)
+    else:
+        boundary_x = steady_boundary(sources.boundary_x, (info.cells_y,), \
+                        info.angles * info.angles, info.groups, "boundary_x")
+        boundary_y = steady_boundary(sources.boundary_y, (info.cells_x,), \
+                        info.angles * info.angles, info.groups, "boundary_y")
 
     # Add fission matrix to scattering
     xs_matrix = tools.array_3d(info.materials, info.groups, info.groups)
@@ -79,16 +119,15 @@ def fixed_source(materials, sources, geometry, quadrature, solver):
         # Artificial scattering (as-SN) ray effect mitigation
         flux, xs_total_eff, external_eff = source_iteration_as(flux_old, \
                     xs_total, xs_matrix, external, boundary_x, boundary_y, \
-                    medium_map, delta_x, delta_y, mesh, angle_x, angle_y, \
-                    angle_w, info)
+                    medium_map, delta_x, delta_y, mesh, angle_x, angle_y, angle_w, info)
     elif params.mg_solver == MultigroupSolver.SOURCE_ITERATION:
         flux = mg.source_iteration(flux_old, xs_total, xs_matrix, external, \
-                    boundary_x, boundary_y, medium_map, delta_x, delta_y, \
-                    mesh, angle_x, angle_y, angle_w, info)
+                    boundary_x, boundary_y, medium_map, delta_x, delta_y, mesh, \
+                    angle_x, angle_y, angle_w, info, q_index)
     elif params.mg_solver == MultigroupSolver.DMD:
         flux = mg.dynamic_mode_decomp(flux_old, xs_total, xs_matrix, external, \
-                    boundary_x, boundary_y, medium_map, delta_x, delta_y, \
-                    mesh, angle_x, angle_y, angle_w, info)
+                    boundary_x, boundary_y, medium_map, delta_x, delta_y, mesh, \
+                    angle_x, angle_y, angle_w, info, q_index)
 
     # Return scalar flux cell centers
     if (info.angular == False) and (params.flux_at_edges == 0):
@@ -99,15 +138,15 @@ def fixed_source(materials, sources, geometry, quadrature, solver):
     # (external + artificial in-scatter) reproduce the converged transport
     # balance in the known-source sweeps.
     return known_flux(flux, xs_total_eff, xs_matrix, external_eff, boundary_x, \
-                    boundary_y, geometry, quadrature, params)
+                    boundary_y, geometry, quadrature, params, q_index)
 
 
 def source_iteration_as(double[:,:,:] flux_guess, double[:,:] xs_total, \
         double[:,:,:] xs_matrix, double[:,:,:,:] external, \
         double[:,:,:,:] boundary_x, double[:,:,:,:] boundary_y, \
-        int[:,:] medium_map, double[:] delta_x, double[:] delta_y, \
-        PolygonSweep mesh, double[:] angle_x, double[:] angle_y, \
-        double[:] angle_w, parameters.params info):
+        int[:,:] medium_map, double[:] delta_x, double[:] delta_y, PolygonSweep mesh, \
+        double[:] angle_x, double[:] angle_y, double[:] angle_w, \
+        parameters.params info):
     """Solve a 2D fixed-source problem with artificial scattering (as-SN).
 
     Implements Eq. (17) of Frank, Kusch, Camminady & Hauck (2020), "Ray
@@ -127,13 +166,8 @@ def source_iteration_as(double[:,:,:] flux_guess, double[:,:] xs_total, \
     Returns (scalar_flux, xs_total_as, external_combined) so callers can
     reproduce the converged transport balance in known-source sweeps.
     """
-    cdef int as_iter
-    cdef double as_change
-    cdef double[:,:,:] flux = flux_guess.copy()
-    cdef double[:,:,:] flux_old = flux_guess.copy()
-    cdef double[:,:,:,:] ext_combined
-    cdef double[:,:,:,:] psi
-    cdef double[:,:] xs_total_as_view
+    cdef double[:,:] xs_total_as
+    cdef double[:,:,:,:] source
     cdef int N_angles = info.angles * info.angles
 
     # Compute artificial scatter matrix M_as[q,p] once. Rows sum to
@@ -144,49 +178,40 @@ def source_iteration_as(double[:,:,:] flux_guess, double[:,:] xs_total, \
 
     # Add artificial out-scattering to the total cross section (Eq. 17 LHS)
     xs_total_as = np.asarray(xs_total) + info.sigma_as
-    xs_total_as_view = xs_total_as
-
-    # Artificial in-scatter source (I x J x N^2 x G), lagged one iteration
-    art_source = np.zeros((info.cells_x, info.cells_y, N_angles, info.groups))
-    external_combined = np.asarray(external) + art_source
 
     # Buffer for the known-source sweep: (sigma_s + sigma_f) phi + external
     source = tools.array_4d(info.cells_x, info.cells_y, N_angles, info.groups)
 
-    # Iterate on the artificial scatter source
-    for as_iter in range(info.max_iter_angular):
-        ext_combined = external_combined
+    def solve(flux, combined):
+        # Standard multigroup problem with the combined source
+        return np.asarray(mg.source_iteration(flux, xs_total_as, xs_matrix, \
+                    combined, boundary_x, boundary_y, medium_map, delta_x, \
+                    delta_y, mesh, angle_x, angle_y, angle_w, info))
 
-        # Solve standard multigroup problem with combined source
-        flux_old[:,:,:] = flux[:,:,:]
-        flux = mg.source_iteration(flux, xs_total_as_view, xs_matrix, \
-                            ext_combined, boundary_x, boundary_y, medium_map, \
-                            delta_x, delta_y, mesh, angle_x, angle_y, angle_w, \
-                            info)
-
+    def angular(flux, combined):
         # Recover the angular flux from the converged scalar flux
-        tools._source_total(source, flux, xs_matrix, medium_map, \
-                            ext_combined, info)
-        psi = mg._known_source_angular(xs_total_as_view, source, boundary_x, \
-                            boundary_y, medium_map, delta_x, delta_y, mesh, \
-                            angle_x, angle_y, angle_w, info)
+        psi = tools.array_4d(info.cells_x, info.cells_y, N_angles, info.groups)
+        tools._source_total(source, flux, xs_matrix, medium_map, combined, info)
+        mg._known_source_angular(psi, xs_total_as, source, boundary_x, \
+                    boundary_y, medium_map, delta_x, delta_y, mesh, angle_x, \
+                    angle_y, angle_w, info)
+        return np.asarray(psi)
 
-        # Update artificial in-scatter source:
-        # art_source[i,j,q,g] = sum_p M_as[q,p] psi[i,j,p,g]
-        art_source = np.einsum("qp,ijpg->ijqg", M_as, np.asarray(psi))
-        external_combined = np.asarray(external) + art_source
+    def change(flux, flux_old):
+        # Difference in scalar flux
+        return tools.group_convergence(flux, flux_old, info)
 
-        # Check convergence: difference in scalar flux
-        as_change = tools.group_convergence(flux, flux_old, info)
-        if as_change < info.tol_angular:
-            break
-
-    return np.asarray(flux), xs_total_as, external_combined
+    # The in-scatter source M_as . psi is lagged one iteration
+    flux, external_combined = artificial_scatter_iteration( \
+                np.asarray(flux_guess), external, M_as, solve, angular, change, \
+                info.max_iter_angular, info.tol_energy)
+    return flux, np.asarray(xs_total_as), external_combined
 
 
 def known_flux(double[:,:,:] flux, double[:,:] xs_total, double[:,:,:] xs_matrix, \
         double[:,:,:,:] external, double[:,:,:,:] boundary_x, \
-        double[:,:,:,:] boundary_y, geometry, quadrature, params):
+        double[:,:,:,:] boundary_y, geometry, quadrature, params, \
+        int[:,:] q_index=None):
     # Unpack Python DataTypes to Cython memoryviews
     cdef int[:,:] medium_map = geometry.medium_map
     cdef double[:] delta_x = geometry.delta_x
@@ -203,20 +228,32 @@ def known_flux(double[:,:,:] flux, double[:,:] xs_total, double[:,:,:] xs_matrix
     if geometry.geometry == Geometry.POLYGON2D:
         mesh = PolygonSweep(geometry, angle_x, angle_y)
 
+    if info.geometry == 5:
+        check_steady_boundary(boundary_x, (geometry.mesh.boundary_faces.size,), \
+                    info.angles * info.angles, info.groups, "boundary_x", 1)
+    else:
+        check_steady_boundary(boundary_x, (info.cells_y,), info.angles * info.angles, \
+                              info.groups, "boundary_x")
+        check_steady_boundary(boundary_y, (info.cells_x,), info.angles * info.angles, \
+                              info.groups, "boundary_y")
+
     # Create (sigma_s + sigma_f) * phi + external function
     source = tools.array_4d(info.cells_x, info.cells_y, \
                             info.angles * info.angles, info.groups)
-    tools._source_total(source, flux, xs_matrix, medium_map, external, info)
+    tools._source_total(source, flux, xs_matrix, medium_map, external, info, \
+                        q_index)
 
     # Solve for angular flux at cell centers
     if (info.angular == True) and (info.flux_at_edges == 0):
-        angular_flux = mg._known_source_angular(xs_total, source, boundary_x, \
-                                boundary_y, medium_map, delta_x, delta_y, \
-                                mesh, angle_x, angle_y, angle_w, info)
+        angular_flux = tools.array_4d(info.cells_x, info.cells_y, \
+                                info.angles * info.angles, info.groups)
+        mg._known_source_angular(angular_flux, xs_total, source, boundary_x, \
+                                boundary_y, medium_map, delta_x, delta_y, mesh, \
+                                angle_x, angle_y, angle_w, info)
         return np.asarray(angular_flux)
 
     # Polygon mesh face fluxes (F x N^2 x G) or (F x G)
-    elif (info.geometry == 4) and (info.flux_at_edges == 1):
+    elif (info.geometry == 5) and (info.flux_at_edges == 1):
         flux_edge_x = tools.array_4d(geometry.mesh.faces, 1, \
                     info.angles * info.angles if info.angular else info.groups, \
                     info.groups if info.angular else 1)
@@ -295,9 +332,10 @@ def fixed_source_aniso(materials, sources, geometry, quadrature, solver):
     cdef double[:,:] xs_total = materials.total
     cdef double[:,:,:,:] xs_scatter = _scatter_harmonics(materials.scatter)
     cdef double[:,:,:] xs_fission = tools._fission_matrix(materials.fission, materials.chi)
-    cdef double[:,:,:,:] external = sources.external
-    cdef double[:,:,:,:] boundary_x = sources.boundary_x
-    cdef double[:,:,:,:] boundary_y = sources.boundary_y
+    cdef double[:,:,:,:] external
+    cdef double[:,:,:,:] boundary_x
+    cdef double[:,:,:,:] boundary_y
+    cdef int[:,:] q_index
     cdef int[:,:] medium_map = geometry.medium_map
     cdef double[:] delta_x = geometry.delta_x
     cdef double[:] delta_y = geometry.delta_y
@@ -314,6 +352,33 @@ def fixed_source_aniso(materials, sources, geometry, quadrature, solver):
     cdef PolygonSweep mesh = None
     if geometry.geometry == Geometry.POLYGON2D:
         mesh = PolygonSweep(geometry, angle_x, angle_y)
+
+    # The angular flux, cell edges, and artificial scattering sweep each
+    # ordinate once
+    _check_reflection(quadrature, geometry, (info.angular == True) \
+                      or (info.flux_at_edges == 1) or (info.sigma_as > 0.0))
+
+    # Compact external sources are read through the slab index. The
+    # artificial in-scatter source is dense, so as-SN uses a dense source.
+    if info.sigma_as > 0.0:
+        external_np, q_index_np = dense_source(sources.external), None
+    else:
+        external_np, q_index_np = steady_external(sources.external, \
+                (info.cells_x, info.cells_y), info.angles * info.angles, \
+                info.groups)
+    external = external_np
+    q_index = q_index_np
+    if geometry.geometry == Geometry.POLYGON2D:
+        # Polygon meshes keep every boundary face in boundary_x
+        boundary_x = steady_boundary(sources.boundary_x, \
+                    (geometry.mesh.boundary_faces.size,), \
+                    info.angles * info.angles, info.groups, "boundary_x", 1)
+        boundary_y = np.asarray(sources.boundary_y, dtype=np.float64)
+    else:
+        boundary_x = steady_boundary(sources.boundary_x, (info.cells_y,), \
+                        info.angles * info.angles, info.groups, "boundary_x")
+        boundary_y = steady_boundary(sources.boundary_y, (info.cells_x,), \
+                        info.angles * info.angles, info.groups, "boundary_y")
 
     # Spherical harmonics for the scattering source and flux moments
     P_source_np, P_weights_np = harmonic_data(quadrature, materials.scatter.shape[3])
@@ -345,7 +410,8 @@ def fixed_source_aniso(materials, sources, geometry, quadrature, solver):
     else:
         flux = mg.multi_group_moments(flux_old, xs_total, xs_matrix, external, \
                     boundary_x, boundary_y, medium_map, delta_x, delta_y, mesh, \
-                    angle_x, angle_y, angle_w, P_source, P_weights, info)
+                    angle_x, angle_y, angle_w, P_source, P_weights, info, \
+                    q_index)
 
     # Return scalar flux cell centers
     if (info.angular == False) and (params.flux_at_edges == 0):
@@ -353,74 +419,66 @@ def fixed_source_aniso(materials, sources, geometry, quadrature, solver):
 
     # For angular flux or scalar flux edges, see fixed_source
     return known_flux_moments(flux, xs_total_eff, xs_matrix, external_eff, \
-                    boundary_x, boundary_y, P_source, geometry, quadrature, params)
+                    boundary_x, boundary_y, P_source, geometry, quadrature, params, \
+                    q_index)
 
 
 def source_iteration_as_aniso(double[:,:,:,:] flux_guess, double[:,:] xs_total, \
         double[:,:,:,:] xs_matrix, double[:,:,:,:] external, \
-        double[:,:,:,:] boundary_x, double[:,:,:,:] boundary_y, int[:,:] medium_map, \
-        double[:] delta_x, double[:] delta_y, PolygonSweep mesh, double[:] angle_x, \
-        double[:] angle_y, double[:] angle_w, double[:,:] P_source, \
-        double[:,:] P_weights, parameters.params info):
+        double[:,:,:,:] boundary_x, double[:,:,:,:] boundary_y, \
+        int[:,:] medium_map, double[:] delta_x, double[:] delta_y, PolygonSweep mesh, \
+        double[:] angle_x, double[:] angle_y, double[:] angle_w, \
+        double[:,:] P_source, double[:,:] P_weights, parameters.params info):
     # Artificial scattering (as-SN) with flux moments, see source_iteration_as
-    cdef int as_iter
-    cdef double as_change
-    cdef double[:,:,:,:] flux = flux_guess.copy()
-    cdef double[:,:,:,:] flux_old = flux_guess.copy()
-    cdef double[:,:,:,:] ext_combined
-    cdef double[:,:,:,:] psi
-    cdef double[:,:] xs_total_as_view
+    cdef double[:,:] xs_total_as
+    cdef double[:,:,:,:] source
     cdef int N_angles = info.angles * info.angles
 
-    # Artificial scatter matrix M_as[q,p] with rows summing to sigma_as
+    # Compute artificial scatter matrix M_as[q,p] once. Rows sum to
+    # sigma_as (particle conservation), balancing the sigma_as psi_q
+    # out-scattering term added to the total cross section below.
     M_as = artificial_scatter_matrix(np.asarray(angle_x), np.asarray(angle_y), \
                 np.asarray(angle_w), info.sigma_as, info.beta_as)
 
-    # Add artificial out-scattering to the total cross section
+    # Add artificial out-scattering to the total cross section (Eq. 17 LHS)
     xs_total_as = np.asarray(xs_total) + info.sigma_as
-    xs_total_as_view = xs_total_as
 
-    # Artificial in-scatter source (I x J x N^2 x G), lagged one iteration
-    art_source = np.zeros((info.cells_x, info.cells_y, N_angles, info.groups))
-    external_combined = np.asarray(external) + art_source
-
-    # Buffer for the known-source sweep
+    # Buffer for the known-source sweep: (sigma_s + sigma_f) phi + external
     source = tools.array_4d(info.cells_x, info.cells_y, N_angles, info.groups)
 
-    # Iterate on the artificial scatter source
-    for as_iter in range(info.max_iter_angular):
-        ext_combined = external_combined
+    def solve(flux, combined):
+        # Standard multigroup problem with the combined source
+        return np.asarray(mg.multi_group_moments(flux, xs_total_as, xs_matrix, \
+                    combined, boundary_x, boundary_y, medium_map, delta_x, \
+                    delta_y, mesh, angle_x, angle_y, angle_w, P_source, P_weights, \
+                    info))
 
-        # Solve standard multigroup problem with combined source
-        flux_old[:,:,:,:] = flux[:,:,:,:]
-        flux = mg.multi_group_moments(flux, xs_total_as_view, xs_matrix, \
-                            ext_combined, boundary_x, boundary_y, medium_map, \
-                            delta_x, delta_y, mesh, angle_x, angle_y, angle_w, \
-                            P_source, P_weights, info)
-
+    def angular(flux, combined):
         # Recover the angular flux from the converged flux moments
+        psi = tools.array_4d(info.cells_x, info.cells_y, N_angles, info.groups)
         tools._source_total_aniso(source, flux, xs_matrix, medium_map, \
-                                  ext_combined, P_source, info)
-        psi = mg._known_source_angular(xs_total_as_view, source, boundary_x, \
-                            boundary_y, medium_map, delta_x, delta_y, mesh, \
-                            angle_x, angle_y, angle_w, info)
+                                  combined, P_source, info)
+        mg._known_source_angular(psi, xs_total_as, source, boundary_x, \
+                    boundary_y, medium_map, delta_x, delta_y, mesh, angle_x, \
+                    angle_y, angle_w, info)
+        return np.asarray(psi)
 
-        # Update artificial in-scatter source
-        art_source = np.einsum("qp,ijpg->ijqg", M_as, np.asarray(psi))
-        external_combined = np.asarray(external) + art_source
+    def change(flux, flux_old):
+        # Difference in scalar flux
+        return tools.group_convergence(flux[...,0], flux_old[...,0], info)
 
-        # Check convergence: difference in scalar flux
-        as_change = tools.group_convergence(flux[:,:,:,0], flux_old[:,:,:,0], info)
-        if as_change < info.tol_angular:
-            break
-
-    return np.asarray(flux), xs_total_as, external_combined
+    # The in-scatter source M_as . psi is lagged one iteration
+    flux, external_combined = artificial_scatter_iteration( \
+                np.asarray(flux_guess), external, M_as, solve, angular, change, \
+                info.max_iter_angular, info.tol_energy)
+    return flux, np.asarray(xs_total_as), external_combined
 
 
 def known_flux_moments(double[:,:,:,:] flux, double[:,:] xs_total, \
         double[:,:,:,:] xs_matrix, double[:,:,:,:] external, \
         double[:,:,:,:] boundary_x, double[:,:,:,:] boundary_y, \
-        double[:,:] P_source, geometry, quadrature, params):
+        double[:,:] P_source, geometry, quadrature, params, \
+        int[:,:] q_index=None):
     # P_source is the (2l + 1) Y_k array from harmonic_data
     # Unpack Python DataTypes to Cython memoryviews
     cdef int[:,:] medium_map = geometry.medium_map
@@ -438,15 +496,26 @@ def known_flux_moments(double[:,:,:,:] flux, double[:,:] xs_total, \
     if geometry.geometry == Geometry.POLYGON2D:
         mesh = PolygonSweep(geometry, angle_x, angle_y)
 
+    if info.geometry == 5:
+        check_steady_boundary(boundary_x, (geometry.mesh.boundary_faces.size,), \
+                    info.angles * info.angles, info.groups, "boundary_x", 1)
+    else:
+        check_steady_boundary(boundary_x, (info.cells_y,), info.angles * info.angles, \
+                              info.groups, "boundary_x")
+        check_steady_boundary(boundary_y, (info.cells_x,), info.angles * info.angles, \
+                              info.groups, "boundary_y")
+
     # Create sum_k (2l + 1) Y_k (sigma_s + sigma_f)_l * phi_k + external
     source = tools.array_4d(info.cells_x, info.cells_y, \
                             info.angles * info.angles, info.groups)
     tools._source_total_aniso(source, flux, xs_matrix, medium_map, external, \
-                              P_source, info)
+                              P_source, info, q_index)
 
     # Solve for angular flux at cell centers
     if (info.angular == True) and (info.flux_at_edges == 0):
-        angular_flux = mg._known_source_angular(xs_total, source, boundary_x, \
+        angular_flux = tools.array_4d(info.cells_x, info.cells_y, \
+                                info.angles * info.angles, info.groups)
+        mg._known_source_angular(angular_flux, xs_total, source, boundary_x, \
                                 boundary_y, medium_map, delta_x, delta_y, mesh, \
                                 angle_x, angle_y, angle_w, info)
         return np.asarray(angular_flux)

@@ -48,7 +48,8 @@ cdef float[:,:,:,:,:] farray_5d(int dim1, int dim2, int dim3, int dim4, \
 cdef double group_convergence(double[:,:,:]& arr1, double[:,:,:]& arr2, \
         params info)
 
-cdef double angle_convergence(double[:,:]& arr1, double[:,:]& arr2, params info)
+cdef double angle_convergence(double[:,:]& arr1, double[:,:]& arr2, \
+        params info) noexcept nogil
 
 ################################################################################
 # Multigroup functions
@@ -69,7 +70,9 @@ cdef void _off_scatter_jacobi(double[:,:,:]& flux_old, int[:,:]& medium_map, \
 
 cdef void _source_total(double[:,:,:,:]& source, double[:,:,:]& flux, \
         double[:,:,:]& xs_matrix, int[:,:]& medium_map, \
-        double[:,:,:,:]& external, params info)
+        double[:,:,:,:]& external, params info, int[:,:] q_index=*)
+
+cdef int[:,:] _source_columns(int columns, int[:,:] q_index, params info)
 
 cdef void _source_total_single(double[:,:,:,:]& source, \
         double[:,:,:]& flux, double[:,:,:]& xs_matrix, int[:,:]& medium_map, \
@@ -93,14 +96,16 @@ cdef double _edge_center_xy(double[:,:,:,:]& psi_x, double[:,:,:,:]& psi_y, \
         int gg, params info)
 
 cdef void initialize_known_y(double[:]& known_y, double[:,:]& boundary_y, \
-        double[:,:,:]& reflected_y, double[:]& angle_y, int angle, params info)
+        double[:,:,:]& reflected_y, double[:]& angle_y, int angle, \
+        params info) noexcept nogil
 
 cdef void initialize_known_x(double[:]& known_x, double[:,:]& boundary_x, \
-        double[:,:,:]& reflected_x, double[:]& angle_x, int angle, params info)
+        double[:,:,:]& reflected_x, double[:]& angle_x, int angle, \
+        params info) noexcept nogil
 
 cdef void update_reflector(double[:]& known_x, double[:,:,:]& reflected_x, \
         double[:]& angle_x, double[:]& known_y, double[:,:,:]& reflected_y, \
-        double[:]& angle_y, int angle, params info)
+        double[:]& angle_y, int angle, params info) noexcept nogil
 
 ################################################################################
 # Time Dependent functions
@@ -148,12 +153,6 @@ cdef void _time_source_star_tr_bdf2_mem(double[:,:,:,:]& psi_x, double[:,:,:,:]&
 
 cdef void _time_right_side(double[:,:,:,:]& q_star, double[:,:,:]& flux, \
         double[:,:,:]& xs_scatter, int[:,:]& medium_map, params info)
-
-cdef double[:,:,:,:] _expand_boundary_x(double[:,:,:,:]& half_bc, \
-        PolygonSweep mesh, double[:]& angle_x, double[:]& angle_y, params info)
-
-cdef double[:,:,:,:] _expand_boundary_y(double[:,:,:,:]& half_bc, \
-        double[:]& angle_y, params info)
 
 ################################################################################
 # Criticality functions
@@ -285,7 +284,8 @@ cdef void _off_scatter_jacobi_moments(double[:,:,:,:]& flux_old, \
 
 cdef void _source_total_aniso(double[:,:,:,:]& source, double[:,:,:,:]& flux, \
         double[:,:,:,:]& xs_matrix, int[:,:]& medium_map, \
-        double[:,:,:,:]& external, double[:,:]& P_source, params info)
+        double[:,:,:,:]& external, double[:,:]& P_source, params info, \
+        int[:,:] q_index=*)
 
 cdef void _angular_to_moments(double[:,:,:,:]& angular_flux, \
         double[:,:,:,:]& flux, double[:,:]& P_weights, params info)

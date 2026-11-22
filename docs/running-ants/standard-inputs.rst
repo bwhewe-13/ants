@@ -25,9 +25,11 @@ Legendre moments :math:`\ell = 0, \ldots, L` on a last axis, shape
 :math:`(M \times G \times G \times (L + 1))`, indexed
 ``[material, group out, group in, moment]``. The moments do not include the
 :math:`(2\ell + 1)` factor (see :ref:`anisotropic scattering <sec-nte-anisotropic>`).
-All one- and two-dimensional solvers select anisotropic scattering from the shape
-of the scattering matrix. Two-dimensional problems use the same Legendre moments,
-which are expanded into spherical harmonics internally.
+All one- and two-dimensional solvers, and the three-dimensional fixed source solver,
+select anisotropic scattering from the shape of the scattering matrix. Two- and
+three-dimensional problems use the same Legendre moments, which are expanded into
+spherical harmonics internally: the :math:`(L + 1)(L + 2) / 2` harmonics even in
+:math:`\mu_z` in 2D, and all :math:`(L + 1)^2` harmonics in 3D.
 
 .. code-block:: python
 
@@ -58,7 +60,7 @@ Cross Section Libraries
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 Macroscopic cross sections are built from number densities (atoms/barn-cm) and a
-HDF5 multigroup library (requires ``pip install ants[library]``). Compositions
+HDF5 multigroup library (requires ``pip install ants-sn[library]``). Compositions
 can be copied directly from MCNP or PARTISN input decks, and the common materials
 (enriched uranium, uranium hydride, enriched plutonium, ...) are available by name.
 
@@ -109,6 +111,34 @@ publications using these benchmarks should cite the Handbook.
 .. autofunction:: ants.run_suite
 
 
+Kobayashi Benchmarks
+~~~~~~~~~~~~~~~~~~~~
+
+The three-dimensional Kobayashi benchmarks are one-group source problems with a void
+cube (Problem 1), a straight void duct (Problem 2), or a dog leg void duct (Problem 3)
+in a shield. Case i is a pure absorber with exact reference fluxes, and case ii has
+50% scattering with Monte Carlo reference fluxes. The problems and reference values
+are from K. Kobayashi, N. Sugimura, and Y. Nagaya, *3-D Radiation Transport Benchmark
+Problems and Results for Simple Geometries with Void Regions*, NEA/NSC/DOC(2000)4
+(OECD-NEA, 2000).
+
+.. code-block:: python
+
+    from ants.benchmarks import kobayashi
+    from ants.fixed3d import fixed_source
+
+    inputs = kobayashi.build_problem(3, scattering=True, cell_width=2.0, angles=8)
+    flux = fixed_source(*inputs)
+    points, reference, uncertainty = kobayashi.reference("3C", scattering=True)
+    approx = kobayashi.flux_at(flux[..., 0], points, inputs[2])
+
+.. autofunction:: ants.benchmarks.kobayashi.build_problem
+
+.. autofunction:: ants.benchmarks.kobayashi.reference
+
+.. autofunction:: ants.benchmarks.kobayashi.flux_at
+
+
 Material Locations
 -------------------
 
@@ -117,12 +147,21 @@ material occupies each spatial cell:
 
 * **1D problems**: ``medium_map`` is shape :math:`(I,)` with integer values in [0, M-1]
 * **2D problems**: ``medium_map`` is shape :math:`(I \times J,)` with integer values in [0, M-1]
+* **3D problems**: ``medium_map`` is shape :math:`(I \times J \times K,)` with integer values in [0, M-1]
 
 For structured spatial layouts, use these utility functions:
 
 .. autofunction:: ants.spatial1d
 
 .. autofunction:: ants.spatial2d
+
+.. autofunction:: ants.spatial3d
+
+Three-dimensional maps that are axial stacks of two-dimensional layouts (an
+assembly with top and bottom reflectors, for example) can be built from the
+2D maps directly:
+
+.. autofunction:: ants.extrude3d
 
 
 Spatial Data
@@ -132,17 +171,29 @@ Spatial discretization requires cell widths in each direction:
 
 * **1D problems**: ``delta_x`` — array of cell widths, shape :math:`(I,)`
 * **2D problems**: ``delta_x`` and ``delta_y`` — shapes :math:`(I,)` and :math:`(J,)` respectively
+* **3D problems**: ``delta_x``, ``delta_y``, and ``delta_z`` — shapes :math:`(I,)`,
+  :math:`(J,)`, and :math:`(K,)` respectively
 
 
 Angular Data
 ------------
 
 Angular quadrature data (discrete directions and weights) is generated automatically
-and returned as a ``QuadratureData`` object:
+and returned as a ``QuadratureData`` object. With reflecting boundaries, pass the
+same ``bc_x``, ``bc_y``, and ``bc_z`` to the quadrature as to ``GeometryData``. The
+angular flux, the flux at cell edges, and artificial scattering sweep each ordinate
+once, so the reflection of an ordinate has to be swept before it. ``fixed2d`` and
+``fixed3d`` raise an error if the quadrature is not ordered for the boundaries.
 
 .. autofunction:: ants.angular_x
 
 .. autofunction:: ants.angular_xy
+
+Three-dimensional problems use the full sphere, so ``angular_xyz(N)`` has
+:math:`2 N^2` ordinates for the product set. In 3D, ``N`` in the source shapes below
+is this total number of ordinates.
+
+.. autofunction:: ants.angular_xyz
 
 
 External Source Data
@@ -181,13 +232,17 @@ are the authoritative reference for source array shapes.
      - Time-Dependent
      - ``(1, I, J, 1, 1)``
      - ``(T, I, J, N**2, G)``
+   * - 3
+     - Fixed
+     - ``(I, J, K, 1, 1)``
+     - ``(I, J, K, N, G)``
 
 
 Boundary Source Data
 --------------------
 
-Like the external source, the boundary source terms ``boundary_x`` and ``boundary_y``,
-are passed inside the ``SourceData`` object. The boundary source requires at least 2 values
+Like the external source, the boundary source terms ``boundary_x``, ``boundary_y``, and
+``boundary_z`` (3D) are passed inside the ``SourceData`` object. The boundary source requires at least 2 values
 for each boundary term (e.g. [x(0), x(X)]). The boundary sources are able to be space-
 (for 2D), angle-, energy-, and time-dependent. The minimum broadcasting shapes are shown
 in the table below. Figures showing the locations of the boundary sources are also included.
@@ -210,7 +265,7 @@ in the table below. Figures showing the locations of the boundary sources are al
    * - 1 / ``boundary_x``
      - Time-Dependent
      - ``(1, 2, 1, 1)``
-     - ``(T, 2, N, G)``
+     - ``(T, 2, N/2, G)``
    * - 2 / ``boundary_x``
      - Fixed/Critical
      - ``(2, 1, 1, 1)``
@@ -218,7 +273,7 @@ in the table below. Figures showing the locations of the boundary sources are al
    * - 2 / ``boundary_x``
      - Time-Dependent
      - ``(1, 2, 1, 1, 1)``
-     - ``(T, 2, J, N**2, G)``
+     - ``(T, 2, J, N**2/2, G)``
    * - 2 / ``boundary_y``
      - Fixed/Critical
      - ``(2, 1, 1, 1)``
@@ -226,8 +281,23 @@ in the table below. Figures showing the locations of the boundary sources are al
    * - 2 / ``boundary_y``
      - Time-Dependent
      - ``(1, 2, 1, 1, 1)``
-     - ``(T, 2, I, N**2, G)``
+     - ``(T, 2, I, N**2/2, G)``
+   * - 3 / ``boundary_x``
+     - Fixed
+     - ``(2, 1, 1, 1, 1)``
+     - ``(2, J, K, N, G)``
+   * - 3 / ``boundary_y``
+     - Fixed
+     - ``(2, 1, 1, 1, 1)``
+     - ``(2, I, K, N, G)``
+   * - 3 / ``boundary_z``
+     - Fixed
+     - ``(2, 1, 1, 1, 1)``
+     - ``(2, I, J, N, G)``
 
+
+Time-dependent boundary sources only hold the incoming angles. The size of ``T`` is
+given in :doc:`time-dependent-inputs`.
 
 The time axis of a time-dependent source rarely needs to be built by hand. ANTS provides
 helpers that expand a steady source over the time grid:
@@ -241,6 +311,37 @@ helpers that expand a steady source over the time grid:
   boundary sources.
 
 See :doc:`time-dependent-inputs` for time-stepping details and the initial-flux shapes.
+
+
+**Compact Sources:**
+
+Broadcasting handles a dimension where the source is the same everywhere, but not
+one where it is mostly zero. A source in one energy group of an 87-group problem
+stores 86 groups of zeros. ``ants.datatypes.CompactSource`` stores each distinct
+spatial profile once (``values``, shape ``(*spatial, S)``) and an integer
+``index`` of shape ``(N, G)`` (``(N**2, G)`` in 2D) giving the profile of each
+angle and group, with ``-1`` for a zero source. The spatial shape is ``(I,)`` or
+``(I, J)`` for external sources and ``(2,)``, ``(2, J)``, or ``(2, I)`` for
+boundary sources. Index dimensions of size 1 are broadcast. Any of
+``external``, ``boundary_x``, and ``boundary_y`` can be a ``CompactSource``.
+
+.. code-block:: python
+
+    from ants.datatypes import CompactSource
+
+    # Isotropic source in cells 10-20 of group 0, zero in the other groups
+    values = np.zeros((cells_x, 1))
+    values[10:20, 0] = 1.0
+    index = np.full((1, groups), -1)
+    index[0, 0] = 0
+    external = CompactSource(values, index)
+
+    # Or from an existing dense array
+    boundary_x = CompactSource.from_dense(ants.boundary1d.deuterium_tritium(0, edges_g))
+
+The steady-state sweeps read a compact external source through the index, so it is
+never expanded. Compact boundary sources are expanded to the (surface sized) dense
+array, and the nearby problems use dense sources.
 
 
 **One-Dimensional Boundary Source**

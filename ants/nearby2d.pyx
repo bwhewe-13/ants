@@ -28,10 +28,11 @@ from tqdm.auto import tqdm
 
 from ants import critical2d, fixed2d
 from ants.datatypes import Geometry, SourceData, create_params
-from ants.quadrature import _scatter_harmonics, harmonic_data
+from ants.quadrature import _check_reflection, _scatter_harmonics, harmonic_data
 from ants.utils.interp2d import Interpolation
 from ants.utils.interp_polygon import PolygonInterpolation, polygon_quadrature
 from ants.utils.pytools import average_array
+from ants.utils.sources import dense_source
 
 from ants cimport cytools_2d as tools
 from ants cimport multi_group_2d as mg
@@ -87,6 +88,11 @@ def fixed_source(materials, sources, geometry, quadrature, solver, **kwargs):
     return_nearby = kwargs.get("return_nearby", False)
     numerical_flux = kwargs.get("numerical_flux", None)
 
+    # The residual is dense, so compact sources are expanded
+    sources = replace(sources, external=dense_source(sources.external), \
+                      boundary_x=dense_source(sources.boundary_x), \
+                      boundary_y=dense_source(sources.boundary_y))
+
     # Unpack Python DataTypes to Cython memoryviews
     cdef double[:,:] xs_total = materials.total
     cdef double[:,:,:,:] xs_scatter = _scatter_harmonics(materials.scatter)
@@ -102,6 +108,8 @@ def fixed_source(materials, sources, geometry, quadrature, solver, **kwargs):
     # Convert ProblemParameters to type params
     params = create_params(materials, quadrature, geometry, solver)
     info = parameters._to_params(params)
+    # The angular flux is found with one sweep of each ordinate
+    _check_reflection(quadrature, geometry, True)
     parameters._check_nearby2d_fixed_source(info, xs_total.shape[0])
     block = False if (info.materials == 1) else kwargs.get("block", True)
 
@@ -272,6 +280,8 @@ def k_criticality(materials, geometry, quadrature, solver, **kwargs):
     # Convert ProblemParameters to type params
     params = create_params(materials, quadrature, geometry, solver)
     info = parameters._to_params(params)
+    # The angular flux is found with one sweep of each ordinate
+    _check_reflection(quadrature, geometry, True)
     parameters._check_nearby2d_criticality(info)
     block = False if (info.materials == 1) else kwargs.get("block", True)
 

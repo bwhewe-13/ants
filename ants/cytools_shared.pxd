@@ -21,6 +21,8 @@
 # distutils: extra_compile_args = -O3 -march=native -ffast-math
 
 
+from libc.math cimport tanh
+
 from ants.parameters cimport params
 
 ################################################################################
@@ -66,7 +68,8 @@ ctypedef fused medium_map_nd:
 cdef double group_convergence(scalar_flux_nd arr1, scalar_flux_nd arr2,
                                params info)
 
-cdef double angle_convergence(spatial_nd arr1, spatial_nd arr2, params info)
+cdef double angle_convergence(spatial_nd arr1, spatial_nd arr2,
+                              params info) noexcept nogil
 
 cdef void _normalize_flux(scalar_flux_nd flux, params info)
 
@@ -79,3 +82,17 @@ cdef double[:] _total_velocity(double[:,:]& xs_total, double[:]& velocity,
                            double constant, params info)
 
 cdef double[:,:,:] _fission_matrix(object fission, object chi)
+
+cdef int[:,:] _source_columns(int columns, int[:,:] q_index, int angles, \
+        int groups)
+
+################################################################################
+# Step characteristic weight
+################################################################################
+
+cdef inline double step_characteristic_weight(double tau) noexcept nogil:
+    # coth(tau / 2) - 2 / tau, which is inf - inf at tau = 0 (voids),
+    # so the series is used for small tau
+    if tau < 1e-3:
+        return tau / 6.0 * (1.0 - tau * tau / 60.0)
+    return 1.0 / tanh(0.5 * tau) - 2.0 / tau

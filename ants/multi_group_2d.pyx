@@ -22,7 +22,7 @@
 from libc.math cimport isinf, isnan
 
 import numpy as np
-from cython.parallel import prange
+from cython.parallel import prange, threadid
 
 from ants cimport cytools_2d as tools
 from ants.cytools_1d cimport _variable_cross_sections, _variable_cross_sections_aniso
@@ -33,6 +33,8 @@ from ants.spatial_sweep_2d cimport (
     _known_interface_sweep,
     discrete_ordinates,
     discrete_ordinates_aniso,
+    discrete_ordinates_aniso_nogil,
+    discrete_ordinates_nogil,
 )
 
 from ants.utils.pytools import dmd_2d, warn_not_converged
@@ -42,40 +44,42 @@ cdef double[:,:,:] multi_group(double[:,:,:]& flux_guess, \
         double[:,:]& xs_total, double[:,:,:]& xs_scatter, \
         double[:,:,:,:]& external, double[:,:,:,:]& boundary_x, \
         double[:,:,:,:]& boundary_y, int[:,:]& medium_map, \
-        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, \
-        double[:]& angle_x, double[:]& angle_y, double[:]& angle_w, \
-        params info, double[:] xs_time=None):
+        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, double[:]& angle_x, \
+        double[:]& angle_y, double[:]& angle_w, params info, \
+        int[:,:] q_index=None, \
+        double[:] xs_time=None):
+    # q_index (N^2 x G) is the slab of each angle and group for a compact
+    # external source (I x J x S x 1), and None for a dense external source
     # Source Iteration
     if info.mg_solver == 1:
-        # Activated when parallel_type == GROUP (2) or BOTH (3).
-        if info.parallel_type >= 2 and info.groups > 1:
-            return jacobi_iteration(flux_guess, xs_total, xs_scatter, external, \
-                            boundary_x, boundary_y, medium_map, delta_x, \
-                            delta_y, mesh, angle_x, angle_y, angle_w, info, \
-                            xs_time)
-        return source_iteration(flux_guess, xs_total, xs_scatter, \
-                    external, boundary_x, boundary_y, medium_map, \
-                    delta_x, delta_y, mesh, angle_x, angle_y, angle_w, info, \
-                    xs_time)
+        return source_iteration(flux_guess, xs_total, xs_scatter, external, \
+                    boundary_x, boundary_y, medium_map, delta_x, delta_y, mesh, \
+                    angle_x, angle_y, angle_w, info, q_index, xs_time)
     # Dynamic Mode Decomposition
     elif info.mg_solver == 2:
-        return dynamic_mode_decomp(flux_guess, xs_total, xs_scatter, \
-                    external, boundary_x, boundary_y, medium_map, \
-                    delta_x, delta_y, mesh, angle_x, angle_y, angle_w, info, \
-                    xs_time)
+        return dynamic_mode_decomp(flux_guess, xs_total, xs_scatter, external, \
+                    boundary_x, boundary_y, medium_map, delta_x, delta_y, mesh, \
+                    angle_x, angle_y, angle_w, info, q_index, xs_time)
 
 
 cdef double[:,:,:] source_iteration(double[:,:,:]& flux_guess, \
         double[:,:]& xs_total, double[:,:,:]& xs_scatter, \
         double[:,:,:,:]& external, double[:,:,:,:]& boundary_x, \
         double[:,:,:,:]& boundary_y, int[:,:]& medium_map, \
-        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, \
-        double[:]& angle_x, double[:]& angle_y, double[:]& angle_w, \
-        params info, double[:] xs_time=None):
+        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, double[:]& angle_x, \
+        double[:]& angle_y, double[:]& angle_w, params info, int[:,:] q_index=None, \
+        double[:] xs_time=None):
+
+    # Jacobi iteration over groups when parallel_type == GROUP (2) or BOTH (3)
+    if info.parallel_type >= 2 and info.groups > 1:
+        return jacobi_iteration(flux_guess, xs_total, xs_scatter, external, \
+                    boundary_x, boundary_y, medium_map, delta_x, delta_y, mesh, \
+                    angle_x, angle_y, angle_w, info, q_index, xs_time)
 
     # Initialize components
     cdef int gg, qq, bcx, bcy
-    cdef params info_1t, info_gg
+    cdef int[:,:] q_cols = tools._source_columns(external.shape[2], \
+                                                 q_index, info)
 
     # Initialize flux
     flux = tools.array_3d(info.cells_x, info.cells_y, info.groups)
@@ -86,71 +90,7 @@ cdef double[:,:,:] source_iteration(double[:,:,:]& flux_guess, \
     cdef int count = 1
     cdef double change = 0.0
 
-
-    if info.parallel_type >= 2 and info.groups > 1:
-
-        # Per-group off-scatter buffer: off_scatter_all[gg, ii, jj]
-        off_scatter_all = tools.array_3d(info.groups, info.cells_x, info.cells_y)
-
-        # Row-major snapshot: flux_old_snap[gg, ii, jj].
-        # square_ordinates writes flux_old[:,:] = flux[:,:] at the end of
-        # each angular inner iteration.  Passing flux_old[:,:,gg] directly
-        # would corrupt the outer flux_old and make group_convergence() report
-        # zero change after the first sweep, causing premature exit.
-        flux_old_snap = tools.array_3d(info.groups, info.cells_x, info.cells_y)
-
-        info_1t = info
-        if info.parallel_type == 2:   # GROUP only
-            info_1t.num_threads = 1
-
-        while not converged:
-
-            flux[:,:,:] = 0.0
-
-            # Refresh per-group snapshot from the current flux_old
-            for gg in range(info.groups):
-                flux_old_snap[gg, :, :] = flux_old[:, :, gg]
-
-            # Compute Jacobi off-scatter for every group in parallel (nogil)
-            for gg in prange(info.groups, nogil=True, \
-                             num_threads=info.num_threads):
-                tools._off_scatter_jacobi(flux_old, medium_map, xs_scatter, \
-                                          off_scatter_all, info, gg)
-
-            # Sweep all groups in parallel
-            for gg in prange(info.groups, nogil=True, \
-                             num_threads=info.num_threads):
-                qq  = 0 if external.shape[3]   == 1 else gg
-                bcx = 0 if boundary_x.shape[3]  == 1 else gg
-                bcy = 0 if boundary_y.shape[3]  == 1 else gg
-                with gil:
-                    info_gg = info_1t
-                    if xs_time is not None:
-                        info_gg.xs_time = xs_time[gg]
-                    discrete_ordinates(flux[:,:,gg], flux_old_snap[gg], \
-                            xs_total[:,gg], xs_scatter[:,gg,gg], \
-                            off_scatter_all[gg], external[:,:,:,qq], \
-                            boundary_x[:,:,:,bcx], boundary_y[:,:,:,bcy], \
-                            medium_map, delta_x, delta_y, mesh, angle_x, \
-                            angle_y, angle_w, info_gg)
-
-            change = tools.group_convergence(flux, flux_old, info)
-            if isnan(change) or isinf(change):
-                change = 0.5
-            converged = (change < info.tol_energy) \
-                        or (count >= info.max_iter_energy)
-            count += 1
-            flux_old[:,:,:] = flux[:,:,:]
-
-        # Warn if the energy iterations did not converge
-        if change >= info.tol_energy:
-            warn_not_converged("Multigroup", "max_iter_energy")
-
-        return flux[:,:,:]
-
-    # -----------------------------------------------------------------------
-    # Sequential path: Gauss-Seidel iteration
-    # -----------------------------------------------------------------------
+    # Gauss-Seidel iteration over groups
     flux_1g = tools.array_2d(info.cells_x, info.cells_y)
     off_scatter = tools.array_2d(info.cells_x, info.cells_y)
 
@@ -164,17 +104,17 @@ cdef double[:,:,:] source_iteration(double[:,:,:]& flux_guess, \
             bcx = 0 if boundary_x.shape[3] == 1 else gg
             bcy = 0 if boundary_y.shape[3] == 1 else gg
 
-            if xs_time is not None:
-                info.xs_time = xs_time[gg]
             flux_1g[:,:] = flux_old[:,:,gg]
 
             tools._off_scatter(flux, flux_old, medium_map, xs_scatter, \
                                off_scatter, info, gg)
 
+            if xs_time is not None:
+                info.xs_time = xs_time[gg]
             discrete_ordinates(flux[:,:,gg], flux_1g, xs_total[:,gg], \
                     xs_scatter[:,gg,gg], off_scatter, external[:,:,:,qq], \
-                    boundary_x[:,:,:,bcx], boundary_y[:,:,:,bcy], medium_map, \
-                    delta_x, delta_y, mesh, angle_x, angle_y, angle_w, info)
+                    q_cols[:,gg], boundary_x[:,:,:,bcx], boundary_y[:,:,:,bcy], \
+                    medium_map, delta_x, delta_y, mesh, angle_x, angle_y, angle_w, info)
 
         change = tools.group_convergence(flux, flux_old, info)
         if isnan(change) or isinf(change):
@@ -195,12 +135,15 @@ cdef double[:,:,:] jacobi_iteration(double[:,:,:]& flux_guess, \
         double[:,:]& xs_total, double[:,:,:]& xs_scatter, \
         double[:,:,:,:]& external, double[:,:,:,:]& boundary_x, \
         double[:,:,:,:]& boundary_y, int[:,:]& medium_map, \
-        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, \
-        double[:]& angle_x, double[:]& angle_y, double[:]& angle_w, \
-        params info, double[:] xs_time=None):
+        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, double[:]& angle_x, \
+        double[:]& angle_y, double[:]& angle_w, params info, int[:,:] q_index=None, \
+        double[:] xs_time=None):
     # Initialize components
-    cdef int gg, qq, bcx, bcy
+    cdef int gg, qq, bcx, bcy, tid
+    cdef int[:,:] q_cols = tools._source_columns(external.shape[2], \
+                                                 q_index, info)
     cdef params info_1t, info_gg
+    cdef int N2 = info.angles * info.angles
 
     # Initialize flux
     flux = tools.array_3d(info.cells_x, info.cells_y, info.groups)
@@ -208,7 +151,10 @@ cdef double[:,:,:] jacobi_iteration(double[:,:,:]& flux_guess, \
 
     # Create off-scattering term
     off_scatter_all = tools.array_3d(info.groups, info.cells_x, info.cells_y)
-    # Passing flux_old[:,:,gg] directly to flux would corrupt the outer flux_old
+    # Row-major snapshot: flux_old_snap[gg, ii, jj]. square_ordinates writes
+    # flux_old[:,:] = flux[:,:] at the end of each angular inner iteration.
+    # Passing flux_old[:,:,gg] directly would corrupt the outer flux_old and
+    # make group_convergence() report zero change after the first sweep.
     flux_old_snap = tools.array_3d(info.groups, info.cells_x, info.cells_y)
 
     # Copy params; for GROUP mode disable inner angle prange to avoid
@@ -217,6 +163,24 @@ cdef double[:,:,:] jacobi_iteration(double[:,:,:]& flux_guess, \
     info_1t = info
     if info.parallel_type == 2:
         info_1t.num_threads = 1
+
+    # Time term of each group, see source_iteration
+    cdef double[:] xs_time_g = tools.array_1d(info.groups)
+    if xs_time is not None:
+        xs_time_g[:] = xs_time
+
+    # Sweep work arrays for each thread of the group prange, so the groups
+    # are swept without the GIL (see spatial_sweep_2d)
+    cdef double[:,:,:,:] thread_flux = tools.array_4d(info.num_threads, \
+                            info_1t.num_threads, info.cells_x, info.cells_y)
+    cdef double[:,:,:,:] reflected_y = tools.array_4d(info.num_threads, 2, \
+                                                      info.cells_x, N2)
+    cdef double[:,:,:,:] reflected_x = tools.array_4d(info.num_threads, 2, \
+                                                      info.cells_y, N2)
+    cdef double[:,:,:] known_y_work = tools.array_3d(info.num_threads, N2, \
+                                                     info.cells_x)
+    cdef double[:,:,:] known_x_work = tools.array_3d(info.num_threads, N2, \
+                                                     info.cells_y)
 
     # Set convergence limits
     cdef bint converged = False
@@ -240,15 +204,26 @@ cdef double[:,:,:] jacobi_iteration(double[:,:,:]& flux_guess, \
             qq  = 0 if external.shape[3]   == 1 else gg
             bcx = 0 if boundary_x.shape[3]  == 1 else gg
             bcy = 0 if boundary_y.shape[3]  == 1 else gg
-            with gil:
-                info_gg = info_1t
-                if xs_time is not None:
-                    info_gg.xs_time = xs_time[gg]
-                discrete_ordinates(flux[:,:,gg], flux_old_snap[gg], xs_total[:,gg], \
-                        xs_scatter[:,gg,gg], off_scatter_all[gg], external[:,:,:,qq], \
-                        boundary_x[:,:,:,bcx], boundary_y[:,:,:,bcy], medium_map, \
-                        delta_x, delta_y, mesh, angle_x, angle_y, angle_w, \
-                        info_gg)
+            tid = threadid()
+            info_gg = info_1t
+            info_gg.xs_time = xs_time_g[gg]
+            # Polygon meshes are swept with the GIL (PolygonSweep is a
+            # Python object), the rectangular sweeps without it
+            if info.geometry == 5:
+                with gil:
+                    discrete_ordinates(flux[:,:,gg], flux_old_snap[gg], \
+                            xs_total[:,gg], xs_scatter[:,gg,gg], off_scatter_all[gg], \
+                            external[:,:,:,qq], q_cols[:,gg], boundary_x[:,:,:,bcx], \
+                            boundary_y[:,:,:,bcy], medium_map, delta_x, delta_y, \
+                            mesh, angle_x, angle_y, angle_w, info_gg)
+            else:
+                discrete_ordinates_nogil(flux[:,:,gg], flux_old_snap[gg], \
+                        xs_total[:,gg], xs_scatter[:,gg,gg], off_scatter_all[gg], \
+                        external[:,:,:,qq], q_cols[:,gg], boundary_x[:,:,:,bcx], \
+                        boundary_y[:,:,:,bcy], medium_map, delta_x, delta_y, \
+                        angle_x, angle_y, angle_w, info_gg, thread_flux[tid], \
+                        reflected_y[tid], reflected_x[tid], known_y_work[tid], \
+                        known_x_work[tid])
 
         change = tools.group_convergence(flux, flux_old, info)
         if isnan(change) or isinf(change):
@@ -266,15 +241,18 @@ cdef double[:,:,:] jacobi_iteration(double[:,:,:]& flux_guess, \
 
 cdef double[:,:,:] variable_source_iteration(double[:,:,:]& flux_guess, \
         double[:,:]& xs_total_u, double[:]& xs_total_c, double[:]& star_coef_c, \
-        double[:,:,:]& xs_scatter_u, double[:]& xs_scatter_c, double[:,:]& off_scatter, \
-        double[:,:,:,:]& external, double[:,:,:,:]& boundary_x, \
-        double[:,:,:,:]& boundary_y, int[:,:]& medium_map, double[:]& delta_x, \
-        double[:]& delta_y, PolygonSweep mesh, double[:]& angle_x, \
-        double[:]& angle_y, double[:]& angle_w, double[:]& edges_g, \
-        int[:]& edges_gidx_c, params info):
+        double[:,:,:]& xs_scatter_u, double[:]& xs_scatter_c, \
+        double[:,:]& off_scatter, double[:,:,:,:]& external, \
+        double[:,:,:,:]& boundary_x, double[:,:,:,:]& boundary_y, \
+        int[:,:]& medium_map, double[:]& delta_x, double[:]& delta_y, \
+        PolygonSweep mesh, double[:]& angle_x, double[:]& angle_y, \
+        double[:]& angle_w, double[:]& edges_g, int[:]& edges_gidx_c, params info, \
+        int[:,:] q_index=None):
 
     # Initialize components
     cdef int gg, qq, bcx, bcy, idx1, idx2
+    cdef int[:,:] q_cols = tools._source_columns(external.shape[2], \
+                                                 q_index, info)
 
     # Initialize flux
     flux = tools.array_3d(info.cells_x, info.cells_y, info.groups)
@@ -304,7 +282,6 @@ cdef double[:,:,:] variable_source_iteration(double[:,:,:]& flux_guess, \
 
             _variable_cross_sections(xs_total_c, xs_total_u, star_coef_c[gg], \
                         xs_scatter_c, xs_scatter_u, edges_g, idx1, idx2, info)
-            info.xs_time = star_coef_c[gg]
 
             # Calculate up and down scattering term using Gauss-Seidel
             tools._variable_off_scatter(flux, flux_old, medium_map, xs_scatter_u, \
@@ -312,10 +289,11 @@ cdef double[:,:,:] variable_source_iteration(double[:,:,:]& flux_guess, \
                                         idx1, idx2, info)
 
             # Use discrete ordinates for the angular dimension
-            discrete_ordinates(flux[:,:,gg], flux_old[:,:,gg].copy(), xs_total_c, xs_scatter_c, \
-                    off_scatter, external[:,:,:,qq], boundary_x[:,:,bcx], \
-                    boundary_y[:,:,bcy], medium_map, delta_x, delta_y, mesh, \
-                    angle_x, angle_y, angle_w, info)
+            info.xs_time = star_coef_c[gg]
+            discrete_ordinates(flux[:,:,gg], flux_old[:,:,gg].copy(), xs_total_c, \
+                    xs_scatter_c, off_scatter, external[:,:,:,qq], q_cols[:,gg], \
+                    boundary_x[:,:,:,bcx], boundary_y[:,:,:,bcy], medium_map, \
+                    delta_x, delta_y, mesh, angle_x, angle_y, angle_w, info)
 
         # Check for convergence
         change = tools.group_convergence(flux, flux_old, info)
@@ -338,12 +316,14 @@ cdef double[:,:,:] dynamic_mode_decomp(double[:,:,:]& flux_guess, \
         double[:,:]& xs_total, double[:,:,:]& xs_scatter, \
         double[:,:,:,:]& external, double[:,:,:,:]& boundary_x, \
         double[:,:,:,:]& boundary_y, int[:,:]& medium_map, \
-        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, \
-        double[:]& angle_x, double[:]& angle_y, double[:]& angle_w, \
-        params info, double[:] xs_time=None):
+        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, double[:]& angle_x, \
+        double[:]& angle_y, double[:]& angle_w, params info, int[:,:] q_index=None, \
+        double[:] xs_time=None):
 
     # Initialize components
     cdef int gg, rk, kk, qq, bcx, bcy
+    cdef int[:,:] q_cols = tools._source_columns(external.shape[2], \
+                                                 q_index, info)
 
     # Initialize flux (typed so the DMD estimate is converted back)
     cdef double[:,:,:] flux = tools.array_3d(info.cells_x, info.cells_y, info.groups)
@@ -380,8 +360,6 @@ cdef double[:,:,:] dynamic_mode_decomp(double[:,:,:]& flux_guess, \
             bcy = 0 if boundary_y.shape[3] == 1 else gg
 
             # Select the specific group from last iteration
-            if xs_time is not None:
-                info.xs_time = xs_time[gg]
             flux_1g[:,:] = flux_old[:,:,gg]
 
             # Calculate up and down scattering term using Gauss-Seidel
@@ -389,10 +367,12 @@ cdef double[:,:,:] dynamic_mode_decomp(double[:,:,:]& flux_guess, \
                                off_scatter, info, gg)
 
             # Use discrete ordinates for the angular dimension
+            if xs_time is not None:
+                info.xs_time = xs_time[gg]
             discrete_ordinates(flux[:,:,gg], flux_1g, xs_total[:,gg], \
                     xs_scatter[:,gg,gg], off_scatter, external[:,:,:,qq], \
-                    boundary_x[:,:,:,bcx], boundary_y[:,:,:,bcy], medium_map, \
-                    delta_x, delta_y, mesh, angle_x, angle_y, angle_w, info)
+                    q_cols[:,gg], boundary_x[:,:,:,bcx], boundary_y[:,:,:,bcy], \
+                    medium_map, delta_x, delta_y, mesh, angle_x, angle_y, angle_w, info)
 
         # Check for convergence
         change = tools.group_convergence(flux, flux_old, info)
@@ -415,20 +395,21 @@ cdef double[:,:,:] dynamic_mode_decomp(double[:,:,:]& flux_guess, \
     return flux_dmd[:,:,:]
 
 
-cdef double[:,:,:,:] _known_source_angular(double[:,:]& xs_total, \
-        double[:,:,:,:]& source, double[:,:,:,:]& boundary_x, \
-        double[:,:,:,:]& boundary_y, int[:,:]& medium_map, \
-        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, \
-        double[:]& angle_x, double[:]& angle_y, double[:]& angle_w, \
-        params info, double[:] xs_time=None):
+cdef void _known_source_angular(double[:,:,:,:]& angular_flux, \
+        double[:,:]& xs_total, double[:,:,:,:]& source, double[:,:,:,:]& boundary_x, \
+        double[:,:,:,:]& boundary_y, int[:,:]& medium_map, double[:]& delta_x, \
+        double[:]& delta_y, PolygonSweep mesh, double[:]& angle_x, \
+        double[:]& angle_y, double[:]& angle_w, params info, \
+        double[:] xs_time=None):
     # source = flux * xs_scatter + external source
+    # angular_flux (cells_x, cells_y, angles**2, groups) is overwritten
+    # and must not share memory with source
 
     # Initialize components
     cdef int gg, qq, bcx, bcy
 
-    # Initialize angular flux
-    angular_flux = tools.array_4d(info.cells_x, info.cells_y, \
-                                  info.angles * info.angles, info.groups)
+    # The sweeps add to the angular flux
+    angular_flux[:,:,:,:] = 0.0
     # Set zero matrix placeholder for scattering
     zero_2d = tools.array_2d(info.cells_x, info.cells_y)
 
@@ -440,22 +421,20 @@ cdef double[:,:,:,:] _known_source_angular(double[:,:]& xs_total, \
         bcx = 0 if boundary_x.shape[3] == 1 else gg
         bcy = 0 if boundary_y.shape[3] == 1 else gg
 
+        # Perform angular sweep
         if xs_time is not None:
             info.xs_time = xs_time[gg]
-        # Perform angular sweep
         _known_center_sweep(angular_flux[:,:,:,gg], xs_total[:,gg], zero_2d, \
             source[:,:,:,qq], boundary_x[:,:,:,bcx], boundary_y[:,:,:,bcy], \
             medium_map, delta_x, delta_y, mesh, angle_x, angle_y, angle_w, info)
-
-    return angular_flux[:,:,:,:]
 
 
 cdef double[:,:,:] _known_source_scalar(double[:,:]& xs_total, \
         double[:,:,:,:]& source, double[:,:,:,:]& boundary_x, \
         double[:,:,:,:]& boundary_y, int[:,:]& medium_map, \
-        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, \
-        double[:]& angle_x, double[:]& angle_y, double[:]& angle_w, \
-        params info, double[:] xs_time=None):
+        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, double[:]& angle_x, \
+        double[:]& angle_y, double[:]& angle_w, params info, \
+        double[:] xs_time=None):
     # source = flux * xs_scatter + external source
 
     # Initialize components
@@ -475,9 +454,9 @@ cdef double[:,:,:] _known_source_scalar(double[:,:]& xs_total, \
         bcx = 0 if boundary_x.shape[3] == 1 else gg
         bcy = 0 if boundary_y.shape[3] == 1 else gg
 
+        # Perform angular sweep
         if xs_time is not None:
             info.xs_time = xs_time[gg]
-        # Perform angular sweep
         _known_center_sweep(scalar_flux[:,:,gg], xs_total[:,gg], zero_2d, \
             source[:,:,:,qq], boundary_x[:,:,:,bcx], boundary_y[:,:,:,bcy], \
             medium_map, delta_x, delta_y, mesh, angle_x, angle_y, angle_w, info)
@@ -488,9 +467,9 @@ cdef double[:,:,:] _known_source_scalar(double[:,:]& xs_total, \
 cdef double[:,:,:,:] _known_source_single(double[:,:]& xs_total, \
         double[:,:,:,:]& source, double[:,:,:,:]& boundary_x, \
         double[:,:,:,:]& boundary_y, int[:,:]& medium_map, \
-        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, \
-        double[:]& angle_x, double[:]& angle_y, double[:]& angle_w, int group, \
-        params info):
+        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, double[:]& angle_x, \
+        double[:]& angle_y, double[:]& angle_w, int group, params info, \
+        double[:] xs_time=None):
     # source = flux * xs_scatter + external source
 
     # Initialize components
@@ -511,6 +490,8 @@ cdef double[:,:,:,:] _known_source_single(double[:,:]& xs_total, \
         bcy = 0 if boundary_y.shape[3] == 1 else gg
 
         # Perform angular sweep
+        if xs_time is not None:
+            info.xs_time = xs_time[gg]
         _known_center_sweep(angular_flux[:,:,:,0], xs_total[:,gg], zero_2d, \
             source[:,:,:,qq], boundary_x[:,:,:,bcx], boundary_y[:,:,:,bcy], \
             medium_map, delta_x, delta_y, mesh, angle_x, angle_y, angle_w, info)
@@ -522,9 +503,9 @@ cdef void _interface_angular(double[:,:,:,:]& flux_edge_x, \
         double[:,:,:,:]& flux_edge_y, double[:,:]& xs_total, \
         double[:,:,:,:]& source, double[:,:,:,:]& boundary_x, \
         double[:,:,:,:]& boundary_y, int[:,:]& medium_map, \
-        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, \
-        double[:]& angle_x, double[:]& angle_y, double[:]& angle_w, \
-        params info, double[:] xs_time=None):
+        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, double[:]& angle_x, \
+        double[:]& angle_y, double[:]& angle_w, params info, \
+        double[:] xs_time=None):
     # source = flux * xs_scatter + external source
 
     # flux_edge_x = [(I+1) x J], flux_edge_y = [I x (J+1)]
@@ -542,9 +523,9 @@ cdef void _interface_angular(double[:,:,:,:]& flux_edge_x, \
         bcx = 0 if boundary_x.shape[3] == 1 else gg
         bcy = 0 if boundary_y.shape[3] == 1 else gg
 
+        # Perform angular sweep
         if xs_time is not None:
             info.xs_time = xs_time[gg]
-        # Perform angular sweep
         _known_interface_sweep(flux_edge_x[:,:,:,gg], flux_edge_y[:,:,:,gg], \
                 xs_total[:,gg], source[:,:,:,qq], boundary_x[:,:,:,bcx], \
                 boundary_y[:,:,:,bcy], medium_map, delta_x, delta_y, mesh, \
@@ -555,9 +536,9 @@ cdef void _interface_scalar(double[:,:,:,:]& flux_edge_x, \
         double[:,:,:,:]& flux_edge_y, double[:,:]& xs_total, \
         double[:,:,:,:]& source, double[:,:,:,:]& boundary_x, \
         double[:,:,:,:]& boundary_y, int[:,:]& medium_map, \
-        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, \
-        double[:]& angle_x, double[:]& angle_y, double[:]& angle_w, \
-        params info):
+        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, double[:]& angle_x, \
+        double[:]& angle_y, double[:]& angle_w, params info, \
+        double[:] xs_time=None):
     # source = flux * xs_scatter + external source
     # flux_edge_x = [(I+1) x J], flux_edge_y = [I x (J+1)]
 
@@ -573,6 +554,8 @@ cdef void _interface_scalar(double[:,:,:,:]& flux_edge_x, \
         bcy = 0 if boundary_y.shape[3] == 1 else gg
 
         # Perform angular sweep
+        if xs_time is not None:
+            info.xs_time = xs_time[gg]
         _known_interface_sweep(flux_edge_x[:,:,gg], flux_edge_y[:,:,gg], \
                 xs_total[:,gg], source[:,:,:,qq], boundary_x[:,:,:,bcx], \
                 boundary_y[:,:,:,bcy], medium_map, delta_x, delta_y, mesh, \
@@ -590,9 +573,9 @@ cdef double[:,:,:,:] multi_group_moments(double[:,:,:,:]& flux_guess, \
         double[:,:]& xs_total, double[:,:,:,:]& xs_scatter, \
         double[:,:,:,:]& external, double[:,:,:,:]& boundary_x, \
         double[:,:,:,:]& boundary_y, int[:,:]& medium_map, \
-        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, \
-        double[:]& angle_x, double[:]& angle_y, double[:]& angle_w, \
-        double[:,:]& P_source, double[:,:]& P_weights, params info, \
+        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, double[:]& angle_x, \
+        double[:]& angle_y, double[:]& angle_w, double[:,:]& P_source, \
+        double[:,:]& P_weights, params info, int[:,:] q_index=None, \
         double[:] xs_time=None):
     # Isotropic scattering
     if info.moments == 1:
@@ -600,7 +583,7 @@ cdef double[:,:,:,:] multi_group_moments(double[:,:,:,:]& flux_guess, \
         flux[:,:,:,0] = multi_group(flux_guess[:,:,:,0], xs_total, \
                         xs_scatter[:,:,:,0], external, boundary_x, boundary_y, \
                         medium_map, delta_x, delta_y, mesh, angle_x, angle_y, \
-                        angle_w, info, xs_time)
+                        angle_w, info, q_index, xs_time)
         return flux[:,:,:,:]
     # Source Iteration
     if info.mg_solver == 1:
@@ -609,30 +592,32 @@ cdef double[:,:,:,:] multi_group_moments(double[:,:,:,:]& flux_guess, \
             return jacobi_iteration_aniso(flux_guess, xs_total, xs_scatter, \
                         external, boundary_x, boundary_y, medium_map, delta_x, \
                         delta_y, mesh, angle_x, angle_y, angle_w, P_source, \
-                        P_weights, info, xs_time)
+                        P_weights, info, q_index, xs_time)
         return source_iteration_aniso(flux_guess, xs_total, xs_scatter, \
                     external, boundary_x, boundary_y, medium_map, delta_x, \
-                    delta_y, mesh, angle_x, angle_y, angle_w, P_source, \
-                    P_weights, info, xs_time)
+                    delta_y, mesh, angle_x, angle_y, angle_w, P_source, P_weights, \
+                    info, q_index, xs_time)
     # Dynamic Mode Decomposition
     elif info.mg_solver == 2:
         return dynamic_mode_decomp_aniso(flux_guess, xs_total, xs_scatter, \
                     external, boundary_x, boundary_y, medium_map, delta_x, \
-                    delta_y, mesh, angle_x, angle_y, angle_w, P_source, \
-                    P_weights, info, xs_time)
+                    delta_y, mesh, angle_x, angle_y, angle_w, P_source, P_weights, \
+                    info, q_index, xs_time)
 
 
 cdef double[:,:,:,:] source_iteration_aniso(double[:,:,:,:]& flux_guess, \
         double[:,:]& xs_total, double[:,:,:,:]& xs_scatter, \
         double[:,:,:,:]& external, double[:,:,:,:]& boundary_x, \
         double[:,:,:,:]& boundary_y, int[:,:]& medium_map, \
-        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, \
-        double[:]& angle_x, double[:]& angle_y, double[:]& angle_w, \
-        double[:,:]& P_source, double[:,:]& P_weights, params info, \
+        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, double[:]& angle_x, \
+        double[:]& angle_y, double[:]& angle_w, double[:,:]& P_source, \
+        double[:,:]& P_weights, params info, int[:,:] q_index=None, \
         double[:] xs_time=None):
 
     # Initialize components
     cdef int gg, qq, bcx, bcy
+    cdef int[:,:] q_cols = tools._source_columns(external.shape[2], \
+                                                 q_index, info)
 
     # Initialize flux moments
     flux = tools.array_4d(info.cells_x, info.cells_y, info.groups, info.moments)
@@ -657,18 +642,18 @@ cdef double[:,:,:,:] source_iteration_aniso(double[:,:,:,:]& flux_guess, \
             bcx = 0 if boundary_x.shape[3] == 1 else gg
             bcy = 0 if boundary_y.shape[3] == 1 else gg
 
-            if xs_time is not None:
-                info.xs_time = xs_time[gg]
             flux_1g[:,:,:] = flux_old[:,:,gg,:]
 
             tools._off_scatter_moments(flux, flux_old, medium_map, xs_scatter, \
                                        off_scatter, info, gg)
 
+            if xs_time is not None:
+                info.xs_time = xs_time[gg]
             discrete_ordinates_aniso(flux[:,:,gg,:], flux_1g, xs_total[:,gg], \
                     xs_scatter[:,gg,gg,:], off_scatter, external[:,:,:,qq], \
-                    boundary_x[:,:,:,bcx], boundary_y[:,:,:,bcy], medium_map, \
-                    delta_x, delta_y, mesh, angle_x, angle_y, angle_w, P_source, \
-                    P_weights, info)
+                    q_cols[:,gg], boundary_x[:,:,:,bcx], boundary_y[:,:,:,bcy], \
+                    medium_map, delta_x, delta_y, mesh, angle_x, angle_y, angle_w, \
+                    P_source, P_weights, info)
 
         change = tools.group_convergence(flux[:,:,:,0], flux_old[:,:,:,0], info)
         if isnan(change) or isinf(change):
@@ -689,14 +674,17 @@ cdef double[:,:,:,:] jacobi_iteration_aniso(double[:,:,:,:]& flux_guess, \
         double[:,:]& xs_total, double[:,:,:,:]& xs_scatter, \
         double[:,:,:,:]& external, double[:,:,:,:]& boundary_x, \
         double[:,:,:,:]& boundary_y, int[:,:]& medium_map, \
-        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, \
-        double[:]& angle_x, double[:]& angle_y, double[:]& angle_w, \
-        double[:,:]& P_source, double[:,:]& P_weights, params info, \
+        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, double[:]& angle_x, \
+        double[:]& angle_y, double[:]& angle_w, double[:,:]& P_source, \
+        double[:,:]& P_weights, params info, int[:,:] q_index=None, \
         double[:] xs_time=None):
 
     # Initialize components
-    cdef int gg, qq, bcx, bcy
+    cdef int gg, qq, bcx, bcy, tid
+    cdef int[:,:] q_cols = tools._source_columns(external.shape[2], \
+                                                 q_index, info)
     cdef params info_1t, info_gg
+    cdef int N2 = info.angles * info.angles
 
     # Initialize flux moments
     flux = tools.array_4d(info.cells_x, info.cells_y, info.groups, info.moments)
@@ -712,6 +700,29 @@ cdef double[:,:,:,:] jacobi_iteration_aniso(double[:,:,:,:]& flux_guess, \
     info_1t = info
     if info.parallel_type == 2:
         info_1t.num_threads = 1
+
+    # Time term of each group, see source_iteration
+    cdef double[:] xs_time_g = tools.array_1d(info.groups)
+    if xs_time is not None:
+        xs_time_g[:] = xs_time
+
+    # Sweep work arrays for each thread of the group prange, see
+    # jacobi_iteration. The zeros are read-only and shared.
+    cdef int threads = info.num_threads
+    cdef double[:,:,:,:] thread_psi = tools.array_4d(threads, \
+                            info_1t.num_threads, info.cells_x, info.cells_y)
+    cdef double[:,:,:,:] thread_source = tools.array_4d(threads, \
+                            info_1t.num_threads, info.cells_x, info.cells_y)
+    cdef double[:,:,:,:,:] thread_flux = tools.array_5d(threads, \
+                info_1t.num_threads, info.cells_x, info.cells_y, info.moments)
+    cdef double[:,:] zero_2d = tools.array_2d(info.cells_x, info.cells_y)
+    cdef double[:] zero_xs = tools.array_1d(info.materials)
+    cdef double[:,:,:,:] reflected_y = tools.array_4d(threads, 2, \
+                                                      info.cells_x, N2)
+    cdef double[:,:,:,:] reflected_x = tools.array_4d(threads, 2, \
+                                                      info.cells_y, N2)
+    cdef double[:,:,:] known_y_work = tools.array_3d(threads, N2, info.cells_x)
+    cdef double[:,:,:] known_x_work = tools.array_3d(threads, N2, info.cells_y)
 
     # Set convergence limits
     cdef bint converged = False
@@ -735,15 +746,17 @@ cdef double[:,:,:,:] jacobi_iteration_aniso(double[:,:,:,:]& flux_guess, \
             qq  = 0 if external.shape[3]   == 1 else gg
             bcx = 0 if boundary_x.shape[3]  == 1 else gg
             bcy = 0 if boundary_y.shape[3]  == 1 else gg
-            with gil:
-                info_gg = info_1t
-                if xs_time is not None:
-                    info_gg.xs_time = xs_time[gg]
-                discrete_ordinates_aniso(flux[:,:,gg,:], flux_old_snap[gg], \
-                        xs_total[:,gg], xs_scatter[:,gg,gg,:], off_scatter_all[gg], \
-                        external[:,:,:,qq], boundary_x[:,:,:,bcx], \
-                        boundary_y[:,:,:,bcy], medium_map, delta_x, delta_y, mesh, \
-                        angle_x, angle_y, angle_w, P_source, P_weights, info_gg)
+            tid = threadid()
+            info_gg = info_1t
+            info_gg.xs_time = xs_time_g[gg]
+            discrete_ordinates_aniso_nogil(flux[:,:,gg,:], flux_old_snap[gg], \
+                    xs_total[:,gg], xs_scatter[:,gg,gg,:], off_scatter_all[gg], \
+                    external[:,:,:,qq], q_cols[:,gg], boundary_x[:,:,:,bcx], \
+                    boundary_y[:,:,:,bcy], medium_map, delta_x, delta_y, \
+                    angle_x, angle_y, angle_w, P_source, P_weights, info_gg, \
+                    thread_psi[tid], thread_source[tid], thread_flux[tid], \
+                    zero_2d, zero_xs, reflected_y[tid], reflected_x[tid], \
+                    known_y_work[tid], known_x_work[tid])
 
         change = tools.group_convergence(flux[:,:,:,0], flux_old[:,:,:,0], info)
         if isnan(change) or isinf(change):
@@ -763,13 +776,15 @@ cdef double[:,:,:,:] dynamic_mode_decomp_aniso(double[:,:,:,:]& flux_guess, \
         double[:,:]& xs_total, double[:,:,:,:]& xs_scatter, \
         double[:,:,:,:]& external, double[:,:,:,:]& boundary_x, \
         double[:,:,:,:]& boundary_y, int[:,:]& medium_map, \
-        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, \
-        double[:]& angle_x, double[:]& angle_y, double[:]& angle_w, \
-        double[:,:]& P_source, double[:,:]& P_weights, params info, \
+        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, double[:]& angle_x, \
+        double[:]& angle_y, double[:]& angle_w, double[:,:]& P_source, \
+        double[:,:]& P_weights, params info, int[:,:] q_index=None, \
         double[:] xs_time=None):
 
     # Initialize components
     cdef int gg, rk, kk, qq, bcx, bcy
+    cdef int[:,:] q_cols = tools._source_columns(external.shape[2], \
+                                                 q_index, info)
     cdef int unknowns = info.groups * info.moments
 
     # DMD acts on all moments, flattened to (cells_x, cells_y, groups * moments)
@@ -812,8 +827,6 @@ cdef double[:,:,:,:] dynamic_mode_decomp_aniso(double[:,:,:,:]& flux_guess, \
             bcx = 0 if boundary_x.shape[3] == 1 else gg
             bcy = 0 if boundary_y.shape[3] == 1 else gg
 
-            if xs_time is not None:
-                info.xs_time = xs_time[gg]
             # Select the specific group from last iteration
             flux_1g[:,:,:] = flux_old[:,:,gg,:]
 
@@ -822,11 +835,13 @@ cdef double[:,:,:,:] dynamic_mode_decomp_aniso(double[:,:,:,:]& flux_guess, \
                                        off_scatter, info, gg)
 
             # Use discrete ordinates for the angular dimension
+            if xs_time is not None:
+                info.xs_time = xs_time[gg]
             discrete_ordinates_aniso(flux[:,:,gg,:], flux_1g, xs_total[:,gg], \
                     xs_scatter[:,gg,gg,:], off_scatter, external[:,:,:,qq], \
-                    boundary_x[:,:,:,bcx], boundary_y[:,:,:,bcy], medium_map, \
-                    delta_x, delta_y, mesh, angle_x, angle_y, angle_w, P_source, \
-                    P_weights, info)
+                    q_cols[:,gg], boundary_x[:,:,:,bcx], boundary_y[:,:,:,bcy], \
+                    medium_map, delta_x, delta_y, mesh, angle_x, angle_y, angle_w, \
+                    P_source, P_weights, info)
 
         # Check for convergence
         change = tools.group_convergence(flux[:,:,:,0], flux_old[:,:,:,0], info)
@@ -860,13 +875,14 @@ cdef double[:,:,:,:] variable_source_iteration_moments( \
         double[:]& star_coef_c, double[:,:,:,:]& xs_scatter_u, \
         double[:,:,:,:]& external, double[:,:,:,:]& boundary_x, \
         double[:,:,:,:]& boundary_y, int[:,:]& medium_map, double[:]& delta_x, \
-        double[:]& delta_y, PolygonSweep mesh, double[:]& angle_x, \
-        double[:]& angle_y, double[:]& angle_w, double[:]& edges_g, \
-        int[:]& edges_gidx_c, double[:,:]& P_source, double[:,:]& P_weights, \
-        params info):
+        double[:]& delta_y, PolygonSweep mesh, double[:]& angle_x, double[:]& angle_y, \
+        double[:]& angle_w, double[:]& edges_g, int[:]& edges_gidx_c, \
+        double[:,:]& P_source, double[:,:]& P_weights, params info, int[:,:] q_index=None):
 
     # Initialize components
     cdef int gg, qq, bcx, bcy, idx1, idx2
+    cdef int[:,:] q_cols = tools._source_columns(external.shape[2], \
+                                                 q_index, info)
 
     # Initialize flux moments
     flux = tools.array_4d(info.cells_x, info.cells_y, info.groups, info.moments)
@@ -884,7 +900,8 @@ cdef double[:,:,:,:] variable_source_iteration_moments( \
                     xs_total_u, xs_total_c, star_coef_c, xs_scatter_u[:,:,:,0], \
                     xs_scatter_c[:,0], off_scatter[:,:,0], external, \
                     boundary_x, boundary_y, medium_map, delta_x, delta_y, mesh, \
-                    angle_x, angle_y, angle_w, edges_g, edges_gidx_c, info)
+                    angle_x, angle_y, angle_w, edges_g, edges_gidx_c, info, \
+                    q_index)
         return flux[:,:,:,:]
 
     # Set convergence limits
@@ -912,7 +929,6 @@ cdef double[:,:,:,:] variable_source_iteration_moments( \
             _variable_cross_sections_aniso(xs_total_c, xs_total_u, \
                         star_coef_c[gg], xs_scatter_c, xs_scatter_u, edges_g, \
                         idx1, idx2, info)
-            info.xs_time = star_coef_c[gg]
 
             # Select the specific group from last iteration
             flux_1g[:,:,:] = flux_old[:,:,gg,:]
@@ -923,8 +939,9 @@ cdef double[:,:,:,:] variable_source_iteration_moments( \
                         idx1, idx2, info)
 
             # Use discrete ordinates for the angular dimension
+            info.xs_time = star_coef_c[gg]
             discrete_ordinates_aniso(flux[:,:,gg,:], flux_1g, xs_total_c, \
-                    xs_scatter_c, off_scatter, external[:,:,:,qq], \
+                    xs_scatter_c, off_scatter, external[:,:,:,qq], q_cols[:,gg], \
                     boundary_x[:,:,:,bcx], boundary_y[:,:,:,bcy], medium_map, \
                     delta_x, delta_y, mesh, angle_x, angle_y, angle_w, P_source, \
                     P_weights, info)
@@ -949,9 +966,10 @@ cdef double[:,:,:,:] variable_source_iteration_moments( \
 cdef double[:,:,:,:] _known_source_moments(double[:,:]& xs_total, \
         double[:,:,:,:]& source, double[:,:,:,:]& boundary_x, \
         double[:,:,:,:]& boundary_y, int[:,:]& medium_map, \
-        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, \
-        double[:]& angle_x, double[:]& angle_y, double[:]& angle_w, \
-        double[:,:]& P_weights, params info, double[:] xs_time=None):
+        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, double[:]& angle_x, \
+        double[:]& angle_y, double[:]& angle_w, double[:,:]& P_weights, \
+        params info, \
+        double[:] xs_time=None):
     # Flux moments from a known source (I x J x N^2 x G)
     flux = tools.array_4d(info.cells_x, info.cells_y, info.groups, info.moments)
     if info.moments == 1:
@@ -959,7 +977,9 @@ cdef double[:,:,:,:] _known_source_moments(double[:,:]& xs_total, \
                         boundary_y, medium_map, delta_x, delta_y, mesh, angle_x, \
                         angle_y, angle_w, info, xs_time)
         return flux[:,:,:,:]
-    angular_flux = _known_source_angular(xs_total, source, boundary_x, \
+    angular_flux = tools.array_4d(info.cells_x, info.cells_y, \
+                            info.angles * info.angles, info.groups)
+    _known_source_angular(angular_flux, xs_total, source, boundary_x, \
                         boundary_y, medium_map, delta_x, delta_y, mesh, angle_x, \
                         angle_y, angle_w, info, xs_time)
     tools._angular_to_moments(angular_flux, flux, P_weights, info)

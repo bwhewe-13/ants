@@ -12,8 +12,8 @@ convergence acceleration.
 General Process in ANTS
 --------------------------
 
-This is the step by step process for how ``hybrid1d.backward_euler()``
-is implemented in ``ANTS``. The dimensions of each step is also included
+This is the step by step process for a backward Euler time step in
+``hybrid1d.time_dependent()``. The dimensions of each step is also included
 with ``I`` are the number of spatial cells, ``Nu, Nc`` are the uncollided
 and collided number of angles, and ``Gu, Gc`` are the uncollided and
 collided number of energy groups.
@@ -36,8 +36,11 @@ collided number of energy groups.
 Additional Parameters for ANTS
 ---------------------------------
 
-* ``index_c``: Length ``Gu``. Which collided (coarse) group the uncollided (fine) group is part of.
+The fine and coarse groups are related by a ``HybridData`` object from
+``ants.utils.hybrid.indexing(edges_g, edges_gidx_u, edges_gidx_c)``.
 
-* ``index_u``: Length ``Gc + 1``. The edges of the collided (coarse) groups as they relate to their uncollided (fine) group counterpart.
+* ``coarse_idx``: Length ``Gu``. Which collided (coarse) group the uncollided (fine) group is part of.
 
-* ``factor_u``: Length ``Gu``. The inverse of the number of uncollided (fine) groups for each collided (coarse) group.
+* ``fine_idx``: Length ``Gc + 1``. The edges of the collided (coarse) groups as they relate to their uncollided (fine) group counterpart.
+
+* ``factor``: Length ``Gu``. The width of each uncollided (fine) group divided by the width of its collided (coarse) group.

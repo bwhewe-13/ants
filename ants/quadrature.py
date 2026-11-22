@@ -152,31 +152,39 @@ def _legendre_data(angle_x, angle_w, n_moments):
     return P_source, np.asarray(angle_w)[None, :] * P
 
 
-def harmonic_degrees(n_legendre):
-    """Legendre degree of each spherical harmonic moment in two dimensions.
+def harmonic_degrees(n_legendre, full_sphere=False):
+    """Legendre degree of each spherical harmonic moment.
 
     The 2D quadrature keeps only the upper hemisphere (``angle_z > 0``),
     so only the harmonics even in ``angle_z`` (``l + m`` even) are kept.
     Degree ``l`` has ``l + 1`` of them, ordered ``m = -l, -l + 2, ..., l``.
+    The 3D quadrature covers the full sphere and keeps all ``2l + 1``
+    harmonics of degree ``l``, ordered ``m = -l, -l + 1, ..., l``.
 
     Parameters
     ----------
     n_legendre : int
         Number of Legendre moments (L + 1).
+    full_sphere : bool, optional
+        If True, return the degrees of the full set of harmonics (3D).
 
     Returns
     -------
-    ell : ndarray of int, shape ((L + 1) * (L + 2) / 2,)
+    ell : ndarray of int, shape ((L + 1) * (L + 2) / 2,) or ((L + 1)**2,)
         Degree ``l`` of each harmonic moment.
     """
+    if full_sphere:
+        return np.repeat(np.arange(n_legendre), 2 * np.arange(n_legendre) + 1)
     return np.repeat(np.arange(n_legendre), np.arange(1, n_legendre + 1))
 
 
-def spherical_harmonics(n_legendre, angle_x, angle_y):
-    """Evaluate the real spherical harmonics even in ``angle_z`` at each ordinate.
+def spherical_harmonics(n_legendre, angle_x, angle_y, angle_z=None):
+    """Evaluate the real spherical harmonics at each ordinate.
 
-    The polar axis is z, with ``angle_z = sqrt(1 - angle_x**2 - angle_y**2)``
-    and the azimuthal angle measured from x. The harmonics are normalized
+    The polar axis is z and the azimuthal angle is measured from x. Without
+    ``angle_z`` (2D), ``angle_z = sqrt(1 - angle_x**2 - angle_y**2)`` and
+    only the harmonics even in ``angle_z`` are returned. With ``angle_z``
+    (3D), all of the harmonics are returned. The harmonics are normalized
     so that summing over ``m`` gives the addition theorem,
     ``sum_m Y_lm(a) Y_lm(b) = P_l(a . b)``, for the full set of ``m``.
     The associated Legendre functions from ``scipy.special.lpmv`` include
@@ -192,20 +200,27 @@ def spherical_harmonics(n_legendre, angle_x, angle_y):
         x-direction cosines.
     angle_y : ndarray, shape (angles,)
         y-direction cosines.
+    angle_z : ndarray, shape (angles,), optional
+        z-direction cosines for the full sphere (3D).
 
     Returns
     -------
-    Y : ndarray, shape ((L + 1) * (L + 2) / 2, angles)
+    Y : ndarray, shape ((L + 1) * (L + 2) / 2, angles) or ((L + 1)**2, angles)
         Harmonic moments ordered by :func:`harmonic_degrees`.
     """
     angle_x = np.asarray(angle_x, dtype=float)
     angle_y = np.asarray(angle_y, dtype=float)
-    angle_z = np.sqrt(np.clip(1.0 - angle_x**2 - angle_y**2, 0.0, None))
+    full_sphere = angle_z is not None
+    if full_sphere:
+        angle_z = np.asarray(angle_z, dtype=float)
+    else:
+        angle_z = np.sqrt(np.clip(1.0 - angle_x**2 - angle_y**2, 0.0, None))
     phi = np.arctan2(angle_y, angle_x)
-    Y = np.zeros((n_legendre * (n_legendre + 1) // 2, angle_x.size))
+    step = 1 if full_sphere else 2
+    Y = np.zeros((harmonic_degrees(n_legendre, full_sphere).size, angle_x.size))
     kk = 0
     for ll in range(n_legendre):
-        for mm in range(-ll, ll + 1, 2):
+        for mm in range(-ll, ll + 1, step):
             am = abs(mm)
             norm = (2.0 - (am == 0)) * factorial(ll - am) / factorial(ll + am)
             Y[kk] = np.sqrt(norm) * lpmv(am, ll, angle_z)
@@ -215,34 +230,40 @@ def spherical_harmonics(n_legendre, angle_x, angle_y):
 
 
 def harmonic_data(quadrature, n_legendre):
-    """Spherical harmonic arrays used by the 2D anisotropic scattering source.
+    """Spherical harmonic arrays used by the 2D and 3D anisotropic scattering source.
 
     Fills ``quadrature.P`` and ``quadrature.P_weights`` when they are
-    missing or do not match ``n_legendre``.
+    missing or do not match ``n_legendre``. A quadrature with ``angle_z``
+    (3D) uses the full set of harmonics.
 
     Parameters
     ----------
     quadrature : QuadratureData
-        Two-dimensional angular quadrature.
+        Two- or three-dimensional angular quadrature.
     n_legendre : int
         Number of Legendre moments (L + 1).
 
     Returns
     -------
-    P_source : ndarray, shape ((L + 1) * (L + 2) / 2, angles**2)
+    P_source : ndarray, shape (harmonics, ordinates)
         ``(2l + 1) * Y_lm(Omega_n)``, which expands flux moments into the
-        angular scattering source.
-    P_weights : ndarray, shape ((L + 1) * (L + 2) / 2, angles**2)
+        angular scattering source. There are ``(L + 1) * (L + 2) / 2``
+        harmonics in 2D and ``(L + 1)**2`` in 3D.
+    P_weights : ndarray, shape (harmonics, ordinates)
         ``w_n * Y_lm(Omega_n)``, which projects angular flux onto moments.
     """
     angle_x = np.asarray(quadrature.angle_x, dtype=float)
-    expected = (n_legendre * (n_legendre + 1) // 2, angle_x.shape[0])
+    full_sphere = quadrature.angle_z is not None
+    ell = harmonic_degrees(n_legendre, full_sphere)
+    expected = (ell.size, angle_x.shape[0])
     if (quadrature.P is None) or (np.shape(quadrature.P) != expected):
-        quadrature.P = spherical_harmonics(n_legendre, angle_x, quadrature.angle_y)
+        quadrature.P = spherical_harmonics(
+            n_legendre, angle_x, quadrature.angle_y, quadrature.angle_z
+        )
         quadrature.P_weights = None
     if (quadrature.P_weights is None) or (np.shape(quadrature.P_weights) != expected):
         quadrature.P_weights = np.asarray(quadrature.angle_w)[None, :] * quadrature.P
-    P_source = (2 * harmonic_degrees(n_legendre) + 1)[:, None] * quadrature.P
+    P_source = (2 * ell + 1)[:, None] * quadrature.P
     return P_source, np.ascontiguousarray(quadrature.P_weights, dtype=float)
 
 
@@ -260,14 +281,14 @@ def _harmonic_order(n_moments):
 
 
 # Called from cython
-def _scatter_harmonics(scatter):
+def _scatter_harmonics(scatter, full_sphere=False):
     # Scatter moments (materials, groups, groups, harmonics) where each
     # harmonic uses the Legendre moment of its degree. Isotropic scattering
     # is a single moment (no copy).
     scatter = np.asarray(scatter)
     if scatter.ndim == 3:
         return scatter[..., None]
-    ell = harmonic_degrees(scatter.shape[3])
+    ell = harmonic_degrees(scatter.shape[3], full_sphere)
     return np.ascontiguousarray(scatter[..., ell])
 
 
@@ -340,16 +361,23 @@ def artificial_scatter_matrix(angle_x, angle_y, angle_w, sigma_as, beta, angle_z
 
     The kernel is s_eps(mu) = (2 / (sqrt(pi) * eps * Erf(2/eps)))
                                 * exp(-(1 - mu)**2 / eps**2)
-    with eps = beta / N_q, where N_q is the number of ordinates, and
-    mu = Omega_q . Omega_p the full three-dimensional dot product between
-    ordinates on the unit sphere.
+    with eps = beta / N_q, where N_q is the number of ordinates on the full
+    sphere, and mu = Omega_q . Omega_p the three-dimensional dot product
+    between ordinates.
+
+    Without ``angle_z`` (2D), the ordinates are the upper hemisphere of a
+    set with ``N_q = 2 * N``. The flux of a 2D problem is the same for an
+    ordinate and its reflection through the x-y plane, so the kernel of each
+    pair is the sum for the ordinate and its reflection. A 2D problem then
+    has the same artificial scattering as a 3D problem that does not change
+    in z.
 
     Parameters
     ----------
     angle_x : ndarray, shape (N,)
-        x-direction cosines for 2D.
+        x-direction cosines.
     angle_y : ndarray, shape (N,)
-        y-direction cosines for 2D.
+        y-direction cosines.
     angle_w : ndarray, shape (N,)
         Normalized quadrature weights (sum to 1).
     sigma_as : float
@@ -357,9 +385,9 @@ def artificial_scatter_matrix(angle_x, angle_y, angle_w, sigma_as, beta, angle_z
     beta : float
         Kernel width parameter. Typical values: 4.5 (explicit), 4.0 (implicit).
     angle_z : ndarray, shape (N,), optional
-        z-direction cosines. If None (the 2D case, where ``angular_xy``
-        keeps only the upper hemisphere), reconstructed as
-        ``sqrt(1 - angle_x**2 - angle_y**2)``.
+        z-direction cosines of a set on the full sphere (3D). If None (the
+        2D case, where ``angular_xy`` keeps only the upper hemisphere), the
+        positive cosine ``sqrt(1 - angle_x**2 - angle_y**2)`` is used.
 
     Returns
     -------
@@ -367,18 +395,13 @@ def artificial_scatter_matrix(angle_x, angle_y, angle_w, sigma_as, beta, angle_z
         Normalized artificial scattering matrix.
     """
     N = len(angle_x)
-    eps = beta / N if N > 0 else 1.0
+    full_sphere = angle_z is not None
+    N_q = N if full_sphere else 2 * N
+    eps = beta / N_q if N_q > 0 else 1.0
 
     # Reconstruct the (positive-hemisphere) polar cosine when not supplied
-    if angle_z is None:
+    if not full_sphere:
         angle_z = np.sqrt(np.clip(1.0 - angle_x**2 - angle_y**2, 0.0, None))
-
-    # Compute pairwise dot products Omega_q . Omega_p on the unit sphere
-    dots = (
-        np.outer(angle_x, angle_x)
-        + np.outer(angle_y, angle_y)
-        + np.outer(angle_z, angle_z)
-    )  # (N, N)
 
     # Kernel Eq. (6) from Frank et al.
     if eps > 1e-15:
@@ -386,7 +409,14 @@ def artificial_scatter_matrix(angle_x, angle_y, angle_w, sigma_as, beta, angle_z
     else:
         erf_val = 1.0
     prefactor = 2.0 / (np.sqrt(np.pi) * eps * erf_val)
-    S = prefactor * np.exp(-((1.0 - dots) ** 2) / eps**2)  # (N, N)
+
+    # Compute pairwise dot products Omega_q . Omega_p on the unit sphere
+    dot_xy = np.outer(angle_x, angle_x) + np.outer(angle_y, angle_y)
+    dot_z = np.outer(angle_z, angle_z)
+    S = prefactor * np.exp(-((1.0 - (dot_xy + dot_z)) ** 2) / eps**2)  # (N, N)
+    if not full_sphere:
+        # Add the reflection of Omega_p through the x-y plane
+        S += prefactor * np.exp(-((1.0 - (dot_xy - dot_z)) ** 2) / eps**2)
 
     # Weight by quadrature weights: M_as[n,m]
     WS = S * angle_w[np.newaxis, :]  # (N, N)
@@ -640,6 +670,10 @@ def angular_xyz(
     """
     if method == "ldfe":
         angle_x, angle_y, angle_z, angle_w = _ldfe_quadrature(angles)
+    elif angles % 2 == 1:
+        # Odd sets have ordinates with a zero cosine, which the octant
+        # ordering repeats
+        raise ValueError("Need an even number of angles, got " + repr(angles))
     else:
         angle_x, angle_y, angle_z, angle_w = _product_quadrature(angles)
     angle_w = angle_w / np.sum(angle_w)
@@ -656,3 +690,38 @@ def angular_xyz(
 # Called from cython
 def _angular_xyz(angles, bc_x, bc_y, bc_z):
     return angular_xyz(angles, bc_x, bc_y, bc_z, False)
+
+
+# Called from cython
+def _check_reflection(quadrature, geometry, ordered):
+    # Each ordinate entering through a reflecting face takes the edge flux
+    # of its reflection, found by matching the cosines exactly. The sweeps
+    # that find the angular flux in one pass also need the reflection to be
+    # swept first, which angular_xy and angular_xyz do for the bc given.
+    cosines = [quadrature.angle_x, quadrature.angle_y]
+    bcs = [geometry.bc_x, geometry.bc_y]
+    if quadrature.angle_z is not None:
+        cosines.append(quadrature.angle_z)
+        bcs.append(geometry.bc_z)
+    cosines = np.stack(cosines, axis=1)
+    for axis, bc in enumerate(bcs):
+        name = "bc_" + "xyz"[axis]
+        if 1 not in list(bc):
+            continue
+        reflected = cosines.copy()
+        reflected[:, axis] *= -1
+        for nn in range(cosines.shape[0]):
+            match = np.flatnonzero(np.all(cosines == reflected[nn], axis=1))
+            if match.size == 0:
+                raise ValueError(
+                    f"Ordinate {nn} has no reflection in the quadrature for {name}"
+                )
+            # Ordinates going into the domain at the reflecting face
+            incoming = (
+                cosines[nn, axis] > 0.0 if bc[0] == 1 else cosines[nn, axis] < 0.0
+            )
+            if ordered and incoming and (match[0] > nn):
+                raise ValueError(
+                    f"Quadrature is not ordered for {name}={list(bc)}, use the "
+                    "same boundary conditions for the quadrature and geometry"
+                )

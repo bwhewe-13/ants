@@ -27,88 +27,88 @@ cdef double[:,:,:] multi_group(double[:,:,:]& flux_guess, \
         double[:,:]& xs_total, double[:,:,:]& xs_scatter, \
         double[:,:,:,:]& external, double[:,:,:,:]& boundary_x, \
         double[:,:,:,:]& boundary_y, int[:,:]& medium_map, \
-        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, \
-        double[:]& angle_x, double[:]& angle_y, double[:]& angle_w, \
-        params info, double[:] xs_time=*)
+        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, double[:]& angle_x, \
+        double[:]& angle_y, double[:]& angle_w, params info, int[:,:] q_index=*, \
+        double[:] xs_time=*)
 
 
 cdef double[:,:,:] source_iteration(double[:,:,:]& flux_guess, \
         double[:,:]& xs_total, double[:,:,:]& xs_scatter, \
         double[:,:,:,:]& external, double[:,:,:,:]& boundary_x, \
         double[:,:,:,:]& boundary_y, int[:,:]& medium_map, \
-        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, \
-        double[:]& angle_x, double[:]& angle_y, double[:]& angle_w, \
-        params info, double[:] xs_time=*)
+        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, double[:]& angle_x, \
+        double[:]& angle_y, double[:]& angle_w, params info, int[:,:] q_index=*, \
+        double[:] xs_time=*)
 
 
 cdef double[:,:,:] dynamic_mode_decomp(double[:,:,:]& flux_guess, \
         double[:,:]& xs_total, double[:,:,:]& xs_scatter, \
         double[:,:,:,:]& external, double[:,:,:,:]& boundary_x, \
         double[:,:,:,:]& boundary_y, int[:,:]& medium_map, \
-        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, \
-        double[:]& angle_x, double[:]& angle_y, double[:]& angle_w, \
-        params info, double[:] xs_time=*)
+        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, double[:]& angle_x, \
+        double[:]& angle_y, double[:]& angle_w, params info, int[:,:] q_index=*, \
+        double[:] xs_time=*)
 
 
 cdef double[:,:,:] variable_source_iteration(double[:,:,:]& flux_guess, \
         double[:,:]& xs_total_u, double[:]& xs_total_c, double[:]& star_coef_c, \
-        double[:,:,:]& xs_scatter_u, double[:]& xs_scatter_c, double[:,:]& off_scatter, \
-        double[:,:,:,:]& external, double[:,:,:,:]& boundary_x, \
+        double[:,:,:]& xs_scatter_u, double[:]& xs_scatter_c, \
+        double[:,:]& off_scatter, double[:,:,:,:]& external, \
+        double[:,:,:,:]& boundary_x, double[:,:,:,:]& boundary_y, \
+        int[:,:]& medium_map, double[:]& delta_x, double[:]& delta_y, \
+        PolygonSweep mesh, double[:]& angle_x, double[:]& angle_y, \
+        double[:]& angle_w, double[:]& edges_g, int[:]& edges_gidx_c, params info, \
+        int[:,:] q_index=*)
+
+
+cdef void _known_source_angular(double[:,:,:,:]& angular_flux, \
+        double[:,:]& xs_total, double[:,:,:,:]& source, double[:,:,:,:]& boundary_x, \
         double[:,:,:,:]& boundary_y, int[:,:]& medium_map, double[:]& delta_x, \
         double[:]& delta_y, PolygonSweep mesh, double[:]& angle_x, \
-        double[:]& angle_y, double[:]& angle_w, double[:]& edges_g, \
-        int[:]& edges_gidx_c, params info)
-
-
-cdef double[:,:,:,:] _known_source_angular(double[:,:]& xs_total, \
-        double[:,:,:,:]& source, double[:,:,:,:]& boundary_x, \
-        double[:,:,:,:]& boundary_y, int[:,:]& medium_map, \
-        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, \
-        double[:]& angle_x, double[:]& angle_y, double[:]& angle_w, \
-        params info, double[:] xs_time=*)
+        double[:]& angle_y, double[:]& angle_w, params info, double[:] xs_time=*)
 
 
 cdef double[:,:,:] _known_source_scalar(double[:,:]& xs_total, \
         double[:,:,:,:]& source, double[:,:,:,:]& boundary_x, \
         double[:,:,:,:]& boundary_y, int[:,:]& medium_map, \
-        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, \
-        double[:]& angle_x, double[:]& angle_y, double[:]& angle_w, \
-        params info, double[:] xs_time=*)
+        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, double[:]& angle_x, \
+        double[:]& angle_y, double[:]& angle_w, params info, \
+        double[:] xs_time=*)
 
 
 cdef double[:,:,:,:] _known_source_single(double[:,:]& xs_total, \
         double[:,:,:,:]& source, double[:,:,:,:]& boundary_x, \
         double[:,:,:,:]& boundary_y, int[:,:]& medium_map, \
-        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, \
-        double[:]& angle_x, double[:]& angle_y, double[:]& angle_w, int group, \
-        params info)
+        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, double[:]& angle_x, \
+        double[:]& angle_y, double[:]& angle_w, int group, params info, \
+        double[:] xs_time=*)
 
 
 cdef void _interface_angular(double[:,:,:,:]& flux_edge_x, \
         double[:,:,:,:]& flux_edge_y, double[:,:]& xs_total, \
         double[:,:,:,:]& source, double[:,:,:,:]& boundary_x, \
         double[:,:,:,:]& boundary_y, int[:,:]& medium_map, \
-        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, \
-        double[:]& angle_x, double[:]& angle_y, double[:]& angle_w, \
-        params info, double[:] xs_time=*)
+        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, double[:]& angle_x, \
+        double[:]& angle_y, double[:]& angle_w, params info, \
+        double[:] xs_time=*)
 
 
 cdef void _interface_scalar(double[:,:,:,:]& flux_edge_x, \
         double[:,:,:,:]& flux_edge_y, double[:,:]& xs_total, \
         double[:,:,:,:]& source, double[:,:,:,:]& boundary_x, \
         double[:,:,:,:]& boundary_y, int[:,:]& medium_map, \
-        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, \
-        double[:]& angle_x, double[:]& angle_y, double[:]& angle_w, \
-        params info)
+        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, double[:]& angle_x, \
+        double[:]& angle_y, double[:]& angle_w, params info, \
+        double[:] xs_time=*)
 
 
 cdef double[:,:,:,:] multi_group_moments(double[:,:,:,:]& flux_guess, \
         double[:,:]& xs_total, double[:,:,:,:]& xs_scatter, \
         double[:,:,:,:]& external, double[:,:,:,:]& boundary_x, \
         double[:,:,:,:]& boundary_y, int[:,:]& medium_map, \
-        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, \
-        double[:]& angle_x, double[:]& angle_y, double[:]& angle_w, \
-        double[:,:]& P_source, double[:,:]& P_weights, params info, \
+        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, double[:]& angle_x, \
+        double[:]& angle_y, double[:]& angle_w, double[:,:]& P_source, \
+        double[:,:]& P_weights, params info, int[:,:] q_index=*, \
         double[:] xs_time=*)
 
 
@@ -117,15 +117,15 @@ cdef double[:,:,:,:] variable_source_iteration_moments( \
         double[:]& star_coef_c, double[:,:,:,:]& xs_scatter_u, \
         double[:,:,:,:]& external, double[:,:,:,:]& boundary_x, \
         double[:,:,:,:]& boundary_y, int[:,:]& medium_map, double[:]& delta_x, \
-        double[:]& delta_y, PolygonSweep mesh, double[:]& angle_x, \
-        double[:]& angle_y, double[:]& angle_w, double[:]& edges_g, \
-        int[:]& edges_gidx_c, double[:,:]& P_source, double[:,:]& P_weights, \
-        params info)
+        double[:]& delta_y, PolygonSweep mesh, double[:]& angle_x, double[:]& angle_y, \
+        double[:]& angle_w, double[:]& edges_g, int[:]& edges_gidx_c, \
+        double[:,:]& P_source, double[:,:]& P_weights, params info, int[:,:] q_index=*)
 
 
 cdef double[:,:,:,:] _known_source_moments(double[:,:]& xs_total, \
         double[:,:,:,:]& source, double[:,:,:,:]& boundary_x, \
         double[:,:,:,:]& boundary_y, int[:,:]& medium_map, \
-        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, \
-        double[:]& angle_x, double[:]& angle_y, double[:]& angle_w, \
-        double[:,:]& P_weights, params info, double[:] xs_time=*)
+        double[:]& delta_x, double[:]& delta_y, PolygonSweep mesh, double[:]& angle_x, \
+        double[:]& angle_y, double[:]& angle_w, double[:,:]& P_weights, \
+        params info, \
+        double[:] xs_time=*)

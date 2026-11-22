@@ -72,6 +72,8 @@ class Geometry(IntEnum):
         One-dimensional spherical geometry.
     SLAB2D : int
         Two-dimensional slab (Cartesian) geometry.
+    SLAB3D : int
+        Three-dimensional slab (Cartesian) geometry.
     POLYGON2D : int
         Two-dimensional unstructured mesh of convex polygons (triangles,
         hexagons, etc.).
@@ -80,7 +82,8 @@ class Geometry(IntEnum):
     SLAB1D = 1
     SPHERE1D = 2
     SLAB2D = 3
-    POLYGON2D = 4
+    SLAB3D = 4
+    POLYGON2D = 5
 
 
 class BoundaryCondition(IntEnum):
@@ -168,9 +171,9 @@ class MaterialData:
         ``(materials, groups, groups, L + 1)``, without the ``(2l + 1)``
         factor.
     fission : numpy.ndarray
-        Fission cross section, shape ``(materials, groups)`` if ``chi`` is
-        ``None``, else
-        ``(materials, groups, groups)``.
+        Fission matrix, shape ``(materials, groups, groups)``, if ``chi``
+        is ``None``. With ``chi``, the fission cross section (including nu),
+        shape ``(materials, groups)``.
     chi : numpy.ndarray, optional
         Fission spectrum, shape ``(materials, groups)``.
     velocity : numpy.ndarray, optional
@@ -185,33 +188,191 @@ class MaterialData:
 
 
 @dataclass
+class CompactSource:
+    """Source stored as unique spatial slabs and a lookup table.
+
+    A dense source repeats the same spatial profile (or zeros) for many
+    angles, groups, and time steps. A compact source stores each distinct
+    spatial profile once and an integer ``index`` that gives the profile
+    for every (angle, group) pair.
+
+    Attributes
+    ----------
+    values : numpy.ndarray
+        Unique spatial slabs on the last axis, shape ``(*spatial, S)``. The
+        spatial shape is ``(I,)`` / ``(I, J)`` for external sources and
+        ``(2,)`` / ``(2, J)`` / ``(2, I)`` for 1D / 2D x / 2D y boundaries.
+    index : numpy.ndarray
+        Integer slab for each (angle, group), shape ``(N, G)`` in 1D and
+        ``(N**2, G)`` in 2D, with a leading ``T`` axis when the slabs change
+        with time. An entry of -1 is a zero source. Dimensions of size 1 are
+        broadcast. Boundary indices cover all angles (not only the
+        incoming half), and the sweeps only read the incoming angles.
+    scale : numpy.ndarray, optional
+        Amplitude for each time step, shape ``(T,)``, multiplying the slab
+        values at that step.
+    """
+
+    values: np.ndarray
+    index: np.ndarray
+    scale: Optional[np.ndarray] = None
+
+    def __post_init__(self):
+        self.values = np.asarray(self.values, dtype=np.float64)
+        self.index = np.asarray(self.index, dtype=np.int32)
+        if self.scale is not None:
+            self.scale = np.asarray(self.scale, dtype=np.float64).ravel()
+        if self.index.ndim not in (2, 3):
+            raise ValueError("index must have shape ([T,] angles, groups)")
+        if (self.index.size > 0) and (self.index.max() >= self.values.shape[-1]):
+            raise ValueError("index refers to a slab outside of values")
+        if (
+            self.index.ndim == 3
+            and self.scale is not None
+            and self.index.shape[0] not in (1, self.scale.size)
+        ):
+            raise ValueError("index and scale have a different number of steps")
+
+    @property
+    def steps(self):
+        """Number of time steps (1 for a source constant in time)."""
+        steps = self.index.shape[0] if self.index.ndim == 3 else 1
+        if self.scale is not None:
+            steps = max(steps, self.scale.size)
+        return steps
+
+    @property
+    def nbytes(self):
+        """Memory of the stored arrays in bytes."""
+        scale = 0 if self.scale is None else self.scale.nbytes
+        return self.values.nbytes + self.index.nbytes + scale
+
+    def step(self, step):
+        """Return the ``(values, index)`` pair for one time step.
+
+        The values include the time ``scale`` and a trailing zero slab,
+        which the -1 entries of the index point to.
+        """
+        index = self.index
+        if index.ndim == 3:
+            index = index[0 if index.shape[0] == 1 else step]
+        values = self.values
+        if self.scale is not None:
+            values = values * self.scale[0 if self.scale.size == 1 else step]
+        zero = np.zeros(values.shape[:-1] + (1,))
+        values = np.concatenate((values, zero), axis=-1)
+        index = np.where(index < 0, values.shape[-1] - 1, index).astype(np.int32)
+        return values, index
+
+    def to_dense(self):
+        """Return the dense source array.
+
+        The shape is ``(*spatial, N, G)``, with a leading ``T`` axis if the
+        source changes with time.
+        """
+        if (self.index.ndim == 2) and (self.scale is None):
+            values, index = self.step(0)
+            return np.take(values, index, axis=-1)
+        return np.stack([np.take(*self.step(tt), axis=-1) for tt in range(self.steps)])
+
+    @classmethod
+    def from_dense(cls, source, time=False):
+        """Create a compact source from a dense source array.
+
+        Parameters
+        ----------
+        source : numpy.ndarray
+            Dense source with the angle and group dimensions last, shape
+            ``(*spatial, N, G)``, or ``(T, *spatial, N, G)`` if ``time``.
+        time : bool, optional
+            If True, the first axis of ``source`` is the time step.
+
+        Returns
+        -------
+        CompactSource
+            Source storing each unique nonzero spatial slab once.
+        """
+        source = np.asarray(source, dtype=np.float64)
+        if time:
+            return cls.from_steps(source[tt] for tt in range(source.shape[0]))
+        return cls.from_steps([source])._steady()
+
+    @classmethod
+    def from_steps(cls, steps):
+        """Create a compact source from dense arrays of each time step.
+
+        Parameters
+        ----------
+        steps : iterable of numpy.ndarray
+            Dense source of each time step, all with shape
+            ``(*spatial, N, G)``. Only one step is in memory at a time.
+
+        Returns
+        -------
+        CompactSource
+            Source with an index of shape ``(T, N, G)``.
+        """
+        slabs = {}
+        indices = []
+        for dense in steps:
+            dense = np.asarray(dense, dtype=np.float64)
+            shape = dense.shape
+            columns = dense.reshape(shape[:-2] + (-1,))
+            index = np.full(shape[-2] * shape[-1], -1, dtype=np.int32)
+            for cc in range(columns.shape[-1]):
+                column = np.ascontiguousarray(columns[..., cc])
+                if not column.any():
+                    continue
+                index[cc] = slabs.setdefault(column.tobytes(), (len(slabs), column))[0]
+            indices.append(index.reshape(shape[-2:]))
+        if len(slabs) == 0:
+            values = np.zeros(shape[:-2] + (0,))
+        else:
+            values = np.stack([column for _, column in slabs.values()], axis=-1)
+        return cls(values, np.stack(indices))
+
+    def _steady(self):
+        # Drop the time axis of a single step source
+        if self.index.ndim == 3 and self.index.shape[0] == 1:
+            self.index = self.index[0]
+        return self
+
+
+@dataclass
 class SourceData:
     """Bundle of fixed source arrays.
 
     Attributes
     ----------
-    external : numpy.ndarray
+    external : numpy.ndarray or CompactSource
         External source. Full shape ``(I, N, G)`` in 1D and
         ``(I, J, N**2, G)`` in 2D, with a leading ``T`` (time) axis for
         time-dependent problems. Dimensions of size 1 are broadcast.
-    boundary_x : numpy.ndarray
+    boundary_x : numpy.ndarray or CompactSource
         Boundary source in x direction. Full shape ``(2, N, G)`` in 1D and
         ``(2, J, N**2, G)`` in 2D, with a leading ``T`` axis for
-        time-dependent problems. The leading 2 is the [x(0), x(X)] sides.
-    boundary_y : numpy.ndarray, optional
+        time-dependent problems, which take only the incoming angles
+        (``N/2`` or ``N**2/2``). The leading 2 is the [x(0), x(X)] sides.
+    boundary_y : numpy.ndarray or CompactSource, optional
         Boundary source in y direction for 2D problems. Full shape
-        ``(2, I, N**2, G)``, with a leading ``T`` axis for time-dependent
-        problems.
+        ``(2, I, N**2, G)``, with a leading ``T`` axis and ``N**2/2``
+        angles for time-dependent problems.
     initial_flux : numpy.ndarray, optional
-        Cell-centered initial angular flux for time-dependent problems
-        (BDF1/BDF2). Shape ``(I, N, G)`` in 1D and ``(I, J, N**2, G)`` in 2D.
+        Initial angular flux for time-dependent problems. At the cell
+        centers for BDF1/BDF2, shape ``(I, N, G)`` in 1D and
+        ``(I, J, N**2, G)`` in 2D. In 1D, CN/TR-BDF2 also use this field,
+        at the cell edges with shape ``(I + 1, N, G)``.
     initial_flux_x : numpy.ndarray, optional
-        Edge-based initial angular flux at x faces for time-dependent
-        problems (CN/TR-BDF2). Shape ``(I + 1, N, G)`` in 1D and
-        ``(I + 1, J, N**2, G)`` in 2D.
+        Initial angular flux at the x faces for 2D CN/TR-BDF2 problems.
+        Shape ``(I + 1, J, N**2, G)``.
     initial_flux_y : numpy.ndarray, optional
-        Edge-based initial angular flux at y faces for 2D time-dependent
-        problems (CN/TR-BDF2). Shape ``(I, J + 1, N**2, G)``.
+        Initial angular flux at the y faces for 2D CN/TR-BDF2 problems.
+        Shape ``(I, J + 1, N**2, G)``.
+    boundary_z : numpy.ndarray or CompactSource, optional
+        Boundary source in z direction for 3D problems. Full shape
+        ``(2, I, J, N, G)``, where ``N`` is the number of ordinates. In
+        3D, ``external`` is ``(I, J, K, N, G)``, ``boundary_x`` is
+        ``(2, J, K, N, G)`` and ``boundary_y`` is ``(2, I, K, N, G)``.
 
     Notes
     -----
@@ -231,6 +392,7 @@ class SourceData:
     initial_flux: Optional[np.ndarray] = None
     initial_flux_x: Optional[np.ndarray] = None
     initial_flux_y: Optional[np.ndarray] = None
+    boundary_z: Optional[np.ndarray] = None
 
 
 @dataclass
@@ -352,6 +514,11 @@ class GeometryData:
     bc_sides : list[int], optional
         Boundary condition for each side of a ``POLYGON2D`` mesh as
         ``BoundaryCondition`` values. Defaults to vacuum on every side.
+    delta_z : numpy.ndarray, optional
+        Cell widths in z for 3D problems, shape ``(cells_z,)``.
+    bc_z : list[int], optional
+        Bottom/top boundary conditions in z (3D only) as
+        ``BoundaryCondition`` values.
     """
 
     medium_map: np.ndarray
@@ -363,6 +530,8 @@ class GeometryData:
     space_disc: SpatialDiscretization = SpatialDiscretization.DIAMOND
     mesh: Optional[PolygonMesh] = None
     bc_sides: Optional[List[int]] = None
+    delta_z: Optional[np.ndarray] = None
+    bc_z: Optional[List[int]] = field(default_factory=_default_vacuum_bc)
 
 
 @dataclass
@@ -372,11 +541,13 @@ class HybridData:
     Attributes
     ----------
     fine_idx : numpy.ndarray
-        Fine-group indices, shape ``(groups_fine,)``.
+        Edges of the coarse groups as fine-group indices, shape
+        ``(groups_coarse + 1,)``.
     coarse_idx : numpy.ndarray
         Coarse-group index for each fine group, shape ``(groups_fine,)``.
     factor : numpy.ndarray
-        Coarse-to-fine scaling factor, shape ``(groups_fine,)``.
+        Width of each fine group divided by the width of its coarse group,
+        shape ``(groups_fine,)``.
     """
 
     fine_idx: np.ndarray
@@ -439,9 +610,13 @@ class SolverData:
     dmd_rank : int
         Number of DMD rank-1 updates before extrapolation.
     sigma_as : float
-        Artificial scattering strength (0 disables).
+        Artificial scattering strength (0 disables). The artificial
+        in-scatter source is updated up to ``max_iter_angular`` times, until
+        the scalar flux changes by less than ``tol_energy``.
     beta_as : float
-        Artificial scattering kernel width parameter.
+        Artificial scattering kernel width parameter. The kernel width is
+        ``beta_as / N_q``, where ``N_q`` is the number of ordinates on the
+        full sphere (``2 N**2`` for ``angular_xy(N)`` and ``angular_xyz(N)``).
     max_iter_angular : int
         Maximum angular (within-group) iterations.
     max_iter_energy : int
@@ -521,7 +696,9 @@ class ProblemParameters:
     sigma_as : float
         Artificial scattering strength (0 disables).
     beta_as : float
-        Artificial scattering kernel width parameter.
+        Artificial scattering kernel width parameter. The kernel width is
+        ``beta_as / N_q``, where ``N_q`` is the number of ordinates on the
+        full sphere (``2 N**2`` for ``angular_xy(N)`` and ``angular_xyz(N)``).
     max_iter_angular : int
         Maximum angular (within-group) iterations.
     max_iter_energy : int
@@ -537,7 +714,12 @@ class ProblemParameters:
     moments : int
         Number of scattering moments; 1 is isotropic. This is the number of
         Legendre moments (L + 1) in 1D and of spherical harmonic moments,
-        (L + 1)(L + 2) / 2, in 2D.
+        (L + 1)(L + 2) / 2 in 2D and (L + 1)**2 in 3D.
+    cells_z : int
+        Number of spatial cells in the z direction (3D only).
+    bc_z : list[int]
+        Bottom/top boundary conditions in z (3D only) as
+        ``BoundaryCondition`` values.
     """
 
     cells_x: int
@@ -568,6 +750,8 @@ class ProblemParameters:
     tol_energy: float
     tol_keff: float
     moments: int = 1
+    cells_z: int = 1
+    bc_z: List[int] = field(default_factory=_default_vacuum_bc)
 
 
 def create_params(materials, quadrature, geometry, solver, time=None):
@@ -594,11 +778,12 @@ def create_params(materials, quadrature, geometry, solver, time=None):
     """
 
     time_data = time if time is not None else TimeDependentData()
-    angles = (
-        quadrature.angle_x.size
-        if quadrature.angle_y is None
-        else int(np.sqrt(quadrature.angle_x.size))
-    )
+    # Number of ordinates in 1D and 3D, and the angles in each direction in
+    # 2D (with angles**2 ordinates)
+    if (quadrature.angle_y is None) or (quadrature.angle_z is not None):
+        angles = quadrature.angle_x.size
+    else:
+        angles = int(np.sqrt(quadrature.angle_x.size))
 
     moments = _scatter_moments(materials.scatter, quadrature)
     if (geometry.geometry == Geometry.POLYGON2D) and (moments > 1):
@@ -640,13 +825,17 @@ def create_params(materials, quadrature, geometry, solver, time=None):
         tol_energy=solver.tol_energy,
         tol_keff=solver.tol_keff,
         moments=moments,
+        cells_z=geometry.delta_z.size if geometry.delta_z is not None else 1,
+        bc_z=geometry.bc_z,
     )
 
 
 def _scatter_moments(scatter, quadrature):
-    # Legendre moments in 1D, spherical harmonic moments in 2D
+    # Legendre moments in 1D, spherical harmonic moments in 2D and 3D
     if scatter.ndim != 4:
         return 1
     if quadrature.angle_y is None:
         return scatter.shape[3]
+    if quadrature.angle_z is not None:
+        return scatter.shape[3] ** 2
     return scatter.shape[3] * (scatter.shape[3] + 1) // 2

@@ -30,7 +30,7 @@ from ants.cytools_polygon cimport PolygonSweep
 from ants.parameters cimport params
 
 from ants.datatypes import Geometry, create_params
-from ants.quadrature import _scatter_harmonics, harmonic_data
+from ants.quadrature import _check_reflection, _scatter_harmonics, harmonic_data
 from ants.utils.pytools import check_keffective, warn_not_converged
 
 logger = logging.getLogger(__name__)
@@ -151,6 +151,8 @@ def known_flux(double[:,:,:] flux, keff,  materials, geometry, quadrature, param
 
     # Covert dictionary to type params
     info = parameters._to_params(params)
+    # The angular flux is found with one sweep of each ordinate
+    _check_reflection(quadrature, geometry, True)
 
     # Polygon mesh connectivity and sweep ordering
     cdef PolygonSweep mesh = None
@@ -174,7 +176,9 @@ def known_flux(double[:,:,:] flux, keff,  materials, geometry, quadrature, param
         return np.asarray(scalar_flux)
 
     # Solve for angular flux
-    angular_flux = mg._known_source_angular(xs_total, source, boundary_x, \
+    angular_flux = tools.array_4d(info.cells_x, info.cells_y, \
+                            info.angles * info.angles, info.groups)
+    mg._known_source_angular(angular_flux, xs_total, source, boundary_x, \
                                 boundary_y, medium_map, delta_x, delta_y, \
                                 mesh, angle_x, angle_y, angle_w, info)
 
@@ -420,6 +424,8 @@ def known_flux_moments(double[:,:,:,:] flux, keff, materials, geometry, \
 
     # Covert dictionary to type params
     info = parameters._to_params(params)
+    # The angular flux is found with one sweep of each ordinate
+    _check_reflection(quadrature, geometry, True)
 
     # Polygon mesh connectivity and sweep ordering
     cdef PolygonSweep mesh = None
@@ -448,7 +454,9 @@ def known_flux_moments(double[:,:,:,:] flux, keff, materials, geometry, \
         return np.asarray(scalar_flux)
 
     # Solve for angular flux
-    angular_flux = mg._known_source_angular(xs_total, source, boundary_x, \
+    angular_flux = tools.array_4d(info.cells_x, info.cells_y, \
+                            info.angles * info.angles, info.groups)
+    mg._known_source_angular(angular_flux, xs_total, source, boundary_x, \
                                 boundary_y, medium_map, delta_x, delta_y, mesh, \
                                 angle_x, angle_y, angle_w, info)
 

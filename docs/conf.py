@@ -14,6 +14,8 @@
 # import sys
 # sys.path.insert(0, os.path.abspath("."))
 
+import pathlib
+import shutil
 
 # -- Project information -----------------------------------------------------
 
@@ -22,7 +24,7 @@ copyright = "2026, Ben Whewell"
 author = "Ben Whewell"
 
 # The full version, including alpha/beta/rc tags
-release = "0.2.0"
+release = "0.3.1"
 
 
 # -- General configuration ---------------------------------------------------
@@ -38,7 +40,19 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
     "sphinx.ext.doctest",
+    "nbsphinx",
 ]
+
+# Example notebooks live in examples/, outside the Sphinx source directory,
+# so they are copied in before the build (copy2 keeps mtimes, so unchanged
+# notebooks are not rebuilt). They are saved with outputs and not executed.
+_EXAMPLES = pathlib.Path(__file__).resolve().parents[1] / "examples"
+_NOTEBOOKS = pathlib.Path(__file__).resolve().parent / "running-ants" / "notebooks"
+_NOTEBOOKS.mkdir(exist_ok=True)
+for _notebook in _EXAMPLES.glob("*.ipynb"):
+    shutil.copy2(_notebook, _NOTEBOOKS / _notebook.name)
+
+nbsphinx_execute = "never"
 
 bibtex_bibfiles = ["refs.bib"]
 
@@ -109,7 +123,7 @@ templates_path = ["_templates"]
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "**.ipynb_checkpoints"]
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -118,6 +132,7 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # a list of builtin themes.
 #
 html_theme = "pydata_sphinx_theme"
+html_title = f"ANTS {release}"
 html_theme_options = {
     "logo": {
         "image_light": "_static/logo.svg",

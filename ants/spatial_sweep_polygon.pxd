@@ -25,7 +25,7 @@ from ants.parameters cimport params
 
 cdef void polygon_ordinates(double[:,:]& flux, double[:,:]& flux_old, \
         double[:]& xs_total, double[:]& xs_scatter, double[:,:]& off_scatter, \
-        double[:,:,:]& external, double[:,:,:]& boundary, \
+        double[:,:,:]& external, int[:]& q_col, double[:,:,:]& boundary, \
         int[:,:]& medium_map, PolygonSweep mesh, double[:]& angle_x, \
         double[:]& angle_y, double[:]& angle_w, params info)
 

@@ -25,8 +25,8 @@ where :math:`\sig[1]{t}` and :math:`\sig[2]{t}` are the original materials and
 :math:`\rho` is the percentage of the first material present in the cell. This
 allows for preservation of the cross-sectional information of the spatial cell
 without requiring the exact shape. To prevent having an excessive number of
-materials through this homogenization process, the :math:`\rho` value was limited
-to four decimal places.
+materials through this homogenization process, the :math:`\rho` values can be
+rounded with the ``decimals`` argument (four decimal places is usually enough).
 
 **Homogenized Zones — Cylinder**
 
@@ -98,6 +98,14 @@ where :math:`(x_{1}, y_{1})`, :math:`(x_{2}, y_{2})`, and :math:`(x_{3}, y_{3})`
 are the vertices of the triangle and :math:`(x_{n}, y_{n})` is the sample point. A
 sufficient number of samples and normalization is used to determine the material
 percentages :math:`\rho`.
+
+The weight matrix is then converted to a medium map, with one new material for
+each unique set of :math:`\rho` values. The same is done for three-dimensional
+weight matrices of shape ``(cells_x, cells_y, cells_z, materials)``.
+
+.. autofunction:: ants.weight_spatial2d
+
+.. autofunction:: ants.weight_spatial3d
 
 
 Preset Two-Dimensional Layouts

@@ -2,6 +2,7 @@ name: Docs
 
 on:
   push:
+    branches: [main]
     tags: ["v*"]
   pull_request:
   workflow_dispatch:
@@ -30,10 +31,11 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Install LaTeX dependencies
+      # nbsphinx needs pandoc, which is not pip-installable
+      - name: Install LaTeX and pandoc
         run: |
           sudo apt-get update
-          sudo apt-get install -y texlive-latex-base texlive-latex-extra texlive-pictures texlive-fonts-recommended ghostscript
+          sudo apt-get install -y texlive-latex-base texlive-latex-extra texlive-pictures texlive-fonts-recommended ghostscript pandoc
 
       - name: Install dependencies
         run: |
@@ -52,7 +54,7 @@ jobs:
     name: Deploy to GitHub Pages
     needs: build
     runs-on: ubuntu-latest
-    # Only publish from pushes to tags or manual workflow dispatch; PR builds validate but never deploy.
+    # Only publish from version tags or manual runs; pushes to main and PRs only check the build.
     if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
 
 
