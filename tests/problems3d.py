@@ -12,7 +12,15 @@
 import numpy as np
 
 import ants
-from ants.datatypes import Geometry, GeometryData, MaterialData, SourceData
+from ants.datatypes import (
+    Geometry,
+    GeometryData,
+    MaterialData,
+    SolverData,
+    SourceData,
+    SpatialDiscretization,
+    TimeDependentData,
+)
 
 
 def zero_boundaries():
@@ -105,3 +113,121 @@ def permute_axes(geometry, sources, quadrature):
         angle_w=quadrature.angle_w,
     )
     return geometry_p, sources_p, quadrature_p
+
+
+def solution_td_01(x, y, z, angle_x, edges_t):
+    # Linear in space so diamond difference has no spatial error, shape
+    # (T, I, J, K, N, 1)
+    mesh_x, mesh_y, mesh_z = np.meshgrid(x, y, z, indexing="ij")
+    spatial = 1 + mesh_x + 0.5 * mesh_y + 0.25 * mesh_z
+    flux = spatial[None] * (1 + np.sin(edges_t))[:, None, None, None]
+    return np.repeat(flux[..., None, None], angle_x.size, axis=4)
+
+
+def external_td_01(x, y, z, quadrature, edges_t, xs_total, xs_scatter, velocity):
+    # Source of solution_td_01, shape (T, I, J, K, N, 1)
+    mesh_x, mesh_y, mesh_z = np.meshgrid(x, y, z, indexing="ij")
+    spatial = 1 + mesh_x + 0.5 * mesh_y + 0.25 * mesh_z
+    gradient = quadrature.angle_x + 0.5 * quadrature.angle_y + 0.25 * quadrature.angle_z
+    removal = xs_total - xs_scatter * np.sum(quadrature.angle_w)
+    external = np.zeros((edges_t.size,) + spatial.shape + (gradient.size, 1))
+    for tt, time in enumerate(edges_t):
+        amplitude = 1 + np.sin(time)
+        external[tt, ..., 0] = (
+            spatial[..., None] * (np.cos(time) / velocity + removal * amplitude)
+            + gradient * amplitude
+        )
+    return external
+
+
+def boundary_td_01(edges, centers, quadrature, edges_t):
+    # Incoming angles of solution_td_01 on each face, boundary_x, boundary_y,
+    # and boundary_z with shape (T, 2, face, face, N/2, 1)
+    cosines = (quadrature.angle_x, quadrature.angle_y, quadrature.angle_z)
+    boundaries = []
+    for axis, angle in enumerate(cosines):
+        sides = []
+        for side, incoming in enumerate((angle > 0, angle < 0)):
+            points = [centers, centers, centers]
+            points[axis] = edges[[0, -1]][[side]]
+            flux = solution_td_01(*points, angle, edges_t)
+            flux = np.squeeze(flux, axis=axis + 1)
+            sides.append(flux[..., incoming, :])
+        boundaries.append(np.stack(sides, axis=1))
+    return boundaries
+
+
+def manufactured_td_01(cells, angles, edges_t, dt, temporal=1):
+    # Time-dependent manufactured solution with isotropic scattering
+    length = 1.0
+    delta = np.repeat(length / cells, cells)
+    edges = np.linspace(0, length, cells + 1)
+    centers = 0.5 * (edges[1:] + edges[:-1])
+
+    # Angular
+    quadrature = ants.angular_xyz(angles)
+    angle_x = quadrature.angle_x
+
+    xs_total = 1.0
+    xs_scatter = 0.5
+    velocity = 2.0
+    mat_data = MaterialData(
+        total=np.array([[xs_total]]),
+        scatter=np.array([[[xs_scatter]]]),
+        fission=np.array([[[0.0]]]),
+        velocity=np.array([velocity]),
+    )
+
+    # External source at edges_t for CN, at the gamma steps for TR-BDF2
+    if temporal == 4:
+        times = ants.gamma_time_steps(edges_t)
+    else:
+        times = edges_t
+    external = external_td_01(
+        centers, centers, centers, quadrature, times, xs_total, xs_scatter, velocity
+    )
+    boundary_x, boundary_y, boundary_z = boundary_td_01(
+        edges, centers, quadrature, times[1:]
+    )
+
+    # Backward Euler and BDF2
+    if temporal in (1, 3):
+        initial_flux = solution_td_01(
+            centers, centers, centers, angle_x, np.array([0.0])
+        )[0]
+        sources = SourceData(
+            initial_flux=initial_flux,
+            external=external[1:],
+            boundary_x=boundary_x,
+            boundary_y=boundary_y,
+            boundary_z=boundary_z,
+        )
+    # Crank Nicolson and TR-BDF2
+    else:
+        zero = np.array([0.0])
+        sources = SourceData(
+            initial_flux_x=solution_td_01(edges, centers, centers, angle_x, zero)[0],
+            initial_flux_y=solution_td_01(centers, edges, centers, angle_x, zero)[0],
+            initial_flux_z=solution_td_01(centers, centers, edges, angle_x, zero)[0],
+            external=external,
+            boundary_x=boundary_x,
+            boundary_y=boundary_y,
+            boundary_z=boundary_z,
+        )
+
+    geometry = GeometryData(
+        medium_map=np.zeros((cells, cells, cells), dtype=np.int32),
+        delta_x=delta,
+        delta_y=delta,
+        delta_z=delta,
+        bc_x=[0, 0],
+        bc_y=[0, 0],
+        bc_z=[0, 0],
+        geometry=Geometry.SLAB3D,
+        space_disc=SpatialDiscretization.DIAMOND,
+    )
+
+    solver = SolverData(tol_angular=1e-13, tol_energy=1e-13, max_iter_angular=500)
+    time_data = TimeDependentData(steps=edges_t.size - 1, dt=dt, time_disc=temporal)
+
+    return mat_data, sources, geometry, quadrature, solver, time_data

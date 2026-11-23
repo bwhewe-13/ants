@@ -78,9 +78,16 @@ BDF2, and at the cell edges for CN and TR-BDF2.
         ...
     )
 
+    # 3D: shape (I, J, K, N, G), N is the number of ordinates
+    sources = SourceData(
+        initial_flux=np.zeros((cells_x, cells_y, cells_z, ordinates, groups)),
+        ...
+    )
+
 **CN and TR-BDF2** — edge-based initial flux. In 1D this is still
 ``initial_flux``, with one more row than there are cells. In 2D the x and y
-faces are passed separately as ``initial_flux_x`` and ``initial_flux_y``:
+faces are passed separately as ``initial_flux_x`` and ``initial_flux_y``, and
+3D adds the z faces as ``initial_flux_z``:
 
 .. code-block:: python
 
@@ -97,6 +104,15 @@ faces are passed separately as ``initial_flux_x`` and ``initial_flux_y``:
         ...
     )
 
+    # 3D: initial_flux_x shape (I+1, J, K, N, G), initial_flux_y shape
+    # (I, J+1, K, N, G), initial_flux_z shape (I, J, K+1, N, G)
+    sources = SourceData(
+        initial_flux_x=np.zeros((cells_x + 1, cells_y, cells_z, ordinates, groups)),
+        initial_flux_y=np.zeros((cells_x, cells_y + 1, cells_z, ordinates, groups)),
+        initial_flux_z=np.zeros((cells_x, cells_y, cells_z + 1, ordinates, groups)),
+        ...
+    )
+
 
 Time-Dependent Sources
 -----------------------
@@ -105,12 +121,19 @@ Sources that vary in time have a leading time axis of size ``T``:
 
 * **1D external**: shape ``(T, I, N, G)``
 * **2D external**: shape ``(T, I, J, N², G)``
+* **3D external**: shape ``(T, I, J, K, N, G)``
 * **1D boundary**: shape ``(T, 2, N/2, G)``
 * **2D boundary x**: shape ``(T, 2, J, N²/2, G)``
 * **2D boundary y**: shape ``(T, 2, I, N²/2, G)``
+* **3D boundary x**: shape ``(T, 2, J, K, N/2, G)``
+* **3D boundary y**: shape ``(T, 2, I, K, N/2, G)``
+* **3D boundary z**: shape ``(T, 2, I, J, N/2, G)``
 
 Boundary sources only hold the incoming angles of each side. Angle and group
-dimensions of size 1 are broadcast (see :doc:`standard-inputs`).
+dimensions of size 1 are broadcast (see :doc:`standard-inputs`). In 3D, ``N`` is
+the number of ordinates. The lower side takes the ordinates with a positive
+cosine on that axis and the upper side the ones with a negative cosine, kept in
+the order of the quadrature.
 
 ``T`` is 1 for a source that is constant in time. Otherwise it depends on the
 time integrator, with ``edges_t = np.linspace(0, t_final, steps + 1)``:
@@ -182,6 +205,8 @@ Available Time-Dependent Solvers
      - One-dimensional time-dependent solver
    * - ``ants.timed2d``
      - Two-dimensional time-dependent solver
+   * - ``ants.timed3d``
+     - Three-dimensional time-dependent solver
    * - ``ants.hybrid1d``
      - 1D time-dependent with collision-based hybrid acceleration
    * - ``ants.hybrid2d``

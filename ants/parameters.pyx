@@ -289,3 +289,79 @@ cdef int _check_fixed3d_source_iteration(params info, int xs_shape) except -1:
         assert not ((info.bc_z[0] == 1) and (info.bc_z[1] == 1)), \
                 "Angular flux cannot reflect on both z boundaries"
     return 0
+
+
+cdef int _check_timed3d(params info, int bc_x_shape, int bc_y_shape, \
+        int bc_z_shape, int xs_shape) except -1:
+    # The quadrature itself is checked in timed3d
+    assert info.materials == xs_shape, "Incorrect number of materials"
+    assert info.geometry == 4, "Need a SLAB3D geometry"
+    assert info.steps > 0, "Need at least 1 time step"
+    assert info.angular == False, "Scalar flux is returned"
+    return 0
+
+
+cdef int _check_bdf_timed3d(params info, int psi_shape, int q_shape, \
+        int bc_x_shape, int bc_y_shape, int bc_z_shape, int xs_shape) except -1:
+    # Go through time-dependent default checks
+    _check_timed3d(info, bc_x_shape, bc_y_shape, bc_z_shape, xs_shape)
+    assert psi_shape == info.cells_x, "Need initial flux at cell centers"
+    if q_shape > 1:
+        assert q_shape == info.steps, \
+                "Need time-dependent external source for each time step"
+    if bc_x_shape > 1:
+        assert bc_x_shape == info.steps, \
+                "Need time-dependent boundary source for each time step"
+    if bc_y_shape > 1:
+        assert bc_y_shape == info.steps, \
+                "Need time-dependent boundary source for each time step"
+    if bc_z_shape > 1:
+        assert bc_z_shape == info.steps, \
+                "Need time-dependent boundary source for each time step"
+    return 0
+
+
+cdef int _check_cn_timed3d(params info, int psi_x_shape, int psi_y_shape, \
+        int psi_z_shape, int q_shape, int bc_x_shape, int bc_y_shape, \
+        int bc_z_shape, int xs_shape) except -1:
+    # Go through time-dependent default checks
+    _check_timed3d(info, bc_x_shape, bc_y_shape, bc_z_shape, xs_shape)
+    assert psi_x_shape == (info.cells_x + 1), "Need initial flux at cell edges"
+    assert psi_y_shape == (info.cells_y + 1), "Need initial flux at cell edges"
+    assert psi_z_shape == (info.cells_z + 1), "Need initial flux at cell edges"
+    if q_shape > 1:
+        assert q_shape == (info.steps + 1), "Need time-dependent external " \
+                "source for each time step and initial time step"
+    if bc_x_shape > 1:
+        assert bc_x_shape == info.steps, \
+                "Need time-dependent boundary source for each time step"
+    if bc_y_shape > 1:
+        assert bc_y_shape == info.steps, \
+                "Need time-dependent boundary source for each time step"
+    if bc_z_shape > 1:
+        assert bc_z_shape == info.steps, \
+                "Need time-dependent boundary source for each time step"
+    return 0
+
+
+cdef int _check_tr_bdf_timed3d(params info, int psi_x_shape, int psi_y_shape, \
+        int psi_z_shape, int q_shape, int bc_x_shape, int bc_y_shape, \
+        int bc_z_shape, int xs_shape) except -1:
+    # Go through time-dependent default checks
+    _check_timed3d(info, bc_x_shape, bc_y_shape, bc_z_shape, xs_shape)
+    assert psi_x_shape == (info.cells_x + 1), "Need initial flux at cell edges"
+    assert psi_y_shape == (info.cells_y + 1), "Need initial flux at cell edges"
+    assert psi_z_shape == (info.cells_z + 1), "Need initial flux at cell edges"
+    if q_shape > 1:
+        assert q_shape == (info.steps * 2 + 1), "Need time-dependent " \
+            "external source for each time step, gamma step, and initial step"
+    if bc_x_shape > 1:
+        assert bc_x_shape == (info.steps * 2), "Need time-dependent " \
+                "boundary source for each time step, gamma step, and initial step"
+    if bc_y_shape > 1:
+        assert bc_y_shape == (info.steps * 2), "Need time-dependent " \
+                "boundary source for each time step, gamma step, and initial step"
+    if bc_z_shape > 1:
+        assert bc_z_shape == (info.steps * 2), "Need time-dependent " \
+                "boundary source for each time step, gamma step, and initial step"
+    return 0

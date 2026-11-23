@@ -58,8 +58,11 @@ def warn_not_converged(iteration, limit):
 # previous time step's angular flux. The lag introduces an O(dt) error
 # in the artificial term only; it vanishes at steady state.
 ########################################################################
-def artificial_scatter_setup(angle_x, angle_y, angle_w, sigma_as, beta_as):
-    """Build the M_as matrix for a quadrature set, or None when disabled."""
+def artificial_scatter_setup(
+    angle_x, angle_y, angle_w, sigma_as, beta_as, angle_z=None
+):
+    """Build the M_as matrix for a quadrature set, or None when disabled.
+    ``angle_z`` is given for a 3D quadrature."""
     if sigma_as <= 0.0:
         return None
     from ants.quadrature import artificial_scatter_matrix
@@ -70,6 +73,7 @@ def artificial_scatter_setup(angle_x, angle_y, angle_w, sigma_as, beta_as):
         np.asarray(angle_w),
         sigma_as,
         beta_as,
+        angle_z=None if angle_z is None else np.asarray(angle_z),
     )
 
 
@@ -153,11 +157,18 @@ def artificial_scatter_iteration(
     return flux, combined
 
 
-def edge_to_center_angular(psi_x, psi_y):
+def edge_to_center_angular(psi_x, psi_y, psi_z=None):
     """Cell-centered angular flux estimate from x/y edge angular fluxes
-    (shapes (I+1, J, N, G) and (I, J+1, N, G))."""
+    (shapes (I+1, J, N, G) and (I, J+1, N, G)), or x/y/z face angular
+    fluxes in 3D (shapes (I+1, J, K, N, G), (I, J+1, K, N, G), and
+    (I, J, K+1, N, G))."""
     px, py = np.asarray(psi_x), np.asarray(psi_y)
-    return 0.25 * (px[:-1] + px[1:] + py[:, :-1] + py[:, 1:])
+    if psi_z is None:
+        return 0.25 * (px[:-1] + px[1:] + py[:, :-1] + py[:, 1:])
+    pz = np.asarray(psi_z)
+    return (
+        px[:-1] + px[1:] + py[:, :-1] + py[:, 1:] + pz[:, :, :-1] + pz[:, :, 1:]
+    ) / 6.0
 
 
 ########################################################################
