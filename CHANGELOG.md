@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- Three-dimensional time-dependent problems with
+  `ants.timed3d.time_dependent`, using backward Euler, Crank-Nicolson, BDF2,
+  and TR-BDF2. Supports step, diamond difference, and step characteristic
+  differencing, anisotropic scattering, artificial scattering, group
+  parallelism, `TimeDependentData.save_to_file`, and the BDF2 restart with
+  `restart_bdf2` and `angular_bdf2`. CN and TR-BDF2 take the initial flux at
+  the z faces with the new `SourceData.initial_flux_z`.
+
 ## 0.3.1 (2026-11-08)
 
 ### Added
