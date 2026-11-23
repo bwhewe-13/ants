@@ -23,9 +23,9 @@ A Neutron Transport Solution (ANTS) solves the neutron transport equation with t
 |              | 1D | 2D | 3D |
 |--------------|----|----|----|
 | Geometry     | Slab, sphere | Slab | Slab |
-| Problems     | Fixed source, criticality, time-dependent | Fixed source, criticality, time-dependent | Fixed source |
+| Problems     | Fixed source, criticality, time-dependent | Fixed source, criticality, time-dependent | Fixed source, time-dependent |
 | Spatial      | Step, diamond difference, step characteristic | Step, diamond difference, step characteristic | Step, diamond difference, step characteristic |
-| Time         | Backward Euler, Crank-Nicolson, BDF2, TR-BDF2 | Backward Euler, Crank-Nicolson, BDF2, TR-BDF2 | |
+| Time         | Backward Euler, Crank-Nicolson, BDF2, TR-BDF2 | Backward Euler, Crank-Nicolson, BDF2, TR-BDF2 | Backward Euler, Crank-Nicolson, BDF2, TR-BDF2 |
 | Scattering   | Isotropic, anisotropic | Isotropic, anisotropic | Isotropic, anisotropic |
 | Acceleration | DMD, hybrid | DMD, hybrid, as-S<sub>N</sub> | DMD, as-S<sub>N</sub> |
 | Verification | Manufactured solutions, Sood benchmarks, ICSBEP, nearby problems | Manufactured solutions, Sood benchmarks, nearby problems | Manufactured solutions, Kobayashi benchmarks |

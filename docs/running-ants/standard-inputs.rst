@@ -25,10 +25,10 @@ Legendre moments :math:`\ell = 0, \ldots, L` on a last axis, shape
 :math:`(M \times G \times G \times (L + 1))`, indexed
 ``[material, group out, group in, moment]``. The moments do not include the
 :math:`(2\ell + 1)` factor (see :ref:`anisotropic scattering <sec-nte-anisotropic>`).
-All one- and two-dimensional solvers, and the three-dimensional fixed source solver,
-select anisotropic scattering from the shape of the scattering matrix. Two- and
-three-dimensional problems use the same Legendre moments, which are expanded into
-spherical harmonics internally: the :math:`(L + 1)(L + 2) / 2` harmonics even in
+All one- and two-dimensional solvers, and the three-dimensional fixed source and
+time-dependent solvers, select anisotropic scattering from the shape of the
+scattering matrix. Two- and three-dimensional problems use the same Legendre
+moments, which are expanded into spherical harmonics internally: the :math:`(L + 1)(L + 2) / 2` harmonics even in
 :math:`\mu_z` in 2D, and all :math:`(L + 1)^2` harmonics in 3D.
 
 .. code-block:: python

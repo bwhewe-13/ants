@@ -5,10 +5,11 @@ A Neutron Transport Solution (ANTS) solves the neutron transport equation with
 the discrete ordinates (:math:`S_N`) method. It is written in Cython and
 parallelized over angles and energy groups with OpenMP. ANTS solves fixed
 source, criticality, and time-dependent problems in one dimensional slabs and
-spheres and two dimensional slabs, and fixed source problems in three
-dimensional slabs, with isotropic or anisotropic scattering. The iterations can
-be accelerated with dynamic mode decomposition and with the collision-based
-hybrid method, and ray effects can be reduced with artificial scattering.
+spheres and two dimensional slabs, and fixed source and time-dependent problems
+in three dimensional slabs, with isotropic or anisotropic scattering. The
+iterations can be accelerated with dynamic mode decomposition and with the
+collision-based hybrid method, and ray effects can be reduced with artificial
+scattering.
 
 .. code-block:: bash
 

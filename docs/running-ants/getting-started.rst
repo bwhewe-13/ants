@@ -4,7 +4,7 @@ Getting Started
 The ANTS package solves the discrete ordinates neutron transport equation in
 one-dimensional (slab and sphere), two-dimensional (rectangular), and
 three-dimensional (rectangular) geometry. Three-dimensional problems are currently
-limited to fixed source problems.
+limited to fixed source and time-dependent problems.
 
 **Problem Types Supported:**
 
