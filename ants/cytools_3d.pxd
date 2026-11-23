@@ -110,3 +110,77 @@ cdef void update_reflector(double[:,:]& known_x, double[:,:,:,:]& reflected_x, \
         double[:,:]& known_z, double[:,:,:,:]& reflected_z, \
         double[:]& angle_x, double[:]& angle_y, double[:]& angle_z, \
         int angle, params info) noexcept nogil
+
+################################################################################
+# Time Dependent functions
+################################################################################
+cdef void _total_velocity(double[:,:]& xs_total, double[:]& velocity, \
+        double constant, params info)
+
+cdef void _angular_to_scalar(double[:,:,:,:,:]& angular_flux, \
+        double[:,:,:,:]& scalar_flux, double[:]& angle_w, params info)
+
+cdef void _angular_edge_to_scalar(double[:,:,:,:,:]& psi_x, \
+        double[:,:,:,:,:]& psi_y, double[:,:,:,:,:]& psi_z, \
+        double[:,:,:,:]& scalar_flux, double[:]& angle_w, params info)
+
+cdef void _time_source_star_bdf1(double[:,:,:,:,:]& flux, \
+        double[:,:,:,:,:]& q_star, double[:,:,:,:,:]& external, \
+        double[:]& velocity, params info)
+
+cdef void _time_source_total_bdf1(double[:,:,:,:]& scalar, \
+        double[:,:,:,:,:]& angular, double[:,:,:]& xs_matrix, \
+        double[:]& velocity, double[:,:,:,:,:]& qstar, \
+        double[:,:,:,:,:]& external, int[:,:,:]& medium_map, params info)
+
+cdef void _time_source_star_cn(double[:,:,:,:,:]& psi_x, \
+        double[:,:,:,:,:]& psi_y, double[:,:,:,:,:]& psi_z, \
+        double[:,:,:,:]& phi, double[:,:]& xs_total, double[:,:,:]& xs_scatter, \
+        double[:]& velocity, double[:,:,:,:,:]& q_star, \
+        double[:,:,:,:,:]& external_prev, double[:,:,:,:,:]& external, \
+        int[:,:,:]& medium_map, double[:]& delta_x, double[:]& delta_y, \
+        double[:]& delta_z, double[:]& angle_x, double[:]& angle_y, \
+        double[:]& angle_z, double constant, params info)
+
+cdef void _time_source_star_bdf2(double[:,:,:,:,:]& flux_1, \
+        double[:,:,:,:,:]& flux_2, double[:,:,:,:,:]& q_star, \
+        double[:,:,:,:,:]& external, double[:]& velocity, params info)
+
+cdef void _time_source_total_bdf2(double[:,:,:,:]& scalar, \
+        double[:,:,:,:,:]& angular_1, double[:,:,:,:,:]& angular_2, \
+        double[:,:,:]& xs_matrix, double[:]& velocity, \
+        double[:,:,:,:,:]& qstar, double[:,:,:,:,:]& external, \
+        int[:,:,:]& medium_map, params info)
+
+cdef void _time_source_star_tr_bdf2(double[:,:,:,:,:]& psi_x, \
+        double[:,:,:,:,:]& psi_y, double[:,:,:,:,:]& psi_z, \
+        double[:,:,:,:,:]& flux_2, double[:,:,:,:,:]& q_star, \
+        double[:,:,:,:,:]& external, double[:]& velocity, double gamma, \
+        params info)
+
+cdef void _time_right_side(double[:,:,:,:,:]& q_star, double[:,:,:,:]& flux, \
+        double[:,:,:]& xs_scatter, int[:,:,:]& medium_map, params info)
+
+################################################################################
+# Anisotropic time dependent functions
+################################################################################
+cdef void _angular_to_moments(double[:,:,:,:,:]& angular_flux, \
+        double[:,:,:,:,:]& flux, double[:,:]& P_weights, params info)
+
+cdef void _angular_edge_to_moments(double[:,:,:,:,:]& psi_x, \
+        double[:,:,:,:,:]& psi_y, double[:,:,:,:,:]& psi_z, \
+        double[:,:,:,:,:]& flux, double[:,:]& P_weights, params info)
+
+cdef void _time_source_star_cn_aniso(double[:,:,:,:,:]& psi_x, \
+        double[:,:,:,:,:]& psi_y, double[:,:,:,:,:]& psi_z, \
+        double[:,:,:,:,:]& phi, double[:,:]& xs_total, \
+        double[:,:,:,:]& xs_scatter, double[:]& velocity, \
+        double[:,:,:,:,:]& q_star, double[:,:,:,:,:]& external_prev, \
+        double[:,:,:,:,:]& external, int[:,:,:]& medium_map, \
+        double[:]& delta_x, double[:]& delta_y, double[:]& delta_z, \
+        double[:]& angle_x, double[:]& angle_y, double[:]& angle_z, \
+        double[:,:]& P_source, double constant, params info)
+
+cdef void _time_right_side_aniso(double[:,:,:,:,:]& q_star, \
+        double[:,:,:,:,:]& flux, double[:,:,:,:]& xs_scatter, \
+        int[:,:,:]& medium_map, double[:,:]& P_source, params info)

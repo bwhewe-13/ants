@@ -171,3 +171,17 @@ cdef int _check_critical2d_nearby_power(params info) except -1
 # Three-dimensional functions
 ########################################################################
 cdef int _check_fixed3d_source_iteration(params info, int xs_shape) except -1
+
+cdef int _check_timed3d(params info, int bc_x_shape, int bc_y_shape, \
+        int bc_z_shape, int xs_shape) except -1
+
+cdef int _check_bdf_timed3d(params info, int psi_shape, int q_shape, \
+        int bc_x_shape, int bc_y_shape, int bc_z_shape, int xs_shape) except -1
+
+cdef int _check_cn_timed3d(params info, int psi_x_shape, int psi_y_shape, \
+        int psi_z_shape, int q_shape, int bc_x_shape, int bc_y_shape, \
+        int bc_z_shape, int xs_shape) except -1
+
+cdef int _check_tr_bdf_timed3d(params info, int psi_x_shape, int psi_y_shape, \
+        int psi_z_shape, int q_shape, int bc_x_shape, int bc_y_shape, \
+        int bc_z_shape, int xs_shape) except -1

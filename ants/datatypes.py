@@ -355,20 +355,28 @@ class SourceData:
         angles for time-dependent problems.
     initial_flux : numpy.ndarray, optional
         Initial angular flux for time-dependent problems. At the cell
-        centers for BDF1/BDF2, shape ``(I, N, G)`` in 1D and
-        ``(I, J, N**2, G)`` in 2D. In 1D, CN/TR-BDF2 also use this field,
-        at the cell edges with shape ``(I + 1, N, G)``.
+        centers for BDF1/BDF2, shape ``(I, N, G)`` in 1D,
+        ``(I, J, N**2, G)`` in 2D, and ``(I, J, K, N, G)`` in 3D. In 1D,
+        CN/TR-BDF2 also use this field, at the cell edges with shape
+        ``(I + 1, N, G)``.
     initial_flux_x : numpy.ndarray, optional
-        Initial angular flux at the x faces for 2D CN/TR-BDF2 problems.
-        Shape ``(I + 1, J, N**2, G)``.
+        Initial angular flux at the x faces for 2D and 3D CN/TR-BDF2
+        problems. Shape ``(I + 1, J, N**2, G)`` in 2D and
+        ``(I + 1, J, K, N, G)`` in 3D.
     initial_flux_y : numpy.ndarray, optional
-        Initial angular flux at the y faces for 2D CN/TR-BDF2 problems.
-        Shape ``(I, J + 1, N**2, G)``.
+        Initial angular flux at the y faces for 2D and 3D CN/TR-BDF2
+        problems. Shape ``(I, J + 1, N**2, G)`` in 2D and
+        ``(I, J + 1, K, N, G)`` in 3D.
     boundary_z : numpy.ndarray or CompactSource, optional
         Boundary source in z direction for 3D problems. Full shape
         ``(2, I, J, N, G)``, where ``N`` is the number of ordinates. In
         3D, ``external`` is ``(I, J, K, N, G)``, ``boundary_x`` is
         ``(2, J, K, N, G)`` and ``boundary_y`` is ``(2, I, K, N, G)``.
+        Time-dependent problems add a leading ``T`` axis and take only the
+        incoming angles (``N/2``) of each boundary.
+    initial_flux_z : numpy.ndarray, optional
+        Initial angular flux at the z faces for 3D CN/TR-BDF2 problems.
+        Shape ``(I, J, K + 1, N, G)``.
     """
 
     external: np.ndarray
@@ -378,6 +386,7 @@ class SourceData:
     initial_flux_x: Optional[np.ndarray] = None
     initial_flux_y: Optional[np.ndarray] = None
     boundary_z: Optional[np.ndarray] = None
+    initial_flux_z: Optional[np.ndarray] = None
 
 
 @dataclass

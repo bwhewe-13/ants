@@ -135,7 +135,7 @@ def fixed_source(materials, sources, geometry, quadrature, solver):
                 boundary_y, boundary_z, geometry, quadrature, params, q_index)
 
 
-def _check_inputs(geometry, quadrature, params):
+def _check_inputs(geometry, quadrature, params, ordered=False):
     # The sweeps do not check for missing arrays or bounds
     if (quadrature.angle_y is None) or (quadrature.angle_z is None):
         raise ValueError("Need angle_y and angle_z for a 3D quadrature, " \
@@ -162,9 +162,9 @@ def _check_inputs(geometry, quadrature, params):
                          f"{params.materials - 1}")
 
     # The angular flux, cell edges, and artificial scattering sweep each
-    # ordinate once
-    ordered = (params.angular == True) or (params.flux_at_edges == 1) \
-                or (params.sigma_as > 0.0)
+    # ordinate once, as do the time-dependent problems
+    ordered = ordered or (params.angular == True) \
+                or (params.flux_at_edges == 1) or (params.sigma_as > 0.0)
     _check_reflection(quadrature, geometry, ordered)
 
 
