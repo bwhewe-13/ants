@@ -21,6 +21,7 @@ from ants.datatypes import (
     SpatialDiscretization,
     TimeDependentData,
 )
+from ants.utils import hybrid as hytools
 
 
 def zero_boundaries():
@@ -113,6 +114,63 @@ def permute_axes(geometry, sources, quadrature):
         angle_w=quadrature.angle_w,
     )
     return geometry_p, sources_p, quadrature_p
+
+
+def time_axis_problem(spatial, time_disc, materials):
+    # axis_problem with the sources of a time-dependent problem, constant in
+    # time with a zero initial flux
+    groups = materials.total.shape[1]
+    geometry, sources, quadrature = axis_problem(spatial, groups)
+    cells = geometry.medium_map.shape
+    shape = (quadrature.angle_w.size, groups)
+    kwargs = dict(
+        external=sources.external[None],
+        boundary_x=sources.boundary_x[None],
+        boundary_y=sources.boundary_y[None],
+        boundary_z=sources.boundary_z[None],
+    )
+    if time_disc in (1, 3):
+        kwargs["initial_flux"] = np.zeros(cells + shape)
+    else:
+        kwargs["initial_flux_x"] = np.zeros((cells[0] + 1,) + cells[1:] + shape)
+        kwargs["initial_flux_y"] = np.zeros((cells[0], cells[1] + 1, cells[2]) + shape)
+        kwargs["initial_flux_z"] = np.zeros(cells[:2] + (cells[2] + 1,) + shape)
+    return sources, SourceData(**kwargs), geometry, quadrature
+
+
+def coupled_time_problem(time_disc, groups=4, ratios=None):
+    # time_axis_problem with coupled groups and a velocity for each
+    materials = coupled_materials(groups)
+    materials.velocity = np.linspace(4.0, 1.0, groups)
+    if ratios is not None:
+        materials.scatter = np.stack(
+            [ratio * materials.scatter for ratio in ratios], -1
+        )
+    _, sources, geometry, quadrature = time_axis_problem(2, time_disc, materials)
+    return materials, sources, geometry, quadrature
+
+
+def collided_data(materials, groups_c):
+    # Collided materials and the hybrid indexing on a uniform energy grid
+    groups_u = materials.total.shape[1]
+    edges_g, edges_gidx_u, edges_gidx_c = ants.energy_grid(None, groups_u, groups_c)
+    hybrid_data = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
+    if groups_u == groups_c:
+        return materials, hybrid_data, edges_g
+    xs_total, xs_scatter, xs_fission = hytools.coarsen_materials(
+        materials.total,
+        materials.scatter,
+        materials.fission,
+        edges_g[edges_gidx_u],
+        edges_gidx_c,
+    )
+    materials_c = MaterialData(
+        total=xs_total,
+        scatter=xs_scatter,
+        fission=xs_fission,
+        velocity=hytools.coarsen_velocity(materials.velocity, edges_gidx_c),
+    )
+    return materials_c, hybrid_data, edges_g
 
 
 def solution_td_01(x, y, z, angle_x, edges_t):

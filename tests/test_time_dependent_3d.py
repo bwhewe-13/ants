@@ -14,13 +14,7 @@ import pytest
 
 import ants
 from ants import timed3d
-from ants.datatypes import (
-    GeometryData,
-    ParallelType,
-    SolverData,
-    SourceData,
-    TimeDependentData,
-)
+from ants.datatypes import GeometryData, ParallelType, SolverData, TimeDependentData
 from ants.fixed3d import fixed_source
 from tests import problems3d as prob
 
@@ -28,26 +22,13 @@ KWARGS = dict(tol_angular=1e-12, tol_energy=1e-10, max_iter_angular=500)
 
 
 def axis_problem(spatial=2, time_disc=1):
-    # prob.axis_problem with a velocity and the sources of a time-dependent
-    # problem, constant in time with a zero initial flux
-    geometry, sources, quadrature = prob.axis_problem(spatial)
+    # prob.time_axis_problem with two groups
     materials = prob.two_materials(groups=2)
     materials.velocity = np.array([2.0, 1.0])
-    cells = geometry.medium_map.shape
-    shape = (quadrature.angle_w.size, 2)
-    kwargs = dict(
-        external=sources.external[None],
-        boundary_x=sources.boundary_x[None],
-        boundary_y=sources.boundary_y[None],
-        boundary_z=sources.boundary_z[None],
+    steady_sources, sources, geometry, quadrature = prob.time_axis_problem(
+        spatial, time_disc, materials
     )
-    if time_disc in (1, 3):
-        kwargs["initial_flux"] = np.zeros(cells + shape)
-    else:
-        kwargs["initial_flux_x"] = np.zeros((cells[0] + 1,) + cells[1:] + shape)
-        kwargs["initial_flux_y"] = np.zeros((cells[0], cells[1] + 1, cells[2]) + shape)
-        kwargs["initial_flux_z"] = np.zeros(cells[:2] + (cells[2] + 1,) + shape)
-    return materials, sources, SourceData(**kwargs), geometry, quadrature
+    return materials, steady_sources, sources, geometry, quadrature
 
 
 def with_moments(scatter, ratios):
