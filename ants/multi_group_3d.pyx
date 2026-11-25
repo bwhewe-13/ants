@@ -25,6 +25,7 @@ import numpy as np
 from cython.parallel import prange, threadid
 
 from ants cimport cytools_3d as tools
+from ants.cytools_1d cimport _variable_cross_sections, _variable_cross_sections_aniso
 from ants.parameters cimport params
 from ants.spatial_sweep_3d cimport (
     _known_center_sweep,
@@ -306,7 +307,7 @@ cdef void _known_source_angular(double[:,:,:,:,:]& angular_flux, \
         double[:,:,:,:,:]& boundary_z, int[:,:,:]& medium_map, \
         double[:]& delta_x, double[:]& delta_y, double[:]& delta_z, \
         double[:]& angle_x, double[:]& angle_y, double[:]& angle_z, \
-        params info):
+        double[:]& angle_w, params info):
     # source = flux * xs_scatter + external source
     # angular_flux (cells_x, cells_y, cells_z, angles, groups) is
     # overwritten and must not share memory with source
@@ -332,7 +333,8 @@ cdef void _known_source_angular(double[:,:,:,:,:]& angular_flux, \
         _known_center_sweep(angular_flux[:,:,:,:,gg], xs_total[:,gg], zero_3d, \
                 source[:,:,:,:,qq], boundary_x[:,:,:,:,bcx], \
                 boundary_y[:,:,:,:,bcy], boundary_z[:,:,:,:,bcz], medium_map, \
-                delta_x, delta_y, delta_z, angle_x, angle_y, angle_z, info)
+                delta_x, delta_y, delta_z, angle_x, angle_y, angle_z, \
+                angle_w, info)
 
 
 
@@ -373,6 +375,123 @@ cdef void _interface_flux(double[:,:,:,:,:]& flux_edge_x, \
                 boundary_x[:,:,:,:,bcx], boundary_y[:,:,:,:,bcy], \
                 boundary_z[:,:,:,:,bcz], medium_map, delta_x, delta_y, \
                 delta_z, angle_x, angle_y, angle_z, angle_w, info)
+
+
+cdef double[:,:,:,:] variable_source_iteration(double[:,:,:,:]& flux_guess, \
+        double[:,:]& xs_total_u, double[:]& xs_total_c, double[:]& star_coef_c, \
+        double[:,:,:]& xs_scatter_u, double[:]& xs_scatter_c, \
+        double[:,:,:]& off_scatter, double[:,:,:,:,:]& external, \
+        double[:,:,:,:,:]& boundary_x, double[:,:,:,:,:]& boundary_y, \
+        double[:,:,:,:,:]& boundary_z, int[:,:,:]& medium_map, \
+        double[:]& delta_x, double[:]& delta_y, double[:]& delta_z, \
+        double[:]& angle_x, double[:]& angle_y, double[:]& angle_z, \
+        double[:]& angle_w, double[:]& edges_g, int[:]& edges_gidx_c, \
+        params info, int[:,:] q_index=None):
+
+    # Initialize components
+    cdef int gg, qq, bcx, bcy, bcz, idx1, idx2
+    cdef int[:,:] q_cols = tools._source_columns(external.shape[3], \
+                                                 q_index, info)
+
+    # Initialize flux
+    flux = tools.array_4d(info.cells_x, info.cells_y, info.cells_z, info.groups)
+    flux_old = flux_guess.copy()
+    flux_1g = tools.array_3d(info.cells_x, info.cells_y, info.cells_z)
+
+    # Set convergence limits
+    cdef bint converged = False
+    cdef int count = 1
+    cdef double change = 0.0
+
+    # Iterate until energy group convergence
+    while not (converged):
+
+        # Zero out flux
+        flux[:,:,:,:] = 0.0
+
+        # Iterate over energy groups
+        for gg in range(info.groups):
+
+            # Determine dimensions of external and boundary sources
+            qq  = 0 if external.shape[4]   == 1 else gg
+            bcx = 0 if boundary_x.shape[4] == 1 else gg
+            bcy = 0 if boundary_y.shape[4] == 1 else gg
+            bcz = 0 if boundary_z.shape[4] == 1 else gg
+
+            idx1 = edges_gidx_c[gg]
+            idx2 = edges_gidx_c[gg+1]
+
+            _variable_cross_sections(xs_total_c, xs_total_u, star_coef_c[gg], \
+                        xs_scatter_c, xs_scatter_u, edges_g, idx1, idx2, info)
+
+            # Select the specific group from last iteration
+            flux_1g[:,:,:] = flux_old[:,:,:,gg]
+
+            # Calculate up and down scattering term using Gauss-Seidel
+            tools._variable_off_scatter(flux, flux_old, medium_map, xs_scatter_u, \
+                                        off_scatter, gg, edges_g, edges_gidx_c, \
+                                        idx1, idx2, info)
+
+            # Use discrete ordinates for the angular dimension
+            discrete_ordinates(flux[:,:,:,gg], flux_1g, xs_total_c, \
+                    xs_scatter_c, off_scatter, external[:,:,:,:,qq], \
+                    q_cols[:,gg], boundary_x[:,:,:,:,bcx], \
+                    boundary_y[:,:,:,:,bcy], boundary_z[:,:,:,:,bcz], \
+                    medium_map, delta_x, delta_y, delta_z, angle_x, angle_y, \
+                    angle_z, angle_w, info)
+
+        # Check for convergence
+        change = tools.group_convergence(flux, flux_old, info)
+        if isnan(change) or isinf(change):
+            change = 0.5
+        converged = (change < info.tol_energy) or (count >= info.max_iter_energy)
+        count += 1
+
+        # Update old flux
+        flux_old[:,:,:,:] = flux[:,:,:,:]
+
+    # Warn if the energy iterations did not converge
+    if change >= info.tol_energy:
+        warn_not_converged("Multigroup", "max_iter_energy")
+
+    return flux[:,:,:,:]
+
+
+cdef double[:,:,:,:] _known_source_scalar(double[:,:]& xs_total, \
+        double[:,:,:,:,:]& source, double[:,:,:,:,:]& boundary_x, \
+        double[:,:,:,:,:]& boundary_y, double[:,:,:,:,:]& boundary_z, \
+        int[:,:,:]& medium_map, double[:]& delta_x, double[:]& delta_y, \
+        double[:]& delta_z, double[:]& angle_x, double[:]& angle_y, \
+        double[:]& angle_z, double[:]& angle_w, params info):
+    # source = flux * xs_scatter + external source
+
+    # Initialize components
+    cdef int gg, qq, bcx, bcy, bcz
+
+    # Initialize scalar flux
+    scalar_flux = tools.array_5d(info.cells_x, info.cells_y, info.cells_z, \
+                                 info.groups, 1)
+
+    # Set zero matrix placeholder for scattering
+    zero_3d = tools.array_3d(info.cells_x, info.cells_y, info.cells_z)
+
+    # Iterate over groups
+    for gg in range(info.groups):
+
+        # Determine dimensions of external and boundary sources
+        qq = 0 if source.shape[4] == 1 else gg
+        bcx = 0 if boundary_x.shape[4] == 1 else gg
+        bcy = 0 if boundary_y.shape[4] == 1 else gg
+        bcz = 0 if boundary_z.shape[4] == 1 else gg
+
+        # Perform angular sweep
+        _known_center_sweep(scalar_flux[:,:,:,gg], xs_total[:,gg], zero_3d, \
+                source[:,:,:,:,qq], boundary_x[:,:,:,:,bcx], \
+                boundary_y[:,:,:,:,bcy], boundary_z[:,:,:,:,bcz], medium_map, \
+                delta_x, delta_y, delta_z, angle_x, angle_y, angle_z, \
+                angle_w, info)
+
+    return scalar_flux[:,:,:,:,0]
 
 
 ########################################################################
@@ -691,3 +810,126 @@ cdef double[:,:,:,:,:] dynamic_mode_decomp_aniso(double[:,:,:,:,:]& flux_guess, 
                     info.cells_y, info.cells_z, info.groups, info.moments)
 
     return flux_dmd[:,:,:,:,:]
+
+
+cdef double[:,:,:,:,:] variable_source_iteration_moments( \
+        double[:,:,:,:,:]& flux_guess, double[:,:]& xs_total_u, \
+        double[:]& star_coef_c, double[:,:,:,:]& xs_scatter_u, \
+        double[:,:,:,:,:]& external, double[:,:,:,:,:]& boundary_x, \
+        double[:,:,:,:,:]& boundary_y, double[:,:,:,:,:]& boundary_z, \
+        int[:,:,:]& medium_map, double[:]& delta_x, double[:]& delta_y, \
+        double[:]& delta_z, double[:]& angle_x, double[:]& angle_y, \
+        double[:]& angle_z, double[:]& angle_w, double[:]& edges_g, \
+        int[:]& edges_gidx_c, double[:,:]& P_source, double[:,:]& P_weights, \
+        params info, int[:,:] q_index=None):
+
+    # Initialize components
+    cdef int gg, qq, bcx, bcy, bcz, idx1, idx2
+    cdef int[:,:] q_cols = tools._source_columns(external.shape[3], \
+                                                 q_index, info)
+
+    # Initialize flux moments
+    flux = tools.array_5d(info.cells_x, info.cells_y, info.cells_z, \
+                          info.groups, info.moments)
+    flux_old = flux_guess.copy()
+    flux_1g = tools.array_4d(info.cells_x, info.cells_y, info.cells_z, \
+                             info.moments)
+
+    # Create collided and off-scattering terms
+    xs_total_c = tools.array_1d(info.materials)
+    xs_scatter_c = tools.array_2d(info.materials, info.moments)
+    off_scatter = tools.array_4d(info.cells_x, info.cells_y, info.cells_z, \
+                                 info.moments)
+
+    # Isotropic scattering
+    if info.moments == 1:
+        flux[:,:,:,:,0] = variable_source_iteration(flux_guess[:,:,:,:,0], \
+                    xs_total_u, xs_total_c, star_coef_c, xs_scatter_u[:,:,:,0], \
+                    xs_scatter_c[:,0], off_scatter[:,:,:,0], external, \
+                    boundary_x, boundary_y, boundary_z, medium_map, delta_x, \
+                    delta_y, delta_z, angle_x, angle_y, angle_z, angle_w, \
+                    edges_g, edges_gidx_c, info, q_index)
+        return flux[:,:,:,:,:]
+
+    # Set convergence limits
+    cdef bint converged = False
+    cdef int count = 1
+    cdef double change = 0.0
+
+    # Iterate until energy group convergence
+    while not (converged):
+
+        # Zero out flux
+        flux[:,:,:,:,:] = 0.0
+
+        # Iterate over energy groups
+        for gg in range(info.groups):
+
+            # Determine dimensions of external and boundary sources
+            qq  = 0 if external.shape[4]   == 1 else gg
+            bcx = 0 if boundary_x.shape[4] == 1 else gg
+            bcy = 0 if boundary_y.shape[4] == 1 else gg
+            bcz = 0 if boundary_z.shape[4] == 1 else gg
+
+            idx1 = edges_gidx_c[gg]
+            idx2 = edges_gidx_c[gg+1]
+
+            _variable_cross_sections_aniso(xs_total_c, xs_total_u, \
+                        star_coef_c[gg], xs_scatter_c, xs_scatter_u, edges_g, \
+                        idx1, idx2, info)
+
+            # Select the specific group from last iteration
+            flux_1g[:,:,:,:] = flux_old[:,:,:,gg,:]
+
+            # Calculate up and down scattering moments using Gauss-Seidel
+            tools._variable_off_scatter_aniso(flux, flux_old, medium_map, \
+                        xs_scatter_u, off_scatter, gg, edges_g, edges_gidx_c, \
+                        idx1, idx2, info)
+
+            # Use discrete ordinates for the angular dimension
+            discrete_ordinates_aniso(flux[:,:,:,gg,:], flux_1g, xs_total_c, \
+                    xs_scatter_c, off_scatter, external[:,:,:,:,qq], \
+                    q_cols[:,gg], boundary_x[:,:,:,:,bcx], \
+                    boundary_y[:,:,:,:,bcy], boundary_z[:,:,:,:,bcz], \
+                    medium_map, delta_x, delta_y, delta_z, angle_x, angle_y, \
+                    angle_z, P_source, P_weights, info)
+
+        # Check for convergence
+        change = tools.group_convergence(flux[:,:,:,:,0], flux_old[:,:,:,:,0], info)
+        if isnan(change) or isinf(change):
+            change = 0.5
+        converged = (change < info.tol_energy) or (count >= info.max_iter_energy)
+        count += 1
+
+        # Update old flux
+        flux_old[:,:,:,:,:] = flux[:,:,:,:,:]
+
+    # Warn if the energy iterations did not converge
+    if change >= info.tol_energy:
+        warn_not_converged("Multigroup", "max_iter_energy")
+
+    return flux[:,:,:,:,:]
+
+
+cdef double[:,:,:,:,:] _known_source_moments(double[:,:]& xs_total, \
+        double[:,:,:,:,:]& source, double[:,:,:,:,:]& boundary_x, \
+        double[:,:,:,:,:]& boundary_y, double[:,:,:,:,:]& boundary_z, \
+        int[:,:,:]& medium_map, double[:]& delta_x, double[:]& delta_y, \
+        double[:]& delta_z, double[:]& angle_x, double[:]& angle_y, \
+        double[:]& angle_z, double[:]& angle_w, double[:,:]& P_weights, \
+        params info):
+    # Flux moments from a known source (I x J x K x N x G)
+    flux = tools.array_5d(info.cells_x, info.cells_y, info.cells_z, \
+                          info.groups, info.moments)
+    if info.moments == 1:
+        flux[:,:,:,:,0] = _known_source_scalar(xs_total, source, boundary_x, \
+                        boundary_y, boundary_z, medium_map, delta_x, delta_y, \
+                        delta_z, angle_x, angle_y, angle_z, angle_w, info)
+        return flux[:,:,:,:,:]
+    angular_flux = tools.array_5d(info.cells_x, info.cells_y, info.cells_z, \
+                                  info.angles, info.groups)
+    _known_source_angular(angular_flux, xs_total, source, boundary_x, \
+                        boundary_y, boundary_z, medium_map, delta_x, delta_y, \
+                        delta_z, angle_x, angle_y, angle_z, angle_w, info)
+    tools._angular_to_moments(angular_flux, flux, P_weights, info)
+    return flux[:,:,:,:,:]

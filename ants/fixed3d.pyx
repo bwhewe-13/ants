@@ -208,7 +208,7 @@ def source_iteration_as(double[:,:,:,:] flux_guess, double[:,:] xs_total, \
         tools._source_total(source, flux, xs_matrix, medium_map, combined, info)
         mg._known_source_angular(psi, xs_total_as, source, boundary_x, \
                     boundary_y, boundary_z, medium_map, delta_x, delta_y, \
-                    delta_z, angle_x, angle_y, angle_z, info)
+                    delta_z, angle_x, angle_y, angle_z, angle_w, info)
         return np.asarray(psi)
 
     def change(flux, flux_old):
@@ -258,7 +258,7 @@ def known_flux(double[:,:,:,:] flux, double[:,:] xs_total, \
                                       info.angles, info.groups)
         mg._known_source_angular(angular_flux, xs_total, source, boundary_x, \
                                  boundary_y, boundary_z, medium_map, delta_x, \
-                                 delta_y, delta_z, angle_x, angle_y, angle_z, info)
+                                 delta_y, delta_z, angle_x, angle_y, angle_z, angle_w, info)
         return np.asarray(angular_flux)
 
     # Solve for angular or scalar flux at cell interfaces
@@ -409,7 +409,7 @@ def source_iteration_as_aniso(double[:,:,:,:,:] flux_guess, \
                                   combined, P_source, info)
         mg._known_source_angular(psi, xs_total_as, source, boundary_x, \
                     boundary_y, boundary_z, medium_map, delta_x, delta_y, \
-                    delta_z, angle_x, angle_y, angle_z, info)
+                    delta_z, angle_x, angle_y, angle_z, angle_w, info)
         return np.asarray(psi)
 
     def change(flux, flux_old):
@@ -460,7 +460,7 @@ def known_flux_moments(double[:,:,:,:,:] flux, double[:,:] xs_total, \
                                       info.angles, info.groups)
         mg._known_source_angular(angular_flux, xs_total, source, boundary_x, \
                                  boundary_y, boundary_z, medium_map, delta_x, \
-                                 delta_y, delta_z, angle_x, angle_y, angle_z, info)
+                                 delta_y, delta_z, angle_x, angle_y, angle_z, angle_w, info)
         return np.asarray(angular_flux)
 
     # Solve for angular or scalar flux at cell interfaces
