@@ -10,6 +10,10 @@
   parallelism, `TimeDependentData.save_to_file`, and the BDF2 restart with
   `restart_bdf2` and `angular_bdf2`. CN and TR-BDF2 take the initial flux at
   the z faces with the new `SourceData.initial_flux_z`.
+- Three-dimensional hybrid problems with `ants.hybrid3d.time_dependent` and
+  `ants.vhybrid3d.time_dependent`, with the same time discretizations,
+  scattering, and inputs as the 2D hybrid methods. `hybrid3d` also has the
+  BDF2 restart with `restart_bdf2`.
 
 ### Changed
 - The GitHub workflows use the Node 24 versions of `actions/checkout`,

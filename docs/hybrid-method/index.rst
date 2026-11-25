@@ -6,3 +6,4 @@ Collision-Based Hybrid Method
    methodology.rst
    one-dimensional.rst
    two-dimensional.rst
+   three-dimensional.rst
