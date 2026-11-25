@@ -132,6 +132,15 @@ def test_energy_grid_public_legacy():
     assert np.array_equal(edges_g, ants.get_structure("shem_cea_epm_361"))
 
 
+@pytest.mark.parametrize(("grid", "groups_c"), [(4, 2), (10, 3), (618, 100)])
+def test_variable_hybrid_index(grid, groups_c):
+    # The collided groups of the variable hybrid method cover every fine
+    # group, as in energy_grid
+    _, _, edges_gidx_c = ants.energy_grid(grid, grid, groups_c)
+    assert np.array_equal(ants._energy_grid(grid, groups_c), edges_gidx_c)
+    assert ants._energy_grid(grid, groups_c)[-1] == grid
+
+
 @pytest.mark.skipif(
     not os.path.isfile(os.path.join(DATA_PATH, "energy_grids.npz")),
     reason="Local energy grids are not available",

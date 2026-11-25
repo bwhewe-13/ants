@@ -23,7 +23,8 @@
 
 ## Updates for 0.4.0
 - [x] Add 3D time-dependent problems.
-- [ ] Add 3D criticality, hybrid, and nearby problems.
+- [x] Add 3D hybrid problems.
+- [ ] Add 3D criticality and nearby problems.
 - [ ] Limit the memory footprint of the 3D solvers.
 - [ ] Add adjoint equations (1D/2D/3D).
 - [ ] Add 2D/1D projections.

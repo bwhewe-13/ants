@@ -211,10 +211,14 @@ Available Time-Dependent Solvers
      - 1D time-dependent with collision-based hybrid acceleration
    * - ``ants.hybrid2d``
      - 2D time-dependent with collision-based hybrid acceleration
+   * - ``ants.hybrid3d``
+     - 3D time-dependent with collision-based hybrid acceleration
    * - ``ants.vhybrid1d``
      - 1D time-dependent with vectorized hybrid (per-step coarse resolution)
    * - ``ants.vhybrid2d``
      - 2D time-dependent with vectorized hybrid (per-step coarse resolution)
+   * - ``ants.vhybrid3d``
+     - 3D time-dependent with vectorized hybrid (per-step coarse resolution)
 
 All modules expose a single public function ``time_dependent()``.
 
@@ -230,8 +234,8 @@ The collision-based hybrid method decomposes the problem into:
 This reduces computational cost when the collided flux is smoother than the
 uncollided flux (common in multigroup streaming-dominated problems).
 
-Standard hybrid (``hybrid1d``, ``hybrid2d``) requires two ``MaterialData`` objects
-(one for each resolution) and a ``HybridData`` object encoding the group indexing::
+Standard hybrid (``hybrid1d``, ``hybrid2d``, ``hybrid3d``) requires two
+``MaterialData`` objects (one for each resolution) and a ``HybridData`` object encoding the group indexing::
 
     from ants.datatypes import HybridData
     from ants.utils import hybrid as hytools
@@ -239,8 +243,8 @@ Standard hybrid (``hybrid1d``, ``hybrid2d``) requires two ``MaterialData`` objec
     fine_idx, coarse_idx, factor = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
     hybrid_data = HybridData(fine_idx=fine_idx, coarse_idx=coarse_idx, factor=factor)
 
-The vectorized hybrid (``vhybrid1d``, ``vhybrid2d``) instead accepts per-step integer
-arrays and handles coarsening internally::
+The vectorized hybrid (``vhybrid1d``, ``vhybrid2d``, ``vhybrid3d``) instead accepts
+per-step integer arrays and handles coarsening internally::
 
     vgroups_c = np.array([groups_c] * steps, dtype=np.int32)
     vangles_c = np.array([angles_c] * steps, dtype=np.int32)

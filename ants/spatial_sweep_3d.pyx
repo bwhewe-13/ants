@@ -248,12 +248,16 @@ cdef void _known_center_sweep(double[:,:,:,:]& flux, double[:]& xs_total, \
         double[:,:,:,:]& boundary_z, int[:,:,:]& medium_map, \
         double[:]& delta_x, double[:]& delta_y, double[:]& delta_z, \
         double[:]& angle_x, double[:]& angle_y, double[:]& angle_z, \
-        params info):
-    # Angular flux (cells_x, cells_y, cells_z, angles) for a known source
+        double[:]& angle_w, params info):
+    # Angular flux (cells_x, cells_y, cells_z, angles) or scalar flux
+    # (cells_x, cells_y, cells_z, 1) for a known source
 
     # Initialize indices etc
     cdef int nn, qq, bcx, bcy, bcz
     cdef int NN = info.angles
+
+    # Add dummy dimension to run both angular and scalar fluxes
+    cdef int xdim = flux.shape[3]
 
     # Add known edge and reflector arrays
     known_x = tools.array_2d(info.cells_y, info.cells_z)
@@ -283,11 +287,19 @@ cdef void _known_center_sweep(double[:,:,:,:]& flux, double[:]& xs_total, \
         tools.initialize_known(known_z, boundary_z[:,:,:,bcz], reflected_z, \
                                angle_z[nn], nn, info.bc_z[0], info.bc_z[1])
 
+        # Perform spatial sweep - scalar flux
+        if xdim == 1:
+            cube_sweep(flux[:,:,:,0], zero_3d, xs_total, zero_1d, zero_3d, \
+                    source[:,:,:,qq], known_x, known_y, known_z, medium_map, \
+                    delta_x, delta_y, delta_z, angle_x[nn], angle_y[nn], \
+                    angle_z[nn], angle_w[nn], info)
+
         # Perform spatial sweep - angular flux
-        cube_sweep(flux[:,:,:,nn], zero_3d, xs_total, zero_1d, zero_3d, \
-                source[:,:,:,qq], known_x, known_y, known_z, medium_map, \
-                delta_x, delta_y, delta_z, angle_x[nn], angle_y[nn], \
-                angle_z[nn], 1.0, info)
+        else:
+            cube_sweep(flux[:,:,:,nn], zero_3d, xs_total, zero_1d, zero_3d, \
+                    source[:,:,:,qq], known_x, known_y, known_z, medium_map, \
+                    delta_x, delta_y, delta_z, angle_x[nn], angle_y[nn], \
+                    angle_z[nn], 1.0, info)
 
         # Save known_x, known_y, known_z into reflected
         tools.update_reflector(known_x, reflected_x, known_y, reflected_y, \

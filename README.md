@@ -27,7 +27,7 @@ A Neutron Transport Solution (ANTS) solves the neutron transport equation with t
 | Spatial      | Step, diamond difference, step characteristic | Step, diamond difference, step characteristic | Step, diamond difference, step characteristic |
 | Time         | Backward Euler, Crank-Nicolson, BDF2, TR-BDF2 | Backward Euler, Crank-Nicolson, BDF2, TR-BDF2 | Backward Euler, Crank-Nicolson, BDF2, TR-BDF2 |
 | Scattering   | Isotropic, anisotropic | Isotropic, anisotropic | Isotropic, anisotropic |
-| Acceleration | DMD, hybrid | DMD, hybrid, as-S<sub>N</sub> | DMD, as-S<sub>N</sub> |
+| Acceleration | DMD, hybrid | DMD, hybrid, as-S<sub>N</sub> | DMD, hybrid, as-S<sub>N</sub> |
 | Verification | Manufactured solutions, Sood benchmarks, ICSBEP, nearby problems | Manufactured solutions, Sood benchmarks, nearby problems | Manufactured solutions, Kobayashi benchmarks |
 
 DMD is dynamic mode decomposition, hybrid is the collision-based hybrid method, and

@@ -82,7 +82,8 @@ def energy_grid(grid, groups_fine, groups_coarse=None, optimize=True):
 
 # Called from cython
 def _energy_grid(grid, energy_groups):
-    _, edges_gidx = energy_grid(grid, energy_groups)
+    # Coarse group index of a fine grid with grid groups
+    _, _, edges_gidx = energy_grid(grid, grid, energy_groups)
     return edges_gidx
 
 

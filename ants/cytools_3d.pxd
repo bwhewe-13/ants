@@ -158,8 +158,41 @@ cdef void _time_source_star_tr_bdf2(double[:,:,:,:,:]& psi_x, \
         double[:,:,:,:,:]& external, double[:]& velocity, double gamma, \
         params info)
 
+cdef void _time_source_star_tr_bdf2_mem(double[:,:,:,:,:]& psi_x, \
+        double[:,:,:,:,:]& psi_y, double[:,:,:,:,:]& psi_z, \
+        double[:,:,:,:,:]& flux_2, double[:,:,:,:,:]& external, \
+        double[:]& velocity, double gamma, params info)
+
 cdef void _time_right_side(double[:,:,:,:,:]& q_star, double[:,:,:,:]& flux, \
         double[:,:,:]& xs_scatter, int[:,:,:]& medium_map, params info)
+
+################################################################################
+# Hybrid Time Dependent functions
+################################################################################
+cdef void _hybrid_source_collided(double[:,:,:,:]& flux, \
+        double[:,:,:]& xs_scatter, double[:,:,:,:,:]& source_c, \
+        int[:,:,:]& medium_map, int[:]& coarse_idx, params info_u)
+
+cdef void _hybrid_source_total(double[:,:,:,:]& flux_u, \
+        double[:,:,:,:]& flux_c, double[:,:,:]& xs_matrix, \
+        double[:,:,:,:,:]& source, int[:,:,:]& medium_map, int[:]& coarse_idx, \
+        double[:]& factor_u, params info_u, params info_c)
+
+cdef void _vhybrid_source_c(double[:,:,:,:]& flux_u, \
+        double[:,:,:]& xs_scatter, double[:,:,:,:,:]& source_c, \
+        int[:,:,:]& medium_map, int[:]& edges_gidx_c, params info_u, \
+        params info_c)
+
+cdef void _variable_off_scatter(double[:,:,:,:]& flux, \
+        double[:,:,:,:]& flux_old, int[:,:,:]& medium_map, \
+        double[:,:,:]& xs_matrix, double[:,:,:]& off_scatter, int group, \
+        double[:]& edges_g, int[:]& edges_gidx_c, int out_idx1, int out_idx2, \
+        params info)
+
+cdef void _vhybrid_source_total(double[:,:,:,:]& flux_u, \
+        double[:,:,:,:]& flux_c, double[:,:,:]& xs_matrix_u, \
+        double[:,:,:,:,:]& source, int[:,:,:]& medium_map, double[:]& edges_g, \
+        int[:]& edges_gidx_c, params info_u, params info_c)
 
 ################################################################################
 # Anisotropic time dependent functions
@@ -184,3 +217,37 @@ cdef void _time_source_star_cn_aniso(double[:,:,:,:,:]& psi_x, \
 cdef void _time_right_side_aniso(double[:,:,:,:,:]& q_star, \
         double[:,:,:,:,:]& flux, double[:,:,:,:]& xs_scatter, \
         int[:,:,:]& medium_map, double[:,:]& P_source, params info)
+
+################################################################################
+# Anisotropic hybrid time dependent functions
+################################################################################
+cdef void _hybrid_source_collided_aniso(double[:,:,:,:,:]& flux_u, \
+        double[:,:,:,:]& xs_scatter, double[:,:,:,:,:]& source_c, \
+        int[:,:,:]& medium_map, int[:]& coarse_idx, double[:,:]& P_source_c, \
+        params info_u, params info_c)
+
+cdef void _hybrid_source_total_aniso(double[:,:,:,:,:]& flux_u, \
+        double[:,:,:,:,:]& flux_c, double[:,:,:,:]& xs_matrix, \
+        double[:,:,:,:,:]& source, int[:,:,:]& medium_map, int[:]& coarse_idx, \
+        double[:]& factor_u, double[:,:]& P_source_u, params info_u, \
+        params info_c)
+
+cdef void _vhybrid_source_c_aniso(double[:,:,:,:,:]& flux_u, \
+        double[:,:,:,:]& xs_scatter, double[:,:,:,:,:]& source_c, \
+        int[:,:,:]& medium_map, int[:]& edges_gidx_c, double[:,:]& P_source_c, \
+        params info_u, params info_c)
+
+cdef void _coarsen_moments(double[:,:,:,:,:]& flux_u, \
+        double[:,:,:,:,:]& flux_c, int[:]& edges_gidx_c, params info_c)
+
+cdef void _variable_off_scatter_aniso(double[:,:,:,:,:]& flux, \
+        double[:,:,:,:,:]& flux_old, int[:,:,:]& medium_map, \
+        double[:,:,:,:]& xs_matrix, double[:,:,:,:]& off_scatter, int group, \
+        double[:]& edges_g, int[:]& edges_gidx_c, int out_idx1, int out_idx2, \
+        params info)
+
+cdef void _vhybrid_source_total_aniso(double[:,:,:,:,:]& flux_u, \
+        double[:,:,:,:,:]& flux_c, double[:,:,:,:]& xs_matrix_u, \
+        double[:,:,:,:,:]& source, int[:,:,:]& medium_map, double[:]& edges_g, \
+        int[:]& edges_gidx_c, double[:,:]& P_source_u, params info_u, \
+        params info_c)

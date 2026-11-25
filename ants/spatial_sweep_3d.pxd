@@ -50,7 +50,7 @@ cdef void _known_center_sweep(double[:,:,:,:]& flux, double[:]& xs_total, \
         double[:,:,:,:]& boundary_z, int[:,:,:]& medium_map, \
         double[:]& delta_x, double[:]& delta_y, double[:]& delta_z, \
         double[:]& angle_x, double[:]& angle_y, double[:]& angle_z, \
-        params info)
+        double[:]& angle_w, params info)
 
 
 cdef void _known_interface_sweep(double[:,:,:,:]& flux_edge_x, \

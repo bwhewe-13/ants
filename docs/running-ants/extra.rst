@@ -166,7 +166,7 @@ HybridData
 -----------
 
 Required for the standard collision-based hybrid solvers (``hybrid1d``,
-``hybrid2d``). Generated from the group indexing arrays:
+``hybrid2d``, ``hybrid3d``). Generated from the group indexing arrays:
 
 .. code-block:: python
 
@@ -175,7 +175,8 @@ Required for the standard collision-based hybrid solvers (``hybrid1d``,
     fine_idx, coarse_idx, factor = hytools.indexing(edges_g, edges_gidx_u, edges_gidx_c)
     hybrid_data = HybridData(fine_idx=fine_idx, coarse_idx=coarse_idx, factor=factor)
 
-Not needed for the vectorized hybrid (``vhybrid1d``, ``vhybrid2d``).
+Not needed for the vectorized hybrid (``vhybrid1d``, ``vhybrid2d``,
+``vhybrid3d``).
 
 
 Complete Example: Fixed Source 1D
