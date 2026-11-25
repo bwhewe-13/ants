@@ -11,6 +11,17 @@
   `restart_bdf2` and `angular_bdf2`. CN and TR-BDF2 take the initial flux at
   the z faces with the new `SourceData.initial_flux_z`.
 
+### Changed
+- The GitHub workflows use the Node 24 versions of `actions/checkout`,
+  `actions/setup-python`, `actions/upload-artifact`,
+  `actions/download-artifact`, `actions/upload-pages-artifact`, and
+  `actions/deploy-pages`.
+
+### Fixed
+- The variable hybrid methods collapse every fine group into the collided
+  groups when the fine grid is not one of the 87, 361, or 618 group grids.
+  Before, the collided groups only covered the first fine groups.
+
 ## 0.3.1 (2026-11-08)
 
 ### Added
